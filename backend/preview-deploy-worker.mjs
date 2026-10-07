@@ -5,7 +5,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/')) return handleApi(request);
-    if (url.pathname === '/robots.txt') return new Response('User-agent: *\nDisallow: /\n', { headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex, nofollow' } });
+    if (url.pathname === '/robots.txt') return new Response('User-agent: AhrefsSiteAudit\nAllow: /\n\nUser-agent: AhrefsBot\nAllow: /\n\nUser-agent: *\nDisallow: /\n', { headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex, nofollow' } });
 
     let response = await env.ASSETS.fetch(request);
     if (response.status === 404 && ['GET', 'HEAD'].includes(request.method) && request.headers.get('accept')?.includes('text/html')) {

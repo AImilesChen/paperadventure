@@ -43,13 +43,15 @@ try {
       .replace(/\s*<meta name="description"[^>]*>/, '')
       .replace(/\s*<meta name="robots"[^>]*>/, '')
       .replace('</head>', `    ${tags}\n  </head>`)
-      .replace('<div id="root"></div>', `<div id="root">${markup}</div>`);
+      .replace('<div id="root" data-clarity-mask="true"></div>', `<div id="root" data-clarity-mask="true">${markup}</div>`);
     if (!html.includes(markup)) throw new Error(`Failed to render ${record.path}`);
     const target = path.join(out, record.path.slice(1), 'index.html');
     await mkdir(path.dirname(target), { recursive: true });
     await writeFile(target, html);
   }
-  await writeFile(path.join(out, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
+  // Let the owner's Ahrefs audit crawl the preview; all other bots remain blocked.
+  // noindex remains in HTML and response headers until the release gates pass.
+  await writeFile(path.join(out, 'robots.txt'), 'User-agent: AhrefsSiteAudit\nAllow: /\n\nUser-agent: AhrefsBot\nAllow: /\n\nUser-agent: *\nDisallow: /\n');
   await writeFile(path.join(out, '_headers'), '/*\n  X-Robots-Tag: noindex, nofollow\n');
   console.log(`Generated ${publicPages.length} pre-rendered, noindex pages for ${origin}`);
 } finally {

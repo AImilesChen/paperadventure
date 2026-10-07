@@ -13,5 +13,5 @@ test('hosted preview serves SPA routes without enabling checkout and blocks inde
   assert.equal(payment.status, 503);
   assert.equal((await payment.json()).error.code, 'CHECKOUT_NOT_READY');
   const robots = await worker.fetch(new Request('https://preview.paperadventure.app/robots.txt'), env);
-  assert.match(await robots.text(), /Disallow: \//);
+  assert.match(await robots.text(), /User-agent: AhrefsSiteAudit\nAllow: \//);
 });

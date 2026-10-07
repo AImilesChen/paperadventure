@@ -1,36 +1,49 @@
 import { pageFor } from '../shared/page-manifest.mjs';
+import { analyticsConfig } from './analytics-config.js';
 
-// No vendor script loads until IDs, the privacy release gate, and the visitor's
-// explicit choice are all present. Events never include form text or query data.
-const gaId = import.meta.env.VITE_GA4_ID?.trim() || '';
-const clarityId = import.meta.env.VITE_CLARITY_ID?.trim() || '';
+// No vendor script loads until the privacy release gate and the visitor's
+// explicit choice are both present. Custom events omit form text and queries.
+const gaId = import.meta.env.VITE_GA4_ID?.trim() || analyticsConfig.ga4Id;
+const clarityId = import.meta.env.VITE_CLARITY_ID?.trim() || analyticsConfig.clarityId;
+const ahrefsKey = import.meta.env.VITE_AHREFS_KEY?.trim() || analyticsConfig.ahrefsKey;
+const plausibleDomain = import.meta.env.VITE_PLAUSIBLE_DOMAIN?.trim() || analyticsConfig.plausibleDomain;
 const released = import.meta.env.VITE_ANALYTICS_RELEASED === 'true';
-const consentKey = 'paw-analytics-choice-v1';
+// Adding two vendors requires a new opt-in; never reuse the earlier choice.
+const consentKey = 'paw-analytics-choice-v2';
+let sessionChoice = null;
 let started = false;
 let lastPath = '';
 
 export function analyticsAvailable() {
-  return released && /^G-[A-Z0-9]+$/.test(gaId) && /^[a-z0-9]+$/i.test(clarityId);
+  return released && /^G-[A-Z0-9]+$/.test(gaId) && /^[a-z0-9]+$/i.test(clarityId)
+    && /^[A-Za-z0-9]+$/.test(ahrefsKey) && plausibleDomain === 'paperadventure.app';
 }
 
 export function analyticsChoice() {
   try {
     const value = localStorage.getItem(consentKey);
-    return value === 'granted' || value === 'denied' ? value : null;
-  } catch { return null; }
+    if (value === 'granted' || value === 'denied') return value;
+  } catch { /* Use this page's in-memory choice when storage is unavailable. */ }
+  return sessionChoice;
 }
 
 export function saveAnalyticsChoice(value) {
   if (value !== 'granted' && value !== 'denied') throw new Error('Invalid analytics choice');
+  sessionChoice = value;
   try { localStorage.setItem(consentKey, value); } catch { /* Session-only choice if storage is unavailable. */ }
   if (value === 'granted') startAnalytics();
-  else if (started) window.location.reload(); // Unloads both vendors after withdrawal.
+  else if (started) {
+    window.gtag?.('consent', 'update', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied' });
+    window.clarity?.('consentv2', { ad_Storage: 'denied', analytics_Storage: 'denied' });
+    window.location.reload(); // Unloads all four vendor scripts after withdrawal.
+  }
 }
 
-function loadScript(src) {
+function loadScript(src, attributes = {}) {
   const script = document.createElement('script');
   script.async = true;
   script.src = src;
+  for (const [key, value] of Object.entries(attributes)) script.setAttribute(key, value);
   document.head.appendChild(script);
 }
 
@@ -39,6 +52,8 @@ export function startAnalytics() {
   started = true;
   window.dataLayer = window.dataLayer || [];
   window.gtag = function gtag() { window.dataLayer.push(arguments); };
+  window.gtag('consent', 'default', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied' });
+  window.gtag('consent', 'update', { analytics_storage: 'granted' });
   window.gtag('js', new Date());
   window.gtag('config', gaId, { send_page_view: false });
   loadScript(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaId)}`);
@@ -46,6 +61,8 @@ export function startAnalytics() {
   window.clarity = window.clarity || function clarity() { (window.clarity.q = window.clarity.q || []).push(arguments); };
   window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' });
   loadScript(`https://www.clarity.ms/tag/${encodeURIComponent(clarityId)}`);
+  loadScript('https://analytics.ahrefs.com/analytics.js', { 'data-key': ahrefsKey });
+  loadScript(analyticsConfig.plausibleScript, { 'data-domain': plausibleDomain });
   trackPageView();
 }
 
