@@ -1,0 +1,11 @@
+node_modules/
+dist/
+output/
+tmp/
+.npm-cache/
+.wrangler/
+.wrangler-preview-build/
+.env
+.env.*
+!.env.example
+*.log
