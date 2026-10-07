@@ -1,0 +1,96 @@
+{
+  "version": "0.1",
+  "themeWorldId": "celebration",
+  "candidateFreeSample": true,
+  "publishedFreeSample": false,
+  "items": [
+    {
+      "file": "output/pdf/celebration-H01-player-v0.1-A4.pdf",
+      "setting": "home",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 115572,
+      "sha256": "32e0b68d26ecf9da42baf704754ef9aa9cdb8428ee925f5b5c9ed84c12551cb5",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/celebration-H01-host-v0.1-A4.pdf",
+      "setting": "home",
+      "role": "host",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 111028,
+      "sha256": "38cf246e44c051cf95f727809e3a83e25a0086ef4a22f3ccfcd42a73de3d3ac1",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/celebration-C01-player-v0.1-A4.pdf",
+      "setting": "classroom",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 1799322,
+      "sha256": "a77c5978933f01b0d0adcd9a67390a800629b5f8e4ce0c4c3f4ccbab8d21b878",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/celebration-C01-teacher-v0.1-A4.pdf",
+      "setting": "classroom",
+      "role": "teacher",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 111012,
+      "sha256": "72c18c02088f638c1f33681ea231f3f5e8e66a3fb2ffab3c0c1def21c9e9d5a8",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/celebration-H01-player-v0.1-Letter.pdf",
+      "setting": "home",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 115330,
+      "sha256": "d30818bb013927f8a3d901cc69809bba062a949fbb50e81ceaf893bb7edd3dff",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/celebration-H01-host-v0.1-Letter.pdf",
+      "setting": "home",
+      "role": "host",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 110922,
+      "sha256": "ad1f3ce2c72028ac892703224cb6431f82757e829637dceaeae417f44d77cc0b",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/celebration-C01-player-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 1799104,
+      "sha256": "8d4c0ae345e87b837a275d85d248af2015c3891dd72dba5ff35a2ebcd5e404b5",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/celebration-C01-teacher-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "role": "teacher",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 110932,
+      "sha256": "19711f002d5a7de70d60e60af4a83efde0a789734f22c6d27a328f108a4e774f",
+      "status": "draft",
+      "public": false
+    }
+  ]
+}

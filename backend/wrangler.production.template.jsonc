@@ -1,0 +1,35 @@
+{
+  // Copy to a local deployment config only after resources and release checks are complete.
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "paper-adventure-workshop",
+  "main": "./production-worker.mjs",
+  "compatibility_date": "2026-10-07",
+  "assets": {
+    "directory": "../dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [{ "binding": "DB", "database_name": "REPLACE_WITH_D1_NAME", "database_id": "REPLACE_WITH_D1_ID" }],
+  "r2_buckets": [{ "binding": "PRIVATE_FILES", "bucket_name": "REPLACE_WITH_PRIVATE_BUCKET" }],
+  "queues": {
+    "producers": [{ "binding": "GENERATION_QUEUE", "queue": "REPLACE_WITH_QUEUE_NAME" }],
+    "consumers": [{ "queue": "REPLACE_WITH_QUEUE_NAME", "max_batch_size": 1, "max_retries": 2 }]
+  },
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "vars": {
+    "PUBLIC_ORIGIN": "https://paperadventure.app",
+    "OPENAI_MODEL": "REPLACE_WITH_APPROVED_MODEL",
+    "CUSTOM_LICENCE_VERSION": "draft-not-approved",
+    "SUPPORTED_AGE_MIN": "0",
+    "SUPPORTED_AGE_MAX": "0",
+    "HOME_PLAYER_MAX": "0",
+    "CLASSROOM_STUDENT_MAX": "0",
+    "CHECKOUT_ENABLED": "false",
+    "LEGAL_RELEASED": "false",
+    "TAX_CONFIGURED": "false",
+    "LIVE_PAYMENTS_ENABLED": "false",
+    "FREE_SAMPLE_ENABLED": "false",
+    "PROPOSALS_ENABLED": "false"
+  }
+}
