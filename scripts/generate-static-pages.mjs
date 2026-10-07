@@ -9,7 +9,7 @@ import { publicPages } from '../shared/page-manifest.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
-const origin = process.env.SITE_ORIGIN || 'https://preview.paperadventure.app';
+const origin = process.env.SITE_ORIGIN || 'https://paperadventure.app';
 if (!/^https:\/\/[^/]+$/.test(origin)) throw new Error('SITE_ORIGIN must be an HTTPS origin without a path');
 
 // Publication remains gated by real packs, reviewed policies and live-service QA.

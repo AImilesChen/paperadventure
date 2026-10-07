@@ -2,15 +2,15 @@
 
 ## Cloudflare design preview deployed 2026-10-07
 
-The static design preview is live at **https://preview.paperadventure.app/en/** on Cloudflare Worker `paper-adventure-preview-v2`. Cloudflare's dashboard ZIP upload was used because this environment has no authorized Wrangler credentials. The upload contains only `dist/client` assets, route-specific `index.html` copies for the current `/en/.../` paths, a `robots.txt` that disallows crawling, and a `_headers` rule setting `X-Robots-Tag: noindex, nofollow`. The deployable ZIP is `output/paper-adventure-preview.zip`; its unpacked contents are in `output/cloudflare-preview-upload/`.
+The static design preview is live at **https://paperadventure.app/en/** on Cloudflare Worker `paper-adventure-preview-v2`. Cloudflare's dashboard ZIP upload was used because this environment has no authorized Wrangler credentials. The upload contains only `dist/client` assets, route-specific `index.html` copies for the current `/en/.../` paths, a `robots.txt` that disallows crawling, and a `_headers` rule setting `X-Robots-Tag: noindex, nofollow`. The deployable ZIP is `output/paper-adventure-preview.zip`; its unpacked contents are in `output/cloudflare-preview-upload/`.
 
-The first static Worker, `paper-adventure-preview`, remains in the account without a custom domain. It serves `/` but lacks deep-link routing; do not link users to it. The active `preview.paperadventure.app` and temporary `preview-v2.paperadventure.app` domains both point to `paper-adventure-preview-v2`. The root `paperadventure.app` domain is not connected to the project.
+The first static Worker, `paper-adventure-preview`, remains in the account without a custom domain. It serves `/` but lacks deep-link routing; do not link users to it. The apex `paperadventure.app`, `preview.paperadventure.app`, and temporary `preview-v2.paperadventure.app` domains all point to `paper-adventure-preview-v2`. The apex currently serves the static noindex preview, with `/` redirecting to `/en/`.
 
 Live checks after domain cutover returned HTTP 200 for `/en/`, `/en/themes/celebration/`, `/en/create/`, and `/en/pricing/`, with `noindex, nofollow` on each response. `robots.txt` returned 200 and disallows all crawling; `/api/v1/health` returned 404. The React preview visibly renders in the Codex in-app browser. This is a static preview only: no backend API, D1, R2, Queue, Stripe, OpenAI, Resend, emails, payments, generated packs or downloads are connected. Rebuild and recreate the ZIP after frontend changes; the current ZIP is a snapshot of this deployment.
 
 `production-worker.mjs` is the new Cloudflare Worker entry point. It serves `dist/client` through an `ASSETS` binding and handles `/api/v1/*`. The existing Sites preview adapter in `worker/index.js` is unchanged. `wrangler.production.template.jsonc` is a template, not a deployable configuration.
 
-The owner registered **paperadventure.app** as the project domain. The template now sets `PUBLIC_ORIGIN` to `https://paperadventure.app` for future checkout-return and email-link URLs. Only the preview subdomain has a Cloudflare route and HTTPS deployment; the production root route, sender email domain, backend bindings and secrets remain unconfigured. Release flags stay off.
+The owner registered **paperadventure.app** as the project domain. The template now sets `PUBLIC_ORIGIN` to `https://paperadventure.app` for future checkout-return and email-link URLs. HTTPS on the apex now serves only the static preview Worker; the production backend route, sender email domain, backend bindings and secrets remain unconfigured. Release flags stay off.
 
 Implemented and locally tested:
 

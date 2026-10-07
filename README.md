@@ -1,6 +1,6 @@
 # Paper Adventure Workshop
 
-English-first printable story adventure website prototype. The current public preview is https://preview.paperadventure.app/en/ and deliberately blocks search indexing. Prices, checkout, accounts, PDFs, emails, analytics and generation remain behind release gates until the corresponding product, legal and service checks pass.
+English-first printable story adventure website prototype. The current public preview is https://paperadventure.app/en/ and deliberately blocks search indexing. Prices, checkout, accounts, PDFs, emails, analytics and generation remain behind release gates until the corresponding product, legal and service checks pass.
 
 ## Local development
 
