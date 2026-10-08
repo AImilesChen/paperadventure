@@ -24,6 +24,14 @@ OUT = ROOT / "output" / "pdf"
 OUT.mkdir(parents=True, exist_ok=True)
 CELEBRATION_HOME_ART = ROOT / "public" / "assets" / "celebration-home-v0.1.jpg"
 CELEBRATION_CLASSROOM_ART = ROOT / "public" / "assets" / "celebration-classroom-v0.1.jpg"
+HOME_ROUTE_CARDS = [
+    ["D", "SUN", "POND"], ["B", "TREE", "BRIDGE"], ["A", "SUN", "TREE"],
+    ["E", "POND", "CLOUD"], ["C", "BRIDGE", "RED FLAG"],
+]
+CLASS_ROUTE_CARDS = [
+    ["D", "GATE", "GARDEN"], ["B", "LIBRARY", "TABLE"], ["A", "GATE", "LIBRARY"],
+    ["E", "GARDEN", "SHED"], ["C", "TABLE", "WORKSHOP"],
+]
 
 BLUE = colors.HexColor("#DDF1FA")
 NAVY = colors.HexColor("#153B56")
@@ -171,6 +179,37 @@ class BadgeTemplate(Flowable):
         c.restoreState()
 
 
+class RouteAssemblyBoard(Flowable):
+    """Three blank slots for placing route strips or writing their endpoints in order."""
+
+    def __init__(self, width):
+        super().__init__()
+        self.width = width
+        self.height = 88
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setFillColor(INK)
+        c.setFont("ArialBold", 8.5)
+        c.drawString(0, 75, "YOUR ROUTE / PLACE OR NUMBER THREE STRIPS")
+        gap_width = 10
+        card_width = (self.width - 2 * gap_width) / 3
+        for number in range(3):
+            left = number * (card_width + gap_width)
+            c.setStrokeColor(LINE)
+            c.setLineWidth(0.8)
+            c.rect(left, 0, card_width, 61, fill=0, stroke=1)
+            c.setFillColor(NAVY)
+            c.setFont("ArialBold", 9)
+            c.drawString(left + 10, 46, f"SLOT {number + 1}")
+            c.setFillColor(INK)
+            c.setFont("Arial", 9)
+            c.drawString(left + 10, 29, "FROM: __________________")
+            c.drawString(left + 10, 13, "TO: _____________________")
+        c.restoreState()
+
+
 def on_page(canvas, doc):
     w, h = doc.pagesize
     canvas.saveState()
@@ -228,10 +267,7 @@ def home_player(width):
     flow += [box("<b>Story clue:</b> The letter says: 'Begin at my route start. Join the route strips until you reach a flag. The flag will tell you which delivery labels matter.'", width), PageBreak()]
 
     flow += page_heading(2, "Repair the route", "Begin with the route start from Checkpoint 1. Join strips when one place ends where the next begins. One path reaches a flag; another ends without one.")
-    flow += strip_cards(["Strip", "From", "To"], [
-        ["A", "SUN", "TREE"], ["B", "TREE", "BRIDGE"], ["C", "BRIDGE", "RED FLAG"],
-        ["D", "SUN", "POND"], ["E", "POND", "CLOUD"],
-    ], width) + [p("Your adult may cut out the bordered strips; you can also number them directly on this page.", "small"), gap(8)]
+    flow += strip_cards(["Strip", "From", "To"], HOME_ROUTE_CARDS, width) + [p("Your adult may cut out the bordered strips; you can also number them directly on this page.", "small"), gap(8), RouteAssemblyBoard(width), gap(8)]
     flow += write_line("Our strip order is") + write_line("We reached the")
     flow += [box("<b>Story clue:</b> The flag marks the delivery labels to check. Keep the flag colour for the final choice.", width), PageBreak()]
 
@@ -327,10 +363,7 @@ def class_player(width):
     flow += [box("<b>Club message:</b> 'Begin at the route start on your invitation. Keep joining strips until you reach the WORKSHOP. Your route will tell you where the club keeps its equipment clues.'", width), PageBreak()]
 
     flow += page_heading(2, "Follow the team route", "Start where your invitation says. A strip may join another when its ending place is the next strip's starting place. Find the chain that reaches the WORKSHOP.")
-    flow += strip_cards(["Strip", "From", "To"], [
-        ["A", "GATE", "LIBRARY"], ["B", "LIBRARY", "TABLE"], ["C", "TABLE", "WORKSHOP"],
-        ["D", "GATE", "GARDEN"], ["E", "GARDEN", "SHED"],
-    ], width) + [p("Your teacher may cut out the bordered strips; your group can also number them on this page.", "small"), gap(8)]
+    flow += strip_cards(["Strip", "From", "To"], CLASS_ROUTE_CARDS, width) + [p("Your teacher may cut out the bordered strips; your group can also number them on this page.", "small"), gap(8), RouteAssemblyBoard(width), gap(8)]
     flow += write_line("Our strip order is") + write_line("Our destination is")
     flow += [box("<b>Club message:</b> 'At the WORKSHOP, compare all the role notes before choosing a piece of equipment. Everyone's clue matters.'", width), PageBreak()]
 
@@ -405,7 +438,22 @@ def class_guide(width):
     return flow
 
 
+def routes_to(rows, start, destination):
+    paths = []
+    def walk(node, used):
+        if node == destination:
+            paths.append(used)
+            return
+        for card_id, source, target in rows:
+            if source == node and card_id not in used:
+                walk(target, used + [card_id])
+    walk(start, [])
+    return paths
+
+
 def validate_logic():
+    assert routes_to(HOME_ROUTE_CARDS, "SUN", "RED FLAG") == [["A", "B", "C"]]
+    assert routes_to(CLASS_ROUTE_CARDS, "GATE", "WORKSHOP") == [["A", "B", "C"]]
     home_labels = [("A", "RED", 2, 4), ("B", "RED", 1, 4), ("C", "BLUE", 2, 4), ("D", "RED", 2, 5)]
     assert [x[0] for x in home_labels if x[1:] == ("RED", 2, 4)] == ["A"]
     assert "".join({"SUN":"T", "CLOUD":"A", "FLAG":"B", "MOON":"L", "PATH":"E"}[s] for s in ["SUN","CLOUD","FLAG","MOON","PATH"]) == "TABLE"

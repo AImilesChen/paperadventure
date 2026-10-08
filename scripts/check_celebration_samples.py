@@ -31,6 +31,7 @@ def main():
             if player:
                 for number in range(1, 6):
                     assert f"CHECKPOINT {number:02d} / 05" in text, (path.name, number)
+                assert "YOUR ROUTE / PLACE OR NUMBER THREE STRIPS" in text, (path.name, "missing route assembly board")
                 assert "Answer key and checks" not in text and "ANSWER KEY" not in text
                 if "C01" in path.name:
                     assert "OUR ADVENTURE CLUB BADGE" in text, (path.name, "missing paper badge template")
