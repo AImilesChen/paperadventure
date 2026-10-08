@@ -41,6 +41,16 @@ CLASS_INVITATION_CARDS = [
     ("A", "COMPASS", 1, "GARDEN"), ("B", "COMPASS", 2, "GATE"),
     ("C", "STAR", 2, "LIBRARY"),
 ]
+HOME_LABEL_CARDS = [
+    ("A", "RED", 2, 4), ("B", "RED", 1, 4),
+    ("C", "BLUE", 2, 4), ("D", "RED", 2, 5),
+]
+CLASS_EQUIPMENT_CARDS = [
+    ("A", "BLUE", 2, "TRIANGLE", "2 - 4 - 1 - 3"),
+    ("B", "BLUE", 1, "TRIANGLE", "1 - 4 - 2 - 3"),
+    ("C", "RED", 2, "TRIANGLE", "2 - 3 - 1 - 4"),
+    ("D", "BLUE", 2, "CIRCLE", "4 - 2 - 1 - 3"),
+]
 
 BLUE = colors.HexColor("#DDF1FA")
 NAVY = colors.HexColor("#153B56")
@@ -344,6 +354,75 @@ class RouteAssemblyBoard(Flowable):
         c.restoreState()
 
 
+class CelebrationChoiceCards(Flowable):
+    """Four self-contained illustrated candidates; written facts survive grayscale printing."""
+
+    def __init__(self, width, rows, setting):
+        super().__init__()
+        self.width = width
+        self.height = 172
+        self.rows = rows
+        self.setting = setting
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 8
+        card_width = (self.width - gutter) / 2
+        for index, row in enumerate(self.rows):
+            x = (index % 2) * (card_width + gutter)
+            y = (1 - index // 2) * 88
+            card_id, colour, count, value = row[:4]
+            c.setStrokeColor(LINE)
+            c.setLineWidth(.9)
+            c.roundRect(x, y, card_width, 80, 5, fill=0, stroke=1)
+            c.setFillColor(NAVY)
+            c.setFont("ArialBold", 8.8)
+            c.drawString(x + 10, y + 64, f"{'LABEL' if self.setting == 'home' else 'EQUIPMENT'} {card_id}")
+
+            # The swatch is redundant: the printed colour word is the puzzle fact.
+            c.setFillColor(CORAL if colour == "RED" else colors.HexColor("#78ADCA"))
+            c.rect(x + 11, y + 32, 22, 18, fill=1, stroke=0)
+            c.setFillColor(INK)
+            c.setFont("ArialBold", 8.1)
+            c.drawString(x + 39, y + 38, f"{'FLAG' if self.setting == 'home' else 'COLOUR'} / {colour}")
+            c.setStrokeColor(NAVY)
+            c.setFillColor(NAVY)
+            center = x + 146
+            for dot_index in range(count):
+                px = center - (count - 1) * 8 + dot_index * 16
+                if self.setting == "home":
+                    SealComparisonCards.draw_star(c, px, y + 40, 6)
+                else:
+                    c.circle(px, y + 40, 3, fill=0, stroke=1)
+            c.setFont("Arial", 8)
+            c.drawCentredString(center, y + 24, f"{count} {'STARS' if self.setting == 'home' and count != 1 else 'STAR' if self.setting == 'home' else 'DOTS' if count != 1 else 'DOT'}")
+
+            right = x + card_width - 34
+            if self.setting == "home":
+                c.setFont("ArialBold", 16)
+                c.drawCentredString(right, y + 34, str(value))
+                c.setFont("Arial", 8)
+                c.drawCentredString(right, y + 24, f"NUMBER {value}")
+                c.setFont("Arial", 8)
+                c.drawString(x + 11, y + 10, "DELIVERY LABEL")
+            else:
+                if value == "TRIANGLE":
+                    path = c.beginPath()
+                    path.moveTo(right, y + 48)
+                    path.lineTo(right - 10, y + 31)
+                    path.lineTo(right + 10, y + 31)
+                    path.close()
+                    c.drawPath(path, fill=0, stroke=1)
+                else:
+                    c.circle(right, y + 39, 10, fill=0, stroke=1)
+                c.setFont("Arial", 8)
+                c.drawCentredString(right, y + 24, value)
+                c.setFont("ArialBold", 8)
+                c.drawString(x + 11, y + 9, f"BADGE CODE / {row[4]}")
+        c.restoreState()
+
+
 def on_page(canvas, doc):
     w, h = doc.pagesize
     canvas.saveState()
@@ -409,10 +488,7 @@ def home_player(width):
         ["Courier", "The correct label uses the flag colour from the route."],
         ["Maker", "The correct label has exactly TWO stars."],
         ["Keeper", "The correct label number is FOUR."],
-    ], width) + [p("Cut along the three card borders only with adult help; or cover and reveal each card in turn.", "small"), gap(8), grid(["Label", "Flag", "Stars", "Number"], [
-        ["A", "RED", "2", "4"], ["B", "RED", "1", "4"],
-        ["C", "BLUE", "2", "4"], ["D", "RED", "2", "5"],
-    ], [width*.19, width*.28, width*.25, width*.28]), gap(15)]
+    ], width) + [p("An adult may cut out the three role clues and four bordered labels; you can also compare them on this page.", "small"), gap(6), CelebrationChoiceCards(width, HOME_LABEL_CARDS, "home"), gap(9)]
     flow += write_line("Our label is") + write_line("Its number is")
     flow += [box("<b>Story clue:</b> Inside the correct label is a small code key. Your grown-up will hand out that key on the next page.", width), PageBreak()]
 
@@ -440,7 +516,7 @@ def home_guide(width):
             gap(17), p("Prepare the activity", "h2"),
             p("Print one Player Pack for the group and one Host Guide for yourself, in the same paper size. Keep this guide and the answer table away from players. Give the cover/trail first, then one checkpoint page at a time. Provide pencils. The printable Fenn letter on the last guide page completes the story; you may add a personal celebration message if you wish."),
             p("For Checkpoint 4, you can say the code key came from the chosen label. For Checkpoint 5, keep the cut-out Fenn letter in your hand or place an optional envelope on an accessible table that you have checked. Do not send children to a private room or unsafe hiding place."),
-            p("Print count: Player Pack 1 per cooperating group; Host Guide 1 per adult. At Checkpoint 2, optional bordered route strips can be cut out or numbered on the page. At Checkpoint 3, an adult may cut out the three role cards and hand out one per explorer, or cover and reveal them in turn. No cutting is required to solve the puzzle. A4 and US Letter files are exported separately."),
+            p("Print count: Player Pack 1 per cooperating group; Host Guide 1 per adult. At Checkpoint 2, optional bordered route strips can be cut out or numbered on the page. At Checkpoint 3, an adult may cut out the three role cards and four delivery labels, or cover and reveal them in turn. No cutting is required to solve the puzzle. A4 and US Letter files are exported separately."),
             gap(10), p("Story state at a glance", "h2"),
             grid(["Checkpoint", "Required result", "Used next for"], [
                 ["1", "Letter A; SUN", "Route start"], ["2", "A-B-C; RED FLAG", "Label colour"],
@@ -505,17 +581,14 @@ def class_player(width):
     flow += role_cards([
         ["Reader", "The card is BLUE."], ["Spotter", "The card has exactly TWO dots."],
         ["Checker", "The shape on the card is a TRIANGLE."],
-    ], width) + [p("Only the teacher cuts cards. Groups can also take turns reading covered cards.", "small"), gap(8), grid(["Card", "Colour", "Dots", "Shape"], [
-        ["A", "BLUE", "2", "TRIANGLE"], ["B", "BLUE", "1", "TRIANGLE"],
-        ["C", "RED", "2", "TRIANGLE"], ["D", "BLUE", "2", "CIRCLE"],
-    ], [width*.16, width*.25, width*.2, width*.39]), gap(15)]
+    ], width) + [p("Only the teacher cuts the three role clues or four bordered equipment cards. Groups can compare them on this page.", "small"), gap(6), CelebrationChoiceCards(width, CLASS_EQUIPMENT_CARDS, "classroom"), gap(9)]
     flow += write_line("Our equipment card is")
-    flow += [box("<b>Club message:</b> 'The chosen card contains the badge code 2 - 4 - 1 - 3. Use it on the next page to arrange the four badge symbols.'", width), PageBreak()]
+    flow += [box("<b>Club message:</b> 'Copy the badge code from your chosen equipment card. Use that code on the next page to arrange the four badge symbols.'", width), PageBreak()]
 
     flow += page_heading(4, "Build the badge pattern", "Each number names a symbol. Use the code from your equipment card to write the four symbols in order, starting at the TOP of the badge and going clockwise.")
     flow += [grid(["Tile number", "Symbol"], [
         ["1", "STAR"], ["2", "COMPASS"], ["3", "HANDS"], ["4", "BOOK"],
-    ], [width*.4, width*.6]), gap(15), box("<b>Code on the chosen card:</b> 2 - 4 - 1 - 3", width, CREAM), gap(15)]
+    ], [width*.4, width*.6]), gap(15), p("<b>Code from our chosen card:</b> ____ - ____ - ____ - ____"), gap(15)]
     flow += write_line("Top") + write_line("Right") + write_line("Bottom") + write_line("Left")
     flow += [p("Say the four symbols aloud. The team badge has one symbol in each position; colour alone is not needed to solve this clue.", "small"), PageBreak()]
 
@@ -537,7 +610,7 @@ def class_guide(width):
     flow = [p("CLASSROOM / C01 / TEACHER GUIDE", "eyebrow"), p("The Adventure Club's First Badge", "title"),
             box("<b>Content draft for teacher review.</b> This is a complete independent-group paper sequence, not a tested classroom product. No student names, birthdays, login accounts or school records are needed.", width, CREAM),
             gap(16), p("Set up each group", "h2"),
-            p("Print one full Player Pack for each group and one Teacher Guide for yourself. Each group gets the same five checkpoint pages and can solve without waiting for another group. Give the cover first, then release one checkpoint page at a time. Provide pencils. At Checkpoint 2, optional bordered route strips can be cut out or numbered in place. At Checkpoint 3, the teacher may cut the three role cards for each group, or cover and reveal them in turn. No special box, phone or online tool is required."),
+            p("Print one Player Pack per group and one Teacher Guide. Give one checkpoint page at a time. Provide pencils. At Checkpoint 2, bordered route strips may be cut or numbered in place. At Checkpoint 3, the teacher may cut the role and equipment cards or reveal them on the page. Groups copy the code from their chosen equipment card. No box, phone or online tool is required."),
             p("Roles: Reader reads directions; Spotter checks attributes; Recorder writes the group record; Checker asks whether every clue was used. Combine or rotate roles for different group sizes. If a group finishes early, ask where it used another person's clue rather than giving extra required work."),
             p("Use the invitation story as a cooperative club celebration, not an individual birthday. A student may leave the optional team name blank. Collect or recycle sheets according to your normal classroom practice."),
             gap(9), p("Story state at a glance", "h2"),
@@ -590,11 +663,11 @@ def validate_logic():
     assert [row[0] for row in CLASS_INVITATION_CARDS if row[1:3] == ("COMPASS", 2)] == ["B"]
     assert routes_to(HOME_ROUTE_CARDS, "SUN", "RED FLAG") == [["A", "B", "C"]]
     assert routes_to(CLASS_ROUTE_CARDS, "GATE", "WORKSHOP") == [["A", "B", "C"]]
-    home_labels = [("A", "RED", 2, 4), ("B", "RED", 1, 4), ("C", "BLUE", 2, 4), ("D", "RED", 2, 5)]
-    assert [x[0] for x in home_labels if x[1:] == ("RED", 2, 4)] == ["A"]
+    assert [x[0] for x in HOME_LABEL_CARDS if x[1:] == ("RED", 2, 4)] == ["A"]
     assert "".join({"SUN":"T", "CLOUD":"A", "FLAG":"B", "MOON":"L", "PATH":"E"}[s] for s in ["SUN","CLOUD","FLAG","MOON","PATH"]) == "TABLE"
-    class_equipment = [("A","BLUE",2,"TRIANGLE"),("B","BLUE",1,"TRIANGLE"),("C","RED",2,"TRIANGLE"),("D","BLUE",2,"CIRCLE")]
-    assert [x[0] for x in class_equipment if x[1:] == ("BLUE", 2, "TRIANGLE")] == ["A"]
+    assert [x[0] for x in CLASS_EQUIPMENT_CARDS if x[1:4] == ("BLUE", 2, "TRIANGLE")] == ["A"]
+    assert len({x[4] for x in CLASS_EQUIPMENT_CARDS}) == 4
+    assert CLASS_EQUIPMENT_CARDS[0][4] == "2 - 4 - 1 - 3"
     assert [ {1:"STAR",2:"COMPASS",3:"HANDS",4:"BOOK"}[n] for n in [2,4,1,3] ] == ["COMPASS","BOOK","STAR","HANDS"]
 
 

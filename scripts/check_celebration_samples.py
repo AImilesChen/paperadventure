@@ -38,6 +38,13 @@ def main():
                     first = pdf.pages[1].extract_text() or ""
                     assert all(f"INVITATION {letter}" in first for letter in "ABC"), (path.name, "missing illustrated invitation cards")
                     assert "COMPASS / 2 STARS" in first and "ROUTE START / GATE" in first
+                    third = pdf.pages[3].extract_text() or ""
+                    assert all(f"EQUIPMENT {letter}" in third for letter in "ABCD"), (path.name, "missing equipment cards")
+                    assert third.count("BADGE CODE /") == 4, (path.name, "each equipment card needs its own code")
+                    assert "COLOUR / RED" in third and "COLOUR / BLUE" in third
+                    assert "1 DOT" in third and "2 DOTS" in third and "TRIANGLE" in third and "CIRCLE" in third
+                    fourth = pdf.pages[4].extract_text() or ""
+                    assert "Code from our chosen card:" in fourth and "2 - 4 - 1 - 3" not in fourth, (path.name, "correct code leaked after equipment choice")
                 if "H01" in path.name:
                     assert "Parcel A" in text and "Parcel D" in text and "bordered parcel cards" in text, (path.name, "missing parcel cards")
                     assert "FENN'S PAPER LETTER" not in text, (path.name, "adult finale revealed in player pack")
@@ -45,6 +52,12 @@ def main():
                     assert all(f"LETTER {letter}" in first for letter in "ABC"), (path.name, "missing illustrated letter cards")
                     assert "FOX / 2 EARS / 3 DOTS" in first and "ROUTE START / SUN" in first
                     assert first.count("SEAL DOTS") == 3, (path.name, "stamp dots not distinguished from animal eyes")
+                    third = pdf.pages[3].extract_text() or ""
+                    assert all(f"LABEL {letter}" in third for letter in "ABCD"), (path.name, "missing delivery label cards")
+                    assert third.count("DELIVERY LABEL") == 4
+                    assert "FLAG / RED" in third and "FLAG / BLUE" in third
+                    assert "1 STAR" in third and "2 STARS" in third
+                    assert "NUMBER 4" in third and "NUMBER 5" in third
             else:
                 assert "Publication status: NOT PLAY-TESTED" in text, path.name
                 if "H01" in path.name:
