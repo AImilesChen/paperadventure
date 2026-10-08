@@ -2,6 +2,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { createServer } from 'vite';
@@ -21,9 +22,11 @@ globalThis.localStorage = { getItem: () => null };
 
 try {
   const { App } = await server.ssrLoadModule('/src/App.jsx');
+  const markupByPath = new Map();
   for (const record of publicPages) {
     globalThis.window = { location: { pathname: record.path, search: '', origin } };
     const markup = renderToString(React.createElement(App));
+    markupByPath.set(record.path, markup);
     const url = `${origin}${record.path}`;
     const tags = [
       `<title>${escape(record.title)} | Paper Adventure Workshop</title>`,
@@ -54,6 +57,27 @@ try {
     await mkdir(path.dirname(target), { recursive: true });
     await writeFile(target, html);
   }
+  // Check the same component instance used for pre-rendering. Starting a second
+  // Vite SSR server in a later test can cancel an in-flight esbuild transform.
+  const renderPreview = (pathname, search, draft) => {
+    globalThis.window = { location: { pathname, search, origin } };
+    globalThis.localStorage = { getItem: key => key === 'paw-draft' ? draft : null };
+    return renderToString(React.createElement(App));
+  };
+  const savedDraft = JSON.stringify({ theme: 'space', setting: 'home', players: '5', age: '8–10', direction: 'mission' });
+  for (const [pathname, search] of [
+    ['/en/create/', '?theme=dinosaur&setting=classroom'],
+    ['/en/checkout/demo/', '?kind=ready&theme=celebration&setting=home'],
+    ['/en/checkout/demo/', '?kind=ready&theme=space&setting=classroom'],
+    ['/en/my-adventures/', ''],
+  ]) {
+    assert.equal(renderPreview(pathname, search, savedDraft), markupByPath.get(pathname), pathname);
+  }
+  const unknown = renderPreview('/en/does-not-exist/', '', null);
+  assert.match(unknown, /That page isn&#x27;t here\./);
+  assert.doesNotMatch(unknown, /Privacy Notice/);
+  assert.match(renderPreview('/en/create/unexpected/', '', null), /That page isn&#x27;t here\./);
+  console.log('Verified query and saved-draft hydration against the pre-rendered pages');
   // Let the owner's Ahrefs audit crawl the preview; all other bots remain blocked.
   // noindex remains in HTML and response headers until the release gates pass.
   await writeFile(path.join(out, 'robots.txt'), 'User-agent: AhrefsSiteAudit\nAllow: /\n\nUser-agent: AhrefsBot\nAllow: /\n\nUser-agent: *\nDisallow: /\n');
