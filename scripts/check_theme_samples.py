@@ -80,6 +80,23 @@ for item in manifest["items"]:
                     else "TREEHOUSE ROW  +  P3") in fourth_page, (path, "missing answer location")
             assert "NORI'S PAPER POSTCARD" not in joined and "POST OFFICE REPLY" not in joined
         elif THEME == "halloween":
+            first_page = all_text[1]
+            for candidate in "ABCD":
+                assert f"{'LETTER' if item['setting'] == 'home' else 'INVITATION'} {candidate}" in first_page, (path, "missing invitation card", candidate)
+            if item["setting"] == "home":
+                assert "SEAL  FOX" in first_page and "SEAL  OWL" in first_page
+                assert "STARS  2" in first_page and "MARK  MOON" in first_page
+                assert "SUN / START  5 / GATE" in first_page
+                assert first_page.count("SEAL  FOX") == 3
+                assert first_page.count("STARS  2") == 3
+                assert first_page.count("MARK  MOON") == 3
+            else:
+                assert "ICON  PUMPKIN" in first_page and "ICON  MOON" in first_page
+                assert "FLAGS  2" in first_page and "FRAME  ROUND" in first_page
+                assert "CREW / START  B / GATE" in first_page
+                assert first_page.count("ICON  PUMPKIN") == 3
+                assert first_page.count("FLAGS  2") == 3
+                assert first_page.count("FRAME  ROUND") == 3
             expected = ("PAPER FESTIVAL MAP / THREE USEFUL STRIPS" if item["setting"] == "home"
                         else "AUTUMN CREW MAP / TWO USEFUL STRIPS")
             assert expected in second_page, (path, "missing festival map workspace")

@@ -1,12 +1,131 @@
 """Build internal, child-friendly Halloween H05 and autumn classroom C05 drafts."""
 
 from pathlib import Path
+from math import cos, pi, sin
 from reportlab.lib import colors
 from reportlab.platypus import Flowable
 from generate_space_samples import PaperRouteWorkspace, render_drafts
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class InvitationCards(Flowable):
+    """Four illustrated invitation choices with redundant printed clue labels."""
+
+    def __init__(self, width, rows, setting):
+        super().__init__()
+        self.width = width
+        self.height = 193
+        self.rows = rows
+        self.setting = setting
+
+    @staticmethod
+    def star(c, x, y):
+        shape = c.beginPath()
+        for index in range(10):
+            angle = pi / 2 + index * pi / 5
+            radius = 5 if index % 2 == 0 else 2.3
+            point = (x + radius * cos(angle), y + radius * sin(angle))
+            (shape.moveTo if index == 0 else shape.lineTo)(*point)
+        shape.close()
+        c.drawPath(shape, fill=0, stroke=1)
+
+    @staticmethod
+    def crescent(c, x, y):
+        moon = c.beginPath()
+        moon.moveTo(x + 8, y + 11)
+        moon.curveTo(x - 9, y + 12, x - 11, y - 10, x + 6, y - 12)
+        moon.curveTo(x - 2, y - 5, x - 1, y + 5, x + 8, y + 11)
+        moon.close()
+        c.drawPath(moon, fill=0, stroke=1)
+
+    @staticmethod
+    def fox(c, x, y):
+        head = c.beginPath()
+        for index, point in enumerate(((x - 16, y + 8), (x - 17, y + 21), (x - 6, y + 14),
+                                       (x + 6, y + 14), (x + 17, y + 21), (x + 16, y + 8),
+                                       (x + 7, y - 11), (x, y - 17), (x - 7, y - 11))):
+            (head.moveTo if index == 0 else head.lineTo)(*point)
+        head.close()
+        c.drawPath(head, fill=0, stroke=1)
+        c.circle(x - 6, y + 2, 1.8, fill=0, stroke=1)
+        c.circle(x + 6, y + 2, 1.8, fill=0, stroke=1)
+
+    @staticmethod
+    def owl(c, x, y):
+        c.circle(x, y + 2, 17, fill=0, stroke=1)
+        c.circle(x - 6, y + 6, 5, fill=0, stroke=1)
+        c.circle(x + 6, y + 6, 5, fill=0, stroke=1)
+        beak = c.beginPath()
+        beak.moveTo(x, y - 1)
+        beak.lineTo(x - 3, y - 7)
+        beak.lineTo(x + 3, y - 7)
+        beak.close()
+        c.drawPath(beak, fill=0, stroke=1)
+
+    @staticmethod
+    def pumpkin(c, x, y):
+        c.ellipse(x - 13, y - 10, x + 13, y + 10, fill=0, stroke=1)
+        c.line(x, y + 10, x + 1, y + 15)
+        c.circle(x - 5, y + 1, 1.4, fill=0, stroke=1)
+        c.circle(x + 5, y + 1, 1.4, fill=0, stroke=1)
+        c.arc(x - 7, y - 7, x + 7, y + 6, 205, 130)
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 10
+        card_width = (self.width - gutter) / 2
+        card_height = 91
+        for index, row in enumerate(self.rows):
+            x = (index % 2) * (card_width + gutter)
+            y = (1 - index // 2) * (card_height + gutter)
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.setLineWidth(.9)
+            c.roundRect(x, y, card_width, card_height, 6, fill=0, stroke=1)
+            c.setFillColor(colors.HexColor("#153B56"))
+            c.setFont("ArialBold", 8.8)
+            c.drawString(x + 9, y + 75, f"{'LETTER' if self.setting == 'home' else 'INVITATION'} {row[0]}")
+            c.setStrokeColor(colors.HexColor("#153B56"))
+            c.setLineWidth(1.25)
+            cx, cy = x + 35, y + 41
+            if self.setting == "home":
+                _, seal, count, mark, result = row
+                (self.fox if seal == "Fox" else self.owl)(c, cx, cy)
+                for number in range(int(count)):
+                    self.star(c, x + 61 + number * 12, cy + 13)
+                if mark == "Moon":
+                    self.crescent(c, x + 67, cy - 12)
+                else:
+                    c.circle(x + 67, cy - 12, 7, fill=0, stroke=1)
+                    for angle in range(0, 360, 90):
+                        radians = angle * pi / 180
+                        c.line(x + 67 + 9 * cos(radians), cy - 12 + 9 * sin(radians),
+                               x + 67 + 12 * cos(radians), cy - 12 + 12 * sin(radians))
+                labels = (f"SEAL  {seal.upper()}", f"STARS  {count}", f"MARK  {mark.upper()}", f"SUN / START  {result}")
+            else:
+                _, icon, count, frame, result = row
+                if frame == "Round":
+                    c.circle(cx, cy, 21, fill=0, stroke=1)
+                else:
+                    c.rect(cx - 21, cy - 21, 42, 42, fill=0, stroke=1)
+                (self.pumpkin if icon == "Pumpkin" else self.crescent)(c, cx, cy)
+                for number in range(int(count)):
+                    fx = x + 57 + number * 12
+                    c.line(fx, cy - 13, fx, cy + 15)
+                    flag = c.beginPath()
+                    flag.moveTo(fx, cy + 13)
+                    flag.lineTo(fx + 8, cy + 9)
+                    flag.lineTo(fx, cy + 5)
+                    flag.close()
+                    c.drawPath(flag, fill=0, stroke=1)
+                labels = (f"ICON  {icon.upper()}", f"FLAGS  {count}", f"FRAME  {frame.upper()}", f"CREW / START  {result}")
+            c.setFillColor(colors.HexColor("#36546A"))
+            c.setFont("ArialBold", 8.2)
+            for line, label in enumerate(labels):
+                c.drawString(x + 86, y + 57 - line * 15, label)
+        c.restoreState()
 
 
 class PaperSealCards(Flowable):
@@ -176,6 +295,10 @@ CLASSROOM = {
 }
 
 
+HOME["steps"][0]["card_factory"] = lambda width: InvitationCards(width, HOME["steps"][0]["rows"], "home")
+CLASSROOM["steps"][0]["card_factory"] = lambda width: InvitationCards(width, CLASSROOM["steps"][0]["rows"], "classroom")
+HOME["steps"][0]["card_note"] = "Compare seal picture, star count and postmark together. The printed labels repeat each visual clue; no colour is needed."
+CLASSROOM["steps"][0]["card_note"] = "Compare icon, flag count and frame together. The printed labels repeat each visual clue; no colour is needed."
 HOME["steps"][2]["role_cards"] = [
     ("Courier", "Use the parcel batch from your paper map."),
     ("Decorator", "The parcel has TWO stripes."),
