@@ -10,8 +10,8 @@
       "role": "player",
       "paper": "A4",
       "pages": 6,
-      "bytes": 259598,
-      "sha256": "c842ef802a6b5ebdb7fdaa206165e2b0e2b9e9f2b4dffb9fabce2b6a06d98c08",
+      "bytes": 259634,
+      "sha256": "e980d23aa364cc782487a3458d7082bf4d15f815d4c6b73068a7936d9e3a50c4",
       "status": "draft",
       "public": false
     },
@@ -22,7 +22,7 @@
       "paper": "A4",
       "pages": 3,
       "bytes": 111822,
-      "sha256": "b97caee775272ecb66f12334cbc548c6216a81ad5046480d8e5465c96a08a059",
+      "sha256": "489f99e5e6fc32fc8149c9128d3f3ff5bf28f5d053423222a46d465c9b19f924",
       "status": "draft",
       "public": false
     },
@@ -33,7 +33,7 @@
       "paper": "A4",
       "pages": 6,
       "bytes": 241218,
-      "sha256": "b5d18bf765e57ec58c3ec27ca590d2d0b88086be07018d75cae5bffdf415b0dc",
+      "sha256": "4c5072c6a71ac10cb8ef004a33f0bd9d9d1850e23c6fc108c6a1e95f8f949a4b",
       "status": "draft",
       "public": false
     },
@@ -44,7 +44,7 @@
       "paper": "A4",
       "pages": 3,
       "bytes": 111214,
-      "sha256": "62fcfbbde8afe91a95b20df5cc9dd2ba8e4fcc2a4ab63d2574a73dd33f14f6bf",
+      "sha256": "24d0020a8d042a993ad226c1141fd2bb60a61bac07fd91b2550883cd321745bb",
       "status": "draft",
       "public": false
     },
@@ -54,8 +54,8 @@
       "role": "player",
       "paper": "Letter",
       "pages": 6,
-      "bytes": 259385,
-      "sha256": "1af6fbfb37d0c2cb03b7bcda773a24e6a3863719710711bc4a2777a77e757f90",
+      "bytes": 259410,
+      "sha256": "5979a8af3114bbe5604ec0d9673e8ccf141b00fc3a28146b0b559b38d752c178",
       "status": "draft",
       "public": false
     },
@@ -66,7 +66,7 @@
       "paper": "Letter",
       "pages": 3,
       "bytes": 111671,
-      "sha256": "9f80e768085eabb30aa1b5dc7f0620f3dd9a04bb77147ad63fe262a11ab6f4e5",
+      "sha256": "6030a317c87c79ddd98ce6696dfe297f486f939d79397db447b6b213c020a061",
       "status": "draft",
       "public": false
     },
@@ -77,7 +77,7 @@
       "paper": "Letter",
       "pages": 6,
       "bytes": 240961,
-      "sha256": "2a139b619fd9f8738245a76bcb31eab955d8cdd93b25973b7f2e143d4d027414",
+      "sha256": "82a2534536e92d349fd35d4242942a933cad1ae89e7bbef5f028b05dd42b3e9f",
       "status": "draft",
       "public": false
     },
@@ -88,7 +88,7 @@
       "paper": "Letter",
       "pages": 3,
       "bytes": 111113,
-      "sha256": "c44e409a7d5ca78b148be2d7bc86c231957a5d737fd8c09a11844c398f6c27fb",
+      "sha256": "353b3af9786117c7491f7b3a9d5f82bcce9e6d0502bf755ca3508b4bf0517825",
       "status": "draft",
       "public": false
     }

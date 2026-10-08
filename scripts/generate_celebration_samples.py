@@ -247,7 +247,10 @@ class SealComparisonCards(Flowable):
             cx = x + card_width / 2
             if self.setting == "home":
                 _, animal, ears, dots, start = row
-                self.draw_animal(c, cx, 91, animal)
+                self.draw_animal(c, cx, 101, animal)
+                c.setFillColor(INK)
+                c.setFont("ArialBold", 8.2)
+                c.drawCentredString(cx, 69, "SEAL DOTS")
                 for dot in range(int(dots)):
                     c.circle(cx - (int(dots) - 1) * 8 + dot * 16, 58, 2.5, fill=1, stroke=0)
                 detail = f"{animal.upper()}  /  {ears} EARS  /  {dots} DOTS"
@@ -283,8 +286,8 @@ class SealComparisonCards(Flowable):
             c.circle(x, y, 22, fill=0, stroke=1)
             c.circle(x - 9, y + 4, 6, fill=0, stroke=1)
             c.circle(x + 9, y + 4, 6, fill=0, stroke=1)
-        c.circle(x - 8, y + 1, 1.8, fill=1, stroke=0)
-        c.circle(x + 8, y + 1, 1.8, fill=1, stroke=0)
+        c.circle(x - 8, y + 1, 2, fill=0, stroke=1)
+        c.circle(x + 8, y + 1, 2, fill=0, stroke=1)
 
     @staticmethod
     def draw_seal(c, x, y, seal):

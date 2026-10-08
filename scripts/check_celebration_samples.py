@@ -44,6 +44,7 @@ def main():
                     first = pdf.pages[1].extract_text() or ""
                     assert all(f"LETTER {letter}" in first for letter in "ABC"), (path.name, "missing illustrated letter cards")
                     assert "FOX / 2 EARS / 3 DOTS" in first and "ROUTE START / SUN" in first
+                    assert first.count("SEAL DOTS") == 3, (path.name, "stamp dots not distinguished from animal eyes")
             else:
                 assert "Publication status: NOT PLAY-TESTED" in text, path.name
                 if "H01" in path.name:
