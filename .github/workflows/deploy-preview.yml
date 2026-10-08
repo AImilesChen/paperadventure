@@ -1,0 +1,59 @@
+name: Deploy noindex Cloudflare preview
+
+on:
+  push:
+    branches:
+      - frontend-prd-v13-2026-10-08
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-adventure-preview-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "1"
+      CLOUDFLARE_ACCOUNT_ID: "77bc392d46985cd3425691358f5e8a77"
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:static
+      - run: npm run test:sites
+      - run: npm run test:backend
+      - name: Validate preview Worker bundle without publishing
+        run: npx --yes wrangler@4.74.0 deploy --config backend/wrangler.preview.jsonc --dry-run
+      - name: Deploy verified preview when Cloudflare token is configured
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::notice::CLOUDFLARE_API_TOKEN is not configured; no deployment was attempted."
+            exit 0
+          fi
+          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.preview.jsonc --keep-vars
+          asset_name=$(basename "$(find dist/client/assets -maxdepth 1 -name 'index-*.js' -print -quit)")
+          test -n "$asset_name"
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error --head "https://paperadventure.app/assets/$asset_name" > /dev/null; then
+              curl --fail --silent --show-error --head https://paperadventure.app/en/ | grep -iq "x-robots-tag: noindex, nofollow"
+              echo "Preview domain serves the new build asset and remains noindex."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::The new preview could not be verified on paperadventure.app."
+          exit 1
+
+
