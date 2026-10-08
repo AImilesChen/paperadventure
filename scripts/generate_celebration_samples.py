@@ -329,34 +329,37 @@ class SealComparisonCards(Flowable):
         c.drawPath(path, fill=0, stroke=1)
 
 
-class RouteAssemblyBoard(Flowable):
-    """Three blank slots for placing route strips or writing their endpoints in order."""
+class CelebrationRouteMap(Flowable):
+    """Unconnected paper map; the shuffled strips determine every route line."""
 
-    def __init__(self, width):
+    def __init__(self, width, setting):
         super().__init__()
         self.width = width
-        self.height = 88
+        self.height = 114
+        self.setting = setting
 
     def draw(self):
         c = self.canv
         c.saveState()
         c.setFillColor(INK)
         c.setFont("ArialBold", 8.5)
-        c.drawString(0, 75, "YOUR ROUTE / PLACE OR NUMBER THREE STRIPS")
-        gap_width = 10
+        c.drawString(0, 102, "PAPER ROUTE MAP / CONNECT ONLY MATCHING STRIP ENDS")
+        nodes = (["POND", "BRIDGE", "CLOUD", "RED FLAG", "SUN", "TREE"]
+                 if self.setting == "home" else
+                 ["GARDEN", "TABLE", "SHED", "WORKSHOP", "GATE", "LIBRARY"])
+        gap_width = 13
         card_width = (self.width - 2 * gap_width) / 3
-        for number in range(3):
-            left = number * (card_width + gap_width)
+        for number, name in enumerate(nodes):
+            column = number % 3
+            row = number // 3
+            left = column * (card_width + gap_width)
+            bottom = 52 if row == 0 else 4
             c.setStrokeColor(LINE)
-            c.setLineWidth(0.8)
-            c.rect(left, 0, card_width, 61, fill=0, stroke=1)
+            c.setLineWidth(0.9)
+            c.roundRect(left, bottom, card_width, 37, 6, fill=0, stroke=1)
             c.setFillColor(NAVY)
-            c.setFont("ArialBold", 9)
-            c.drawString(left + 10, 46, f"SLOT {number + 1}")
-            c.setFillColor(INK)
-            c.setFont("Arial", 9)
-            c.drawString(left + 10, 29, "FROM: __________________")
-            c.drawString(left + 10, 13, "TO: _____________________")
+            c.setFont("ArialBold", 9.3)
+            c.drawCentredString(left + card_width / 2, bottom + 13, f"MAP / {name}")
         c.restoreState()
 
 
@@ -485,7 +488,7 @@ def home_player(width):
     flow += [box("<b>Story clue:</b> The letter says: 'Begin at my route start. Join the route strips until you reach a flag. The flag will tell you which delivery labels matter.'", width), PageBreak()]
 
     flow += page_heading(2, "Repair the route", "Begin with the route start from Checkpoint 1. Join strips when one place ends where the next begins. One path reaches a flag; another ends without one.")
-    flow += strip_cards(["Strip", "From", "To"], HOME_ROUTE_CARDS, width) + [p("Your adult may cut out the bordered strips; you can also number them directly on this page.", "small"), gap(8), RouteAssemblyBoard(width), gap(8)]
+    flow += strip_cards(["Strip", "From", "To"], HOME_ROUTE_CARDS, width) + [p("Your adult may cut out the bordered strips; you can also number them directly on this page.", "small"), gap(8), CelebrationRouteMap(width, "home"), gap(8)]
     flow += write_line("Our strip order is") + write_line("We reached the")
     flow += [box("<b>Story clue:</b> The flag marks the delivery labels to check. Keep the flag colour for the final choice.", width), PageBreak()]
 
@@ -579,7 +582,7 @@ def class_player(width):
     flow += [box("<b>Club message:</b> 'Begin at the route start on your invitation. Keep joining strips until you reach the WORKSHOP. Your route will tell you where the club keeps its equipment clues.'", width), PageBreak()]
 
     flow += page_heading(2, "Follow the team route", "Start where your invitation says. A strip may join another when its ending place is the next strip's starting place. Find the chain that reaches the WORKSHOP.")
-    flow += strip_cards(["Strip", "From", "To"], CLASS_ROUTE_CARDS, width) + [p("Your teacher may cut out the bordered strips; your group can also number them on this page.", "small"), gap(8), RouteAssemblyBoard(width), gap(8)]
+    flow += strip_cards(["Strip", "From", "To"], CLASS_ROUTE_CARDS, width) + [p("Your teacher may cut out the bordered strips; your group can also number them on this page.", "small"), gap(8), CelebrationRouteMap(width, "classroom"), gap(8)]
     flow += write_line("Our strip order is") + write_line("Our destination is")
     flow += [box("<b>Club message:</b> 'At the WORKSHOP, compare all the role notes before choosing a piece of equipment. Everyone's clue matters.'", width), PageBreak()]
 

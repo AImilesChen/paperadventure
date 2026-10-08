@@ -31,7 +31,13 @@ def main():
             if player:
                 for number in range(1, 6):
                     assert f"CHECKPOINT {number:02d} / 05" in text, (path.name, number)
-                assert "YOUR ROUTE / PLACE OR NUMBER THREE STRIPS" in text, (path.name, "missing route assembly board")
+                route_page = pdf.pages[2].extract_text() or ""
+                assert "PAPER ROUTE MAP / CONNECT ONLY MATCHING STRIP ENDS" in route_page, (path.name, "missing paper route map")
+                route_nodes = (["SUN", "TREE", "BRIDGE", "RED FLAG", "POND", "CLOUD"]
+                               if "H01" in path.name else
+                               ["GATE", "LIBRARY", "TABLE", "WORKSHOP", "GARDEN", "SHED"])
+                assert all(f"MAP / {node}" in route_page for node in route_nodes), (path.name, "missing unconnected map node")
+                assert "Our strip order is" in route_page, (path.name, "missing order handoff")
                 assert "Answer key and checks" not in text and "ANSWER KEY" not in text
                 if "C01" in path.name:
                     assert "OUR ADVENTURE CLUB BADGE" in text, (path.name, "missing paper badge template")
