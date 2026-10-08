@@ -14,7 +14,7 @@
 
 ### 2. Repair the map
 
-路线条（玩家页以 D/B/E/C/A 打乱顺序展示）：A `SUN → FERN`；B `FERN → RIVER`；C `RIVER → PINE SIGN`；D `SUN → CAVE`；E `CAVE → ROCK`。玩家将三张有用路线条放到三格纸上路线板，或抄写端点；规则是从上关起点开始，只能首尾相接，真正路线以一块 **SIGN** 结束。完整路线 A-B-C，得到 `sign=PINE` 与可用路径；D-E 没有路标。一级提示：看每条的起止词；二级：从 SUN 出发找能到 SIGN 的连续路线；完整解法：SUN-FERN-RIVER-PINE SIGN。跳关补发 `PINE SIGN` 卡。
+路线条（玩家页以 D/B/E/C/A 打乱顺序展示）：A `SUN → FERN`；B `FERN → RIVER`；C `RIVER → PINE SIGN`；D `SUN → CAVE`；E `CAVE → ROCK`。六地点纸地图只印 SUN/FERN/RIVER/PINE SIGN/CAVE/ROCK 的标名节点，不预连路径；玩家从上关起点开始按纸条端点画线，再在页下方抄写有用纸条顺序与路标。规则是只能首尾相接，真正路线以一块 **SIGN** 结束。完整路线 A-B-C，得到 `sign=PINE` 与可用路径；D-E 没有路标。一级提示：看每条的起止词；二级：从 SUN 出发找能到 SIGN 的连续路线；完整解法：SUN-FERN-RIVER-PINE SIGN。跳关补发 `PINE SIGN` 卡。
 
 ### 3. Pack the paper supplies
 

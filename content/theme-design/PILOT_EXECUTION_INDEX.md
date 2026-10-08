@@ -6,7 +6,7 @@
 | --- | --- | --- | --- | --- | --- |
 | H01 Celebration Home | `pilot-celebration-v0.1.zip` | 来信图卡、三角色线索、四张旗帜/星数/编号/不同代码标记的标签卡；第四关查所选标记、成人结局信 | 待执行 | 待执行 | 待执行 |
 | C01 Celebration Classroom | `pilot-celebration-v0.1.zip` | 邀请图卡、组内角色分工、四张各有代码的装备卡、纸徽章 | 待执行 | 待执行 | 待执行 |
-| H02 Dinosaur Home | `pilot-dinosaur-v0.1.zip` | 足迹观察、路线拼接、补给卡背带/标签与营地结论 | 待执行 | 待执行 | 待执行 |
+| H02 Dinosaur Home | `pilot-dinosaur-v0.1.zip` | 足迹观察、六地点纸地图按纸条画线并排除无路标支线、补给卡背带/标签与营地结论 | 待执行 | 待执行 | 待执行 |
 | C02 Dinosaur Classroom | `pilot-dinosaur-v0.1.zip` | R2 批次进入足迹选择，RIDGE 地区进入第三关标记/旗帜区域卡 | 待执行 | 待执行 | 待执行 |
 | H03 Space Home | `pilot-space-v0.1.zip` | 信号图卡、3×3 坐标纸星图与混序路线条、设备候选与回信 | 待执行 | 待执行 | 待执行 |
 | C03 Space Classroom | `pilot-space-v0.1.zip` | 多人信号、3×3 坐标星图/端口路线、设备卡与恢复报告 | 待执行 | 待执行 | 待执行 |

@@ -263,34 +263,34 @@ class DinosaurChoiceCards(Flowable):
 
 
 class DinosaurTrailBoard(Flowable):
-    """Three-slot paper workspace that keeps the trail start and sign visible."""
+    """Six unconnected place nodes; shuffled strips alone determine the trail."""
 
     def __init__(self, width):
         super().__init__()
         self.width = width
-        self.height = 91
+        self.height = 132
 
     def draw(self):
         c = self.canv
         c.saveState()
         c.setFillColor(NAVY)
         c.setFont("ArialBold", 8.8)
-        c.drawString(0, 78, "MILO'S PAPER TRAIL / ARRANGE THREE USEFUL STRIPS")
-        gap_width = 9
-        card_width = (self.width - 2 * gap_width) / 3
-        for index in range(3):
-            x = index * (card_width + gap_width)
-            c.setStrokeColor(LINE)
-            c.rect(x, 14, card_width, 56, fill=0, stroke=1)
+        c.drawString(0, 118, "MILO'S PAPER TRAIL / DRAW FROM YOUR START TO A SIGN")
+        c.setFont("Arial", 8.5)
+        c.drawString(0, 104, "Connect named places only when a route strip links them; use a pencil.")
+        c.setStrokeColor(LINE)
+        c.setLineWidth(.8)
+        c.roundRect(0, 5, self.width, 91, 5, fill=0, stroke=1)
+        card_width = min(137, (self.width - 46) / 3)
+        columns = (0, (self.width - card_width) / 2, self.width - card_width)
+        for index, place in enumerate(("FERN", "RIVER", "PINE SIGN", "SUN", "CAVE", "ROCK")):
+            x = columns[index % 3]
+            y = 61 if index < 3 else 17
+            c.setFillColor(colors.white)
+            c.roundRect(x + 5, y, card_width - 10, 25, 4, fill=1, stroke=1)
             c.setFillColor(NAVY)
-            c.setFont("ArialBold", 8.8)
-            c.drawString(x + 8, 53, f"STRIP {index + 1}")
-            c.setFillColor(INK)
-            c.setFont("Arial", 8.7)
-            c.drawString(x + 8, 36, "FROM: ________________")
-            c.drawString(x + 8, 21, "TO: __________________")
-        c.setFont("ArialBold", 8.7)
-        c.drawString(0, 1, "FINISH AT A SIGN: ____________________________")
+            c.setFont("ArialBold", 8.2)
+            c.drawCentredString(x + card_width / 2, y + 9, f"MAP / {place}")
         c.restoreState()
 
 

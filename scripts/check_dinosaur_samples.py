@@ -50,7 +50,10 @@ for item in manifest["items"]:
         if item["setting"] == "home":
             trail_page = pages[2].extract_text() or ""
             assert "MILO'S PAPER TRAIL" in trail_page
-            assert "STRIP 1" in trail_page and "STRIP 3" in trail_page
+            for place in ("SUN", "FERN", "RIVER", "PINE SIGN", "CAVE", "ROCK"):
+                assert f"MAP / {place}" in trail_page, (path, "missing map node", place)
+            assert "Connect named places only when a route strip links them" in trail_page
+            assert "Our strip order" in trail_page and "The sign says" in trail_page
         choice_page = pages[3].extract_text() or ""
         for label in "ABCD":
             assert f"{'PACK' if item['setting'] == 'home' else 'ZONE'} {label}  /  PAPER RECORD" in choice_page, (path, "missing third-checkpoint choice card", label)
