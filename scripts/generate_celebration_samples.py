@@ -526,7 +526,7 @@ def home_guide(width):
             gap(10), p("Story state at a glance", "h2"),
             grid(["Checkpoint", "Required result", "Used next for"], [
                 ["1", "Letter A; SUN", "Route start"], ["2", "A-B-C; RED FLAG", "Label colour"],
-                ["3", "Label A; number 4", "Code key and finale"], ["4", "TABLE", "Final parcel place"],
+                ["3", "Label A; 4; FOX", "Dictionary row and finale"], ["4", "TABLE", "Final parcel place"],
                 ["5", "Parcel A", "Hand over Fenn's paper letter"],
             ], [width*.19, width*.37, width*.44]), PageBreak()]
 
