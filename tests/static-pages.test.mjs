@@ -50,7 +50,7 @@ test('brand icons and social card are built and linked from every preview route'
   assert.match(html, /<link rel="apple-touch-icon" sizes="180x180" href="\/apple-touch-icon\.png"/);
   assert.match(html, /<meta property="og:image" content="https:\/\/paperadventure\.app\/og-image\.jpg"/);
   assert.match(html, /<meta name="twitter:image" content="https:\/\/paperadventure\.app\/og-image\.jpg"/);
-  for (const file of ['icon.svg', 'favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'icon-512.png', 'og-image.jpg']) {
+  for (const file of ['icon.svg', 'brand-wordmark.svg', 'brand-horizontal.svg', 'brand-stacked.svg', 'favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'icon-512.png', 'og-image.jpg']) {
     assert.ok((await stat(path.join(out, file))).size > 0, file);
   }
 });
