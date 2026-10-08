@@ -47,6 +47,15 @@ for item in manifest["items"]:
     if item["role"] == "player":
         for number in range(1, 6):
             assert f"CHECKPOINT {number:02d} / 05" in joined
+        signal_page = all_text[1]
+        for label in ("SIGNAL A", "SIGNAL B", "SIGNAL C", "SIGNAL D", "BORDER"):
+            assert label in signal_page, (path, label)
+        if item["setting"] == "home":
+            assert "WAVES  3" in signal_page and "GAP  SQUARE" in signal_page
+            assert "SECTOR  ORION" in signal_page
+        else:
+            assert "PEAKS  2" in signal_page and "DOTS  1" in signal_page
+            assert "STATION  LYRA" in signal_page
         map_page = all_text[2]
         assert "PAPER STAR MAP / ARRANGE THE USEFUL STRIPS" in map_page
         assert "STRIP 1" in map_page and "STRIP 2" in map_page

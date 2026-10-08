@@ -118,6 +118,86 @@ HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
 
 
+class SignalCards(Flowable):
+    """Four signal candidates with countable marks and redundant text labels."""
+
+    def __init__(self, width, rows, setting):
+        super().__init__()
+        self.width = width
+        self.height = 193
+        self.rows = rows
+        self.setting = setting
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 10
+        card_width = (self.width - gutter) / 2
+        card_height = 91
+        for index, (letter, border, marks, detail, destination) in enumerate(self.rows):
+            x = (index % 2) * (card_width + gutter)
+            y = (1 - index // 2) * (card_height + gutter)
+            c.setLineWidth(0.9)
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.roundRect(x, y, card_width, card_height, 6, fill=0, stroke=1)
+            c.setFillColor(NAVY)
+            c.setFont("ArialBold", 9)
+            c.drawString(x + 9, y + 75, f"SIGNAL {letter}")
+            cx, cy = x + 34, y + 41
+            c.setStrokeColor(NAVY)
+            c.setLineWidth(1.5)
+            if border == "Round":
+                c.circle(cx, cy, 20, fill=0, stroke=1)
+            else:
+                c.rect(cx - 20, cy - 20, 40, 40, fill=0, stroke=1)
+            if self.setting == "home":
+                # Each separate horizontal squiggle is one wave; the gap marker
+                # sits outside the border so it cannot be mistaken for a wave.
+                for wave in range(int(marks)):
+                    wy = cy + 10 - wave * 9
+                    path = c.beginPath()
+                    path.moveTo(cx - 12, wy)
+                    path.curveTo(cx - 6, wy + 6, cx - 2, wy - 6, cx + 3, wy)
+                    path.curveTo(cx + 7, wy + 6, cx + 10, wy - 6, cx + 13, wy)
+                    c.drawPath(path)
+                if detail == "Square":
+                    c.setFillColor(CREAM)
+                    c.rect(cx + 15, cy - 21, 10, 10, fill=1, stroke=0)
+                    c.setFillColor(NAVY)
+                    c.rect(cx + 16, cy - 20, 8, 8, fill=0, stroke=1)
+                detail_label = f"GAP  {detail.upper()}"
+                marks_label = f"WAVES  {marks}"
+            else:
+                # Peaks are separate triangles; the small filled circle below
+                # them is the dot count, including the zero-dot candidate.
+                for peak in range(int(marks)):
+                    px = cx - 13 + peak * 14
+                    path = c.beginPath()
+                    path.moveTo(px, cy + 1)
+                    path.lineTo(px + 6, cy + 13)
+                    path.lineTo(px + 12, cy + 1)
+                    c.drawPath(path)
+                if detail == "1":
+                    c.setFillColor(NAVY)
+                    c.circle(cx, cy - 10, 2.8, fill=1, stroke=0)
+                detail_label = f"DOTS  {detail}"
+                marks_label = f"PEAKS  {marks}"
+            c.setFillColor(INK)
+            c.setFont("ArialBold", 8.4)
+            tx = x + 68
+            c.drawString(tx, y + 57, f"BORDER  {border.upper()}")
+            c.drawString(tx, y + 42, marks_label)
+            c.drawString(tx, y + 27, detail_label)
+            c.drawString(tx, y + 12, f"{'SECTOR' if self.setting == 'home' else 'STATION'}  {destination}")
+        c.restoreState()
+
+
+HOME["steps"][0]["card_factory"] = lambda width: SignalCards(width, HOME["steps"][0]["rows"], "home")
+CLASSROOM["steps"][0]["card_factory"] = lambda width: SignalCards(width, CLASSROOM["steps"][0]["rows"], "classroom")
+HOME["steps"][0]["card_note"] = "Compare all four pictured signals. Each border, wave count and gap has a matching text label; no colour clue is needed. Keep cards on this page or let an adult cut them."
+CLASSROOM["steps"][0]["card_note"] = "Compare all four pictured signals. Each border, peak count and dot count has a matching text label; no colour clue is needed. Keep cards on this page or let a teacher cut them."
+
+
 class StarMapAssemblyBoard(Flowable):
     """A printable workspace for arranging the numbered-destination route strips."""
 
