@@ -255,10 +255,10 @@ def home_player(width):
     flow += [p("This is a story clue, not an instruction to search without your grown-up. The adult will either use an approved table or hand you the finale envelope.", "small"), PageBreak()]
 
     flow += page_heading(5, "Deliver the right parcel", "Bring together your route flag, label number, and decoded place word. Exactly one parcel card matches all three clues.")
-    flow += [grid(["Parcel", "Flag", "Label number", "Place"], [
+    flow += strip_cards(["Parcel", "Flag", "Label number", "Place"], [
         ["A", "RED", "4", "TABLE"], ["B", "RED", "4", "SHELF"],
         ["C", "BLUE", "4", "TABLE"], ["D", "RED", "5", "TABLE"],
-    ], [width*.16, width*.24, width*.31, width*.29]), gap(17)]
+    ], width) + [p("Your grown-up may cut out the bordered parcel cards; you can also compare them on this page.", "small"), gap(10)]
     flow += write_line("The matching parcel is")
     flow += [box("<b>Tell your grown-up your parcel ID and explain your three clues.</b><br/>When they confirm it, open the celebration envelope together. Fenn says: 'You found the path by sharing what each explorer knew. That is the real treasure!'", width, CREAM), gap(15),
              p("Optional team note: Our best teamwork moment was _______________________________", "small")]
@@ -298,7 +298,7 @@ def home_guide(width):
              p("<b>Adult supervision:</b> This is a paper-based story game. Confirm the group's reading needs and real space. Do not place materials where reaching, climbing, running, or touching private belongings is required. The story's TABLE word may remain fictional; you may hand over the envelope."),
              p("<b>Flexible occasion:</b> The source PRD uses a birthday chest, but this draft can be introduced as a general celebration. Do not assume a child's name, exact age, or personal occasion. Add such details only if the adult chooses them."),
              p("<b>When players struggle:</b> Offer the first hint, then the stronger hint. Keep the previous solved page visible. If a group guesses the final card, ask them to explain the flag, number, and place before the reveal."),
-             p("<b>Draft QA:</b> Check that each page prints within margins, that the stage order is preserved, and that the adult guide stays separate from player copies. Record any ambiguous instruction or wrong answer during a representative play session before publishing."),
+             p("<b>Draft QA:</b> Check that each page prints within margins, that the stage order is preserved, and that the adult guide stays separate from player copies. At Checkpoint 5, the adult may cut the parcel cards or leave them on the page. Record any ambiguous instruction or wrong answer during a representative play session before publishing."),
              box("<b>Publication status:</b> NOT PLAY-TESTED. Do not call this a finished free sample, sell it, or enable downloads from the site until content, printing, accessibility, and legal/product checks pass.", width, CREAM)]
     return flow
 
