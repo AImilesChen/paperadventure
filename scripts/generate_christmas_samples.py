@@ -111,6 +111,49 @@ class DestinationMatchCards(Flowable):
         c.restoreState()
 
 
+class DeliveryReplyCard(Flowable):
+    """Adult-held story reply without a real gift or journey."""
+
+    def __init__(self, width, classroom):
+        super().__init__()
+        self.width = width
+        self.height = 113
+        self.classroom = classroom
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setStrokeColor(colors.HexColor("#8BAFC1"))
+        c.setLineWidth(0.9)
+        c.roundRect(0, 0, self.width, self.height, 6, fill=0, stroke=1)
+        c.setFillColor(colors.HexColor("#153B56"))
+        c.setFont("ArialBold", 8.5)
+        if self.classroom:
+            title = "WINTER STATION REPLY  /  SHARE AFTER MANIFEST A"
+            lines = [
+                "To the paper sorting crew,",
+                "T2 and STAR-BELL-BOOK made a careful loading order.",
+                "Route R1 carries the READY mark on your paper manifest.",
+                "Thank you for checking every picture and destination!",
+                "From the winter station guide",
+            ]
+        else:
+            title = "DELIVERY OFFICE REPLY  /  GIVE AFTER CARD A"
+            lines = [
+                "Dear paper explorers,",
+                "Your FOX-OWL-RABBIT route ended at RABBIT GATE.",
+                "Every story friend now has a matching picture card.",
+                "Thank you for checking the paper list together!",
+                "From the story delivery office",
+            ]
+        c.drawString(12, 96, title)
+        c.setFillColor(colors.HexColor("#36546A"))
+        c.setFont("Arial", 8.6)
+        for index, line in enumerate(lines):
+            c.drawString(14, 79 - index * 15, line)
+        c.restoreState()
+
+
 def step(title, story, heads, rows, answer, handoff, used, prompts, next_story, hints, extra=None):
     item = {"title": title, "story": story, "heads": heads, "rows": rows,
             "answer": answer, "handoff": handoff, "used": used,
@@ -225,6 +268,8 @@ for story, kind in ((HOME, "GIFT"), (CLASSROOM, "ITEM")):
     second.pop("extra", None)
     second["card_factory"] = lambda width, step=second, label=kind: PictureItemCards(width, step["rows"], label)
     second["template_factory"] = lambda width, step=second: DestinationMatchCards(width, step["destinations"])
+HOME["finale_factory"] = lambda width: DeliveryReplyCard(width, False)
+CLASSROOM["finale_factory"] = lambda width: DeliveryReplyCard(width, True)
 
 
 def validate_logic():

@@ -42,6 +42,49 @@ class PaperSealCards(Flowable):
         c.restoreState()
 
 
+class FestivalEndingCard(Flowable):
+    """Adult-held paper reveal; no flame, device or real festival prop."""
+
+    def __init__(self, width, classroom):
+        super().__init__()
+        self.width = width
+        self.height = 113
+        self.classroom = classroom
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setStrokeColor(colors.HexColor("#8BAFC1"))
+        c.setLineWidth(0.9)
+        c.roundRect(0, 0, self.width, self.height, 6, fill=0, stroke=1)
+        c.setFillColor(colors.HexColor("#153B56"))
+        c.setFont("ArialBold", 8.5)
+        if self.classroom:
+            title = "AUTUMN CREW REPLY  /  SHARE AFTER PLAN A"
+            lines = [
+                "To the autumn crew,",
+                "CREW B, ORANGE BOOTH and Decor C made one clear plan.",
+                "Your P-Q-R-S order leads to a friendly paper welcome.",
+                "Every group member helped the story festival begin.",
+                "From the paper festival team",
+            ]
+        else:
+            title = "PIP'S PAPER FESTIVAL  /  GIVE AFTER CODE 5723"
+            lines = [
+                "Dear paper explorers,",
+                "Your SUN, MOON, HAT and STAR seals formed 5-7-2-3.",
+                "Every shared clue helped the festival picture shine.",
+                "No real light is needed for our bright paper ending!",
+                "From Pip and the friendly festival crew",
+            ]
+        c.drawString(12, 96, title)
+        c.setFillColor(colors.HexColor("#36546A"))
+        c.setFont("Arial", 8.6)
+        for index, line in enumerate(lines):
+            c.drawString(14, 79 - index * 15, line)
+        c.restoreState()
+
+
 def step(title, story, heads, rows, answer, handoff, used, prompts, next_story, hints, extra=None):
     item = {"title": title, "story": story, "heads": heads, "rows": rows,
             "answer": answer, "handoff": handoff, "used": used,
@@ -150,6 +193,8 @@ HOME["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
 CLASSROOM["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
     width, "AUTUMN CREW MAP / TWO USEFUL STRIPS", 2, "GATE", "NAMED BOOTH")
 HOME["steps"][4]["template_factory"] = PaperSealCards
+HOME["finale_factory"] = lambda width: FestivalEndingCard(width, False)
+CLASSROOM["finale_factory"] = lambda width: FestivalEndingCard(width, True)
 
 
 def validate_logic():

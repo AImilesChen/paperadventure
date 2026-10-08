@@ -69,11 +69,13 @@ for item in manifest["items"]:
                         else "AUTUMN CREW MAP / TWO USEFUL STRIPS")
             assert expected in second_page, (path, "missing festival map workspace")
             assert "STRIP 1" in second_page and "FINISH /" in second_page
+            assert "GIVE AFTER CODE 5723" not in joined and "AUTUMN CREW REPLY" not in joined
         elif THEME == "christmas":
             for item_label in ("GIFT A", "GIFT B", "GIFT C", "GIFT D") if item["setting"] == "home" else ("ITEM A", "ITEM B", "ITEM C", "ITEM X"):
                 assert item_label in second_page, (path, "missing item card", item_label)
             assert "PAPER DESTINATIONS / MATCH ONE ITEM TO EACH PLACE" in second_page
             assert second_page.count("MATCH:") == 3, (path, "missing destination cards")
+            assert "DELIVERY OFFICE REPLY" not in joined and "WINTER STATION REPLY" not in joined
         assert "bordered cards" in all_text[5], (path, "missing final paper candidates")
         final_terms = {
             "christmas-H06": "FOX-OWL-RABBIT",
@@ -91,7 +93,13 @@ for item in manifest["items"]:
         if THEME == "forest":
             assert ("NORI'S PAPER POSTCARD" if item["setting"] == "home"
                     else "POST OFFICE REPLY") in all_text[1]
-        elif THEME in {"halloween", "christmas"}:
+        elif THEME == "halloween":
+            assert ("PIP'S PAPER FESTIVAL" if item["setting"] == "home"
+                    else "AUTUMN CREW REPLY") in all_text[1]
+            assert "PIP'S PAPER REPLY" not in joined and "STAR STATION REPLY" not in joined
+        elif THEME == "christmas":
+            assert ("DELIVERY OFFICE REPLY" if item["setting"] == "home"
+                    else "WINTER STATION REPLY") in all_text[1]
             assert "PIP'S PAPER REPLY" not in joined and "STAR STATION REPLY" not in joined
 
     prefix = QA / path.stem
