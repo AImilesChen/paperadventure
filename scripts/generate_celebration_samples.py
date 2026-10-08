@@ -22,7 +22,7 @@ from reportlab.platypus import (
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "output" / "pdf"
 OUT.mkdir(parents=True, exist_ok=True)
-CELEBRATION_ART = ROOT / "public" / "assets" / "celebration.png"
+CELEBRATION_HOME_ART = ROOT / "public" / "assets" / "celebration-home-v0.1.jpg"
 CELEBRATION_CLASSROOM_ART = ROOT / "public" / "assets" / "celebration-classroom-v0.1.jpg"
 
 BLUE = colors.HexColor("#DDF1FA")
@@ -175,7 +175,7 @@ def make_doc(filename, pagesize, code, paper_label, flow):
 def home_player(width):
     flow = [p("HOME / H01 / PLAYER PACK", "eyebrow"), p("The Missing Birthday Chest", "title"),
             box("<b>Dear explorers,</b><br/>Fenn the fox has safely tucked away a celebration surprise. It is not lost or stolen. Follow the five paper clues, share what you notice, and tell your grown-up which parcel should be delivered at the end.", width, CREAM),
-            *cover_art(CELEBRATION_ART), gap(14), p("Your team trail", "h2"),
+            *cover_art(CELEBRATION_HOME_ART), gap(14), p("Your team trail", "h2"),
             grid(["Checkpoint", "Record what you discovered"], [
                 ["1. Letter", "Letter ID and route start: ____________________"],
                 ["2. Route", "Flag colour: ________________________________"],
