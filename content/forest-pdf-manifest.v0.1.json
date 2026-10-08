@@ -1,0 +1,95 @@
+{
+  "version": "0.1",
+  "themeWorldId": "forest",
+  "published": false,
+  "items": [
+    {
+      "file": "output/pdf/forest-H04-player-v0.1-A4.pdf",
+      "setting": "home",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 226174,
+      "sha256": "d1e44ac6e16182190e2b99f71762d859b664e9879fb7950cef686dec02e8cba2",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/forest-H04-host-v0.1-A4.pdf",
+      "setting": "home",
+      "role": "host",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 110388,
+      "sha256": "df3f0a685817ffec304ce2723bc1a416b913d025ec7c5d7c888570367978268d",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/forest-C04-player-v0.1-A4.pdf",
+      "setting": "classroom",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 226118,
+      "sha256": "d0289b8c13b1b9a9ed9776a5a3e548a1fc90d85ee3c3db5077d3fe61a39c1223",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/forest-C04-teacher-v0.1-A4.pdf",
+      "setting": "classroom",
+      "role": "teacher",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 110355,
+      "sha256": "fbc285ea9429b470bd0dec8201c613cb44150aa2bd3dd497542490df14f72ed9",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/forest-H04-player-v0.1-Letter.pdf",
+      "setting": "home",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 225939,
+      "sha256": "5c09955f3423315e42bf66a8c1171a6367f3d4cf812afd6da9258071703b4ba0",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/forest-H04-host-v0.1-Letter.pdf",
+      "setting": "home",
+      "role": "host",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 110314,
+      "sha256": "de62abb1e7e38656b01ceb647fa4892e9e6f0ecdd18cdc4a4abb828c51974896",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/forest-C04-player-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 225869,
+      "sha256": "150e01b35d7563d9ab003e40453768b5f086cda9035048643ee3c106c471b78b",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/forest-C04-teacher-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "role": "teacher",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 110220,
+      "sha256": "a2793af7f5345261e3f58d1f510737334e01c550f5f38a8f23c56c5d925de5bc",
+      "status": "draft",
+      "public": false
+    }
+  ]
+}

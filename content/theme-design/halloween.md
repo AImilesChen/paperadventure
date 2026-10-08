@@ -1,8 +1,8 @@
 # Halloween｜万圣节主题设计蓝图
 
-**状态：**H05/C05 仅有 PRD 故事方案；未制作可玩的完整资料包。**视觉：**友好南瓜、月光、纸灯与小屋；无惊吓、暴力或火焰操作。C05 可由用户明确选择万圣节或秋日表达，同一玩法版本，不另算第七世界。
+**状态：**H05/C05 已有设计方案和内部谜题内容源，打印资料包仍为待验收草稿。**视觉：**友好南瓜、纸灯与小屋；无惊吓、暴力或火焰操作。C05 先做中性秋日课堂草稿；若成人明确选择万圣节措辞，须从同一答案合同派生并重验，不另算第七世界。
 
-| | H05 Home — The Missing Pumpkin Light | C05 Classroom — The Pumpkin Festival Crew |
+| | H05 Home — The Missing Pumpkin Light | C05 Classroom — The Autumn Festival Crew |
 |---|---|---|
 | 任务 | 取回四枚纸质印记并按卷轴顺序点亮故事南瓜灯 | 每组完成四项纸上庆典准备，组合开场标记 |
 | 1 信使 | 用邮戳与角色卡认出 Pip 的信；获得第一印记与地图入口 | 认邀请图案；获得本组任务和站点索引 |
@@ -21,4 +21,4 @@
 
 **插画候选：**网页世界卡使用 `public/assets/halloween-friendly-v0.1.jpg`，本地留有高分辨率 PNG；这仍是概念图，真正纸质印记与地图未完成。来源与审查记录见 `design-handoff/THEME_VISUAL_VARIANTS.md`。
 
-C05 非特定节庆表达另有 `public/assets/autumn-classroom-v0.1.jpg` 概念图；成人仍需主动选 Halloween/Autumn，具体打印材料不是简单替换插画。
+C05 中性秋日表达使用 `public/assets/autumn-classroom-v0.1.jpg` 概念图。当前内部打印草稿只有 Autumn 版；Halloween 课堂措辞仍待从同一内容与答案数据派生并单独校验，不能只替换插画便宣称完成。

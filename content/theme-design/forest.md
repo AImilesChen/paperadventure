@@ -1,6 +1,6 @@
 # Forest｜森林主题设计蓝图
 
-**状态：**H04/C04 仅有 PRD 故事方案；未制作可玩的完整资料包。**视觉：**树屋邮局、猫头鹰或原创邮差、邮戳、纸包裹与地图；使用虚构角色和地址。
+**状态：**H04/C04 已有先行蓝图与内部 PDF 初稿，尚待真人试玩和实物打印。**视觉：**树屋邮局、猫头鹰或原创邮差、邮戳、纸包裹与地图；使用虚构角色和地址。
 
 | | H04 Home — The Forest Post Office Mystery | C04 Classroom — The Forest Postal Investigators |
 |---|---|---|

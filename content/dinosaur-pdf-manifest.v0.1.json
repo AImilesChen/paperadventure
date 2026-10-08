@@ -1,0 +1,95 @@
+{
+  "version": "0.1",
+  "themeWorldId": "dinosaur",
+  "published": false,
+  "items": [
+    {
+      "file": "output/pdf/dinosaur-H02-player-v0.1-A4.pdf",
+      "setting": "home",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 224325,
+      "sha256": "30af761da0178ce1811d9e9ae17861adf3611e40025c2202f9f635d876c22f4c",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/dinosaur-H02-host-v0.1-A4.pdf",
+      "setting": "home",
+      "role": "host",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 110689,
+      "sha256": "58a15693ec4372e013ea9a8e7381431ae10012588befa16b9677f54ae5480400",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/dinosaur-C02-player-v0.1-A4.pdf",
+      "setting": "classroom",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 224506,
+      "sha256": "361fce99039773d1a836608c6531e32a6c29fc4c5e90301bd3d361fab1ded38d",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/dinosaur-C02-teacher-v0.1-A4.pdf",
+      "setting": "classroom",
+      "role": "teacher",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 110658,
+      "sha256": "87a6487248b9b4df9334ce55db248769b3b92de4ec1e86d03378112d71b557ad",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/dinosaur-H02-player-v0.1-Letter.pdf",
+      "setting": "home",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 224091,
+      "sha256": "704aa77d5329a897f37942241d9dbc6555cba926600075276df108ace4d58602",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/dinosaur-H02-host-v0.1-Letter.pdf",
+      "setting": "home",
+      "role": "host",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 110561,
+      "sha256": "12be0342445928c79678a960fb49dbbb63809971088f114cb88ce0ef5097fa37",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/dinosaur-C02-player-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 224285,
+      "sha256": "08eefa5605592551f605e8785f52f89f0577b1d0908fbf291744b64b1e33fb47",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/dinosaur-C02-teacher-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "role": "teacher",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 110566,
+      "sha256": "c6ff139a7e5d276982fcd63ed7dc7aae71f8d92b4e13419a40166039419d3487",
+      "status": "draft",
+      "public": false
+    }
+  ]
+}

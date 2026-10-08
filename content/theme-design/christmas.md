@@ -1,6 +1,6 @@
 # Christmas / Winter｜圣诞与冬日主题设计蓝图
 
-**状态：**H06/C06 仅有 PRD 故事方案；未制作可玩的完整资料包。**视觉：**纸艺礼物标签、运输路线、信件与雪地邮局。C06 同一故事逻辑可主动选择 Christmas 或 Winter 文案/视觉，不另售为独立世界。
+**状态：**H06/C06 已有先行蓝图与内部 PDF 初稿，尚待真人试玩与实物打印。**视觉：**纸艺礼物标签、运输路线、信件与雪地邮局。C06 目前生成中性 Winter 草稿；Christmas 课堂措辞可由成人明确选择后派生并复核，不另售为独立世界。
 
 | | H06 Home — The Christmas Delivery Office | C06 Classroom — The Winter Gift Sorting Station |
 |---|---|---|

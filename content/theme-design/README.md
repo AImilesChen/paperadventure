@@ -1,6 +1,6 @@
 # 六个精选主题｜内容设计蓝图 v0.1
 
-本目录是**制作前方案**，依据根目录整合 PRD v1.3 的商品规则与详细 PRD v1.2 §10.9—10.14 的故事骨架。一个主题世界对应一张目录卡，但 Home 与 Classroom 是两套独立的活动、文件与验收记录。蓝图不代表 PDF 已完成、试玩通过或可以购买。当前全部 `not_published`；庆祝主题 H01/C01 的 PDF 只是 v0.1 初稿。
+本目录先形成**制作前方案**，依据根目录整合 PRD v1.3 的商品规则与详细 PRD v1.2 §10.9—10.14 的故事骨架，再据此做内部内容草稿。一个主题世界对应一张目录卡，但 Home 与 Classroom 是两套独立的活动、文件与验收记录。蓝图与 PDF 初稿均不代表试玩通过或可以购买。当前全部 `not_published`。
 
 | 世界 | Home 故事与目的 | Classroom 故事与目的 | 方案 |
 |---|---|---|---|
@@ -8,10 +8,10 @@
 | Dinosaur | H02 帮小恐龙找到故事营地 | C02 整理研究站的观察档案 | [恐龙](dinosaur.md) |
 | Space | H03 找回小机器人探测器的信号 | C03 分组恢复纸上通信站 | [太空](space.md) |
 | Forest | H04 帮森林邮差找到包裹收件人 | C04 以证据纠正邮局错分包裹 | [森林](forest.md) |
-| Halloween | H05 找回四枚纸质南瓜灯印记 | C05 合作准备友好的南瓜庆典 | [万圣节](halloween.md) |
+| Halloween | H05 找回四枚纸质南瓜灯印记 | C05 合作准备中性秋日纸上庆典 | [万圣节／秋日](halloween.md) |
 | Christmas | H06 完成最后一份纸质礼物投递 | C06 分组完成冬日礼物分拣 | [圣诞／冬日](christmas.md) |
 
-**内容制作进度：**庆祝 H01/C01 已有待试玩的 PDF 初稿；恐龙 H02/C02 已有[卡片、答案与提示内容源](dinosaur-content-source-v0.1.md)及本地 `output/pdf/README_dinosaur_v0.1.md` 所列的八份 A4/Letter PDF 内部初稿，仍待真人试玩与实物打印；[太空](space-content-source-v0.1.md)、[森林](forest-content-source-v0.1.md)、[万圣节](halloween-content-source-v0.1.md)和[圣诞/冬日](christmas-content-source-v0.1.md)都已有两场景五关的内部谜题内容源，尚待排版、自动核对与试玩。内容进度与网站“已发布”状态是两回事。
+**内容制作进度：**六个世界的家庭/课堂两版均有先行蓝图、五关内容源、待验收的 A4/US Letter 玩家包和成人指南 PDF 初稿。各主题内容源位于本目录 `*-content-source-v0.1.md`，本地交付清单位于 `output/pdf/README_<主题英文名>_v0.1.md`。**所有主题仍缺真人试玩、实物打印和正式发布审查**，不能卖、公开下载或宣称完整上线。内容进度与网站“已发布”状态是两回事。
 
 ## 两个版本共同的制作合同
 

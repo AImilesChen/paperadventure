@@ -1,6 +1,6 @@
 # Forest H04/C04｜谜题内容源 v0.1
 
-**状态：**内部数据/英文文案初稿，未排版或试玩。依据 [Forest 蓝图](forest.md)制作；所有角色和地址均为虚构，不涉及真实投递或失窃。两版分别求出不同的成果，网站保持 `not_published`。
+**状态：**内部数据/英文文案与 PDF 排版初稿，尚未真人试玩。依据 [Forest 蓝图](forest.md)制作；`scripts/generate_forest_samples.py` 是本批 PDF 卡片/答案生成真源，修改本稿须同步修改脚本并重生校验。所有角色和地址均为虚构，不涉及真实投递或失窃。两版分别求出不同成果，网站保持 `not_published`。
 
 ## H04：The Forest Post Office Mystery
 
@@ -9,7 +9,7 @@
 | 关 | 玩家卡片与规则 | 唯一结果及用途 |
 |---|---|---|
 | 1 邮戳 | 任务邮戳为树叶边框、两颗星、星期符号 TUE。包裹批次 A=leaf/one star/TUE/M1；B=**leaf/two stars/TUE/M2**；C=moon/two stars/TUE/M3；D=leaf/two stars/FRI/M4。 | B，`batch=M2`，定位对应路线记录。 |
-| 2 记录排序 | M2 纸条 A=`POST OFFICE→BRIDGE`、B=`BRIDGE→MOSS LANE`、C=`MOSS LANE→BLUE TREE`；干扰 D=`POST OFFICE→POND`、E=`POND→NO MAILBOX`。从邮局出发，合法路线到一棵有颜色**与文字标签**的树；玩家页打乱为 D/B/E/C/A。 | A-B-C，`district=BLUE TREE`。 |
+| 2 记录排序 | M2 纸条 A=`POST OFFICE→BRIDGE`、B=`BRIDGE→MOSS LANE`、C=`MOSS LANE→BLUE TREE`；M1 干扰纸条 D=`POST OFFICE→POND`、E=`POND→NO MAILBOX`。只用上关批次 M2，从邮局出发到有颜色**与文字标签**的树；玩家页打乱为 D/B/E/C/A。 | A-B-C，`district=BLUE TREE`。 |
 | 3 分工认包裹 | Carrier 说“用上关地区”；Sorter 说“标签有 **two leaf marks**”；Keeper 说“纸包裹是 **round**”。候选 A=BLUE TREE/one leaf/round/fragment N；B=BLUE TREE/two leaves/square/P；C=**BLUE TREE/two leaves/round/W4**；D=POND/two leaves/round/Q。 | C，获得 `address_fragment=W4`。初稿同页分角色朗读；正式可排独立可裁条。 |
 | 4 修地址 | 虚构地图登记：BLUE TREE + W2=FOX DEN；BLUE TREE + **W4=OWL HOUSE**；POND + W4=BEAVER HUT；MOSS LANE + W4=RABBIT GATE。用地区及地址碎片求唯一收件标记。 | `recipient_marker=OWL HOUSE`；为最后投递提供证据。 |
 | 5 完成投递 | 候选 A=M2/BLUE TREE/W4/OWL HOUSE；B=M2/BLUE TREE/W4/FOX DEN；C=M2/POND/W4/OWL HOUSE；D=M1/BLUE TREE/W4/OWL HOUSE；E=M2/BLUE TREE/W2/OWL HOUSE。 | A。成人出示 Nori 的回信：“The label is clear again. Your careful record helped this parcel reach the right story home.” |
@@ -25,7 +25,7 @@ H04 制品：玩家记录页、邮戳/批次卡、混序路线条、分工包裹
 | 关 | 小组卡片与规则 | 唯一结果及用途 |
 |---|---|---|
 | 1 批次范围 | 本组任务为圆形邮戳、三颗点、周三 WED。档案 A=round/three/WED/R7；B=square/three/WED/R8；C=round/two/WED/R9；D=round/three/FRI/R6。 | A，`batch=R7`，过滤记录条。 |
-| 2 投递记录 | R7 条 L1=`POST OFFICE→STONE PATH`、L2=`STONE PATH→TREEHOUSE ROW`；干扰 L3=`POST OFFICE→POND`、L4=`POND→NO ROUTE`。玩家页混序，选到实际分拣区域。 | L1-L2，`area=TREEHOUSE ROW`。 |
+| 2 投递记录 | R7 条 L1=`POST OFFICE→STONE PATH`、L2=`STONE PATH→TREEHOUSE ROW`；R8 干扰条 L3=`POST OFFICE→POND`、L4=`POND→NO ROUTE`。玩家页混序，只使用上关得出的 R7 批次。 | L1-L2，`area=TREEHOUSE ROW`。 |
 | 3 组内交换 | Route 角色给上关区域；Label 角色给“两条横纹”；Shape 角色给“圆角”。候选 A=TREEHOUSE ROW/one stripe/round/P1；B=TREEHOUSE ROW/two stripes/square/P2；C=**TREEHOUSE ROW/two stripes/round/P3**；D=POND/two stripes/round/P4。 | 包裹 C，`parcel=P3`；不得让单张角色线索直接给出答案。 |
 | 4 地址证据 | 虚构地图：TREEHOUSE ROW+P1=FOX WINDOW；TREEHOUSE ROW+P3=**OWL WINDOW**；POND+P3=OTTER DOOR；STONE PATH+P3=BEAR GATE。 | `recipient=OWL WINDOW`，填证据单。 |
 | 5 结论卡 | A=R7/TREEHOUSE ROW/P3/OWL WINDOW；B=R7/TREEHOUSE ROW/P3/FOX WINDOW；C=R7/POND/P3/OWL WINDOW；D=R8/TREEHOUSE ROW/P3/OWL WINDOW；E=R7/TREEHOUSE ROW/P2/OWL WINDOW。 | A。教师用本组记录确认“包裹—收件人—证据”，可请小组解释两个不同来源的条件。 |

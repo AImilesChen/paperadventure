@@ -1,6 +1,6 @@
 # Christmas/Winter H06/C06｜谜题内容源 v0.1
 
-**状态：**内部谜题/英文文案初稿，尚无 PDF、真实试玩或发布。依据 [Christmas/Winter 蓝图](christmas.md)制作。所有礼物是纸质图卡；真实礼物、交换、购买和家庭节庆习惯均不属于过关条件。成人主动决定 C06 用 Winter 或 Christmas 表达。
+**状态：**内部谜题/英文文案与 PDF 排版初稿，尚无真人试玩或发布。依据 [Christmas/Winter 蓝图](christmas.md)制作；`scripts/generate_christmas_samples.py` 为本批 PDF 卡片/答案生成真源。所有礼物是纸质图卡；真实礼物、交换、购买和家庭节庆习惯均不属于过关条件。C06 当前采用中性 Winter 表达，Christmas 课堂措辞仍待成人选择后派生复核。
 
 ## H06：The Christmas Delivery Office
 

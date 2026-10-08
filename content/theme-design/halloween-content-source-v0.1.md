@@ -1,6 +1,6 @@
 # Halloween H05/C05｜谜题内容源 v0.1
 
-**状态：**内部谜题与英文文案草稿，未生成 PDF 或试玩。遵循 [Halloween 蓝图](halloween.md)：友好庆典、纸灯、无惊吓和明火。H05 的四枚数字印记是本基础实例，C05 采用独立的小组成果，不借用家庭口令。两版均未发布。
+**状态：**内部谜题、英文文案及 PDF 排版草稿，尚未真人试玩。遵循 [Halloween 蓝图](halloween.md)：友好庆典、纸灯、无惊吓和明火。`scripts/generate_halloween_samples.py` 为本批 PDF 卡片/答案生成真源。H05 的四枚数字印记是本基础实例，C05 采用独立的小组成果，不借用家庭口令。两版均未发布。
 
 ## H05：The Missing Pumpkin Light
 
@@ -11,7 +11,7 @@
 | 1 辨认 Pip 的来信 | 任务卡说狐狸形封蜡、两颗星、月亮邮戳。A=fox/two/sun；B=owl/two/moon；C=**fox/two/moon**；D=fox/one/moon。 | C，得到 `SUN seal=5` 与地图起点 `GATE`。 |
 | 2 修庆典地图 | 纸条 A=`GATE→BANNER`、B=`BANNER→PUMPKIN STAND`、C=`PUMPKIN STAND→PARCEL TABLE`；干扰 D=`GATE→SHED`、E=`SHED→END`。玩家页混序，仅真正路线到 PARCEL TABLE。 | A-B-C，得到 `MOON seal=7` 与包裹批次 `P3`。 |
 | 3 合作找包裹 | Courier 线索：批次 P3；Decorator：两条横纹；Keeper：圆角。候选 A=P3/one stripe/round；B=**P3/two stripes/round**；C=P3/two stripes/square；D=P2/two stripes/round。 | B，得到 `HAT seal=2` 与下一封回信的符号字典。角色分工朗读，人数不足合并。 |
-| 4 读回信 | 第 3 关包裹 B 随附完整纸质字典：KITE=SUN、TREE=MOON、ACORN=HAT、FLAG=STAR。回信的编码顺序为 `KITE → TREE → ACORN → FLAG`，页脚明确把最后一枚 STAR 印记标为 `3`。 | 用字典得到 `SUN → MOON → HAT → STAR`，并获得 `STAR seal=3`；与前三枚组成 5-7-2-3。 |
+| 4 读回信 | 字典列出 A/B/C/D 四个包裹行，必须用第三关选出的 B 行：KITE=SUN、TREE=MOON、ACORN=HAT、FLAG=STAR、STAR=3。回信的编码顺序为 `KITE → TREE → ACORN → FLAG`；其它包裹行给出不同映射和值。 | 用 B 行得到 `SUN → MOON → HAT → STAR` 与 `STAR seal=3`；与前三枚组成 5-7-2-3。 |
 | 5 纸灯结局 | 玩家把四枚值填在对应顺序框中。备选结果 A=5723、B=5732、C=7523、D=5724。 | A=`5723`。成人翻开纸灯“点亮”结局卡：“Everyone's clue helped the festival picture shine.” |
 
 **答案控制：**第四关字典只有四个对应关系，每个编码词只指向一枚印记；玩家需要第 3 关得到的字典才能读懂顺序。制作时将字典、编码行、STAR 值、答案和跳关补件设为同一版本的事实源，不能让插画文案改写四枚值。
@@ -20,9 +20,9 @@
 
 H05 制品：玩家记录与五关卡、四枚不同名字的纸印记、地图条、分角色包裹条件、字典/编码回信、纸灯结局；成人指南包含准备、答案、三级提示、跳关补件、无明火安全提示。黑白打印靠名称、编号和外形区分印记。
 
-## C05：The Pumpkin Festival Crew
+## C05：The Autumn Festival Crew（中性课堂草稿）
 
-开场：“Your group is a friendly festival crew. Prepare four parts of a paper celebration and submit an opening plan.” 成人在活动前明确选择 Halloween 或非特定节庆 Autumn 文案/视觉；同一逻辑只算一个场景版本，不能根据学生国家或语言自动推断。
+开场：“Your group is a friendly paper autumn festival crew. Prepare four parts of a paper celebration and submit an opening plan.” 当前内部打印稿使用 Autumn 文案/视觉；若成人在活动前明确选择 Halloween，需派生对应文案再做复核。同一逻辑只算一个场景版本，不能根据学生国家或语言自动推断。
 
 | 关 | 小组页规则与候选 | 唯一成果及后续用途 |
 |---|---|---|

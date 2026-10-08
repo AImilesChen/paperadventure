@@ -1,0 +1,95 @@
+{
+  "version": "0.1",
+  "themeWorldId": "space",
+  "published": false,
+  "items": [
+    {
+      "file": "output/pdf/space-H03-player-v0.1-A4.pdf",
+      "setting": "home",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 216937,
+      "sha256": "d3c1877015065157d950f058f2d1f3920df08a26973d963e82a68264f5342370",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/space-H03-host-v0.1-A4.pdf",
+      "setting": "home",
+      "role": "host",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 110377,
+      "sha256": "30789a7e0f032538c6fa4c7a535f98ffb1f85aba980ebfc5064f4f82480a9a6e",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/space-C03-player-v0.1-A4.pdf",
+      "setting": "classroom",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 216402,
+      "sha256": "62fe307a318a2091c5a24bf7f577112f58933bf0b4abe7237e99f0f8c95614d5",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/space-C03-teacher-v0.1-A4.pdf",
+      "setting": "classroom",
+      "role": "teacher",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 110299,
+      "sha256": "ad02bd954ec1cb762a329f86fea442fc5ca124f71b02032c5afdfd1abda7f52b",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/space-H03-player-v0.1-Letter.pdf",
+      "setting": "home",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 216669,
+      "sha256": "ee037f696fd61c4dc7697638c7b58679406216d22d835d0fcaa3c88497a42975",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/space-H03-host-v0.1-Letter.pdf",
+      "setting": "home",
+      "role": "host",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 110254,
+      "sha256": "0bddb2cbb1f26a94008ccc5d7e5a01eaca8a0fe002b4dab74a488f3855122df7",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/space-C03-player-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 216155,
+      "sha256": "03b6691b2bc3c8c333ba341a871c011847be59134f5d57175ec3f4660bc57279",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/space-C03-teacher-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "role": "teacher",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 110188,
+      "sha256": "13065458796c2b2a6dbc3e61a9beaf8376c8c49042816f59c0f58357c1ef96d6",
+      "status": "draft",
+      "public": false
+    }
+  ]
+}
