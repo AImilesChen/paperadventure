@@ -104,9 +104,8 @@ class InvitationCards(Flowable):
     def pumpkin(c, x, y):
         c.ellipse(x - 13, y - 10, x + 13, y + 10, fill=0, stroke=1)
         c.line(x, y + 10, x + 1, y + 15)
-        c.circle(x - 5, y + 1, 1.4, fill=0, stroke=1)
-        c.circle(x + 5, y + 1, 1.4, fill=0, stroke=1)
-        c.arc(x - 7, y - 7, x + 7, y + 6, 205, 130)
+        c.bezier(x - 5, y + 9, x - 10, y + 3, x - 10, y - 3, x - 5, y - 9)
+        c.bezier(x + 5, y + 9, x + 10, y + 3, x + 10, y - 3, x + 5, y - 9)
 
     def draw(self):
         c = self.canv
@@ -366,7 +365,7 @@ CLASSROOM = {
     "prepare": "Print one Group Player Pack per group and one private Teacher Guide. Give each group its own complete pages. At Checkpoint 2, place or copy the two useful strips on the Autumn Crew map. This is the neutral Autumn Festival draft. A separate Halloween-worded classroom draft exists for an adult to choose, but neither wording has passed play-test or print review. Map, Shape, Count and Recorder roles can be combined or rotated. No group depends on another.",
     "ending": "Confirm Plan A after each group cites at least two clue sheets. Read: 'The friendly paper festival is ready. Everyone shared a clue to make the opening plan clear.' Never ask students to reveal their religious, cultural or family celebration practices.",
     "steps": [
-        step("Find the crew invitation", "The true invitation shows a SMILING PUMPKIN icon, TWO flags and a ROUND frame. All three labels are printed; colour does not matter.",
+        step("Find the crew invitation", "The true invitation shows a PAPER PUMPKIN icon, TWO flags and a ROUND frame. All three labels are printed; colour does not matter.",
              ["Card", "Icon", "Flags", "Frame", "Crew / Start"],
              [["A", "Pumpkin", "1", "Round", "A / SHED"], ["B", "Pumpkin", "2", "Round", "B / GATE"], ["C", "Moon", "2", "Round", "C / TREE"], ["D", "Pumpkin", "2", "Square", "D / PATH"]],
              "Card B; CREW B and GATE", "CREW B / GATE", "Map starting place", ["Invitation", "Crew and start"],

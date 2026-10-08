@@ -7,7 +7,7 @@
 | C05 | The Autumn Festival Crew | The Pumpkin Festival Crew | CREW B/GATE → ORANGE BOOTH → Decor C/LEAF MARK → P-Q-R-S/WELCOME → Plan A |
 | C06 | The Winter Gift Sorting Station | The Christmas Gift Sorting Station | T2 → BOOK/LIBRARY、STAR/SKY、BELL/MUSIC → STAR-BELL-BOOK → R1/READY → Manifest A |
 
-节庆稿独立更换封面概念图、标题、开场叙事、教师准备说明、末关过渡与仅供教师交付的纸质回信。全部五关候选数据、正确答案、前后关成果、三级提示、角色线索与纸卡结构保持相同；生成器 `validate_logic()` 和 `scripts/check_classroom_variants.py` 同时核对。教师指南第 2 页的五关答案段落与对应中性版 PDF 提取文本完全一致，节庆回信不会印在玩家包里。
+节庆稿独立更换封面概念图、标题、开场叙事、教师准备说明、末关过渡与仅供教师交付的纸质回信。全部五关候选数据、正确答案、前后关成果、三级提示、角色线索与纸卡结构保持相同；生成器 `validate_logic()` 和 `scripts/check_classroom_variants.py` 同时核对。后者逐一检查 A4/Letter 的中性学生包不含 `Halloween`/`Christmas` 字样、成人选择的节庆学生包包含对应字样。中性教师指南可提及另有成人可选版本，但不把节庆任务交给学生。教师指南第 2 页的五关答案段落与对应中性版 PDF 提取文本完全一致，节庆回信不会印在玩家包里。
 
 C05 两套措辞的第二关均有同一张五地点未连线纸地图，地图标题分别是 `AUTUMN CREW MAP` 与 `PUMPKIN CREW MAP`；两套各自的混序路线条与 `GATE → PAPER ARCH → ORANGE BOOTH` 答案相同。地图不得预连正确路线，测试时须让小组按纸条画线，并分别确认灰度印刷与措辞理解。
 

@@ -26,7 +26,7 @@ H05 制品：玩家记录与五关卡、首关四张带狐狸/猫头鹰轮廓、
 
 | 关 | 小组页规则与候选 | 唯一成果及后续用途 |
 |---|---|---|
-| 1 小组邀请 | 真邀请有笑脸南瓜、两条旗帜、圆框。A=pumpkin/one/round；B=**pumpkin/two/round**；C=moon/two/round；D=pumpkin/two/square。 | B，得到站点 `GATE` 和任务标记 `CREW B`。 |
+| 1 小组邀请 | 真邀请有普通纸南瓜轮廓（无刻脸）、两条旗帜、圆框。A=pumpkin/one/round；B=**pumpkin/two/round**；C=moon/two/round；D=pumpkin/two/square。 | B，得到站点 `GATE` 和任务标记 `CREW B`。 |
 | 2 庆典地图 | 从 GATE 出发，A=`GATE→PAPER ARCH`、B=`PAPER ARCH→ORANGE BOOTH`；干扰 C=`GATE→SHED`、D=`SHED→BLANK`，玩家页混序。 | A-B，获得布置位置 `ORANGE BOOTH`。 |
 | 3 分工装饰 | Map 角色给 ORANGE BOOTH；Shape 角色给 circle banner；Count 角色给 three stars。候选 A=ORANGE/circle/two；B=ORANGE/square/three；C=**ORANGE/circle/three**；D=BLUE/circle/three。 | 装饰 C，获得纸质图案 `LEAF MARK`。不依赖组间共享卡。 |
 | 4 流程表 | 四条准备记录：P=invite CREW B；Q=map ORANGE BOOTH；R=decoration LEAF MARK；S=opening sign `WELCOME`。流程规则是邀请→布置→装饰→开场；玩家页打乱次序。 | P-Q-R-S，获得最后的 `WELCOME` 标记和流程顺序。 |
@@ -34,7 +34,7 @@ H05 制品：玩家记录与五关卡、首关四张带狐狸/猫头鹰轮廓、
 
 三级提示：1 比三个邀请属性→同时满足→B/CREW B/GATE；2 从 GATE 找到有明确 Booth 的路→A-B/ORANGE；3 三角色各读一条件→ORANGE/circle/three 求交→C/LEAF MARK；4 按纸上流程含义排序→邀请到开场→P-Q-R-S/WELCOME；5 用四项记录逐项核对→找无冲突方案→A。跳关按这五段补发标准成果。人数不足合并线索，提前完成的小组可复盘“哪一张别人的卡改变了我们的选择”，不额外加收费关卡。
 
-C05 制品：每组四张带笑脸南瓜/月亮图案、旗帜数与圆/方框的图文邀请卡、混序地图条与五个未连线地点的纸地图、三角色条件和四张圆/方形横幅与两/三颗星双编码的装饰候选卡、流程条、成果/开场图；教师包有每组份数、提示、答案和跳关，答案页有确认 Plan A 后分享的纸质回信。中性 Autumn 与成人主动选择的 Halloween 地图各用相应标题，地点与答案相同：GATE/PAPER ARCH/ORANGE BOOTH/SHED/BLANK，纸条 A-B 才到达摊位。H05 的第三关另有四张横纹数量与圆/方角双编码的包裹候选卡。两版图形旁均重复文字标签，卡片保留批次/摊位与结果，裁开后仍能单独比较。中性 Autumn 与节庆 Halloween 两套课堂 PDF、封面和结局卡已分别生成，答案段落自动对照通过；另见[课堂措辞对照](classroom-seasonal-variants-v0.1.md)。两套均待真人试玩及实物打印。默认坐在桌边完成，站点活动仅在老师确认空间后可选。
+C05 制品：每组四张带无刻脸纸南瓜/月亮图案、旗帜数与圆/方框的图文邀请卡、混序地图条与五个未连线地点的纸地图、三角色条件和四张圆/方形横幅与两/三颗星双编码的装饰候选卡、流程条、成果/开场图；教师包有每组份数、提示、答案和跳关，答案页有确认 Plan A 后分享的纸质回信。中性 Autumn 与成人主动选择的 Halloween 地图各用相应标题，地点与答案相同：GATE/PAPER ARCH/ORANGE BOOTH/SHED/BLANK，纸条 A-B 才到达摊位。H05 的第三关另有四张横纹数量与圆/方角双编码的包裹候选卡。两版图形旁均重复文字标签，卡片保留批次/摊位与结果，裁开后仍能单独比较。中性 Autumn 与节庆 Halloween 两套课堂 PDF、封面和结局卡已分别生成，答案段落自动对照通过；另见[课堂措辞对照](classroom-seasonal-variants-v0.1.md)。两套均待真人试玩及实物打印。默认坐在桌边完成，站点活动仅在老师确认空间后可选。
 
 ## 制作前的确认
 

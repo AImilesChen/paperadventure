@@ -57,11 +57,20 @@ for theme, variant, code, title, ending in (
         neutral_pages = PdfReader(ROOT / neutral_item["file"]).pages
         if item["role"] == "player":
             joined = "\n".join(content)
+            neutral_joined = "\n".join(page.extract_text() or "" for page in neutral_pages)
+            holiday_word = "Halloween" if theme == "halloween" else "Christmas"
+            assert holiday_word.casefold() not in neutral_joined.casefold(), (
+                neutral_item["file"], "holiday wording leaked into neutral player pack"
+            )
+            assert holiday_word.casefold() in joined.casefold(), (
+                path, "adult-selected holiday player pack lacks its chosen wording"
+            )
             assert ending not in joined and "ANSWER KEY" not in joined
             for number in range(1, 6):
                 assert f"CHECKPOINT {number:02d} / 05" in joined
             assert ("CREW / START  B / GATE" if theme == "halloween" else "BATCH  T2") in content[1]
             if theme == "halloween":
+                assert "PAPER PUMPKIN icon" in content[1] and "SMILING PUMPKIN" not in content[1]
                 assert "PUMPKIN CREW MAP / TWO USEFUL STRIPS" in content[2]
                 assert "AUTUMN CREW MAP / TWO USEFUL STRIPS" not in content[2]
                 for place in ("GATE", "PAPER ARCH", "ORANGE BOOTH", "SHED", "BLANK"):

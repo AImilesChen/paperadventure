@@ -114,6 +114,7 @@ for item in manifest["items"]:
                 assert "OUTLINE  ROUND" in choice_page and "OUTLINE  SQUARE" in choice_page
                 assert "HAT / ROW  2" in choice_page
             else:
+                assert "PAPER PUMPKIN icon" in first_page and "SMILING PUMPKIN" not in first_page
                 assert "ICON  PUMPKIN" in first_page and "ICON  MOON" in first_page
                 assert "FLAGS  2" in first_page and "FRAME  ROUND" in first_page
                 assert "CREW / START  B / GATE" in first_page
