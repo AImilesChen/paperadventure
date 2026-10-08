@@ -1,10 +1,57 @@
 """Build internal Forest H04/C04 paper-game drafts from the approved theme blueprint."""
 
 from pathlib import Path
+from reportlab.lib import colors
+from reportlab.platypus import Flowable
 from generate_space_samples import PaperRouteWorkspace, render_drafts
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class StoryAddressMap(Flowable):
+    """A fictional four-block map that repeats district and code in each house."""
+
+    def __init__(self, width, title, rows):
+        super().__init__()
+        self.width = width
+        self.height = 145
+        self.title = title
+        self.rows = rows
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setFillColor(colors.HexColor("#153B56"))
+        c.setFont("ArialBold", 8.5)
+        c.drawString(0, 132, self.title)
+        c.setFillColor(colors.HexColor("#36546A"))
+        c.setFont("Arial", 8.3)
+        c.drawString(0, 118, "Match BOTH your place and fragment. Every location is invented.")
+        gutter = 10
+        block_width = (self.width - gutter) / 2
+        block_height = 48
+        for index, (place, fragment, marker) in enumerate(self.rows):
+            col = index % 2
+            row = index // 2
+            x = col * (block_width + gutter)
+            y = 60 - row * 56
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.setLineWidth(.9)
+            c.roundRect(x, y, block_width, block_height, 5, fill=0, stroke=1)
+            c.setFillColor(colors.HexColor("#153B56"))
+            c.setFont("ArialBold", 8.1)
+            c.drawString(x + 9, y + 31, f"BLOCK {index + 1}  /  {marker}")
+            c.setFillColor(colors.HexColor("#36546A"))
+            c.setFont("Arial", 8.3)
+            c.drawString(x + 9, y + 16, f"{place}  +  {fragment}")
+            # A little paper-house marker makes the register read as a story map
+            # without relying on colour or an illustration to encode the answer.
+            roof_x = x + block_width - 30
+            c.line(roof_x, y + 29, roof_x + 8, y + 36)
+            c.line(roof_x + 8, y + 36, roof_x + 16, y + 29)
+            c.rect(roof_x + 2, y + 16, 12, 13, fill=0, stroke=1)
+        c.restoreState()
 
 
 def step(title, story, heads, rows, answer, handoff, used, prompts, next_story, hints, extra=None):
@@ -38,13 +85,13 @@ HOME = {
         step("Share the parcel clues", "Carrier: use your route district. Sorter: the parcel has TWO leaf marks. Keeper: its paper outline is ROUND. Share all three facts before circling a card.",
              ["Parcel", "District", "Leaves", "Outline", "Fragment"],
              [["A", "BLUE TREE", "1", "Round", "N"], ["B", "BLUE TREE", "2", "Square", "P"], ["C", "BLUE TREE", "2", "Round", "W4"], ["D", "POND", "2", "Round", "Q"]],
-             "Parcel C; W4", "W4", "Paper address register", ["Matching parcel", "Address fragment"],
+             "Parcel C; W4", "W4", "Fictional forest map", ["Matching parcel", "Address fragment"],
              "Your parcel's address fragment and district together identify the recipient marker.",
              ["Let each role say a different clue.", "Intersect district, two leaves and round outline.", "Parcel C; give W4."]),
-        step("Repair the story address", "The register lists only imaginary forest places. Find the row matching BOTH your district and your parcel's fragment.",
+        step("Repair the story address", "On the fictional forest map, find the block matching BOTH your district and your parcel's fragment.",
              ["District", "Fragment", "Recipient marker"],
              [["BLUE TREE", "W2", "FOX DEN"], ["BLUE TREE", "W4", "OWL HOUSE"], ["POND", "W4", "BEAVER HUT"], ["MOSS LANE", "W4", "RABBIT GATE"]],
-             "OWL HOUSE", "OWL HOUSE", "Final delivery card", ["Matching register row", "Recipient marker"],
+             "OWL HOUSE", "OWL HOUSE", "Final delivery card", ["Matching map block", "Recipient marker"],
              "The recipient marker is the last field in Nori's delivery record.",
              ["Look up district and fragment together.", "BLUE TREE has more than one row; inspect the fragment.", "OWL HOUSE; give this marker."]),
         step("Deliver the story parcel", "Compare batch, district, fragment and recipient marker. Circle the only card matching every discovery. Give your grown-up two reasons.",
@@ -78,13 +125,13 @@ CLASSROOM = {
         step("Combine the role cards", "Route role: use your route area. Label role: choose TWO stripes. Shape role: choose ROUNDED corners. Recorder checks all three conditions.",
              ["Parcel", "Area", "Stripes", "Corners", "Code"],
              [["A", "TREEHOUSE ROW", "1", "Round", "P1"], ["B", "TREEHOUSE ROW", "2", "Square", "P2"], ["C", "TREEHOUSE ROW", "2", "Round", "P3"], ["D", "POND", "2", "Round", "P4"]],
-             "Parcel C; P3", "P3", "Fictional recipient register", ["Selected parcel", "Parcel code"],
+             "Parcel C; P3", "P3", "Fictional investigation map", ["Selected parcel", "Parcel code"],
              "Use both the area and parcel code to read the recipient register.",
              ["Every role has one constraint.", "Intersect TREEHOUSE ROW, two stripes, rounded corners.", "Parcel C; give P3."]),
-        step("Identify the recipient marker", "Look up the combination of your route area and parcel code. These are fictional labels, never real addresses.",
+        step("Identify the recipient marker", "On the investigation map, match your route area and parcel code in the same block. These are fictional labels, never real addresses.",
              ["Area", "Code", "Recipient marker"],
              [["TREEHOUSE ROW", "P1", "FOX WINDOW"], ["TREEHOUSE ROW", "P3", "OWL WINDOW"], ["POND", "P3", "OTTER DOOR"], ["STONE PATH", "P3", "BEAR GATE"]],
-             "OWL WINDOW", "OWL WINDOW", "Final evidence card", ["Matching register row", "Recipient marker"],
+             "OWL WINDOW", "OWL WINDOW", "Final evidence card", ["Matching map block", "Recipient marker"],
              "The matching marker completes your evidence record.",
              ["Check area and code at once.", "P3 appears more than once; verify the area.", "OWL WINDOW; give this marker."]),
         step("Submit a clear conclusion", "Compare batch, area, parcel code and recipient marker. Circle one conclusion that agrees with every sheet; cite two different sheets.",
@@ -113,6 +160,12 @@ HOME["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
     width, "NORI'S POST ROUTE / SORT THREE M2 STRIPS", 3, "POST OFFICE", "NAMED TREE")
 CLASSROOM["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
     width, "INVESTIGATION ROUTE / SORT TWO R7 STRIPS", 2, "POST OFFICE", "NAMED ROW")
+HOME["steps"][3]["card_factory"] = lambda width: StoryAddressMap(
+    width, "NORI'S FICTIONAL FOREST MAP", HOME["steps"][3]["rows"])
+CLASSROOM["steps"][3]["card_factory"] = lambda width: StoryAddressMap(
+    width, "INVESTIGATION MAP / FOUR STORY BLOCKS", CLASSROOM["steps"][3]["rows"])
+for story in (HOME, CLASSROOM):
+    story["steps"][3]["card_note"] = "Keep the four-block map intact. Match the place and printed fragment together before recording a recipient."
 
 
 def validate_logic():
@@ -123,9 +176,11 @@ def validate_logic():
             assert all(len(row) == len(item["heads"]) for row in item["rows"])
     assert [r[0] for r in HOME["steps"][0]["rows"] if r[1:4] == ["Leaf", "2", "TUE"]] == ["B"]
     assert [r[0] for r in HOME["steps"][2]["rows"] if r[1:4] == ["BLUE TREE", "2", "Round"]] == ["C"]
+    assert [r[2] for r in HOME["steps"][3]["rows"] if r[:2] == ["BLUE TREE", "W4"]] == ["OWL HOUSE"]
     assert [r[0] for r in HOME["steps"][4]["rows"] if r[1:] == ["M2", "BLUE TREE", "W4", "OWL HOUSE"]] == ["A"]
     assert [r[0] for r in CLASSROOM["steps"][0]["rows"] if r[1:4] == ["Round", "3", "WED"]] == ["A"]
     assert [r[0] for r in CLASSROOM["steps"][2]["rows"] if r[1:4] == ["TREEHOUSE ROW", "2", "Round"]] == ["C"]
+    assert [r[2] for r in CLASSROOM["steps"][3]["rows"] if r[:2] == ["TREEHOUSE ROW", "P3"]] == ["OWL WINDOW"]
     assert [r[0] for r in CLASSROOM["steps"][4]["rows"] if r[1:] == ["R7", "TREEHOUSE ROW", "P3", "OWL WINDOW"]] == ["A"]
 
 

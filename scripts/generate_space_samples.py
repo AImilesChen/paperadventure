@@ -243,7 +243,7 @@ def player_flow(story, width):
             flow += [p("Only an adult or teacher cuts cards. Without scissors, cover and reveal one card at a time.", "small"), gap(5)]
         if step.get("card_factory"):
             flow += [step["card_factory"](width),
-                     p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]
+                     p(step.get("card_note", "An adult or teacher may cut the bordered cards; you can also compare or number them on this page."), "small"), gap(8)]
         elif step.get("strip_cards") or number == 5:
             flow += strip_cards(step["heads"], step["rows"], width)
             flow += [p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]

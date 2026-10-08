@@ -56,6 +56,13 @@ for item in manifest["items"]:
                         else "INVESTIGATION ROUTE / SORT TWO R7 STRIPS")
             assert expected in second_page, (path, "missing postal route workspace")
             assert "STRIP 1" in second_page and "FINISH / NAMED" in second_page
+            fourth_page = all_text[4]
+            assert ("FICTIONAL FOREST MAP" if item["setting"] == "home"
+                    else "INVESTIGATION MAP / FOUR STORY BLOCKS") in fourth_page
+            for number in range(1, 5):
+                assert f"BLOCK {number}  /" in fourth_page, (path, "missing map block", number)
+            assert ("BLUE TREE  +  W4" if item["setting"] == "home"
+                    else "TREEHOUSE ROW  +  P3") in fourth_page, (path, "missing answer location")
         elif THEME == "halloween":
             expected = ("PAPER FESTIVAL MAP / THREE USEFUL STRIPS" if item["setting"] == "home"
                         else "AUTUMN CREW MAP / TWO USEFUL STRIPS")
