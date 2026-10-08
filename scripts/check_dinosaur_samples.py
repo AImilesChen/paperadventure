@@ -51,6 +51,18 @@ for item in manifest["items"]:
             trail_page = pages[2].extract_text() or ""
             assert "MILO'S PAPER TRAIL" in trail_page
             assert "STRIP 1" in trail_page and "STRIP 3" in trail_page
+        choice_page = pages[3].extract_text() or ""
+        for label in "ABCD":
+            assert f"{'PACK' if item['setting'] == 'home' else 'ZONE'} {label}  /  PAPER RECORD" in choice_page, (path, "missing third-checkpoint choice card", label)
+        if item["setting"] == "home":
+            assert "SIGN  PINE" in choice_page and "SIGN  ROCK" in choice_page
+            assert "STRAPS  1" in choice_page and "STRAPS  2" in choice_page
+            assert "TAG  TRIANGLE" in choice_page and "TAG  CIRCLE" in choice_page
+            assert "CODE  4" in choice_page
+        else:
+            assert "REGION  RIDGE" in choice_page and "REGION  WOODS" in choice_page
+            assert "MARKER  CIRCLE" in choice_page and "MARKER  TRIANGLE" in choice_page
+            assert "FLAGS  1" in choice_page and "FLAGS  2" in choice_page
         assert "bordered cards" in (pages[5].extract_text() or ""), (path, "missing final paper candidates")
         assert "MILO'S PAPER WELCOME" not in all_text and "RESEARCH STATION NOTE" not in all_text
     else:

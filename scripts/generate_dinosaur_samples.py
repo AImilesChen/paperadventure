@@ -187,6 +187,81 @@ class FootprintCards(Flowable):
         c.restoreState()
 
 
+class DinosaurChoiceCards(Flowable):
+    """Third-checkpoint candidates with countable paper marks and printed labels."""
+
+    def __init__(self, width, rows, setting):
+        super().__init__()
+        self.width = width
+        self.height = 194
+        self.rows = rows
+        self.setting = setting
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 10
+        card_width = (self.width - gutter) / 2
+        card_height = 92
+        for index, row in enumerate(self.rows):
+            x = (index % 2) * (card_width + gutter)
+            y = (1 - index // 2) * (card_height + gutter)
+            c.setStrokeColor(LINE)
+            c.setLineWidth(.9)
+            c.roundRect(x, y, card_width, card_height, 6, fill=0, stroke=1)
+            c.setFillColor(NAVY)
+            c.setFont("ArialBold", 8.8)
+            c.drawString(x + 9, y + 76, f"{'PACK' if self.setting == 'home' else 'ZONE'} {row[0]}  /  PAPER RECORD")
+            cx, cy = x + 36, y + 44
+            c.setStrokeColor(NAVY)
+            c.setLineWidth(1.2)
+            if self.setting == "home":
+                _, place, count, marker, result = row
+                c.roundRect(cx - 22, cy - 19, 44, 36, 5, fill=0, stroke=1)
+                for strap in range(int(count)):
+                    sx = cx - 8 + strap * 16
+                    c.line(sx, cy + 17, sx, cy + 26)
+                    c.line(sx - 4, cy + 26, sx + 4, cy + 26)
+                if marker == "Triangle":
+                    tag = c.beginPath()
+                    tag.moveTo(cx, cy + 8)
+                    tag.lineTo(cx - 10, cy - 9)
+                    tag.lineTo(cx + 10, cy - 9)
+                    tag.close()
+                    c.drawPath(tag, fill=0, stroke=1)
+                else:
+                    c.circle(cx, cy - 2, 9, fill=0, stroke=1)
+                labels = (f"SIGN  {place}", f"STRAPS  {count}",
+                          f"TAG  {marker.upper()}", f"CODE  {result}")
+            else:
+                _, place, marker, count = row
+                if marker == "CIRCLE":
+                    c.circle(cx, cy + 7, 17, fill=0, stroke=1)
+                else:
+                    shape = c.beginPath()
+                    shape.moveTo(cx, cy + 24)
+                    shape.lineTo(cx - 18, cy - 8)
+                    shape.lineTo(cx + 18, cy - 8)
+                    shape.close()
+                    c.drawPath(shape, fill=0, stroke=1)
+                for flag in range(int(count)):
+                    pole_x = cx - 10 + flag * 20
+                    c.line(pole_x, cy - 27, pole_x, cy - 15)
+                    pennant = c.beginPath()
+                    pennant.moveTo(pole_x, cy - 15)
+                    pennant.lineTo(pole_x + 8, cy - 18)
+                    pennant.lineTo(pole_x, cy - 21)
+                    pennant.close()
+                    c.drawPath(pennant, fill=0, stroke=1)
+                labels = (f"REGION  {place}", f"MARKER  {marker}",
+                          f"FLAGS  {count}", f"ZONE  {row[0]}")
+            c.setFillColor(INK)
+            c.setFont("ArialBold", 8.1)
+            for line, label in enumerate(labels):
+                c.drawString(x + 76, y + 58 - line * 15, label)
+        c.restoreState()
+
+
 class DinosaurTrailBoard(Flowable):
     """Three-slot paper workspace that keeps the trail start and sign visible."""
 
@@ -310,7 +385,7 @@ def cover(code, role, title, intro, width, records):
 
 def checkpoint(number, title, story, headers, rows, proportions, width, questions, transition,
                strip_mode=False, footprint_mode=False, trail_board=False, batch_mode=False,
-               batch_notes=False):
+               batch_notes=False, choice_setting=None):
     flow = page_heading(number, title, story)
     if batch_notes:
         flow += [BatchNoteTable(width), gap(8)]
@@ -320,6 +395,9 @@ def checkpoint(number, title, story, headers, rows, proportions, width, question
     elif footprint_mode:
         flow += [FootprintCards(width, rows, headers[-1].upper()),
                  p("The outline and printed words show the same clues. Compare all three details; adult cutting is optional.", "small"), gap(7)]
+    elif choice_setting:
+        flow += [DinosaurChoiceCards(width, rows, choice_setting),
+                 p("The picture and printed labels show the same clues. An adult may cut the four cards, or players can compare them on this page.", "small"), gap(7)]
     elif strip_mode or number == 5:
         flow += strip_cards(headers, rows, width)
         flow += [p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]
@@ -363,7 +441,7 @@ def home_player(width):
                         ["C", "PINE", "2", "Circle", "5"], ["D", "ROCK", "2", "Triangle", "3"]],
                        [.13, .20, .17, .30, .20], width,
                        ["Our chosen pack", "Its code"],
-                       "Use both the sign and the code on the signpost table.")
+                       "Use both the sign and the code on the signpost table.", choice_setting="home")
     # Place distributable role cards before the candidate table, without the adult answer.
     third_heading = next(i for i, item in enumerate(flow) if getattr(item, 'text', '') == 'Choose the paper supplies')
     flow[third_heading + 3:third_heading + 3] = role_cards([
@@ -421,7 +499,7 @@ def class_player(width):
                         ["C", "RIDGE", "CIRCLE", "2"], ["D", "WOODS", "CIRCLE", "2"]],
                        [.18, .31, .32, .19], width,
                        ["Our zone", "Which cards support it"],
-                       "Use your zone to sort the station's time strips.")
+                       "Use your zone to sort the station's time strips.", choice_setting="classroom")
     heading = next(i for i, item in enumerate(flow) if getattr(item, 'text', '') == 'Share the location clues')
     flow[heading + 3:heading + 3] = role_cards([
         ("Observer", "Use the region from your footprint."),

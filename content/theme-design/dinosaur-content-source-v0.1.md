@@ -18,7 +18,7 @@
 
 ### 3. Pack the paper supplies
 
-三条分工线索（现已为同页三张独立边框卡，可由成人裁下分发或遮盖朗读）：Guide = "Use the sign name from your route"；Milo = "The correct paper pack has **two straps**"；Scout = "The correct pack has a **triangle tag**"。候选纸卡：A = PINE / one strap / triangle / code 2；B = PINE / two straps / triangle / code **4**；C = PINE / two straps / circle / code 5；D = ROCK / two straps / triangle / code 3。只有 B 满足三条件，得到 `supply=B`、`checkpoint_code=4`。一级提示：每人读一条；二级：把 PINE、two、triangle 同时放在候选旁；完整解法：B，代号 4。跳关补发 `CODE 4` 卡。单人或两人玩时由成人将未分配线索交给现有玩家，不隐藏必需信息。
+三条分工线索（现已为同页三张独立边框卡，可由成人裁下分发或遮盖朗读）：Guide = "Use the sign name from your route"；Milo = "The correct paper pack has **two straps**"；Scout = "The correct pack has a **triangle tag**"。四张独立图文补给卡：A = PINE / one strap / triangle / code 2；B = PINE / two straps / triangle / code **4**；C = PINE / two straps / circle / code 5；D = ROCK / two straps / triangle / code 3。卡面画可数的一/两条背带及三角/圆形标签，并重复印出路标名、背带数、标签与代号；裁下后每张仍可独立比较。只有 B 满足三条件，得到 `supply=B`、`checkpoint_code=4`。一级提示：每人读一条；二级：把 PINE、two、triangle 同时放在候选旁；完整解法：B，代号 4。跳关补发 `CODE 4` 卡。单人或两人玩时由成人将未分配线索交给现有玩家，不隐藏必需信息。
 
 ### 4. Read the signpost
 
@@ -44,7 +44,7 @@
 
 ### 3. Share the location clues
 
-三条分工线索（现已为同页三张独立边框卡，可由教师分发或遮盖朗读）：Observer = "The station is in the region from your matched footprint." Reader = "The station has a **circle marker**." Checker = "The station has **two flags**." 区域候选：Zone A = RIDGE/circle/one flag；Zone B = RIDGE/triangle/two flags；Zone C = **RIDGE/circle/two flags**；Zone D = WOODS/circle/two flags。唯一答案 Zone C。记录员只在听完三条线索后圈选；某角色缺席时教师把该线索交给现有成员。提示依次为每人读一条、三个条件求交集、Zone C。跳关补发 Zone C 条。
+三条分工线索（现已为同页三张独立边框卡，可由教师分发或遮盖朗读）：Observer = "The station is in the region from your matched footprint." Reader = "The station has a **circle marker**." Checker = "The station has **two flags**." 四张独立图文区域卡：Zone A = RIDGE/circle/one flag；Zone B = RIDGE/triangle/two flags；Zone C = **RIDGE/circle/two flags**；Zone D = WOODS/circle/two flags。卡面同时印出圆/三角标记、一/两面可数小旗和对应的地区、数量文字；前关取得的 RIDGE 才是正确地区条件。唯一答案 Zone C。记录员只在听完三条线索后圈选；某角色缺席时教师把该线索交给现有成员。提示依次为每人读一条、三个条件求交集、Zone C。跳关补发 Zone C 条。
 
 ### 4. Put the time strips in order
 

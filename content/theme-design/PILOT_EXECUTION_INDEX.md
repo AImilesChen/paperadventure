@@ -6,8 +6,8 @@
 | --- | --- | --- | --- | --- | --- |
 | H01 Celebration Home | `pilot-celebration-v0.1.zip` | 来信图卡、三角色线索、成人结局信 | 待执行 | 待执行 | 待执行 |
 | C01 Celebration Classroom | `pilot-celebration-v0.1.zip` | 邀请图卡、组内角色分工、纸徽章 | 待执行 | 待执行 | 待执行 |
-| H02 Dinosaur Home | `pilot-dinosaur-v0.1.zip` | 足迹观察、路线拼接、营地结论 | 待执行 | 待执行 | 待执行 |
-| C02 Dinosaur Classroom | `pilot-dinosaur-v0.1.zip` | 首关批次 R2 必须用于第二关观察笔记与足迹选择 | 待执行 | 待执行 | 待执行 |
+| H02 Dinosaur Home | `pilot-dinosaur-v0.1.zip` | 足迹观察、路线拼接、补给卡背带/标签与营地结论 | 待执行 | 待执行 | 待执行 |
+| C02 Dinosaur Classroom | `pilot-dinosaur-v0.1.zip` | R2 批次进入足迹选择，RIDGE 地区进入第三关标记/旗帜区域卡 | 待执行 | 待执行 | 待执行 |
 | H03 Space Home | `pilot-space-v0.1.zip` | 信号图卡、纸星图、设备候选与回信 | 待执行 | 待执行 | 待执行 |
 | C03 Space Classroom | `pilot-space-v0.1.zip` | 多人信号、设备卡、恢复报告 | 待执行 | 待执行 | 待执行 |
 | H04 Forest Home | `pilot-forest-v0.1.zip` | 邮戳图卡、包裹卡、虚构地址与回信 | 待执行 | 待执行 | 待执行 |
