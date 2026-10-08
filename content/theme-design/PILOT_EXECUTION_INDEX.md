@@ -15,9 +15,9 @@
 | H05 Halloween Home | `pilot-halloween-v0.1.zip` | 友好邀请图卡、包裹横纹/角形、四枚印记与纸灯结局 | 待执行 | 待执行 | 待执行 |
 | C05 Autumn Classroom | `pilot-halloween-v0.1.zip` | 中性秋日邀请、装饰横幅/星数、组内协作与开场计划 | 待执行 | 待执行 | 待执行 |
 | C05 Halloween Classroom 措辞稿 | `pilot-halloween-classroom-halloween-v0.1.zip` | 同一装饰答案；单独记录节庆措辞理解与舒适度 | 待执行 | 待执行 | 待执行 |
-| H06 Christmas Home | `pilot-christmas-v0.1.zip` | 批次图卡、礼物/目的地配对、结局信 | 待执行 | 待执行 | 待执行 |
-| C06 Winter Classroom | `pilot-christmas-v0.1.zip` | 中性冬日批次与配对、发车清单 | 待执行 | 待执行 | 待执行 |
-| C06 Christmas Classroom 措辞稿 | `pilot-christmas-classroom-christmas-v0.1.zip` | 与中性稿答案相同；单独记录措辞理解与舒适度 | 待执行 | 待执行 | 待执行 |
+| H06 Christmas Home | `pilot-christmas-v0.1.zip` | 批次图卡、礼物/目的地配对、A/B/C 顺序卡与结局信 | 待执行 | 待执行 | 待执行 |
+| C06 Winter Classroom | `pilot-christmas-v0.1.zip` | 中性冬日批次与配对、图标装载顺序卡、发车清单 | 待执行 | 待执行 | 待执行 |
+| C06 Christmas Classroom 措辞稿 | `pilot-christmas-classroom-christmas-v0.1.zip` | 同一装载答案；单独记录节庆措辞理解与舒适度 | 待执行 | 待执行 | 待执行 |
 
 每一行都要用同版 Player Pack 和成人指南完成一次真实组织试玩，并分别核对 A4 与 US Letter 的彩色、灰度实物印件。表格中的每个“彩/灰”是两个不同的物理检查，不能把屏幕灰度预览当成打印证据。单次执行记录请复制[真人试玩与打印验收操作表](../六主题_真人试玩与打印验收操作表_v0.1.md)中的表格，填入测试日期、版本哈希、人数、逐关耗时、纸张与打印模式、卡点、修改和复测。不要记录儿童姓名、住址、照片或音频。
 

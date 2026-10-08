@@ -68,6 +68,9 @@ for theme, variant, code, title, ending in (
                     assert f"DECOR {candidate}  /  PAPER CHOICE" in content[3], (path, candidate)
                 assert "BANNER  CIRCLE" in content[3] and "STARS  3" in content[3]
                 assert "BOOTH  ORANGE" in content[3] and "MARK  LEAF" in content[3]
+            else:
+                for candidate in "ABCD":
+                    assert f"LOAD {candidate}  /  PAPER ORDER" in content[3], (path, candidate)
             assert "bordered cards" in content[5]
         else:
             assert ending in content[1]

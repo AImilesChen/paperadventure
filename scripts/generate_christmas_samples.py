@@ -199,6 +199,58 @@ class DestinationMatchCards(Flowable):
         c.restoreState()
 
 
+class OrderChoiceCards(Flowable):
+    """Four independent three-slot orders; the role-held rule stays off the cards."""
+
+    def __init__(self, width, rows, setting):
+        super().__init__()
+        self.width = width
+        self.height = 193
+        self.rows = rows
+        self.setting = setting
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 10
+        card_width = (self.width - gutter) / 2
+        card_height = 91
+        navy = colors.HexColor("#153B56")
+        ink = colors.HexColor("#36546A")
+        for index, (label, first, second, third) in enumerate(self.rows):
+            x = (index % 2) * (card_width + gutter)
+            y = (1 - index // 2) * (card_height + gutter)
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.setLineWidth(.9)
+            c.roundRect(x, y, card_width, card_height, 6, fill=0, stroke=1)
+            c.setFillColor(navy)
+            c.setFont("ArialBold", 8.8)
+            c.drawString(x + 9, y + 75, f"{'ROUTE' if self.setting == 'home' else 'LOAD'} {label}  /  PAPER ORDER")
+            sequence = (first, second, third)
+            centers = (x + 43, x + card_width / 2, x + card_width - 43)
+            for slot, (value, center) in enumerate(zip(sequence, centers)):
+                if self.setting == "home":
+                    c.setStrokeColor(navy)
+                    c.setLineWidth(1.2)
+                    c.roundRect(center - 18, y + 27, 36, 32, 4, fill=0, stroke=1)
+                    c.setFont("ArialBold", 11)
+                    c.drawCentredString(center, y + 37, value)
+                    caption = f"GIFT {value}"
+                else:
+                    draw_paper_symbol(c, value, center, y + 44)
+                    caption = value
+                c.setFillColor(ink)
+                c.setFont("ArialBold", 8.1)
+                c.drawCentredString(center, y + 12, caption)
+                if slot < 2:
+                    arrow_x = (center + centers[slot + 1]) / 2
+                    c.setStrokeColor(navy)
+                    c.line(arrow_x - 5, y + 44, arrow_x + 5, y + 44)
+                    c.line(arrow_x + 5, y + 44, arrow_x + 1, y + 48)
+                    c.line(arrow_x + 5, y + 44, arrow_x + 1, y + 40)
+        c.restoreState()
+
+
 class DeliveryReplyCard(Flowable):
     """Adult-held story reply without a real gift or journey."""
 
@@ -359,6 +411,10 @@ CLASSROOM["steps"][2]["role_cards"] = [
     ("Order", "Load the smallest grade first."),
     ("Destination", "Keep each item's matching place from Checkpoint 2."),
 ]
+HOME["steps"][2]["card_factory"] = lambda width: OrderChoiceCards(width, HOME["steps"][2]["rows"], "home")
+CLASSROOM["steps"][2]["card_factory"] = lambda width: OrderChoiceCards(width, CLASSROOM["steps"][2]["rows"], "classroom")
+for story in (HOME, CLASSROOM):
+    story["steps"][2]["card_note"] = "The picture and printed labels show the same order. An adult may cut the four cards, or players can compare them on this page; read all role clues before choosing."
 HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
 HOME["steps"][1]["destinations"] = [

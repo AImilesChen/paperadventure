@@ -118,8 +118,10 @@ for item in manifest["items"]:
             assert "GIVE AFTER CODE 5723" not in joined and "AUTUMN CREW REPLY" not in joined
         elif THEME == "christmas":
             first_page = all_text[1]
+            order_page = all_text[3]
             for candidate in "ABCD":
                 assert f"LABEL {candidate}" in first_page, (path, "missing batch label card", candidate)
+                assert f"{'ROUTE' if item['setting'] == 'home' else 'LOAD'} {candidate}  /  PAPER ORDER" in order_page, (path, "missing third-checkpoint order card", candidate)
             if item["setting"] == "home":
                 assert "FRAME  SNOWFLAKE" in first_page and "FRAME  LEAF" in first_page
                 assert "DOTS  2" in first_page and "PRINT  STAR" in first_page
@@ -138,6 +140,10 @@ for item in manifest["items"]:
                 assert item_label in second_page, (path, "missing item card", item_label)
             assert "PAPER DESTINATIONS / MATCH ONE ITEM TO EACH PLACE" in second_page
             assert second_page.count("MATCH:") == 3, (path, "missing destination cards")
+            if item["setting"] == "home":
+                assert order_page.count("GIFT A") == 4 and order_page.count("GIFT B") == 4 and order_page.count("GIFT C") == 4
+            else:
+                assert order_page.count("STAR") >= 4 and order_page.count("BELL") >= 4 and order_page.count("BOOK") >= 4
             assert "DELIVERY OFFICE REPLY" not in joined and "WINTER STATION REPLY" not in joined
         assert "bordered cards" in all_text[5], (path, "missing final paper candidates")
         final_terms = {
