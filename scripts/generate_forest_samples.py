@@ -1,12 +1,90 @@
 """Build internal Forest H04/C04 paper-game drafts from the approved theme blueprint."""
 
 from pathlib import Path
+from math import cos, pi, sin
 from reportlab.lib import colors
 from reportlab.platypus import Flowable
 from generate_space_samples import PaperRouteWorkspace, render_drafts
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class PostmarkCards(Flowable):
+    """Four countable postmarks with a printed equivalent for every clue."""
+
+    def __init__(self, width, rows, setting):
+        super().__init__()
+        self.width = width
+        self.height = 193
+        self.rows = rows
+        self.setting = setting
+
+    @staticmethod
+    def star(canvas, cx, cy):
+        path = canvas.beginPath()
+        for point in range(10):
+            angle = pi / 2 + point * pi / 5
+            radius = 5.4 if point % 2 == 0 else 2.4
+            x, y = cx + radius * cos(angle), cy + radius * sin(angle)
+            (path.moveTo if point == 0 else path.lineTo)(x, y)
+        path.close()
+        canvas.drawPath(path, fill=0, stroke=1)
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 10
+        card_width = (self.width - gutter) / 2
+        card_height = 91
+        for index, (letter, border, count, day, batch) in enumerate(self.rows):
+            x = (index % 2) * (card_width + gutter)
+            y = (1 - index // 2) * (card_height + gutter)
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.setLineWidth(.9)
+            c.roundRect(x, y, card_width, card_height, 6, fill=0, stroke=1)
+            c.setFillColor(colors.HexColor("#153B56"))
+            c.setFont("ArialBold", 8.8)
+            c.drawString(x + 9, y + 75, f"POSTMARK {letter}")
+            c.setStrokeColor(colors.HexColor("#153B56"))
+            c.setLineWidth(1.35)
+            cx, cy = x + 34, y + 42
+            if self.setting == "home":
+                if border == "Leaf":
+                    leaf = c.beginPath()
+                    leaf.moveTo(cx - 17, cy - 8)
+                    leaf.curveTo(cx - 15, cy + 12, cx + 5, cy + 19, cx + 17, cy + 8)
+                    leaf.curveTo(cx + 12, cy - 11, cx - 8, cy - 18, cx - 17, cy - 8)
+                    leaf.close()
+                    c.drawPath(leaf)
+                    c.line(cx - 15, cy - 8, cx + 13, cy + 7)
+                else:
+                    moon = c.beginPath()
+                    moon.moveTo(cx + 9, cy + 17)
+                    moon.curveTo(cx - 17, cy + 15, cx - 17, cy - 14, cx + 8, cy - 18)
+                    moon.curveTo(cx - 2, cy - 8, cx - 2, cy + 7, cx + 9, cy + 17)
+                    moon.close()
+                    c.drawPath(moon)
+                for mark in range(int(count)):
+                    self.star(c, x + 59 + mark * 13, cy + 6)
+                count_label = f"STARS  {count}"
+            else:
+                if border == "Round":
+                    c.circle(cx, cy, 19, fill=0, stroke=1)
+                else:
+                    c.rect(cx - 19, cy - 19, 38, 38, fill=0, stroke=1)
+                for mark in range(int(count)):
+                    dx = [-9, 0, 9][mark]
+                    c.circle(cx + dx, cy, 2.5, fill=1, stroke=0)
+                count_label = f"DOTS  {count}"
+            c.setFillColor(colors.HexColor("#36546A"))
+            c.setFont("ArialBold", 8.4)
+            tx = x + 86
+            c.drawString(tx, y + 57, f"BORDER  {border.upper()}")
+            c.drawString(tx, y + 42, count_label)
+            c.drawString(tx, y + 27, f"DAY  {day}")
+            c.drawString(tx, y + 12, f"BATCH  {batch}")
+        c.restoreState()
 
 
 class StoryAddressMap(Flowable):
@@ -199,6 +277,10 @@ CLASSROOM["steps"][2]["role_cards"] = [
 ]
 HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
+HOME["steps"][0]["card_factory"] = lambda width: PostmarkCards(width, HOME["steps"][0]["rows"], "home")
+CLASSROOM["steps"][0]["card_factory"] = lambda width: PostmarkCards(width, CLASSROOM["steps"][0]["rows"], "classroom")
+HOME["steps"][0]["card_note"] = "Compare the leaf or moon outline, star count and day together. Each printed label repeats the pictured clue; no colour clue is needed."
+CLASSROOM["steps"][0]["card_note"] = "Compare the round or square outline, dot count and day together. Each printed label repeats the pictured clue; no colour clue is needed."
 HOME["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
     width, "NORI'S POST ROUTE / SORT THREE M2 STRIPS", 3, "POST OFFICE", "NAMED TREE")
 CLASSROOM["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
