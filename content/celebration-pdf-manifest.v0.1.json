@@ -11,7 +11,7 @@
       "paper": "A4",
       "pages": 6,
       "bytes": 258036,
-      "sha256": "88d4fe98603a3e0484cdb9d1f70ec08135248c31b4b89d291bd64808b0fc554a",
+      "sha256": "ea9a93127652d836e2b18857d636e35e8332b61971923192261563adccbeb5f6",
       "status": "draft",
       "public": false
     },
@@ -22,7 +22,7 @@
       "paper": "A4",
       "pages": 3,
       "bytes": 111154,
-      "sha256": "a17582561a681a1f27a6e123eca053f3890bd05ddd166982720458aa3a96f066",
+      "sha256": "350f106052e89381d59647a5afa5a307fb1823526f2b88c509923f2154d2cf70",
       "status": "draft",
       "public": false
     },
@@ -32,8 +32,8 @@
       "role": "player",
       "paper": "A4",
       "pages": 6,
-      "bytes": 239533,
-      "sha256": "e89fa105f43e94c4141f4eac9003a2d96bd6597940a9a8d1bc1c3a34ef0877ab",
+      "bytes": 239890,
+      "sha256": "c851f121dcedfdbcc5df13bb794af3d3ef538d3c4d92db4b51eefd461e1796a6",
       "status": "draft",
       "public": false
     },
@@ -43,8 +43,8 @@
       "role": "teacher",
       "paper": "A4",
       "pages": 3,
-      "bytes": 111134,
-      "sha256": "a41df7e1708398f759f0887b7a6ab79f1a5d86566154162e0a16b2126b769e02",
+      "bytes": 111214,
+      "sha256": "c1843b979afba1fb5a6e06706dabb6a21e210f151d38a6da0c16210af083d095",
       "status": "draft",
       "public": false
     },
@@ -55,7 +55,7 @@
       "paper": "Letter",
       "pages": 6,
       "bytes": 257816,
-      "sha256": "25fa0b93a8d9377ff1bc12ea09d421b9d27794f818603a96f8aa344c229fdd1e",
+      "sha256": "8612820951d9faceda4af9e5a668c2db0a3e8b3fb40f3df7bb2a4d09d6d4b556",
       "status": "draft",
       "public": false
     },
@@ -66,7 +66,7 @@
       "paper": "Letter",
       "pages": 3,
       "bytes": 111030,
-      "sha256": "d605f49197f0fa2cd6d430c7471120b80b3a02d5c956510f77563c6927cc9724",
+      "sha256": "0e5157c11ea9982e977c3d7f3c5b4bb3c16112bf44d69909af071d0553a5bdc6",
       "status": "draft",
       "public": false
     },
@@ -76,8 +76,8 @@
       "role": "player",
       "paper": "Letter",
       "pages": 6,
-      "bytes": 239326,
-      "sha256": "cb39043103ac95c9ebbb5cf6c0cd7a8c210a9689fbddbf249612de4a033e809a",
+      "bytes": 239666,
+      "sha256": "b2e689e158fe3e760a1ac080af5c19575ee9271d46dcbbe16a0fcb51f6eb734d",
       "status": "draft",
       "public": false
     },
@@ -87,8 +87,8 @@
       "role": "teacher",
       "paper": "Letter",
       "pages": 3,
-      "bytes": 111032,
-      "sha256": "5f18f2dd9984b1f1043110c02639db829cdd225b0b37a53170e3a52d9fbb8e5e",
+      "bytes": 111113,
+      "sha256": "3a8f60fd1232466ce414d748997eba090443fc5571df9d0b85a286e609e3d693",
       "status": "draft",
       "public": false
     }

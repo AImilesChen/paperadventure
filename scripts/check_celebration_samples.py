@@ -32,6 +32,8 @@ def main():
                 for number in range(1, 6):
                     assert f"CHECKPOINT {number:02d} / 05" in text, (path.name, number)
                 assert "Answer key and checks" not in text and "ANSWER KEY" not in text
+                if "C01" in path.name:
+                    assert "OUR ADVENTURE CLUB BADGE" in text, (path.name, "missing paper badge template")
             else:
                 assert "Publication status: NOT PLAY-TESTED" in text, path.name
             for page in pdf.pages:

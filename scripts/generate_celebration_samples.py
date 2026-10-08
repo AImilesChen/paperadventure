@@ -15,7 +15,7 @@ from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
-    HRFlowable, Image, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
+    Flowable, HRFlowable, Image, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
 )
 
 
@@ -137,6 +137,38 @@ def cover_art(path):
     art = Image(str(path), width=125, height=94)
     art.hAlign = "CENTER"
     return [gap(10), art, gap(5), p("Story-world illustration - the puzzle answers are in the printed clue tables.", "small")]
+
+
+class BadgeTemplate(Flowable):
+    """A grayscale-safe, optional cut-out reward with space for four discovered symbols."""
+
+    def __init__(self):
+        super().__init__()
+        self.width = 210
+        self.height = 164
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setStrokeColor(LINE)
+        c.setLineWidth(0.8)
+        c.rect(0, 0, self.width, self.height, fill=0, stroke=1)
+        c.setFont("ArialBold", 8)
+        c.setFillColor(INK)
+        c.drawCentredString(self.width / 2, self.height - 17, "OUR ADVENTURE CLUB BADGE")
+        x, y, radius = self.width / 2, 72, 61
+        c.setStrokeColor(NAVY)
+        c.circle(x, y, radius, fill=0, stroke=1)
+        diagonal = radius * 0.7071
+        c.line(x - diagonal, y - diagonal, x + diagonal, y + diagonal)
+        c.line(x - diagonal, y + diagonal, x + diagonal, y - diagonal)
+        for label, lx, ly in (
+            ("TOP", x, y + 31), ("RIGHT", x + 30, y),
+            ("BOTTOM", x, y - 35), ("LEFT", x - 30, y),
+        ):
+            c.setFont("Arial", 8.5)
+            c.drawCentredString(lx, ly, label)
+        c.restoreState()
 
 
 def on_page(canvas, doc):
@@ -328,8 +360,9 @@ def class_player(width):
         ["D", "WORKSHOP", "B", "COMPASS / BOOK / STAR / HANDS"],
     ], [width*.13, width*.24, width*.2, width*.43]), gap(14)]
     flow += write_line("Our badge plan is")
-    flow += [box("<b>Our team badge</b><br/><br/>TOP: _____________________ &nbsp;&nbsp; RIGHT: _____________________<br/><br/>BOTTOM: ________________ &nbsp;&nbsp; LEFT: ______________________<br/><br/>Optional team name: ______________________________________________", width, CREAM), gap(13),
-             p("Show the teacher your plan and explain how each earlier clue helped. When every group is ready, celebrate the new Adventure Club together.", "small")]
+    flow += [p("Copy your four discovered symbols onto the paper badge. You may draw them or write their names; leave the team name blank if you prefer.", "small"),
+             BadgeTemplate(), gap(8), p("Optional team name: ______________________________________________", "small"),
+             p("You can use the badge on this page or ask your teacher to cut around its rectangular border. Show your plan and explain how each earlier clue helped. When every group is ready, celebrate the new Adventure Club together.", "small")]
     return flow
 
 
@@ -366,7 +399,7 @@ def class_guide(width):
     flow += [p("TEACHER CHECK", "eyebrow"), p("Run and review the activity", "h1"),
              p("<b>Starting demonstration:</b> Read the club introduction aloud and model one harmless attribute comparison without revealing the correct invitation. Explain that each group may ask for a hint and should keep its record sheet visible."),
              p("<b>Group independence:</b> Every required clue is in that group's own packet. Do not require a student to visit another group, use a phone, read a private class list, or wait for a unique shared prop. Give an oral read-aloud or larger print if needed."),
-             p("<b>Ending:</b> Ask each group to explain one point where listening to another role changed its choice. Confirm Plan A, invite groups to fill their badge, and close the story with a shared Adventure Club welcome. No score or ranking is needed."),
+             p("<b>Ending:</b> Ask each group to explain one point where listening to another role changed its choice. Confirm Plan A, invite groups to fill the badge on the page, and close the story with a shared Adventure Club welcome. The teacher may cut around its outer border if a separate badge is wanted; children do not need scissors. No score or ranking is needed."),
              p("<b>Draft QA:</b> Try the full packet with representative learners and a teacher. Record time, ambiguous wording, accessibility barriers, group-size issues, and print defects. Recheck the answer key and all pages after edits. Do not describe this draft as curriculum-aligned or classroom-tested."),
              box("<b>Publication status:</b> NOT PLAY-TESTED. Do not call this a finished free sample, sell it, or enable site downloads until content, printing, accessibility, school/privacy and legal/product checks pass.", width, CREAM)]
     return flow
