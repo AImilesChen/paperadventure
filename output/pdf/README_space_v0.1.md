@@ -9,6 +9,6 @@
 | 课堂 C03 A4 | [Group Player Pack](space-C03-player-v0.1-A4.pdf) | [Teacher Guide](space-C03-teacher-v0.1-A4.pdf) |
 | 课堂 C03 US Letter | [Group Player Pack](space-C03-player-v0.1-Letter.pdf) | [Teacher Guide](space-C03-teacher-v0.1-Letter.pdf) |
 
-玩家包各 6 页（记录封面加五关），指南各 3 页（准备、答案与结局、三级提示与跳关）。首关四张信号卡现有图形与重复文字标签，家庭版比较圆/方边框、波纹和方缺口，课堂版比较边框、三角峰和圆点；第三关四张纸质设备卡可比较圆环数、徽记和站号/端口，也保留相同文字。纸卡可原页操作或由成人裁开。`content/space-pdf-manifest.v0.1.json` 记录各文件哈希、页数、纸张和 `public: false`。`scripts/check_space_samples.py` 核对哈希、纸张尺寸、草稿标记、答案隔离、信号及设备卡标签并渲染全部页面；渲染样张在 `tmp/pdfs/space-qa/`。
+玩家包各 6 页（记录封面加五关），指南各 3 页（准备、答案与结局、三级提示与跳关）。首关四张信号卡现有图形与重复文字标签，家庭版比较圆/方边框、波纹和方缺口，课堂版比较边框、三角峰和圆点；第三关四张纸质设备卡可比较圆环数、徽记和站号/端口，也保留相同文字。纸卡可原页操作或由成人裁开。指南末页另有成人/教师保管的纸质回信卡，须在结局确认后交付。`content/space-pdf-manifest.v0.1.json` 记录各文件哈希、页数、纸张和 `public: false`。`scripts/check_space_samples.py` 核对哈希、纸张尺寸、草稿标记、答案与回信隔离、信号及设备卡标签并渲染全部页面；渲染样张在 `tmp/pdfs/space-qa/`。
 
 **不能发布：**仍缺家庭及课堂真人试玩、A4/Letter 彩色与灰度实物打印、无障碍/可读性、视觉素材权利、文案与销售/许可审核。年龄、人数、时长和打印成本尚无实测值，不应写在对外商品卡上。所有文件只供内部评审，网站不可开放下载或付款。

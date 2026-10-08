@@ -71,9 +71,12 @@ for item in manifest["items"]:
         else:
             assert "NUMBERED PORT" in map_page
         assert "ANSWER KEY" not in joined and "HINTS AND SKIPS" not in joined
+        assert "PIP'S PAPER REPLY" not in joined and "STAR STATION REPLY" not in joined
     else:
         assert "ANSWER KEY" in joined and "HINTS AND SKIPS" in joined
         assert "Release gate" in joined
+        assert ("PIP'S PAPER REPLY" if item["setting"] == "home"
+                else "STAR STATION REPLY") in all_text[2]
 
     prefix = QA / path.stem
     subprocess.run([str(POPPLER), "-f", "1", "-l", str(len(pages)),

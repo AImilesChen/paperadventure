@@ -347,6 +347,49 @@ class PaperRouteWorkspace(Flowable):
         c.restoreState()
 
 
+class PaperReplyCard(Flowable):
+    """Adult-held story ending, printable without a real transmission device."""
+
+    def __init__(self, width, setting):
+        super().__init__()
+        self.width = width
+        self.height = 110
+        self.setting = setting
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setStrokeColor(colors.HexColor("#8BAFC1"))
+        c.setLineWidth(0.9)
+        c.roundRect(0, 0, self.width, self.height, 6, fill=0, stroke=1)
+        c.setFillColor(NAVY)
+        c.setFont("ArialBold", 8.4)
+        if self.setting == "home":
+            title = "PIP'S PAPER REPLY  /  GIVE AFTER PROBE A IS CONFIRMED"
+            lines = [
+                "To the signal team,",
+                "ORION, Station 7, Code 6 and COMET led you to me.",
+                "You listened to each clue and found my true paper signal.",
+                "Thank you for your pretend reply. We are connected in this story!",
+                "From Pip, the little robot probe",
+            ]
+        else:
+            title = "STAR STATION REPLY  /  SHARE AFTER REPORT B IS CONFIRMED"
+            lines = [
+                "To the station crew,",
+                "Your LYRA / Port 4 / Kit C / SET record is complete.",
+                "Each role helped your paper station come back to life.",
+                "Thank you for making one clear team report.",
+                "From the paper station guide",
+            ]
+        c.drawString(12, 93, title)
+        c.setFillColor(INK)
+        c.setFont("Arial", 8.6)
+        for index, line in enumerate(lines):
+            c.drawString(14, 76 - index * 15, line)
+        c.restoreState()
+
+
 def footer(canvas, doc):
     width, height = doc.pagesize
     canvas.saveState()
@@ -432,7 +475,8 @@ def guide_flow(story, width):
                   [width * .09, width * .27, width * .30, width * .34]), gap(13),
              p("Safety and release gate", "h2"),
              p("The story locations and labels are fictional. Check both paper sizes, colour and grey printing, readable labels, role participation, ambiguous answers and real play timing. Revise every output after testing."),
-             box("<b>Release gate:</b> Human play-tests, physical print checks, image rights, copy and legal/product review are still required. The catalog remains unpublished.", width, CREAM)]
+             box("<b>Release gate:</b> Human play-tests, physical print checks, image rights, copy and legal/product review are still required. The catalog remains unpublished.", width, CREAM),
+             gap(5), PaperReplyCard(width, "home" if story is HOME else "classroom")]
     return flow
 
 
