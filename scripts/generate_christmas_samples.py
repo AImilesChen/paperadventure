@@ -50,6 +50,93 @@ def draw_paper_symbol(c, symbol, x, y):
         c.circle(x, y - 18, 3, fill=0, stroke=1)
 
 
+class BatchLabelCards(Flowable):
+    """Four first-checkpoint labels with pictured frame/count/print clues."""
+
+    def __init__(self, width, rows, setting):
+        super().__init__()
+        self.width = width
+        self.height = 193
+        self.rows = rows
+        self.setting = setting
+
+    @staticmethod
+    def snowflake(c, x, y):
+        for angle in (0, pi / 3, 2 * pi / 3):
+            dx, dy = 17 * cos(angle), 17 * sin(angle)
+            c.line(x - dx, y - dy, x + dx, y + dy)
+            for sign in (-1, 1):
+                ex, ey = x + sign * dx, y + sign * dy
+                branch_angle = angle + (pi / 6 if sign > 0 else -pi / 6)
+                c.line(ex - sign * 5 * cos(branch_angle), ey - sign * 5 * sin(branch_angle), ex, ey)
+
+    @staticmethod
+    def leaf(c, x, y):
+        outline = c.beginPath()
+        outline.moveTo(x - 17, y - 11)
+        outline.curveTo(x - 13, y + 14, x + 10, y + 18, x + 17, y + 10)
+        outline.curveTo(x + 10, y - 10, x - 7, y - 16, x - 17, y - 11)
+        outline.close()
+        c.drawPath(outline, fill=0, stroke=1)
+        c.line(x - 15, y - 10, x + 12, y + 9)
+
+    @staticmethod
+    def moon(c, x, y):
+        outline = c.beginPath()
+        outline.moveTo(x + 7, y + 10)
+        outline.curveTo(x - 10, y + 11, x - 10, y - 10, x + 7, y - 11)
+        outline.curveTo(x - 2, y - 5, x - 2, y + 5, x + 7, y + 10)
+        outline.close()
+        c.drawPath(outline, fill=0, stroke=1)
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 10
+        card_width = (self.width - gutter) / 2
+        card_height = 91
+        for index, row in enumerate(self.rows):
+            x = (index % 2) * (card_width + gutter)
+            y = (1 - index // 2) * (card_height + gutter)
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.setLineWidth(.9)
+            c.roundRect(x, y, card_width, card_height, 6, fill=0, stroke=1)
+            c.setFillColor(colors.HexColor("#153B56"))
+            c.setFont("ArialBold", 8.8)
+            c.drawString(x + 9, y + 75, f"LABEL {row[0]}")
+            c.setStrokeColor(colors.HexColor("#153B56"))
+            c.setLineWidth(1.2)
+            cx, cy = x + 33, y + 42
+            if self.setting == "home":
+                _, frame, count, mark, batch = row
+                (self.snowflake if frame == "Snowflake" else self.leaf)(c, cx, cy)
+                for dot in range(int(count)):
+                    c.circle(x + 58 + dot * 12, cy + 14, 2.7, fill=0, stroke=1)
+                if mark == "Star":
+                    draw_paper_symbol(c, "STAR", x + 66, cy - 14)
+                else:
+                    self.moon(c, x + 66, cy - 14)
+                labels = (f"FRAME  {frame.upper()}", f"DOTS  {count}", f"PRINT  {mark.upper()}", f"BATCH  {batch}")
+            else:
+                _, frame, count, word, batch = row
+                if frame == "Square":
+                    c.rect(cx - 20, cy - 20, 40, 40, fill=0, stroke=1)
+                else:
+                    c.circle(cx, cy, 20, fill=0, stroke=1)
+                for line in range(int(count)):
+                    c.line(cx - 11, cy + 6 - line * 11, cx + 11, cy + 6 - line * 11)
+                if word == "SNOW":
+                    self.snowflake(c, x + 67, cy - 4)
+                else:
+                    self.leaf(c, x + 67, cy - 4)
+                labels = (f"FRAME  {frame.upper()}", f"LINES  {count}", f"WORD  {word}", f"BATCH  {batch}")
+            c.setFillColor(colors.HexColor("#36546A"))
+            c.setFont("ArialBold", 8.2)
+            for line, label in enumerate(labels):
+                c.drawString(x + 88, y + 57 - line * 15, label)
+        c.restoreState()
+
+
 class PictureItemCards(Flowable):
     """Four independent story item cards with visual and printed clue labels."""
 
@@ -247,6 +334,10 @@ CLASSROOM = {
 }
 
 
+HOME["steps"][0]["card_factory"] = lambda width: BatchLabelCards(width, HOME["steps"][0]["rows"], "home")
+CLASSROOM["steps"][0]["card_factory"] = lambda width: BatchLabelCards(width, CLASSROOM["steps"][0]["rows"], "classroom")
+HOME["steps"][0]["card_note"] = "Compare frame picture, dot count and print picture together. Every visual clue is repeated in the label; no colour is needed."
+CLASSROOM["steps"][0]["card_note"] = "Compare frame, line count and printed word together. Every pictured clue has a text label; no colour is needed."
 HOME["steps"][2]["role_cards"] = [
     ("Guide", "FOX DEN comes BEFORE OWL WINDOW."),
     ("Clock", "RABBIT GATE is LAST."),
