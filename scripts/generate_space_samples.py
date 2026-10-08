@@ -9,7 +9,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.platypus import Image, PageBreak, SimpleDocTemplate
 
-from generate_celebration_samples import box, gap, grid, p, page_heading, role_cards, write_line
+from generate_celebration_samples import box, gap, grid, p, page_heading, role_cards, strip_cards, write_line
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -114,6 +114,8 @@ CLASSROOM["steps"][2]["role_cards"] = [
     ("Reader", "The kit has TWO rings."),
     ("Checker", "The kit has an ARROW badge."),
 ]
+HOME["steps"][1]["strip_cards"] = True
+CLASSROOM["steps"][1]["strip_cards"] = True
 
 
 def footer(canvas, doc):
@@ -157,7 +159,11 @@ def player_flow(story, width):
         if step.get("role_cards"):
             flow += role_cards(step["role_cards"], width)
             flow += [p("Only an adult or teacher cuts cards. Without scissors, cover and reveal one card at a time.", "small"), gap(5)]
-        flow += [grid(step["heads"], step["rows"], [width * f for f in fractions]), gap(13)]
+        if step.get("strip_cards"):
+            flow += strip_cards(step["heads"], step["rows"], width)
+            flow += [p("An adult or teacher may cut the bordered cards; you can also number them on this page.", "small"), gap(8)]
+        else:
+            flow += [grid(step["heads"], step["rows"], [width * f for f in fractions]), gap(13)]
         if step.get("extra"):
             flow += [box(step["extra"], width, CREAM), gap(12)]
         for prompt in step["prompts"]:
@@ -174,6 +180,7 @@ def guide_flow(story, width):
             box("<b>Internal content and layout draft.</b> Not play-tested, print-approved or published. Do not sell or offer public downloads.", width, CREAM),
             gap(14), p("Prepare the paper adventure", "h2"), p(story["prepare"]),
             p("Checkpoint 3 has three bordered role cards. An adult or teacher may cut and distribute one per player; without scissors, cover unused cards and reveal them in turn. Each group keeps its own complete clue set."),
+            p("Checkpoint 2 has bordered route or matching cards. An adult or teacher may cut them out; without scissors, players can write the sequence or matches on the intact page."),
             p("No physical equipment, real travel, student accounts or outdoor activity are required."),
             p("How one result powers the next", "h2"),
             grid(["Step", "Standard result", "Used by"],

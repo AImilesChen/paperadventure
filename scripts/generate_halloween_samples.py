@@ -108,6 +108,8 @@ CLASSROOM["steps"][2]["role_cards"] = [
     ("Shape", "The banner is a CIRCLE."),
     ("Count", "The decoration has THREE stars."),
 ]
+HOME["steps"][1]["strip_cards"] = True
+CLASSROOM["steps"][1]["strip_cards"] = True
 
 
 def validate_logic():

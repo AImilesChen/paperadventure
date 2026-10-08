@@ -9,7 +9,7 @@ from reportlab.lib.pagesizes import A4, letter
 from reportlab.platypus import Image, PageBreak, SimpleDocTemplate
 from PIL import Image as PillowImage
 
-from generate_celebration_samples import p, gap, box, grid, page_heading, role_cards, write_line
+from generate_celebration_samples import p, gap, box, grid, page_heading, role_cards, strip_cards, write_line
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,9 +69,13 @@ def cover(code, role, title, intro, width, records):
     return flow
 
 
-def checkpoint(number, title, story, headers, rows, proportions, width, questions, transition):
+def checkpoint(number, title, story, headers, rows, proportions, width, questions, transition, strip_mode=False):
     flow = page_heading(number, title, story)
-    flow += [grid(headers, rows, [width * x for x in proportions]), gap(17)]
+    if strip_mode:
+        flow += strip_cards(headers, rows, width)
+        flow += [p("An adult or teacher may cut the bordered strips; you can also write their order on this page.", "small"), gap(8)]
+    else:
+        flow += [grid(headers, rows, [width * x for x in proportions]), gap(17)]
     for question in questions:
         flow += write_line(question)
     flow += [gap(10), box(f"<b>Next in the story:</b> {transition}", width), PageBreak() if number < 5 else gap(8)]
@@ -101,7 +105,7 @@ def home_player(width):
                         ["C", "RIVER", "PINE SIGN"], ["A", "SUN", "FERN"]],
                        [.18, .38, .44], width,
                        ["Our strip order", "The sign says"],
-                       "The sign name is needed to choose a paper supply pack.")
+                       "The sign name is needed to choose a paper supply pack.", strip_mode=True)
     flow += checkpoint(3, "Choose the paper supplies",
                        "Assign the Guide, Milo and Scout clue lines to different players when possible. Let each read a line aloud. These are story clues, not real supplies.",
                        ["Card", "Sign", "Straps", "Tag", "Code"],
@@ -183,7 +187,7 @@ def class_player(width):
                         ["Q", "C", "09:15", "Print checked"]],
                        [.15, .16, .20, .49], width,
                        ["Zone C strip order", "Time of camp signal"],
-                       "The sorted log is your final evidence record.")
+                       "The sorted log is your final evidence record.", strip_mode=True)
     flow += checkpoint(5, "Submit the station conclusion",
                        "Use the four rows on your record sheet. Choose the one report that agrees with every result, then explain at least TWO reasons.",
                        ["Report", "Batch", "Region", "Zone", "Order", "Signal"],

@@ -110,6 +110,8 @@ CLASSROOM["steps"][2]["role_cards"] = [
     ("Order", "Load the smallest grade first."),
     ("Destination", "Keep each item's matching place from Checkpoint 2."),
 ]
+HOME["steps"][1]["strip_cards"] = True
+CLASSROOM["steps"][1]["strip_cards"] = True
 
 
 def validate_logic():

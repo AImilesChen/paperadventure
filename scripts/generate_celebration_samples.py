@@ -105,6 +105,25 @@ def role_cards(rows, width):
     return cards
 
 
+def strip_cards(headers, rows, width):
+    """Print each route or matching row as a self-contained optional cut-out."""
+    cards = []
+    for row in rows:
+        title = f"<b>{headers[0]} {row[0]}</b>"
+        facts = " &nbsp; / &nbsp; ".join(f"<b>{label}:</b> {value}" for label, value in zip(headers[1:], row[1:]))
+        card = Table([[p(f"{title}<br/>{facts}", "table")]], colWidths=[width])
+        card.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), PALE),
+            ("BOX", (0, 0), (-1, -1), 0.8, LINE),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ]))
+        cards.extend([card, gap(5)])
+    return cards
+
+
 def write_line(label):
     return [p(f"<b>{label}</b> ____________________________________________", "body"), gap(3)]
 
@@ -176,10 +195,10 @@ def home_player(width):
     flow += [box("<b>Story clue:</b> The letter says: 'Begin at my route start. Join the route strips until you reach a flag. The flag will tell you which delivery labels matter.'", width), PageBreak()]
 
     flow += page_heading(2, "Repair the route", "Begin with the route start from Checkpoint 1. Join strips when one place ends where the next begins. One path reaches a flag; another ends without one.")
-    flow += [grid(["Strip", "From", "To"], [
+    flow += strip_cards(["Strip", "From", "To"], [
         ["A", "SUN", "TREE"], ["B", "TREE", "BRIDGE"], ["C", "BRIDGE", "RED FLAG"],
         ["D", "SUN", "POND"], ["E", "POND", "CLOUD"],
-    ], [width*.18, width*.39, width*.43]), gap(18)]
+    ], width) + [p("Your adult may cut out the bordered strips; you can also number them directly on this page.", "small"), gap(8)]
     flow += write_line("Our strip order is") + write_line("We reached the")
     flow += [box("<b>Story clue:</b> The flag marks the delivery labels to check. Keep the flag colour for the final choice.", width), PageBreak()]
 
@@ -219,7 +238,7 @@ def home_guide(width):
             gap(17), p("Prepare the activity", "h2"),
             p("Print one Player Pack for the group and one Host Guide for yourself, in the same paper size. Keep this guide and the answer table away from players. Give the cover/trail first, then one checkpoint page at a time. Provide pencils. Write an optional warm celebration message on a separate sheet and seal it in an envelope."),
             p("For Checkpoint 4, you can say the code key came from the chosen label. For Checkpoint 5, either keep the finale envelope in your hand or place it on an accessible table that you have checked. Do not send children to a private room or unsafe hiding place."),
-            p("Print count: Player Pack 1 per cooperating group; Host Guide 1 per adult. At Checkpoint 3, an adult may cut out the three bordered role cards and hand out one per explorer. If scissors are unavailable, cover the other cards and reveal one role at a time. No cutting is required to solve the puzzle. A4 and US Letter files are exported separately."),
+            p("Print count: Player Pack 1 per cooperating group; Host Guide 1 per adult. At Checkpoint 2, optional bordered route strips can be cut out or numbered on the page. At Checkpoint 3, an adult may cut out the three role cards and hand out one per explorer, or cover and reveal them in turn. No cutting is required to solve the puzzle. A4 and US Letter files are exported separately."),
             gap(10), p("Story state at a glance", "h2"),
             grid(["Checkpoint", "Required result", "Used next for"], [
                 ["1", "Letter A; SUN", "Route start"], ["2", "A-B-C; RED FLAG", "Label colour"],
@@ -275,10 +294,10 @@ def class_player(width):
     flow += [box("<b>Club message:</b> 'Begin at the route start on your invitation. Keep joining strips until you reach the WORKSHOP. Your route will tell you where the club keeps its equipment clues.'", width), PageBreak()]
 
     flow += page_heading(2, "Follow the team route", "Start where your invitation says. A strip may join another when its ending place is the next strip's starting place. Find the chain that reaches the WORKSHOP.")
-    flow += [grid(["Strip", "From", "To"], [
+    flow += strip_cards(["Strip", "From", "To"], [
         ["A", "GATE", "LIBRARY"], ["B", "LIBRARY", "TABLE"], ["C", "TABLE", "WORKSHOP"],
         ["D", "GATE", "GARDEN"], ["E", "GARDEN", "SHED"],
-    ], [width*.18, width*.39, width*.43]), gap(18)]
+    ], width) + [p("Your teacher may cut out the bordered strips; your group can also number them on this page.", "small"), gap(8)]
     flow += write_line("Our strip order is") + write_line("Our destination is")
     flow += [box("<b>Club message:</b> 'At the WORKSHOP, compare all the role notes before choosing a piece of equipment. Everyone's clue matters.'", width), PageBreak()]
 
@@ -317,7 +336,7 @@ def class_guide(width):
     flow = [p("CLASSROOM / C01 / TEACHER GUIDE", "eyebrow"), p("The Adventure Club's First Badge", "title"),
             box("<b>Content draft for teacher review.</b> This is a complete independent-group paper sequence, not a tested classroom product. No student names, birthdays, login accounts or school records are needed.", width, CREAM),
             gap(16), p("Set up each group", "h2"),
-            p("Print one full Player Pack for each group and one Teacher Guide for yourself. Each group gets the same five checkpoint pages and can solve without waiting for another group. Give the cover first, then release one checkpoint page at a time. Provide pencils. At Checkpoint 3, the teacher may cut the three bordered role cards for each group; alternatively, cover and reveal the cards in turn. No special box, phone or online tool is required."),
+            p("Print one full Player Pack for each group and one Teacher Guide for yourself. Each group gets the same five checkpoint pages and can solve without waiting for another group. Give the cover first, then release one checkpoint page at a time. Provide pencils. At Checkpoint 2, optional bordered route strips can be cut out or numbered in place. At Checkpoint 3, the teacher may cut the three role cards for each group, or cover and reveal them in turn. No special box, phone or online tool is required."),
             p("Roles: Reader reads directions; Spotter checks attributes; Recorder writes the group record; Checker asks whether every clue was used. Combine or rotate roles for different group sizes. If a group finishes early, ask where it used another person's clue rather than giving extra required work."),
             p("Use the invitation story as a cooperative club celebration, not an individual birthday. A student may leave the optional team name blank. Collect or recycle sheets according to your normal classroom practice."),
             gap(9), p("Story state at a glance", "h2"),

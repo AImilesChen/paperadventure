@@ -107,6 +107,8 @@ CLASSROOM["steps"][2]["role_cards"] = [
     ("Label", "The parcel has TWO stripes."),
     ("Shape", "The parcel has ROUNDED corners."),
 ]
+HOME["steps"][1]["strip_cards"] = True
+CLASSROOM["steps"][1]["strip_cards"] = True
 
 
 def validate_logic():
