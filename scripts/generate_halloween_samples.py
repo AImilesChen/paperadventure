@@ -1,6 +1,7 @@
 """Build internal, child-friendly Halloween H05 and autumn classroom C05 drafts."""
 
 from pathlib import Path
+from copy import deepcopy
 from math import cos, pi, sin
 from reportlab.lib import colors
 from reportlab.platypus import Flowable
@@ -164,11 +165,12 @@ class PaperSealCards(Flowable):
 class FestivalEndingCard(Flowable):
     """Adult-held paper reveal; no flame, device or real festival prop."""
 
-    def __init__(self, width, classroom):
+    def __init__(self, width, classroom, variant_id=None):
         super().__init__()
         self.width = width
         self.height = 113
         self.classroom = classroom
+        self.variant_id = variant_id
 
     def draw(self):
         c = self.canv
@@ -178,7 +180,16 @@ class FestivalEndingCard(Flowable):
         c.roundRect(0, 0, self.width, self.height, 6, fill=0, stroke=1)
         c.setFillColor(colors.HexColor("#153B56"))
         c.setFont("ArialBold", 8.5)
-        if self.classroom:
+        if self.classroom and self.variant_id == "halloween":
+            title = "PUMPKIN CREW REPLY  /  SHARE AFTER PLAN A"
+            lines = [
+                "To the paper pumpkin crew,",
+                "CREW B, ORANGE BOOTH and Decor C made one clear plan.",
+                "Your P-Q-R-S order opens a friendly Halloween paper festival.",
+                "Every group member helped the pretend celebration begin.",
+                "From the paper pumpkin festival team",
+            ]
+        elif self.classroom:
             title = "AUTUMN CREW REPLY  /  SHARE AFTER PLAN A"
             lines = [
                 "To the autumn crew,",
@@ -319,6 +330,24 @@ HOME["steps"][4]["template_factory"] = PaperSealCards
 HOME["finale_factory"] = lambda width: FestivalEndingCard(width, False)
 CLASSROOM["finale_factory"] = lambda width: FestivalEndingCard(width, True)
 
+HALLOWEEN_CLASSROOM = deepcopy(CLASSROOM)
+HALLOWEEN_CLASSROOM["title"] = "The Pumpkin Festival Crew"
+HALLOWEEN_CLASSROOM["intro"] = (
+    "Your group is preparing a friendly PAPER pumpkin festival for Halloween. "
+    "Sort an invitation, find the pretend booth, share decoration clues and submit one opening plan. "
+    "No costumes, candy, spooky scenes or family holiday stories are required.")
+HALLOWEEN_CLASSROOM["prepare"] = (
+    "Print one Group Player Pack per group and one private Teacher Guide. Give each group its own complete pages. "
+    "At Checkpoint 2, place or copy the two useful strips on the Pumpkin Crew map. "
+    "The teacher chose this friendly Halloween wording; a neutral Autumn edition is also available as a separate file set. "
+    "Map, Shape, Count and Recorder roles can be combined or rotated. No group depends on another.")
+HALLOWEEN_CLASSROOM["ending"] = (
+    "Confirm Plan A after each group cites at least two clue sheets. Read: 'The friendly paper pumpkin festival "
+    "is ready. Everyone shared a clue to make the opening plan clear.' Never ask students to reveal their "
+    "religious, cultural or family celebration practices.")
+HALLOWEEN_CLASSROOM["steps"][4]["next"] = "Your teacher can read the friendly paper pumpkin festival ending."
+HALLOWEEN_CLASSROOM["finale_factory"] = lambda width: FestivalEndingCard(width, True, "halloween")
+
 
 def validate_logic():
     for story in (HOME, CLASSROOM):
@@ -333,6 +362,10 @@ def validate_logic():
     assert [r[0] for r in CLASSROOM["steps"][0]["rows"] if r[1:4] == ["Pumpkin", "2", "Round"]] == ["B"]
     assert [r[0] for r in CLASSROOM["steps"][2]["rows"] if r[1:4] == ["ORANGE", "Circle", "3"]] == ["C"]
     assert [r[0] for r in CLASSROOM["steps"][4]["rows"] if r[1:] == ["B", "ORANGE", "C", "P-Q-R-S"]] == ["A"]
+    assert HALLOWEEN_CLASSROOM["code"] == CLASSROOM["code"]
+    for original, alternate in zip(CLASSROOM["steps"], HALLOWEEN_CLASSROOM["steps"]):
+        for field in ("rows", "answer", "handoff", "hints", "heads", "prompts", "used", "role_cards"):
+            assert original.get(field) == alternate.get(field), field
 
 
 if __name__ == "__main__":
@@ -341,3 +374,7 @@ if __name__ == "__main__":
                   ROOT / "public" / "assets" / "halloween-friendly-v0.1.jpg",
                   "FRIENDLY AUTUMN ADVENTURE",
                   classroom_art_path=ROOT / "public" / "assets" / "autumn-classroom-v0.1.jpg")
+    from generate_space_samples import render_classroom_variant
+    render_classroom_variant("halloween", "halloween", HALLOWEEN_CLASSROOM,
+                             ROOT / "public" / "assets" / "halloween-friendly-v0.1.jpg",
+                             "FRIENDLY PUMPKIN ADVENTURE")

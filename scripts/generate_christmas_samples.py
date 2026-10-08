@@ -1,6 +1,7 @@
 """Build internal Christmas H06 and neutral winter C06 paper-game drafts."""
 
 from pathlib import Path
+from copy import deepcopy
 from math import cos, pi, sin
 from reportlab.lib import colors
 from reportlab.platypus import Flowable
@@ -201,11 +202,12 @@ class DestinationMatchCards(Flowable):
 class DeliveryReplyCard(Flowable):
     """Adult-held story reply without a real gift or journey."""
 
-    def __init__(self, width, classroom):
+    def __init__(self, width, classroom, variant_id=None):
         super().__init__()
         self.width = width
         self.height = 113
         self.classroom = classroom
+        self.variant_id = variant_id
 
     def draw(self):
         c = self.canv
@@ -215,7 +217,16 @@ class DeliveryReplyCard(Flowable):
         c.roundRect(0, 0, self.width, self.height, 6, fill=0, stroke=1)
         c.setFillColor(colors.HexColor("#153B56"))
         c.setFont("ArialBold", 8.5)
-        if self.classroom:
+        if self.classroom and self.variant_id == "christmas":
+            title = "CHRISTMAS CREW REPLY  /  SHARE AFTER MANIFEST A"
+            lines = [
+                "To the paper sorting crew,",
+                "T2 and STAR-BELL-BOOK made a careful loading order.",
+                "Route R1 carries the READY mark for this Christmas paper story.",
+                "Thank you for checking every picture and destination!",
+                "From the Christmas paper station guide",
+            ]
+        elif self.classroom:
             title = "WINTER STATION REPLY  /  SHARE AFTER MANIFEST A"
             lines = [
                 "To the paper sorting crew,",
@@ -362,6 +373,25 @@ for story, kind in ((HOME, "GIFT"), (CLASSROOM, "ITEM")):
 HOME["finale_factory"] = lambda width: DeliveryReplyCard(width, False)
 CLASSROOM["finale_factory"] = lambda width: DeliveryReplyCard(width, True)
 
+CHRISTMAS_CLASSROOM = deepcopy(CLASSROOM)
+CHRISTMAS_CLASSROOM["title"] = "The Christmas Gift Sorting Station"
+CHRISTMAS_CLASSROOM["intro"] = (
+    "Your group is a Christmas paper sorting crew. Match pretend picture gifts with named shelves, "
+    "use simple size grades and check a paper departure list. No real gifts, family traditions or shopping "
+    "are part of this activity.")
+CHRISTMAS_CLASSROOM["prepare"] = (
+    "Print one Group Player Pack per group and one private Teacher Guide. Give each group a complete set of pages, "
+    "one checkpoint at a time. At Checkpoint 2, the four picture-item cards and three destination cards may be "
+    "paired loose or marked on the intact page. Size, Order, Destination and Recorder roles may be merged or "
+    "rotated. The teacher chose this Christmas paper-story wording; a neutral Winter edition is also available "
+    "as a separate file set.")
+CHRISTMAS_CLASSROOM["ending"] = (
+    "Confirm Manifest A after the group cites two different facts. Read: 'The Christmas paper sorting station "
+    "is ready. Your team checked every picture card and route.' Do not ask children to share holiday, religion, "
+    "family purchasing or gift practices.")
+CHRISTMAS_CLASSROOM["steps"][4]["next"] = "The teacher can read the Christmas paper station thank-you card."
+CHRISTMAS_CLASSROOM["finale_factory"] = lambda width: DeliveryReplyCard(width, True, "christmas")
+
 
 def validate_logic():
     for story in (HOME, CLASSROOM):
@@ -379,6 +409,10 @@ def validate_logic():
         symbol for _, symbol in CLASSROOM["steps"][1]["destinations"]}
     assert [r[0] for r in CLASSROOM["steps"][2]["rows"] if r[1:] == ["STAR", "BELL", "BOOK"]] == ["B"]
     assert [r[0] for r in CLASSROOM["steps"][4]["rows"] if r[1:] == ["T2", "STAR-BELL-BOOK", "R1", "READY"]] == ["A"]
+    assert CHRISTMAS_CLASSROOM["code"] == CLASSROOM["code"]
+    for original, alternate in zip(CLASSROOM["steps"], CHRISTMAS_CLASSROOM["steps"]):
+        for field in ("rows", "answer", "handoff", "hints", "heads", "prompts", "used", "role_cards", "destinations"):
+            assert original.get(field) == alternate.get(field), field
 
 
 if __name__ == "__main__":
@@ -386,3 +420,7 @@ if __name__ == "__main__":
     render_drafts("christmas", HOME, CLASSROOM,
                   ROOT / "public" / "assets" / "christmas.png", "WINTER STORY ADVENTURE",
                   classroom_art_path=ROOT / "public" / "assets" / "winter-classroom-v0.1.jpg")
+    from generate_space_samples import render_classroom_variant
+    render_classroom_variant("christmas", "christmas", CHRISTMAS_CLASSROOM,
+                             ROOT / "public" / "assets" / "christmas.png",
+                             "CHRISTMAS PAPER ADVENTURE")

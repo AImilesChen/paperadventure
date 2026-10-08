@@ -7,14 +7,14 @@
 - `paperadventure.app` 的 Cloudflare Worker 运行的是**禁止搜索引擎收录的技术预览**。`/` 转到 `/en/`；本地 `npm run build` 生成 31 个英文预渲染页面，包含首页、六主题故事、Home/Classroom 创建、价格、帮助、订单演示和四类法律说明。预览可浏览，不能收款、生成正式游戏或下载内部 PDF。
 - 首页沿用已选第 3 纸艺方向，Hero 下接水平主题长廊。六个世界均在详情页说明不同的 Home/Classroom 故事和五步流程；目录按 Home/Classroom 筛选时显示对应的故事概念图，包括 H01 狐狸送信和 C01 探险俱乐部、C05 秋日与 C06 冬日课堂图。
 - `shared/catalog.mjs` 是价格和产品权益的实现真源：现成 Home US$9.99、Classroom US$14.99；定制 Home US$14.99、Classroom US$19.99；Celebration 仅是免费固定样例候选。用户确认的家庭/教师使用范围、12 个月在线重新下载与已下载文件继续按许可使用，都在界面及后端开发模型中体现。全部销售与公开下载开关仍关闭。
-- 六个主题各有先行蓝图和独立的 Home/Classroom 五关内容。48 份 A4/Letter 内部 PDF、六个试玩 ZIP 位于本地 `output/pdf/`，**不在** `public/`、`dist/client/` 或线上。当前版本具备可选裁开的路线/配对条、分角色线索卡、绝大多数结局候选卡，以及 H01/C01 首关图文来信/邀请卡、H03/C03 首关图文信号卡与第三关图文纸设备卡、H04/C04 首关图文邮戳卡、H05/C05 首关图文邀请卡、H06/C06 首关图文批次标签卡，庆祝、恐龙 Home、太空、森林和秋日第二关拼接板，森林第四关四格虚构地址地图、恐龙足迹卡、圣诞/冬日物品与目的地配对卡、H01、H02/C02、H03/C03、H04/C04、H05/C05 与 H06/C06 指南内可打印结局信、C01 纸质徽章、H05 四枚纸质印记等模板，但仍是未验收草稿。
+- 六个主题各有先行蓝图和独立的 Home/Classroom 五关内容。12 个场景有 48 份 A4/Letter 基础 PDF；C05/C06 各增加 4 份由成人主动选择的 Halloween/Christmas 课堂措辞稿，合计 **56 份内部 PDF、八个私有试玩 ZIP**，均位于本地 `output/pdf/`，**不在** `public/`、`dist/client/` 或线上。变体与中性版共用五关答案，不新增 SKU。当前版本具备可选裁开的路线/配对条、分角色线索卡、绝大多数结局候选卡，以及 H01/C01 首关图文来信/邀请卡、H03/C03 首关图文信号卡与第三关图文纸设备卡、H04/C04 首关图文邮戳卡、H05/C05 首关图文邀请卡、H06/C06 首关图文批次标签卡，庆祝、恐龙 Home、太空、森林和秋日第二关拼接板，森林第四关四格虚构地址地图、恐龙足迹卡、圣诞/冬日物品与目的地配对卡、各主题指南内可打印结局信、C01 纸质徽章、H05 四枚纸质印记等模板，但仍是未验收草稿。
 - GA4、Clarity、Ahrefs Web Analytics 和 Plausible 的代码与公开 ID 已暂存，发布开关关闭。只有在完成隐私告知、供应商设置和同意/拒绝/撤回测试后才能启用。`support@paperadventure.app` 的发信、收信和回复已经验证。
 
 ## 复现与证据
 
 在项目目录运行 `npm run build`、`npm run test:static`、`npm run test:sites`、`npm run test:backend`。本轮四项在 2026-10-08 通过；构建输出包含 `dist/client/index.html`、`dist/server/index.js` 和 `dist/.openai/hosting.json`。静态测试检查 31 路由、站内链接、图片、预览标记与 noindex；后端测试模拟付款授权，但不代表真实 Stripe 已连接。
 
-PDF 方面，分别运行 `scripts/check_celebration_samples.py`、`scripts/check_dinosaur_samples.py`、`scripts/check_space_samples.py`、`scripts/check_theme_samples.py <forest|halloween|christmas>`、`scripts/check_role_cards.py` 与 `scripts/audit_pdf_layout.py`。最后一次静态版式核查覆盖 48 份、216 页，未见空页、出界字形或页边文字。恐龙检查器现在从当前 PDF 重新渲染联系图，避免复用旧 PNG。检查细节见[版式记录](content/六主题_PDF版式静态核查_v0.1.md)。
+PDF 方面，分别运行 `scripts/check_celebration_samples.py`、`scripts/check_dinosaur_samples.py`、`scripts/check_space_samples.py`、`scripts/check_theme_samples.py <forest|halloween|christmas>`、`scripts/check_classroom_variants.py`、`scripts/check_role_cards.py` 与 `scripts/audit_pdf_layout.py`。最后一次静态版式核查覆盖 56 份、252 页，未见空页、出界字形或页边文字；两套节庆措辞稿的教师答案段落与中性稿完全一致。恐龙检查器现在从当前 PDF 重新渲染联系图，避免复用旧 PNG。检查细节见[版式记录](content/六主题_PDF版式静态核查_v0.1.md)。
 
 设计真源与待补图见 [UI 交接](design-handoff/HANDOFF.md)、[路由/状态矩阵](design-handoff/ROUTE_STATE_MATRIX.md)、[素材来源表](design-handoff/ASSET_PROVENANCE.md)和[六主题体验说明](content/theme-design/六主题体验与制品差距_v0.1.md)。旧的设计截图不能证明新增课堂图及所有状态已在浏览器验收。
 

@@ -72,3 +72,56 @@ foreach ($theme in $themes) {
   $zip = Get-Item -LiteralPath $zipPath
   Write-Output "$($theme.Key): $($pdfs.Count) PDFs, $($zip.Length) bytes, $($zip.FullName)"
 }
+
+$variantRoot = (Resolve-Path -LiteralPath (Join-Path $pdfRoot 'variants')).Path
+$classroomVariants = @(
+  @{ Key = 'halloween'; Code = 'C05'; Variant = 'halloween'; Name = 'Pumpkin Festival Crew'; Neutral = 'Autumn Festival Crew' },
+  @{ Key = 'christmas'; Code = 'C06'; Variant = 'christmas'; Name = 'Christmas Gift Sorting Station'; Neutral = 'Winter Gift Sorting Station' }
+)
+
+foreach ($edition in $classroomVariants) {
+  $prefix = "pilot-$($edition.Key)-classroom-$($edition.Variant)-v0.1"
+  $pilotDir = [IO.Path]::GetFullPath((Join-Path $pdfRoot $prefix))
+  if (-not $pilotDir.StartsWith($pdfRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Pilot path is outside output/pdf: $pilotDir"
+  }
+  New-Item -ItemType Directory -Path $pilotDir -Force | Out-Null
+  $pdfs = @(Get-ChildItem -LiteralPath $variantRoot -Filter "$($edition.Key)-$($edition.Code)-$($edition.Variant)-*.pdf" -File | Sort-Object Name)
+  if ($pdfs.Count -ne 4) { throw "Expected 4 classroom variant PDFs for $prefix, found $($pdfs.Count)" }
+  foreach ($pdf in $pdfs) { Copy-Item -LiteralPath $pdf.FullName -Destination $pilotDir -Force }
+  $blueprintPath = Join-Path $pilotDir '设计蓝图.md'
+  Copy-Item -LiteralPath (Join-Path $blueprintRoot "$($edition.Key).md") -Destination $blueprintPath -Force
+  $recordPath = Join-Path $pilotDir '试玩与打印记录表.md'
+  $record = $recordTemplate.Replace('{{THEME}}', $edition.Name).Replace('{{HOME}}', 'n/a').Replace('{{CLASSROOM}}', $edition.Code)
+  Set-Content -LiteralPath $recordPath -Value $record -Encoding UTF8
+  $readmePath = Join-Path $pilotDir 'README.md'
+  $readme = @"
+# $($edition.Name)｜独立课堂措辞试玩包 v0.1
+
+**仅供内部教师小组试玩，不得销售、公开下载或转发。**这是 $($edition.Code) 的成人主动选择表达版；中性的 $($edition.Neutral) 在原主题试玩包中。两版的候选、五关答案、提示和跳关成果相同，不是另一主题或额外收费商品。
+
+| 纸张 | 小组玩家包 | 私有教师指南 |
+| --- | --- | --- |
+| A4 | ``$($edition.Key)-$($edition.Code)-$($edition.Variant)-player-v0.1-A4.pdf`` | ``$($edition.Key)-$($edition.Code)-$($edition.Variant)-teacher-v0.1-A4.pdf`` |
+| US Letter | ``$($edition.Key)-$($edition.Code)-$($edition.Variant)-player-v0.1-Letter.pdf`` | ``$($edition.Key)-$($edition.Code)-$($edition.Variant)-teacher-v0.1-Letter.pdf`` |
+
+教师先阅读指南并选择适合小组的表达；不得按地区、语言或学生背景自动推断节庆偏好。每组只发同一措辞与同一纸张的一套玩家页。答案页和纸质结局卡由教师保管，确认唯一结局后再分享。
+
+A4 与 Letter 各打印灰度和彩色，核对封面、措辞、图形/文字双编码、裁边、字号、角色参与及实际耗时。按 ``试玩与打印记录表.md`` 记录；普通版的测试结论不能替代本措辞版的理解和舒适度检查。自动校验不等于真人试玩或实物打印通过。
+
+``SHA256SUMS.txt`` 列出四份 PDF 的校验值。
+"@
+  Set-Content -LiteralPath $readmePath -Value $readme -Encoding UTF8
+  $hashLines = foreach ($pdf in $pdfs) {
+    $hash = (Get-FileHash -LiteralPath $pdf.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    "$hash  $($pdf.Name)"
+  }
+  Set-Content -LiteralPath (Join-Path $pilotDir 'SHA256SUMS.txt') -Value $hashLines -Encoding UTF8
+  $entries = @($pdfs | ForEach-Object { Join-Path $pilotDir $_.Name }) + @(
+    $readmePath, $recordPath, $blueprintPath, (Join-Path $pilotDir 'SHA256SUMS.txt')
+  )
+  $zipPath = Join-Path $pdfRoot "$prefix.zip"
+  Compress-Archive -LiteralPath $entries -DestinationPath $zipPath -Force
+  $zip = Get-Item -LiteralPath $zipPath
+  Write-Output "$($edition.Key)/$($edition.Variant): $($pdfs.Count) PDFs, $($zip.Length) bytes, $($zip.FullName)"
+}

@@ -1,11 +1,11 @@
 # 六主题 PDF 版式静态核查 v0.1
 
-日期：2026-10-08。对象：六个主题 × Home/Classroom × Player/Host-or-Teacher × A4/US Letter，共 **48 份内部 PDF 草稿、216 页**。运行 `scripts/audit_pdf_layout.py`，详细逐文件数据在本地 `output/pdf/layout-audit-v0.1.json`。本核查不更改 PDF，也不把草稿升级为可发布文件。
+日期：2026-10-08。对象：六个主题 × Home/Classroom × Player/Host-or-Teacher × A4/US Letter 的 **48 份基础草稿、216 页**，加 C05 Halloween 与 C06 Christmas 成人可选课堂措辞版 **8 份、36 页**；当前合计 **56 份内部 PDF、252 页**。运行 `scripts/audit_pdf_layout.py`，详细逐文件数据在本地 `output/pdf/layout-audit-v0.1.json`。审计只读根目录原始 PDF 与 `output/pdf/variants/`，不重复计入 `pilot-*` 打包暂存目录。本核查不更改 PDF，也不把草稿升级为可发布文件。
 
 | 检查项 | 结果 |
 | --- | --- |
-| 六主题文件数 | 各 8 份，共 48 份 |
-| A4/US Letter 页面尺寸 | 48 份均与文件名匹配，允许 1 pt 以内浮点误差 |
+| 六主题文件数 | 六世界基础各 8 份；H05/C05 与 H06/C06 各另有 4 份节庆课堂措辞稿，共 56 份 |
+| A4/US Letter 页面尺寸 | 56 份均与文件名匹配，允许 1 pt 以内浮点误差 |
 | 全空页 | 0 |
 | 页面外文字 | 0 |
 | 距纸张边缘 12 pt 内文字 | 0 |
@@ -52,3 +52,5 @@
 万圣节 H05/中性秋日 C05 第一关也各补四张图文邀请卡：H05 的狐狸/猫头鹰封印、星数、日/月邮戳，C05 的笑脸南瓜/月亮图案、旗帜数、圆/方框都有印刷标签。H05 A4 和 C05 Letter 第二页从新 PDF 渲染并逐页查看；`check_theme_samples.py halloween` 已扩展为核对四张卡及唯一成果。全局 48 份、216 页仍零版式失败/警告。儿童会否误认图形中的小圆形或混淆旗帜与文字，需要真人试玩和灰度实物打印验证。
 
 圣诞 H06/中性冬日 C06 第一关各补四张图文批次标签卡：H06 显示雪花/叶形、可数圆点及星/月图案，C06 显示方/圆框、可数横线及 SNOW/LEAF 图形与印刷词。H06 A4 和 C06 Letter 第二页从最新 PDF 渲染并逐页查看；`check_theme_samples.py christmas` 核对候选、标签和唯一批次。图形旁均有文字冗余，实物灰度辨识仍待检验。
+
+C05 Halloween 与 C06 Christmas 各出四份成人主动选择的课堂措辞稿，独立封面、开场、教师准备说明和纸质结局回信。`check_classroom_variants.py` 从当前八份 PDF 重新渲染全部页面，并与中性版逐纸张比较教师指南的五关答案段落；两者一致。已逐页复看两套 A4 玩家封面和 Letter 教师答案/回信页，无溢出。修正审计范围以排除试玩 ZIP 暂存目录的重复 PDF 后，**56 份、252 页、零失败/警告**。不同措辞对儿童是否合适、封面原图权利、纸质裁切与灰度效果仍待真实验收。

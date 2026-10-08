@@ -22,7 +22,7 @@ H05 制品：玩家记录与五关卡、首关四张带狐狸/猫头鹰轮廓、
 
 ## C05：The Autumn Festival Crew（中性课堂草稿）
 
-开场：“Your group is a friendly paper autumn festival crew. Prepare four parts of a paper celebration and submit an opening plan.” 当前内部打印稿使用 Autumn 文案/视觉；若成人在活动前明确选择 Halloween，需派生对应文案再做复核。同一逻辑只算一个场景版本，不能根据学生国家或语言自动推断。
+开场：“Your group is a friendly paper autumn festival crew. Prepare four parts of a paper celebration and submit an opening plan.” 中性内部稿使用 Autumn 文案/视觉；另有成人明确选择后的 Halloween/Pumpkin 课堂内部稿。两套文案独立出片、共用候选与答案；仍需各自真人试玩和打印。其逻辑只算一个场景版本，不能根据学生国家或语言自动推断。
 
 | 关 | 小组页规则与候选 | 唯一成果及后续用途 |
 |---|---|---|
@@ -34,7 +34,7 @@ H05 制品：玩家记录与五关卡、首关四张带狐狸/猫头鹰轮廓、
 
 三级提示：1 比三个邀请属性→同时满足→B/CREW B/GATE；2 从 GATE 找到有明确 Booth 的路→A-B/ORANGE；3 三角色各读一条件→ORANGE/circle/three 求交→C/LEAF MARK；4 按纸上流程含义排序→邀请到开场→P-Q-R-S/WELCOME；5 用四项记录逐项核对→找无冲突方案→A。跳关按这五段补发标准成果。人数不足合并线索，提前完成的小组可复盘“哪一张别人的卡改变了我们的选择”，不额外加收费关卡。
 
-C05 制品：每组四张带笑脸南瓜/月亮图案、旗帜数与圆/方框的图文邀请卡、混序地图条与两格秋日路线板、装饰条件、流程条、成果/开场图；教师包有每组份数、提示、答案和跳关，答案页有确认 Plan A 后分享的纸质秋日回信。图形旁重复文字标签。目前仅有中性 Autumn 课堂 PDF；Halloween 课堂措辞版及其对照表未制作，需另行派生并校验。默认坐在桌边完成，站点活动仅在老师确认空间后可选。
+C05 制品：每组四张带笑脸南瓜/月亮图案、旗帜数与圆/方框的图文邀请卡、混序地图条与两格秋日路线板、装饰条件、流程条、成果/开场图；教师包有每组份数、提示、答案和跳关，答案页有确认 Plan A 后分享的纸质回信。图形旁重复文字标签。中性 Autumn 与节庆 Halloween 两套课堂 PDF、封面和结局卡已分别生成，答案段落自动对照通过；另见[课堂措辞对照](classroom-seasonal-variants-v0.1.md)。两套均待真人试玩及实物打印。默认坐在桌边完成，站点活动仅在老师确认空间后可选。
 
 ## 制作前的确认
 

@@ -1,0 +1,57 @@
+{
+  "version": "0.1",
+  "themeWorldId": "christmas",
+  "sourceScenarioId": "C06",
+  "variantId": "christmas",
+  "published": false,
+  "items": [
+    {
+      "file": "output/pdf/variants/christmas-C06-christmas-player-v0.1-A4.pdf",
+      "setting": "classroom",
+      "variant": "christmas",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 222376,
+      "sha256": "ed15211c2ea0969c531048c063e8bc88286bcf237b4d326d6e0b8ac7d0b80377",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/variants/christmas-C06-christmas-teacher-v0.1-A4.pdf",
+      "setting": "classroom",
+      "variant": "christmas",
+      "role": "teacher",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 111150,
+      "sha256": "6dbc24de66ee8a9b182d8bb49b46beb2edb5e634cf49c14c8dcf41608718cd2a",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/variants/christmas-C06-christmas-player-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "variant": "christmas",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 222084,
+      "sha256": "552850ed7ede4c5ad5b388a40fa0f04f264cf9577973b3b230eed3ce6de63828",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/variants/christmas-C06-christmas-teacher-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "variant": "christmas",
+      "role": "teacher",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 111017,
+      "sha256": "48be51e15c5a35eb9436220666926ea2404a2d1a6e13fdb10ccd6b7bcba97ae1",
+      "status": "draft",
+      "public": false
+    }
+  ]
+}

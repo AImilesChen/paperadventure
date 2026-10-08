@@ -1,6 +1,6 @@
 # Christmas/Winter H06/C06｜谜题内容源 v0.1
 
-**状态：**内部谜题/英文文案与 PDF 排版初稿，尚无真人试玩或发布。依据 [Christmas/Winter 蓝图](christmas.md)制作；`scripts/generate_christmas_samples.py` 为本批 PDF 卡片/答案生成真源。所有礼物是纸质图卡；真实礼物、交换、购买和家庭节庆习惯均不属于过关条件。C06 当前采用中性 Winter 表达，Christmas 课堂措辞仍待成人选择后派生复核。
+**状态：**内部谜题/英文文案与 PDF 排版初稿，尚无真人试玩或发布。依据 [Christmas/Winter 蓝图](christmas.md)制作；`scripts/generate_christmas_samples.py` 为本批 PDF 卡片/答案生成真源。所有礼物是纸质图卡；真实礼物、交换、购买和家庭节庆习惯均不属于过关条件。C06 有中性 Winter 和成人主动选择的 Christmas 两套课堂内部稿，仍须分别实测和审查。
 
 ## H06：The Christmas Delivery Office
 
@@ -20,7 +20,7 @@ H06 制品：封面记录、首关四张带雪花/叶形、圆点数和星/月�
 
 ## C06：The Winter Gift Sorting Station
 
-开场：“Your group is a paper sorting crew. Use the order sheets, clear size grades and route rules to prepare a pretend departure list.” 每组独立材料；教师为所有组选择 Winter 或 Christmas 文案。故事物品只有图卡，不要求学生透露自己的节日、宗教或家庭购物情况。
+开场：“Your group is a paper sorting crew. Use the order sheets, clear size grades and route rules to prepare a pretend departure list.” 每组独立材料；教师为所有组明确选择 Winter 或 Christmas 文案，分别取对应文件。故事物品只有图卡，不要求学生透露自己的节日、宗教或家庭购物情况。
 
 | 关 | 小组页规则与候选 | 唯一成果及下一关用途 |
 |---|---|---|
@@ -32,8 +32,8 @@ H06 制品：封面记录、首关四张带雪花/叶形、圆点数和星/月�
 
 三级提示：1 核对章形/横线/词→三项同真→B/T2；2 图标和文字一一配→每件一站→Book/LIBRARY、Star/SKY、Bell/MUSIC；3 分享等级与排序规则→按 1、2、3 排→Star-Bell-Book；4 将装载顺序转换为目的地顺序→查同序路线→R1/READY；5 用四项记录排除不同项→仅 A 全合→A。跳关依次补发 T2、三件配对、装载顺序、R1/READY、教师收尾卡。人数不整除时角色合并或轮换，不丢必需线索。
 
-C06 制品：每组首关四张带方/圆框、横线数和 SNOW/LEAF 字样的图文批次卡、订单图/目的地、等级与时间角色卡、纸路线表、分拣单；Teacher Guide 给出组数复制、角色分配、答案、提示、跳关，答案页有只在 Manifest A 确认后分享的中性 Winter 回信。Christmas 课堂措辞版及其封面/回信对照仍待派生。Winter/Christmas 是同一游戏的成人选择表达，不能额外计数或自动推断学生偏好。
+C06 制品：每组首关四张带方/圆框、横线数和 SNOW/LEAF 字样的图文批次卡、订单图/目的地、等级与时间角色卡、纸路线表、分拣单；Teacher Guide 给出组数复制、角色分配、答案、提示、跳关，答案页有只在 Manifest A 确认后分享的纸质回信。Winter 与 Christmas 课堂稿各有封面、开场与回信；两版五关答案段落自动对照通过，详见[课堂措辞对照](classroom-seasonal-variants-v0.1.md)。仍须各自试玩和打印。两种措辞是同一游戏的成人选择表达，不能额外计数或自动推断学生偏好。
 
 ## 导出与验证
 
-Home/Group Player Pack 与 Host/Teacher Guide 已有 A4/US Letter 内部初稿；第一关批次卡、第二关图形卡与目的地卡已排版并自动检查，五关唯一答案与跳关成果仍按内容源核对。C06 仍只有中性 Winter 课堂版本；Christmas 课堂措辞未出片。真实家庭/课堂试玩、实物彩色/灰度打印、素材许可和正式文案/法律审核完成之前，状态保持 `draft`。
+Home/Group Player Pack 与 Host/Teacher Guide 已有 A4/US Letter 内部初稿；第一关批次卡、第二关图形卡与目的地卡已排版并自动检查，五关唯一答案与跳关成果仍按内容源核对。C06 两种措辞分别出片并校验，但真实家庭/课堂试玩、实物彩色/灰度打印、素材许可和正式文案/法律审核完成之前，状态保持 `draft`。

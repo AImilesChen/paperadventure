@@ -70,7 +70,8 @@ def audit(pdf_path: Path) -> dict:
 
 
 def main() -> int:
-    pdf_paths = sorted(PDF_ROOT.glob("*.pdf"))
+    # Pilot ZIP staging folders duplicate the root files; audit only source PDFs.
+    pdf_paths = sorted([*PDF_ROOT.glob("*.pdf"), *(PDF_ROOT / "variants").glob("*.pdf")])
     results = [audit(path) for path in pdf_paths]
     themes = Counter(item["file"].split("-")[0] for item in results)
     report = {

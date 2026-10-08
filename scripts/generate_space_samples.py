@@ -547,6 +547,49 @@ def render_drafts(slug, home, classroom, art_path, world_label, classroom_art_pa
                                     "published": False, "items": files}, indent=2) + "\n", encoding="utf-8")
 
 
+def render_classroom_variant(slug, variant_id, classroom, art_path, world_label):
+    """Render an adult-selected wording edition without replacing the neutral Cxx set."""
+    global THUMB, WORLD_LABEL
+    assert classroom["code"].startswith("C")
+    assert variant_id in {"halloween", "christmas"}
+    WORLD_LABEL = world_label
+    variant_out = OUT / "variants"
+    variant_out.mkdir(parents=True, exist_ok=True)
+    THUMB = ROOT / "tmp" / "pdfs" / f"{slug}-{variant_id}-classroom-cover.jpg"
+    THUMB.parent.mkdir(parents=True, exist_ok=True)
+    with PillowImage.open(art_path) as source:
+        cover = source.convert("RGB")
+        cover.thumbnail((528, 396))
+        cover.save(THUMB, format="JPEG", quality=88, optimize=True)
+    files = []
+    for paper, size in (("A4", A4), ("Letter", letter)):
+        width = size[0] - 88
+        for role, flow in (("player", player_flow(classroom, width)),
+                           ("teacher", guide_flow(classroom, width))):
+            name = f"{slug}-{classroom['code']}-{variant_id}-{role}-v0.1-{paper}.pdf"
+            path = variant_out / name
+            doc = SimpleDocTemplate(str(path), pagesize=size, leftMargin=44, rightMargin=44,
+                                    topMargin=63, bottomMargin=57,
+                                    title=f"{classroom['code']} {world_label} content draft",
+                                    author="Paper Adventure Workshop - draft")
+            doc.product_code = f"{classroom['code']} {variant_id.title()} {role.title()}"
+            doc.paper_label = paper
+            doc.build(flow, onFirstPage=footer, onLaterPages=footer)
+            files.append({"file": str(path.relative_to(ROOT).as_posix()),
+                          "setting": "classroom", "variant": variant_id,
+                          "role": role, "paper": paper,
+                          "pages": 6 if role == "player" else 3,
+                          "bytes": path.stat().st_size,
+                          "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                          "status": "draft", "public": False})
+            print(path)
+    manifest = ROOT / "content" / f"{slug}-classroom-{variant_id}-pdf-manifest.v0.1.json"
+    manifest.write_text(json.dumps({"version": "0.1", "themeWorldId": slug,
+                                    "sourceScenarioId": classroom["code"],
+                                    "variantId": variant_id,
+                                    "published": False, "items": files}, indent=2) + "\n", encoding="utf-8")
+
+
 def main():
     validate_logic()
     render_drafts("space", HOME, CLASSROOM, ART, "SPACE ADVENTURE")

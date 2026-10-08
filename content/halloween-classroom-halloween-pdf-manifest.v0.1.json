@@ -1,0 +1,57 @@
+{
+  "version": "0.1",
+  "themeWorldId": "halloween",
+  "sourceScenarioId": "C05",
+  "variantId": "halloween",
+  "published": false,
+  "items": [
+    {
+      "file": "output/pdf/variants/halloween-C05-halloween-player-v0.1-A4.pdf",
+      "setting": "classroom",
+      "variant": "halloween",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 226249,
+      "sha256": "a737c0ef1dc4e5cdbed0137b5e4dbc0a141ae17b2efba85140fe1aa133583735",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/variants/halloween-C05-halloween-teacher-v0.1-A4.pdf",
+      "setting": "classroom",
+      "variant": "halloween",
+      "role": "teacher",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 111137,
+      "sha256": "6b1e8cf08cbbd8f1635bf8eafec088fadb8c349c378a6cc964f9074187a89546",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/variants/halloween-C05-halloween-player-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "variant": "halloween",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 225958,
+      "sha256": "32fe9f08d2a581ad74c1be19007d200ea099aa2da0bb78e3f974eb8688bd7ce4",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/variants/halloween-C05-halloween-teacher-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "variant": "halloween",
+      "role": "teacher",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 111007,
+      "sha256": "f2824fe0102756dbcb24bdca427b0f984c7d670dabeef9d0a132dab3f7015bf5",
+      "status": "draft",
+      "public": false
+    }
+  ]
+}
