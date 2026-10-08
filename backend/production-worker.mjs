@@ -1,4 +1,4 @@
-import { publicCatalog, offers, themes } from '../shared/catalog.mjs';
+import { publicCatalog, offers, productRights, themes } from '../shared/catalog.mjs';
 import { ApiError, validatePurchase, validateSupportedRange } from './domain.mjs';
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
@@ -10,6 +10,10 @@ const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
 const error = (status, code, message) => json({ error: { code, message } }, status);
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 const emailHash = (env, email) => sha256(`${env.SESSION_SECRET}|${email}`);
+const accessMonths = spec => Number.isInteger(spec?.onlineRedownloadMonths) && spec.onlineRedownloadMonths >= 1 && spec.onlineRedownloadMonths <= 120
+  ? spec.onlineRedownloadMonths : productRights.onlineRedownloadMonths;
+const accessActive = entitlement => Boolean(entitlement?.status === 'active' && entitlement.access_expires_at &&
+  Date.parse(`${entitlement.access_expires_at.replace(' ', 'T')}Z`) > Date.now());
 
 function paymentReady(env) {
   return Boolean(env.DB && env.PRIVATE_FILES && env.RESEND_API_KEY && env.EMAIL_FROM && env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET && env.SESSION_SECRET && env.PUBLIC_ORIGIN &&
@@ -83,7 +87,9 @@ async function checkout(request, env) {
   const buyerHash = await emailHash(env, email);
   const legal = await publishedLegal(env);
   const legalVersions = Object.fromEntries([...legal].map(([kind, item]) => [kind, item.version]));
-  const specJson = JSON.stringify({ ...spec, readyPackId: readyPack?.id || null, priceVersionId: price.id, licenceVersion: readyPack?.licence_version || env.CUSTOM_LICENCE_VERSION, legalVersions });
+  const specJson = JSON.stringify({ ...spec, readyPackId: readyPack?.id || null, priceVersionId: price.id, licenceVersion: readyPack?.licence_version || env.CUSTOM_LICENCE_VERSION,
+    accessPolicyVersion: productRights.version, onlineRedownloadMonths: productRights.onlineRedownloadMonths,
+    accessStarts: offer.kind === 'ready' ? productRights.readyAccessStarts : productRights.customAccessStarts, legalVersions });
   const specHash = await sha256(specJson);
   let order = await query(env.DB, 'SELECT * FROM orders WHERE idempotency_key = ?', key).first();
   if (order && (order.purchase_spec_sha256 !== specHash || order.purchaser_email_hash !== buyerHash)) throw new ApiError(409, 'IDEMPOTENCY_CONFLICT', 'This request key was used for another purchase.');
@@ -150,12 +156,14 @@ async function webhook(request, env, context = {}) {
     return json({ received: true, duplicate: true });
   }
   const spec = JSON.parse(order.purchase_spec_json);
+  const months = accessMonths(spec);
   const statements = [
     query(env.DB, 'INSERT OR IGNORE INTO webhook_events (stripe_event_id,event_type,order_id) VALUES (?,?,?)', event.id, event.type, order.id),
     query(env.DB, "UPDATE orders SET status = ?, amount_total = ?, stripe_payment_intent_id = ?, paid_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'pending_payment'", order.product_kind === 'ready' ? 'published' : 'paid', session.amount_total, typeof session.payment_intent === 'string' ? session.payment_intent : null, order.id),
   ];
   if (order.product_kind === 'ready') {
-    statements.push(query(env.DB, `INSERT OR IGNORE INTO entitlements (id,order_id,ready_pack_id,status,revision_success_limit) VALUES (?,?,?,'active',0)`, crypto.randomUUID(), order.id, spec.readyPackId));
+    statements.push(query(env.DB, `INSERT OR IGNORE INTO entitlements (id,order_id,ready_pack_id,status,revision_success_limit,access_expires_at) VALUES (?,?,?,'active',0,datetime('now',?))`,
+      crypto.randomUUID(), order.id, spec.readyPackId, `+${months} months`));
   } else {
     const activityId = `activity-${order.id}`;
     statements.push(query(env.DB, `INSERT OR IGNORE INTO custom_activities (id,order_id,status,story_spec_json) VALUES (?,?,'queued',?)`, activityId, order.id, JSON.stringify(spec)));
@@ -313,8 +321,9 @@ async function orderView(request, env, orderId) {
   const entitlement = await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first();
   const spec = JSON.parse(order.purchase_spec_json);
   return json({ id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
-    createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(entitlement && entitlement.status === 'active' && order.status === 'published'),
+    createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
     paper: order.product_kind === 'custom' ? spec.paper : null,
+    accessExpiresAt: entitlement?.access_expires_at || null,
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
     revisionExpiresAt: entitlement?.revision_expires_at || null });
 }
@@ -327,7 +336,7 @@ async function fileDownload(request, env, orderId, role) {
   const order = await query(env.DB, 'SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ?', orderId, hash).first();
   if (!order || order.status !== 'published') throw new ApiError(404, 'FILE_NOT_FOUND', 'File not found.');
   const entitlement = await query(env.DB, "SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'", order.id).first();
-  if (!entitlement || (entitlement.access_expires_at && Date.parse(entitlement.access_expires_at) < Date.now())) throw new ApiError(403, 'ACCESS_EXPIRED', 'File access is unavailable.');
+  if (!accessActive(entitlement)) throw new ApiError(403, 'ACCESS_EXPIRED', 'Online re-download is unavailable after the access period. Files already downloaded may still be used within the licence.');
   const spec = JSON.parse(order.purchase_spec_json);
   const paper = new URL(request.url).searchParams.get('paper') === 'Letter' ? 'Letter' : 'A4';
   let file;
@@ -468,7 +477,8 @@ async function publishCustomOrder(orderId, env) {
       query(env.DB, `INSERT OR IGNORE INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,guide_r2_key,player_sha256,guide_sha256,story_r2_key,story_sha256) VALUES (?,?,1,'published',?,?,?,?,?,?)`, `artifact-${orderId}-1`, activity.id, `${prefix}/player.pdf`, `${prefix}/guide.pdf`, playerHash, guideHash, `${prefix}/story.json`, storyHash),
       query(env.DB, "UPDATE custom_activities SET status = 'published', lease_until = NULL, generated_at = CURRENT_TIMESTAMP, published_at = CURRENT_TIMESTAMP WHERE id = ?", activity.id),
       query(env.DB, "UPDATE orders SET status = 'published' WHERE id = ?", orderId),
-      query(env.DB, `UPDATE entitlements SET revision_expires_at = datetime('now','+30 days') WHERE order_id = ?`, orderId),
+      query(env.DB, `UPDATE entitlements SET revision_expires_at = datetime('now','+30 days'), access_expires_at = datetime('now', ?) WHERE order_id = ?`,
+        `+${accessMonths(spec)} months`, orderId),
       query(env.DB, "INSERT OR IGNORE INTO delivery_notifications (order_id,kind,status) VALUES (?,'files_ready','pending')", orderId),
       query(env.DB, 'INSERT OR IGNORE INTO generation_usage (order_id,attempt,response_id,model,input_tokens,output_tokens,status) VALUES (?,?,?,?,?,?,?)', orderId, attempt, result.responseId, env.OPENAI_MODEL, result.usage?.input_tokens || null, result.usage?.output_tokens || null, 'published'),
     ]);

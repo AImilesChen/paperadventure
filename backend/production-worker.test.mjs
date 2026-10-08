@@ -108,6 +108,7 @@ test('verified Stripe payment grants only the matching ready pack and private fi
   assert.equal(checkoutInput.get('line_items[0][price]'), 'price_test_1');
   assert.equal(checkoutInput.get('automatic_tax[enabled]'), 'true');
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  assert.equal(JSON.parse(order.purchase_spec_json).onlineRedownloadMonths, 12);
   const session = { id: 'cs_test_001', client_reference_id: orderId, metadata: { order_id: orderId, spec_hash: order.purchase_spec_sha256 }, payment_status: 'paid', currency: 'usd', amount_subtotal: 999, amount_total: 1089, payment_intent: 'pi_test_001' };
   async function sendEvent(event) {
     const raw = JSON.stringify(event);
@@ -122,7 +123,10 @@ test('verified Stripe payment grants only the matching ready pack and private fi
   assert.equal((await sendEvent(event)).status, 200);
   assert.equal((await sendEvent(event).then(response => response.json())).duplicate, true);
   assert.equal(db.prepare('SELECT status FROM orders WHERE id = ?').get(orderId).status, 'published');
-  assert.equal(db.prepare('SELECT ready_pack_id FROM entitlements WHERE order_id = ?').get(orderId).ready_pack_id, 'pack-h01');
+  const readyEntitlement = db.prepare('SELECT ready_pack_id,access_expires_at FROM entitlements WHERE order_id = ?').get(orderId);
+  assert.equal(readyEntitlement.ready_pack_id, 'pack-h01');
+  assert.ok(Date.parse(`${readyEntitlement.access_expires_at.replace(' ', 'T')}Z`) > Date.now() + 360 * 86400000);
+  assert.ok(Date.parse(`${readyEntitlement.access_expires_at.replace(' ', 'T')}Z`) < Date.now() + 367 * 86400000);
   await productionWorker.scheduled(null, env);
   assert.equal(emailSent, 1);
   assert.equal(db.prepare('SELECT status FROM delivery_notifications WHERE order_id = ?').get(orderId).status, 'sent');
@@ -134,6 +138,12 @@ test('verified Stripe payment grants only the matching ready pack and private fi
   assert.equal(file.headers.get('content-type'), 'application/pdf');
   const otherToken = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: 'somebody-else', exp: Math.floor(Date.now()/1000)+3600 });
   assert.equal((await handleProductionApi(request(`/api/v1/files/${orderId}/player`, 'GET', undefined, { cookie: `paw_session=${otherToken}` }), env)).status, 404);
+  db.prepare("UPDATE entitlements SET access_expires_at = datetime('now','-1 day') WHERE order_id = ?").run(orderId);
+  const expiredFile = await handleProductionApi(request(`/api/v1/files/${orderId}/player`, 'GET', undefined, { cookie: `paw_session=${token}` }), env);
+  assert.equal(expiredFile.status, 403);
+  assert.equal((await expiredFile.json()).error.code, 'ACCESS_EXPIRED');
+  const expiredView = await handleProductionApi(request(`/api/v1/orders/${orderId}`, 'GET', undefined, { cookie: `paw_session=${token}` }), env);
+  assert.equal((await expiredView.json()).filesReady, false);
   const refund = await sendEvent({ id: 'evt_refund', type: 'charge.refunded', data: { object: { payment_intent: 'pi_test_001', currency: 'usd', refunded: true, amount_refunded: 1089 } } });
   assert.equal(refund.status, 200);
   assert.equal(db.prepare('SELECT status FROM entitlements WHERE order_id = ?').get(orderId).status, 'revoked');
@@ -211,6 +221,10 @@ test('paid custom queue job generates private player and guide PDFs, then publis
   assert.equal(acknowledged, true);
   assert.equal(db.prepare("SELECT status FROM orders WHERE id = 'order-1'").get().status, 'published');
   assert.equal(db.prepare("SELECT status FROM custom_activities WHERE id = 'activity-order-1'").get().status, 'published');
+  const customEntitlement = db.prepare("SELECT access_expires_at,revision_expires_at FROM entitlements WHERE order_id = 'order-1'").get();
+  assert.ok(Date.parse(`${customEntitlement.access_expires_at.replace(' ', 'T')}Z`) > Date.now() + 360 * 86400000);
+  assert.ok(Date.parse(`${customEntitlement.access_expires_at.replace(' ', 'T')}Z`) < Date.now() + 367 * 86400000);
+  assert.ok(Date.parse(`${customEntitlement.revision_expires_at.replace(' ', 'T')}Z`) < Date.now() + 31 * 86400000);
   assert.equal(db.prepare("SELECT input_tokens FROM generation_usage WHERE order_id = 'order-1'").get().input_tokens, 1000);
   assert.equal(stored.size, 3);
   const player = new TextDecoder().decode(stored.get('custom/order-1/v1/player.pdf').bytes);
@@ -224,6 +238,9 @@ test('paid custom queue job generates private player and guide PDFs, then publis
   assert.equal(db.prepare("SELECT revision_success_used FROM entitlements WHERE order_id = 'order-1'").get().revision_success_used, 1);
   assert.equal(db.prepare("SELECT version_number FROM revision_requests WHERE order_id = 'order-1'").get().version_number, 2);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM artifact_versions WHERE custom_activity_id = 'activity-order-1'").get().n, 2);
+  db.prepare("UPDATE entitlements SET access_expires_at = datetime('now','-1 day') WHERE order_id = 'order-1'").run();
+  const expiredCustomFile = await handleProductionApi(request('/api/v1/files/order-1/player', 'GET', undefined, { cookie: `paw_session=${token}` }), env);
+  assert.equal(expiredCustomFile.status, 403);
 });
 
 test('free proposal endpoint returns two short directions and enforces an IP budget', async () => {

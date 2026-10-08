@@ -4,7 +4,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { publicPages } from '../shared/page-manifest.mjs';
-import { themes } from '../shared/catalog.mjs';
+import { productRights, themes } from '../shared/catalog.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
@@ -80,4 +80,20 @@ test('each theme explains distinct Home and Classroom stories before a pack is p
       assert.equal(theme[setting].readyStatus, 'not_published');
     }
   }
+});
+
+test('confirmed Home and Classroom rights appear consistently while checkout stays closed', async () => {
+  assert.equal(productRights.onlineRedownloadMonths, 12);
+  assert.equal(productRights.legalReviewPending, true);
+  const pricing = await read('en/pricing/index.html');
+  const checkout = await read('en/checkout/demo/index.html');
+  const terms = await read('en/terms/index.html');
+  for (const scope of [productRights.home, productRights.classroom]) {
+    assert.ok(pricing.includes(scope), scope);
+  }
+  assert.match(pricing, /from confirmed payment/);
+  assert.match(pricing, /from first qualified delivery/);
+  assert.match(checkout, /Online re-download/);
+  assert.match(checkout, /Checkout unavailable/);
+  assert.match(terms, /Final consumer wording and technical enforcement still need review/);
 });

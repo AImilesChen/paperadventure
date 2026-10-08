@@ -1,6 +1,19 @@
 // Product facts shared by the React preview and the Cloudflare API scaffold.
 // Publication remains disabled until real packs, checkout, tax, and legal gates pass.
-export const catalogVersion = '2026-10-07-v1.3';
+export const catalogVersion = '2026-10-08-v1.3-rights';
+
+// Owner-confirmed product policy. Consumer-facing legal text and enforcement
+// still require review before any sale or public download is enabled.
+export const productRights = Object.freeze({
+  version: '2026-10-08-owner-confirmed',
+  onlineRedownloadMonths: 12,
+  readyAccessStarts: 'payment_confirmed',
+  customAccessStarts: 'first_qualified_delivery',
+  downloadedFilesUsableWithinLicenceAfterOnlinePeriod: true,
+  home: 'One adult purchaser and their household for private, non-commercial activities; reasonable reprinting of the purchased version.',
+  classroom: 'One purchasing teacher in classes they directly teach; reasonable printing for those classes.',
+  legalReviewPending: true,
+});
 
 export const offers = Object.freeze([
   { sku: 'ready_home', kind: 'ready', setting: 'home', currency: 'USD', unitAmount: 999, revisionLimit: 0, saleEnabled: false },
@@ -66,6 +79,7 @@ export function publicCatalog() {
     publicationState: 'development_preview',
     freeSampleThemeId: null,
     freeSampleCandidateThemeId: 'celebration',
+    productRights,
     offers,
     themes,
   };
