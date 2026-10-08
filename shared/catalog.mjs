@@ -30,11 +30,11 @@ export const themeStories = Object.freeze({
   },
   halloween: {
     home: { code: 'H05', title: 'The Missing Pumpkin Light', goal: 'Recover four paper seals to relight a friendly story-world pumpkin.', beats: ['Meet the messenger', 'Repair the festival map', 'Find the right parcel', 'Decode the reply', 'Arrange four seals'] },
-    classroom: { code: 'C05', title: 'The Pumpkin Festival Crew', goal: 'Each group prepares a paper festival and reveals its opening symbol.', beats: ['Find the invitation', 'Repair the festival map', 'Share decoration clues', 'Read the plan', 'Complete the opening'] },
+    classroom: { code: 'C05', title: 'The Pumpkin Festival Crew', goal: 'Each group prepares a paper festival and reveals its opening symbol.', image: '/assets/autumn-classroom-v0.1.jpg', imageCaption: 'Autumn visual option; the organiser chooses the wording.', beats: ['Find the invitation', 'Repair the festival map', 'Share decoration clues', 'Read the plan', 'Complete the opening'] },
   },
   christmas: {
     home: { code: 'H06', title: 'The Christmas Delivery Office', goal: 'Sort story gift cards and complete the final paper delivery.', beats: ['Check the labels', 'Match gift cards', 'Share route clues', 'Decode a note', 'Complete delivery'] },
-    classroom: { code: 'C06', title: 'The Winter Gift Sorting Station', goal: 'Each group sorts pretend gifts and checks a paper departure plan.', image: '/assets/winter-classroom-v0.1.jpg', beats: ['Check the batch', 'Match destinations', 'Combine sorting rules', 'Check the route', 'Finish the manifest'] },
+    classroom: { code: 'C06', title: 'The Winter Gift Sorting Station', goal: 'Each group sorts pretend gifts and checks a paper departure plan.', image: '/assets/winter-classroom-v0.1.jpg', imageCaption: 'Winter visual option; the organiser chooses the wording.', beats: ['Check the batch', 'Match destinations', 'Combine sorting rules', 'Check the route', 'Finish the manifest'] },
   },
 });
 

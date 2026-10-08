@@ -20,3 +20,5 @@
 **视觉/交互制作规格：**南瓜、纸灯与月亮采用明亮温和的纸艺造型，不用骷髅、血迹、惊吓脸或闪烁效果。网页卡先传达“友好庆典”，Home 成品四枚印记分别有形状、编号和字面名称；Classroom 的四类准备成果使用另一套图形体系，防止误用家庭口令。秋日变体可替换南瓜节庆措辞和配色，但地图、线索及答案合同仍由同一版本派生并重验。
 
 **插画候选：**网页世界卡使用 `public/assets/halloween-friendly-v0.1.jpg`，本地留有高分辨率 PNG；这仍是概念图，真正纸质印记与地图未完成。来源与审查记录见 `design-handoff/THEME_VISUAL_VARIANTS.md`。
+
+C05 非特定节庆表达另有 `public/assets/autumn-classroom-v0.1.jpg` 概念图；成人仍需主动选 Halloween/Autumn，具体打印材料不是简单替换插画。

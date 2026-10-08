@@ -67,9 +67,17 @@
   display: block;
   width: 100%;
   max-height: 130px;
-  margin: 0 0 12px;
+  margin: 0 0 5px;
   border-radius: 7px;
   object-fit: cover;
+}
+
+.product-story-caption {
+  display: block;
+  margin: 0 0 12px;
+  color: #5e7886;
+  font-size: .71rem;
+  line-height: 1.35;
 }
 
 .product-story-grid ol {
