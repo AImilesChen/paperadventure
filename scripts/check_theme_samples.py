@@ -139,6 +139,9 @@ for item in manifest["items"]:
     else:
         assert "ANSWER KEY" in joined and "HINTS AND SKIPS" in joined
         assert "Release gate" in joined
+        if THEME in {"halloween", "christmas"} and item["setting"] == "classroom":
+            assert "has not been produced" not in joined, (path, "stale variant status")
+            assert "separate" in joined and "classroom draft exists" in joined, (path, "missing optional wording status")
         if THEME == "forest":
             assert ("NORI'S PAPER POSTCARD" if item["setting"] == "home"
                     else "POST OFFICE REPLY") in all_text[1]
