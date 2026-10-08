@@ -12,9 +12,9 @@
 | C03 Space Classroom | `pilot-space-v0.1.zip` | 多人信号、设备卡、恢复报告 | 待执行 | 待执行 | 待执行 |
 | H04 Forest Home | `pilot-forest-v0.1.zip` | 邮戳图卡、包裹卡、虚构地址与回信 | 待执行 | 待执行 | 待执行 |
 | C04 Forest Classroom | `pilot-forest-v0.1.zip` | 三角色包裹属性交集、路线区域与证据 | 待执行 | 待执行 | 待执行 |
-| H05 Halloween Home | `pilot-halloween-v0.1.zip` | 友好邀请图卡、四枚印记、纸灯结局 | 待执行 | 待执行 | 待执行 |
-| C05 Autumn Classroom | `pilot-halloween-v0.1.zip` | 中性秋日邀请、组内协作与开场计划 | 待执行 | 待执行 | 待执行 |
-| C05 Halloween Classroom 措辞稿 | `pilot-halloween-classroom-halloween-v0.1.zip` | 与中性稿答案相同；单独记录措辞理解与舒适度 | 待执行 | 待执行 | 待执行 |
+| H05 Halloween Home | `pilot-halloween-v0.1.zip` | 友好邀请图卡、包裹横纹/角形、四枚印记与纸灯结局 | 待执行 | 待执行 | 待执行 |
+| C05 Autumn Classroom | `pilot-halloween-v0.1.zip` | 中性秋日邀请、装饰横幅/星数、组内协作与开场计划 | 待执行 | 待执行 | 待执行 |
+| C05 Halloween Classroom 措辞稿 | `pilot-halloween-classroom-halloween-v0.1.zip` | 同一装饰答案；单独记录节庆措辞理解与舒适度 | 待执行 | 待执行 | 待执行 |
 | H06 Christmas Home | `pilot-christmas-v0.1.zip` | 批次图卡、礼物/目的地配对、结局信 | 待执行 | 待执行 | 待执行 |
 | C06 Winter Classroom | `pilot-christmas-v0.1.zip` | 中性冬日批次与配对、发车清单 | 待执行 | 待执行 | 待执行 |
 | C06 Christmas Classroom 措辞稿 | `pilot-christmas-classroom-christmas-v0.1.zip` | 与中性稿答案相同；单独记录措辞理解与舒适度 | 待执行 | 待执行 | 待执行 |

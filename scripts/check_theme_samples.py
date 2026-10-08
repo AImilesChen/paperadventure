@@ -87,8 +87,10 @@ for item in manifest["items"]:
             assert "NORI'S PAPER POSTCARD" not in joined and "POST OFFICE REPLY" not in joined
         elif THEME == "halloween":
             first_page = all_text[1]
+            choice_page = all_text[3]
             for candidate in "ABCD":
                 assert f"{'LETTER' if item['setting'] == 'home' else 'INVITATION'} {candidate}" in first_page, (path, "missing invitation card", candidate)
+                assert f"{'PARCEL' if item['setting'] == 'home' else 'DECOR'} {candidate}  /  PAPER CHOICE" in choice_page, (path, "missing third-checkpoint choice card", candidate)
             if item["setting"] == "home":
                 assert "SEAL  FOX" in first_page and "SEAL  OWL" in first_page
                 assert "STARS  2" in first_page and "MARK  MOON" in first_page
@@ -96,6 +98,9 @@ for item in manifest["items"]:
                 assert first_page.count("SEAL  FOX") == 3
                 assert first_page.count("STARS  2") == 3
                 assert first_page.count("MARK  MOON") == 3
+                assert "BATCH  P3" in choice_page and "STRIPES  2" in choice_page
+                assert "OUTLINE  ROUND" in choice_page and "OUTLINE  SQUARE" in choice_page
+                assert "HAT / ROW  2" in choice_page
             else:
                 assert "ICON  PUMPKIN" in first_page and "ICON  MOON" in first_page
                 assert "FLAGS  2" in first_page and "FRAME  ROUND" in first_page
@@ -103,6 +108,9 @@ for item in manifest["items"]:
                 assert first_page.count("ICON  PUMPKIN") == 3
                 assert first_page.count("FLAGS  2") == 3
                 assert first_page.count("FRAME  ROUND") == 3
+                assert "BOOTH  ORANGE" in choice_page and "BOOTH  BLUE" in choice_page
+                assert "BANNER  CIRCLE" in choice_page and "BANNER  SQUARE" in choice_page
+                assert "STARS  3" in choice_page and "MARK  LEAF" in choice_page
             expected = ("PAPER FESTIVAL MAP / THREE USEFUL STRIPS" if item["setting"] == "home"
                         else "AUTUMN CREW MAP / TWO USEFUL STRIPS")
             assert expected in second_page, (path, "missing festival map workspace")

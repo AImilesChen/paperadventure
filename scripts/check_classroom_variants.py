@@ -61,6 +61,13 @@ for theme, variant, code, title, ending in (
             for number in range(1, 6):
                 assert f"CHECKPOINT {number:02d} / 05" in joined
             assert ("CREW / START  B / GATE" if theme == "halloween" else "BATCH  T2") in content[1]
+            if theme == "halloween":
+                assert "PUMPKIN CREW MAP / TWO USEFUL STRIPS" in content[2]
+                assert "AUTUMN CREW MAP / TWO USEFUL STRIPS" not in content[2]
+                for candidate in "ABCD":
+                    assert f"DECOR {candidate}  /  PAPER CHOICE" in content[3], (path, candidate)
+                assert "BANNER  CIRCLE" in content[3] and "STARS  3" in content[3]
+                assert "BOOTH  ORANGE" in content[3] and "MARK  LEAF" in content[3]
             assert "bordered cards" in content[5]
         else:
             assert ending in content[1]

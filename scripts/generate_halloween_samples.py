@@ -129,6 +129,65 @@ class InvitationCards(Flowable):
         c.restoreState()
 
 
+class FestivalChoiceCards(Flowable):
+    """Four picture-and-word candidates for the third shared-clue checkpoint."""
+
+    def __init__(self, width, rows, setting):
+        super().__init__()
+        self.width = width
+        self.height = 193
+        self.rows = rows
+        self.setting = setting
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 10
+        card_width = (self.width - gutter) / 2
+        card_height = 91
+        navy = colors.HexColor("#153B56")
+        ink = colors.HexColor("#36546A")
+        line = colors.HexColor("#8BAFC1")
+        for index, (label, place, shape_or_count, outline_or_count, result) in enumerate(self.rows):
+            x = (index % 2) * (card_width + gutter)
+            y = (1 - index // 2) * (card_height + gutter)
+            c.setStrokeColor(line)
+            c.setLineWidth(.9)
+            c.roundRect(x, y, card_width, card_height, 6, fill=0, stroke=1)
+            c.setFillColor(navy)
+            c.setFont("ArialBold", 8.8)
+            c.drawString(x + 9, y + 75, f"{'PARCEL' if self.setting == 'home' else 'DECOR'} {label}  /  PAPER CHOICE")
+            cx, cy = x + 37, y + 40
+            c.setStrokeColor(navy)
+            c.setLineWidth(1.3)
+            if self.setting == "home":
+                count = int(shape_or_count)
+                if outline_or_count == "Round":
+                    c.roundRect(cx - 25, cy - 17, 50, 36, 8, fill=0, stroke=1)
+                else:
+                    c.rect(cx - 25, cy - 17, 50, 36, fill=0, stroke=1)
+                for stripe in range(count):
+                    stripe_y = cy + 5 - stripe * 10
+                    c.line(cx - 12, stripe_y, cx + 12, stripe_y)
+                labels = (f"BATCH  {place}", f"STRIPES  {count}",
+                          f"OUTLINE  {outline_or_count.upper()}", f"HAT / ROW  {result}")
+            else:
+                count = int(outline_or_count)
+                if shape_or_count == "Circle":
+                    c.circle(cx, cy, 21, fill=0, stroke=1)
+                else:
+                    c.rect(cx - 21, cy - 21, 42, 42, fill=0, stroke=1)
+                for star in range(count):
+                    InvitationCards.star(c, cx - 13 + star * 13, cy)
+                labels = (f"BOOTH  {place}", f"BANNER  {shape_or_count.upper()}",
+                          f"STARS  {count}", f"MARK  {result}")
+            c.setFillColor(ink)
+            c.setFont("ArialBold", 8.1)
+            for line_number, label_text in enumerate(labels):
+                c.drawString(x + 76, y + 57 - line_number * 15, label_text)
+        c.restoreState()
+
+
 class PaperSealCards(Flowable):
     """Four blank paper seals; players supply values from the previous checkpoints."""
 
@@ -320,6 +379,10 @@ CLASSROOM["steps"][2]["role_cards"] = [
     ("Shape", "The banner is a CIRCLE."),
     ("Count", "The decoration has THREE stars."),
 ]
+HOME["steps"][2]["card_factory"] = lambda width: FestivalChoiceCards(width, HOME["steps"][2]["rows"], "home")
+CLASSROOM["steps"][2]["card_factory"] = lambda width: FestivalChoiceCards(width, CLASSROOM["steps"][2]["rows"], "classroom")
+for story in (HOME, CLASSROOM):
+    story["steps"][2]["card_note"] = "The picture and printed labels show the same clues. An adult may cut the four choice cards, or players can compare them on this page."
 HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
 HOME["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
@@ -341,6 +404,8 @@ HALLOWEEN_CLASSROOM["prepare"] = (
     "At Checkpoint 2, place or copy the two useful strips on the Pumpkin Crew map. "
     "The teacher chose this friendly Halloween wording; a neutral Autumn edition is also available as a separate file set. "
     "Map, Shape, Count and Recorder roles can be combined or rotated. No group depends on another.")
+HALLOWEEN_CLASSROOM["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
+    width, "PUMPKIN CREW MAP / TWO USEFUL STRIPS", 2, "GATE", "NAMED BOOTH")
 HALLOWEEN_CLASSROOM["ending"] = (
     "Confirm Plan A after each group cites at least two clue sheets. Read: 'The friendly paper pumpkin festival "
     "is ready. Everyone shared a clue to make the opening plan clear.' Never ask students to reveal their "
