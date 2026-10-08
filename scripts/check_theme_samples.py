@@ -50,6 +50,7 @@ for item in manifest["items"]:
     if item["role"] == "player":
         for number in range(1, 6):
             assert f"CHECKPOINT {number:02d} / 05" in joined
+        assert "bordered cards" in all_text[5], (path, "missing final paper candidates")
         assert "ANSWER KEY" not in joined and "HINTS AND SKIPS" not in joined
     else:
         assert "ANSWER KEY" in joined and "HINTS AND SKIPS" in joined

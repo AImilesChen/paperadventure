@@ -71,9 +71,9 @@ def cover(code, role, title, intro, width, records):
 
 def checkpoint(number, title, story, headers, rows, proportions, width, questions, transition, strip_mode=False):
     flow = page_heading(number, title, story)
-    if strip_mode:
+    if strip_mode or number == 5:
         flow += strip_cards(headers, rows, width)
-        flow += [p("An adult or teacher may cut the bordered strips; you can also write their order on this page.", "small"), gap(8)]
+        flow += [p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]
     else:
         flow += [grid(headers, rows, [width * x for x in proportions]), gap(17)]
     for question in questions:

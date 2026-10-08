@@ -159,9 +159,9 @@ def player_flow(story, width):
         if step.get("role_cards"):
             flow += role_cards(step["role_cards"], width)
             flow += [p("Only an adult or teacher cuts cards. Without scissors, cover and reveal one card at a time.", "small"), gap(5)]
-        if step.get("strip_cards"):
+        if step.get("strip_cards") or number == 5:
             flow += strip_cards(step["heads"], step["rows"], width)
-            flow += [p("An adult or teacher may cut the bordered cards; you can also number them on this page.", "small"), gap(8)]
+            flow += [p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]
         else:
             flow += [grid(step["heads"], step["rows"], [width * f for f in fractions]), gap(13)]
         if step.get("extra"):

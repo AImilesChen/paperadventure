@@ -31,6 +31,7 @@ for item in manifest["items"]:
         all_text = "\n".join(page.extract_text() or "" for page in pages)
         for stage in range(1, 6):
             assert f"CHECKPOINT {stage:02d} / 05" in all_text, (path, stage)
+        assert "bordered cards" in (pages[5].extract_text() or ""), (path, "missing final paper candidates")
 
 qa_dir = ROOT / "tmp" / "pdfs" / "dinosaur-qa"
 qa_dir.mkdir(parents=True, exist_ok=True)
