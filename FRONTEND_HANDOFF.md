@@ -18,6 +18,8 @@ PDF 方面，分别运行 `scripts/check_celebration_samples.py`、`scripts/chec
 
 设计真源与待补图见 [UI 交接](design-handoff/HANDOFF.md)、[路由/状态矩阵](design-handoff/ROUTE_STATE_MATRIX.md)、[素材来源表](design-handoff/ASSET_PROVENANCE.md)、[六主题体验说明](content/theme-design/六主题体验与制品差距_v0.1.md)及[14 套表达的试玩执行索引](content/theme-design/PILOT_EXECUTION_INDEX.md)。旧的设计截图不能证明新增课堂图及所有状态已在浏览器验收。
 
+前 3 阶段按要求、现有证据和未完成验收逐项对照，见[交付与验收矩阵](content/前三阶段_交付验收矩阵_v0.1.md)。
+
 ## 尚未放行
 
 1. **内容：**每个 Home/Classroom 版本仍需代表性家长/教师试玩、A4/Letter 彩色和灰度实物打印、唯一答案与纸卡操作的现场记录，再按发现修订；C05/C06 的课堂节庆措辞草稿还需单独试玩与打印验收。
