@@ -84,6 +84,12 @@ for item in manifest["items"]:
                 assert f"BLOCK {number}  /" in fourth_page, (path, "missing map block", number)
             assert ("BLUE TREE  +  W4" if item["setting"] == "home"
                     else "TREEHOUSE ROW  +  P3") in fourth_page, (path, "missing answer location")
+            if item["setting"] == "classroom":
+                conclusion_page = all_text[5]
+                assert "EVIDENCE RECORD / TWO DIFFERENT SHEETS" in conclusion_page
+                assert "SHEET 1 / CHECKPOINT" in conclusion_page and "SHEET 2 / CHECKPOINT" in conclusion_page
+                assert conclusion_page.count("FACT WE FOUND") == 2
+                assert conclusion_page.count("SUPPORTS FIELD") == 2
             assert "NORI'S PAPER POSTCARD" not in joined and "POST OFFICE REPLY" not in joined
         elif THEME == "halloween":
             first_page = all_text[1]

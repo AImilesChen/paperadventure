@@ -232,6 +232,37 @@ class ForestPostcard(Flowable):
         c.restoreState()
 
 
+class EvidenceRecord(Flowable):
+    """Two separate source-and-fact records for the classroom's final conclusion."""
+
+    def __init__(self, width):
+        super().__init__()
+        self.width = width
+        self.height = 145
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setFillColor(colors.HexColor("#153B56"))
+        c.setFont("ArialBold", 8.8)
+        c.drawString(0, 133, "EVIDENCE RECORD / TWO DIFFERENT SHEETS")
+        c.setFillColor(colors.HexColor("#36546A"))
+        c.setFont("Arial", 8.4)
+        c.drawString(0, 118, "Use two different clue sheets. Write a fact, not just a card ID.")
+        for number, y in ((1, 62), (2, 4)):
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.setLineWidth(.8)
+            c.rect(0, y, self.width, 52, fill=0, stroke=1)
+            c.setFillColor(colors.HexColor("#153B56"))
+            c.setFont("ArialBold", 8.4)
+            c.drawString(9, y + 36, f"SHEET {number} / CHECKPOINT: ______________________")
+            c.setFillColor(colors.HexColor("#36546A"))
+            c.setFont("Arial", 8.4)
+            c.drawString(9, y + 21, "FACT WE FOUND: ______________________________________________")
+            c.drawString(9, y + 7, "SUPPORTS FIELD (circle): BATCH / AREA / CODE / RECIPIENT")
+        c.restoreState()
+
+
 def step(title, story, heads, rows, answer, handoff, used, prompts, next_story, hints, extra=None):
     item = {"title": title, "story": story, "heads": heads, "rows": rows,
             "answer": answer, "handoff": handoff, "used": used,
@@ -315,7 +346,7 @@ CLASSROOM = {
         step("Submit a clear conclusion", "Compare batch, area, parcel code and recipient marker. Circle one conclusion that agrees with every sheet; cite two different sheets.",
              ["Card", "Batch", "Area", "Code", "Recipient"],
              [["A", "R7", "TREEHOUSE ROW", "P3", "OWL WINDOW"], ["B", "R7", "TREEHOUSE ROW", "P3", "FOX WINDOW"], ["C", "R7", "POND", "P3", "OWL WINDOW"], ["D", "R8", "TREEHOUSE ROW", "P3", "OWL WINDOW"], ["E", "R7", "TREEHOUSE ROW", "P2", "OWL WINDOW"]],
-             "Conclusion Card A", "Teacher reads thank-you card", "Group conclusion", ["Matching conclusion", "Two evidence sheets"],
+             "Conclusion Card A", "Teacher reads thank-you card", "Group conclusion", ["Matching conclusion"],
              "The teacher can read the postal investigation thank-you card.",
              ["Read the four results on your cover.", "Each wrong card has one inconsistent field.", "Card A; close the story."]),
     ],
@@ -354,6 +385,7 @@ for story in (HOME, CLASSROOM):
     story["steps"][3]["card_note"] = "Keep the four-block map intact. Match the place and printed fragment together before recording a recipient."
 HOME["finale_factory"] = lambda width: ForestPostcard(width, False)
 CLASSROOM["finale_factory"] = lambda width: ForestPostcard(width, True)
+CLASSROOM["steps"][4]["evidence_factory"] = lambda width: EvidenceRecord(width)
 
 
 def validate_logic():

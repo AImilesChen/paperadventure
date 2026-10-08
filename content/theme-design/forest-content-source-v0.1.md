@@ -28,11 +28,11 @@ H04 制品：玩家记录页、四张带树叶/月亮轮廓和星数的图文邮
 | 2 投递记录 | R7 条 L1=`POST OFFICE→STONE PATH`、L2=`STONE PATH→TREEHOUSE ROW`；R8 干扰条 L3=`POST OFFICE→POND`、L4=`POND→NO ROUTE`。玩家页混序，只使用上关得出的 R7 批次。 | L1-L2，`area=TREEHOUSE ROW`。 |
 | 3 组内交换 | Route 角色给上关区域；Label 角色给“两条横纹”；Shape 角色给“圆角”。候选 A=TREEHOUSE ROW/one stripe/round/P1；B=TREEHOUSE ROW/two stripes/square/P2；C=**TREEHOUSE ROW/two stripes/round/P3**；D=POND/two stripes/round/P4。 | 包裹 C，`parcel=P3`；不得让单张角色线索直接给出答案。 |
 | 4 地址证据 | 虚构地图：TREEHOUSE ROW+P1=FOX WINDOW；TREEHOUSE ROW+P3=**OWL WINDOW**；POND+P3=OTTER DOOR；STONE PATH+P3=BEAR GATE。 | `recipient=OWL WINDOW`，填证据单。 |
-| 5 结论卡 | A=R7/TREEHOUSE ROW/P3/OWL WINDOW；B=R7/TREEHOUSE ROW/P3/FOX WINDOW；C=R7/POND/P3/OWL WINDOW；D=R8/TREEHOUSE ROW/P3/OWL WINDOW；E=R7/TREEHOUSE ROW/P2/OWL WINDOW。 | A。教师用本组记录确认“包裹—收件人—证据”，可请小组解释两个不同来源的条件。 |
+| 5 结论卡 | A=R7/TREEHOUSE ROW/P3/OWL WINDOW；B=R7/TREEHOUSE ROW/P3/FOX WINDOW；C=R7/POND/P3/OWL WINDOW；D=R8/TREEHOUSE ROW/P3/OWL WINDOW；E=R7/TREEHOUSE ROW/P2/OWL WINDOW。选卡后填两条独立证据：每条写来源关卡、该页观察事实及支持的结论字段，且两条不能来自同一页。 | A。教师用本组记录确认“包裹—收件人—证据”，不以只写卡片编号代替事实。 |
 
 三级提示：1 比邮戳三项→只一档全合→A/R7；2 串联 R7 记录→终点有 Row→L1-L2/TREEHOUSE ROW；3 每人读条件→区域/条纹/角形求交→C/P3；4 用 P3 和 Row 同时查表→OWL WINDOW；5 查四格记录→逐项排除→结论 A。跳关补发 R7、TREEHOUSE ROW、P3、OWL WINDOW、教师收尾卡。缺席成员的线索交给现有组员；任何组不需要另一组先完成。
 
-C04 制品：每组四张带圆/方轮廓和点数的图文邮戳卡、混序记录条与两格调查路线板、三角色属性及四张有横纹数量、圆/方角、区域和编码的图文包裹候选卡、第四关四格调查地图、证据单与结论；Teacher Guide 含每组份数、角色合并、答案、三级提示、跳关和复盘，答案页的独立纸质回信在结论卡 A 确认后分享。图形旁重复完整文字标签；黑白打印辨认仍须实物验证。人物、地点不对应任何真实住址或儿童信息。
+C04 制品：每组四张带圆/方轮廓和点数的图文邮戳卡、混序记录条与两格调查路线板、三角色属性及四张有横纹数量、圆/方角、区域和编码的图文包裹候选卡、第四关四格调查地图、第五关两条分列的“来源/事实/支持字段”证据记录与结论；Teacher Guide 含每组份数、角色合并、答案、三级提示、跳关和复盘，答案页的独立纸质回信在结论卡 A 确认后分享。图形旁重复完整文字标签；黑白打印辨认仍须实物验证。人物、地点不对应任何真实住址或儿童信息。
 
 ## 制作和发布门槛
 

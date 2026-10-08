@@ -116,6 +116,8 @@ CLASSROOM["steps"][2]["role_cards"] = [
 ]
 HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
+HOME["steps"][1]["compact_route_cards"] = True
+CLASSROOM["steps"][1]["compact_route_cards"] = True
 HOME_MAP_NODES = {
     "A2": "ORION", "B2": "BLUE STAR", "B3": "CRESCENT",
     "C3": "STATION 7", "B1": "RED STAR", "C1": "EMPTY FIELD",
@@ -482,7 +484,8 @@ def player_flow(story, width):
             flow += [step["card_factory"](width),
                      p(step.get("card_note", "An adult or teacher may cut the bordered cards; you can also compare or number them on this page."), "small"), gap(8)]
         elif step.get("strip_cards"):
-            flow += star_route_cards(step["rows"], width)
+            flow += (star_route_cards(step["rows"], width) if step.get("compact_route_cards")
+                     else strip_cards(step["heads"], step["rows"], width))
             flow += [p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]
         elif number == 5:
             flow += strip_cards(step["heads"], step["rows"], width)
@@ -495,6 +498,8 @@ def player_flow(story, width):
             flow += [box(step["extra"], width, CREAM), gap(12)]
         for prompt in step["prompts"]:
             flow += write_line(prompt)
+        if step.get("evidence_factory"):
+            flow += [step["evidence_factory"](width), gap(8)]
         flow += [gap(7), box("<b>Next in the story:</b> " + step["next"], width)]
         if number < 5:
             flow.append(PageBreak())
