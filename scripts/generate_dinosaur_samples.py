@@ -9,7 +9,7 @@ from reportlab.lib.pagesizes import A4, letter
 from reportlab.platypus import Image, PageBreak, SimpleDocTemplate
 from PIL import Image as PillowImage
 
-from generate_celebration_samples import p, gap, box, grid, page_heading, write_line
+from generate_celebration_samples import p, gap, box, grid, page_heading, role_cards, write_line
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -110,9 +110,13 @@ def home_player(width):
                        [.13, .20, .17, .30, .20], width,
                        ["Our chosen pack", "Its code"],
                        "Use both the sign and the code on the signpost table.")
-    # Place role-card content before the candidate table, without the adult answer.
+    # Place distributable role cards before the candidate table, without the adult answer.
     third_heading = next(i for i, item in enumerate(flow) if getattr(item, 'text', '') == 'Choose the paper supplies')
-    flow.insert(third_heading + 2, box("<b>Guide:</b> Use the sign name from your route.<br/><b>Milo:</b> The correct paper pack has TWO straps.<br/><b>Scout:</b> The correct paper pack has a TRIANGLE tag.", width, CREAM))
+    flow[third_heading + 3:third_heading + 3] = role_cards([
+        ("Guide", "Use the sign name from your route."),
+        ("Milo", "The paper pack has TWO straps."),
+        ("Scout", "The paper pack has a TRIANGLE tag."),
+    ], width)
     flow += checkpoint(4, "Read the signpost",
                        "Find the row matching your sign from Checkpoint 2 and code from Checkpoint 3. The directions are part of this paper map.",
                        ["Sign", "Code", "Turn", "Gate"],
@@ -166,7 +170,11 @@ def class_player(width):
                        ["Our zone", "Which cards support it"],
                        "Use your zone to sort the station's time strips.")
     heading = next(i for i, item in enumerate(flow) if getattr(item, 'text', '') == 'Share the location clues')
-    flow.insert(heading + 2, box("<b>Observer:</b> Use the region from your footprint.<br/><b>Reader:</b> The station has a CIRCLE marker.<br/><b>Checker:</b> The station has TWO flags.<br/><b>Recorder:</b> Write down the group's agreed result.", width, CREAM))
+    flow[heading + 3:heading + 3] = role_cards([
+        ("Observer", "Use the region from your footprint."),
+        ("Reader", "The station has a CIRCLE marker."),
+        ("Checker", "The station has TWO flags."),
+    ], width)
     flow += checkpoint(4, "Put the time strips in order",
                        "Keep only strips for your zone. Put them in time order from earliest to latest. X belongs to a different zone.",
                        ["Strip", "Zone", "Time", "Event"],
@@ -202,7 +210,7 @@ def guide(code, title, width, classroom):
             ("First remove the wrong zone.", "Order Zone C times from 09:00 to 09:45.", "P-Q-R-S; signal 09:45."),
             ("Use the whole record sheet.", "Compare every report field, not just one.", "Report A; explain two facts."),
         ]
-        prepare = "Print one Group Player Pack per group and one Teacher Guide for yourself, in the same paper size. Assign the printed role lines to Reader, Observer, Recorder and Checker; combine them for smaller groups or rotate them for larger groups. Every group has its own complete clues. Give one checkpoint at a time."
+        prepare = "Print one Group Player Pack per group and one Teacher Guide for yourself, in the same paper size. At Checkpoint 3, a teacher may cut and distribute the three bordered role cards; without scissors, cover and reveal each card in turn. Combine roles for smaller groups or rotate them for larger groups. Every group has its own complete clues. Give one checkpoint at a time."
         ending = "Confirm Report A and ask each group which fact from someone else's card helped them decide. Close with: 'The records are clear again. Milo's paper route to camp can now be followed.' Do not rank groups or collect names."
         chain = [("1", "R2", "Footprint description"), ("2", "RIDGE", "Zone selection"),
                  ("3", "Zone C", "Time-strip filter"), ("4", "P-Q-R-S / 09:45", "Final report"),
@@ -220,7 +228,7 @@ def guide(code, title, width, classroom):
             ("Find the PINE rows first.", "Which PINE row has code 4?", "EAST and ROUND GATE."),
             ("Use all four recorded results.", "Eliminate wrong starts, signs, turns and gates.", "Camp A; explain two clues."),
         ]
-        prepare = "Print one Player Pack per cooperating group and one Host Guide for the adult, in the same paper size. Keep this guide private. Give the cover first, then one checkpoint page at a time. A pencil is enough; optional route strips can be marked on the page without cutting. Everything can happen at a table."
+        prepare = "Print one Player Pack per cooperating group and one Host Guide for the adult, in the same paper size. Keep this guide private. Give the cover first, then one checkpoint page at a time. At Checkpoint 3, an adult may cut and distribute the three bordered role cards; without scissors, cover and reveal each card in turn. Optional route strips can be marked on the page. Everything can happen at a table."
         ending = "Confirm Camp A only after players name at least two supporting clues. Then hand over a simple paper note: 'Milo and the guide arrive at the welcoming camp. You used the footprint, route, shared supplies and signpost together. Thank you!'"
         chain = [("1", "SUN", "Route start"), ("2", "PINE SIGN", "Supply clue"),
                  ("3", "Code 4", "Signpost table"), ("4", "EAST / ROUND", "Camp choice"),

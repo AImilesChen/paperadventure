@@ -98,6 +98,18 @@ CLASSROOM = {
 }
 
 
+HOME["steps"][2]["role_cards"] = [
+    ("Courier", "Use the parcel batch from your paper map."),
+    ("Decorator", "The parcel has TWO stripes."),
+    ("Keeper", "The parcel has a ROUNDED paper outline."),
+]
+CLASSROOM["steps"][2]["role_cards"] = [
+    ("Map", "Use the booth from your paper map."),
+    ("Shape", "The banner is a CIRCLE."),
+    ("Count", "The decoration has THREE stars."),
+]
+
+
 def validate_logic():
     for story in (HOME, CLASSROOM):
         assert len(story["steps"]) == 5

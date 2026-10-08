@@ -100,6 +100,18 @@ CLASSROOM = {
 }
 
 
+HOME["steps"][2]["role_cards"] = [
+    ("Guide", "FOX DEN comes BEFORE OWL WINDOW."),
+    ("Clock", "RABBIT GATE is LAST."),
+    ("Map", "Visit all three paper places exactly once."),
+]
+CLASSROOM["steps"][2]["role_cards"] = [
+    ("Size", "BOOK is grade 3, STAR is grade 1, BELL is grade 2."),
+    ("Order", "Load the smallest grade first."),
+    ("Destination", "Keep each item's matching place from Checkpoint 2."),
+]
+
+
 def validate_logic():
     for story in (HOME, CLASSROOM):
         assert len(story["steps"]) == 5

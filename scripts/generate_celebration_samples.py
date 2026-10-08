@@ -88,6 +88,23 @@ def grid(headers, rows, widths):
     return t
 
 
+def role_cards(rows, width):
+    """Three standalone clue panels that an adult can distribute or reveal in turn."""
+    cards = []
+    for role, clue in rows:
+        card = Table([[p(f"<b>{role} / ROLE CLUE</b><br/>{clue}", "table")]], colWidths=[width])
+        card.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), CREAM),
+            ("BOX", (0, 0), (-1, -1), 0.8, LINE),
+            ("LEFTPADDING", (0, 0), (-1, -1), 12),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+            ("TOPPADDING", (0, 0), (-1, -1), 11),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 11),
+        ]))
+        cards.extend([card, gap(7)])
+    return cards
+
+
 def write_line(label):
     return [p(f"<b>{label}</b> ____________________________________________", "body"), gap(3)]
 
@@ -166,12 +183,12 @@ def home_player(width):
     flow += write_line("Our strip order is") + write_line("We reached the")
     flow += [box("<b>Story clue:</b> The flag marks the delivery labels to check. Keep the flag colour for the final choice.", width), PageBreak()]
 
-    flow += page_heading(3, "Choose the delivery label", "Three explorers each hold one piece of Fenn's instructions. Read all three aloud before your team chooses a label.")
-    flow += [grid(["Explorer", "What they know"], [
+    flow += page_heading(3, "Choose the delivery label", "Ask your grown-up for one clue card per explorer. Read all three aloud before your team chooses a label.")
+    flow += role_cards([
         ["Courier", "The correct label uses the flag colour from the route."],
         ["Maker", "The correct label has exactly TWO stars."],
         ["Keeper", "The correct label number is FOUR."],
-    ], [width*.25, width*.75]), gap(13), grid(["Label", "Flag", "Stars", "Number"], [
+    ], width) + [p("Cut along the three card borders only with adult help; or cover and reveal each card in turn.", "small"), gap(8), grid(["Label", "Flag", "Stars", "Number"], [
         ["A", "RED", "2", "4"], ["B", "RED", "1", "4"],
         ["C", "BLUE", "2", "4"], ["D", "RED", "2", "5"],
     ], [width*.19, width*.28, width*.25, width*.28]), gap(15)]
@@ -202,7 +219,7 @@ def home_guide(width):
             gap(17), p("Prepare the activity", "h2"),
             p("Print one Player Pack for the group and one Host Guide for yourself, in the same paper size. Keep this guide and the answer table away from players. Give the cover/trail first, then one checkpoint page at a time. Provide pencils. Write an optional warm celebration message on a separate sheet and seal it in an envelope."),
             p("For Checkpoint 4, you can say the code key came from the chosen label. For Checkpoint 5, either keep the finale envelope in your hand or place it on an accessible table that you have checked. Do not send children to a private room or unsafe hiding place."),
-            p("Print count: Player Pack 1 per cooperating group; Host Guide 1 per adult. The pages do not require cutting or special equipment. A4 and US Letter files are exported separately."),
+            p("Print count: Player Pack 1 per cooperating group; Host Guide 1 per adult. At Checkpoint 3, an adult may cut out the three bordered role cards and hand out one per explorer. If scissors are unavailable, cover the other cards and reveal one role at a time. No cutting is required to solve the puzzle. A4 and US Letter files are exported separately."),
             gap(10), p("Story state at a glance", "h2"),
             grid(["Checkpoint", "Required result", "Used next for"], [
                 ["1", "Letter A; SUN", "Route start"], ["2", "A-B-C; RED FLAG", "Label colour"],
@@ -265,11 +282,11 @@ def class_player(width):
     flow += write_line("Our strip order is") + write_line("Our destination is")
     flow += [box("<b>Club message:</b> 'At the WORKSHOP, compare all the role notes before choosing a piece of equipment. Everyone's clue matters.'", width), PageBreak()]
 
-    flow += page_heading(3, "Compare the role clues", "Give one note to each role, or take turns reading them. Your group needs all three conditions to choose one equipment card.")
-    flow += [grid(["Role", "Clue"], [
+    flow += page_heading(3, "Compare the role clues", "Your teacher gives one clue card to each role, or reveals them in turn. Combine all three conditions to choose one equipment card.")
+    flow += role_cards([
         ["Reader", "The card is BLUE."], ["Spotter", "The card has exactly TWO dots."],
         ["Checker", "The shape on the card is a TRIANGLE."],
-    ], [width*.24, width*.76]), gap(13), grid(["Card", "Colour", "Dots", "Shape"], [
+    ], width) + [p("Only the teacher cuts cards. Groups can also take turns reading covered cards.", "small"), gap(8), grid(["Card", "Colour", "Dots", "Shape"], [
         ["A", "BLUE", "2", "TRIANGLE"], ["B", "BLUE", "1", "TRIANGLE"],
         ["C", "RED", "2", "TRIANGLE"], ["D", "BLUE", "2", "CIRCLE"],
     ], [width*.16, width*.25, width*.2, width*.39]), gap(15)]
@@ -300,7 +317,7 @@ def class_guide(width):
     flow = [p("CLASSROOM / C01 / TEACHER GUIDE", "eyebrow"), p("The Adventure Club's First Badge", "title"),
             box("<b>Content draft for teacher review.</b> This is a complete independent-group paper sequence, not a tested classroom product. No student names, birthdays, login accounts or school records are needed.", width, CREAM),
             gap(16), p("Set up each group", "h2"),
-            p("Print one full Player Pack for each group and one Teacher Guide for yourself. Each group gets the same five checkpoint pages and can solve without waiting for another group. Give the cover first, then release one checkpoint page at a time. Provide pencils. No cutting, special box, phone or online tool is required."),
+            p("Print one full Player Pack for each group and one Teacher Guide for yourself. Each group gets the same five checkpoint pages and can solve without waiting for another group. Give the cover first, then release one checkpoint page at a time. Provide pencils. At Checkpoint 3, the teacher may cut the three bordered role cards for each group; alternatively, cover and reveal the cards in turn. No special box, phone or online tool is required."),
             p("Roles: Reader reads directions; Spotter checks attributes; Recorder writes the group record; Checker asks whether every clue was used. Combine or rotate roles for different group sizes. If a group finishes early, ask where it used another person's clue rather than giving extra required work."),
             p("Use the invitation story as a cooperative club celebration, not an individual birthday. A student may leave the optional team name blank. Collect or recycle sheets according to your normal classroom practice."),
             gap(9), p("Story state at a glance", "h2"),

@@ -9,7 +9,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.platypus import Image, PageBreak, SimpleDocTemplate
 
-from generate_celebration_samples import box, gap, grid, p, page_heading, write_line
+from generate_celebration_samples import box, gap, grid, p, page_heading, role_cards, write_line
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -104,6 +104,17 @@ CLASSROOM = {
     ],
 }
 
+HOME["steps"][2]["role_cards"] = [
+    ("Guide", "Use the numbered station from your map."),
+    ("Robot", "The paper device has TWO rings."),
+    ("Scout", "The paper device has a TRIANGLE badge."),
+]
+CLASSROOM["steps"][2]["role_cards"] = [
+    ("Mapper", "Use the port from your paper map."),
+    ("Reader", "The kit has TWO rings."),
+    ("Checker", "The kit has an ARROW badge."),
+]
+
 
 def footer(canvas, doc):
     width, height = doc.pagesize
@@ -140,7 +151,12 @@ def player_flow(story, width):
         fractions = [1 / cols] * cols
         if cols == 5:
             fractions = [.16, .22, .17, .20, .25]
-        flow += page_heading(number, step["title"], step["story"])
+        story_text = ("Ask your adult or teacher for one clue card per role. Read all three before choosing."
+                      if step.get("role_cards") else step["story"])
+        flow += page_heading(number, step["title"], story_text)
+        if step.get("role_cards"):
+            flow += role_cards(step["role_cards"], width)
+            flow += [p("Only an adult or teacher cuts cards. Without scissors, cover and reveal one card at a time.", "small"), gap(5)]
         flow += [grid(step["heads"], step["rows"], [width * f for f in fractions]), gap(13)]
         if step.get("extra"):
             flow += [box(step["extra"], width, CREAM), gap(12)]
@@ -157,6 +173,7 @@ def guide_flow(story, width):
     flow = [p(f"{story['code']} / {story['role']}", "eyebrow"), p(story["title"], "title"),
             box("<b>Internal content and layout draft.</b> Not play-tested, print-approved or published. Do not sell or offer public downloads.", width, CREAM),
             gap(14), p("Prepare the paper adventure", "h2"), p(story["prepare"]),
+            p("Checkpoint 3 has three bordered role cards. An adult or teacher may cut and distribute one per player; without scissors, cover unused cards and reveal them in turn. Each group keeps its own complete clue set."),
             p("No physical equipment, real travel, student accounts or outdoor activity are required."),
             p("How one result powers the next", "h2"),
             grid(["Step", "Standard result", "Used by"],
