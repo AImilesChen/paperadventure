@@ -35,9 +35,15 @@ def main():
                 assert "Answer key and checks" not in text and "ANSWER KEY" not in text
                 if "C01" in path.name:
                     assert "OUR ADVENTURE CLUB BADGE" in text, (path.name, "missing paper badge template")
+                    first = pdf.pages[1].extract_text() or ""
+                    assert all(f"INVITATION {letter}" in first for letter in "ABC"), (path.name, "missing illustrated invitation cards")
+                    assert "COMPASS / 2 STARS" in first and "ROUTE START / GATE" in first
                 if "H01" in path.name:
                     assert "Parcel A" in text and "Parcel D" in text and "bordered parcel cards" in text, (path.name, "missing parcel cards")
                     assert "FENN'S PAPER LETTER" not in text, (path.name, "adult finale revealed in player pack")
+                    first = pdf.pages[1].extract_text() or ""
+                    assert all(f"LETTER {letter}" in first for letter in "ABC"), (path.name, "missing illustrated letter cards")
+                    assert "FOX / 2 EARS / 3 DOTS" in first and "ROUTE START / SUN" in first
             else:
                 assert "Publication status: NOT PLAY-TESTED" in text, path.name
                 if "H01" in path.name:

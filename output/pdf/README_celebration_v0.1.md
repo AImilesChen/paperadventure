@@ -13,6 +13,8 @@
 
 **已经完成的技术检查：**脚本检查候选答案唯一性；8 个 PDF 均有预期页面、草稿标识、无空白页、无文字越界；A4 与 US Letter 各自排版并渲染检查。生成脚本为 `scripts/generate_celebration_samples.py`，结构检查为 `scripts/check_celebration_samples.py`。
 
+首关 H01/C01 各有三张图文候选卡；图形轮廓、点/星数量与文字重复编码。成人可裁开，也可让玩家在整页比较。打印试玩需核对裁开后每卡仍含路线起点，且不靠颜色辨别。
+
 供未来 R2 入库核对的机器可读文件清单和 SHA-256 在 [`content/celebration-pdf-manifest.v0.1.json`](../../content/celebration-pdf-manifest.v0.1.json)。所有条目的 `status` 为 `draft`、`public` 为 `false`。
 
 **开放网站下载前仍需：**至少一次真实 Home/课堂代表性试玩，记录年龄与阅读适配、时长、模糊题目、提示使用、组内参与；按实测修订谜题；实际纸张和灰度打印；成人/教师指南与学生材料逐条复核；图片与素材许可、网站条款和目标市场隐私/消费者权利审查。完成这些验收后才能从“候选”变成“免费发布样例”。

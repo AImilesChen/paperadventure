@@ -7,6 +7,7 @@ published products or downloads in the application catalog.
 from pathlib import Path
 import hashlib
 import json
+import math
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4, letter
@@ -31,6 +32,14 @@ HOME_ROUTE_CARDS = [
 CLASS_ROUTE_CARDS = [
     ["D", "GATE", "GARDEN"], ["B", "LIBRARY", "TABLE"], ["A", "GATE", "LIBRARY"],
     ["E", "GARDEN", "SHED"], ["C", "TABLE", "WORKSHOP"],
+]
+HOME_LETTER_CARDS = [
+    ("A", "Fox", 2, 3, "SUN"), ("B", "Fox", 2, 2, "POND"),
+    ("C", "Owl", 0, 3, "MOON"),
+]
+CLASS_INVITATION_CARDS = [
+    ("A", "COMPASS", 1, "GARDEN"), ("B", "COMPASS", 2, "GATE"),
+    ("C", "STAR", 2, "LIBRARY"),
 ]
 
 BLUE = colors.HexColor("#DDF1FA")
@@ -212,6 +221,95 @@ class FinaleLetterCard(Flowable):
         c.restoreState()
 
 
+class SealComparisonCards(Flowable):
+    """Grayscale-safe opening cards; icons repeat, never replace, the written clues."""
+
+    def __init__(self, width, rows, setting):
+        super().__init__()
+        self.width = width
+        self.height = 164
+        self.rows = rows
+        self.setting = setting
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 9
+        card_width = (self.width - 2 * gutter) / 3
+        for index, row in enumerate(self.rows):
+            x = index * (card_width + gutter)
+            c.setStrokeColor(LINE)
+            c.setLineWidth(.9)
+            c.roundRect(x, 0, card_width, 150, 5, fill=0, stroke=1)
+            c.setFillColor(NAVY)
+            c.setFont("ArialBold", 8.5)
+            c.drawString(x + 10, 134, f"{'LETTER' if self.setting == 'home' else 'INVITATION'} {row[0]}")
+            cx = x + card_width / 2
+            if self.setting == "home":
+                _, animal, ears, dots, start = row
+                self.draw_animal(c, cx, 91, animal)
+                for dot in range(int(dots)):
+                    c.circle(cx - (int(dots) - 1) * 8 + dot * 16, 58, 2.5, fill=1, stroke=0)
+                detail = f"{animal.upper()}  /  {ears} EARS  /  {dots} DOTS"
+            else:
+                _, seal, stars, start = row
+                self.draw_seal(c, cx, 93, seal)
+                for star in range(int(stars)):
+                    self.draw_star(c, cx - (int(stars) - 1) * 12 + star * 24, 57, 5)
+                detail = f"{seal}  /  {stars} STAR{'S' if stars != 1 else ''}"
+            c.setFillColor(INK)
+            c.setFont("Arial", 8.1)
+            c.drawCentredString(cx, 38, detail)
+            c.setFont("ArialBold", 8.3)
+            c.drawCentredString(cx, 18, f"ROUTE START / {start}")
+        c.restoreState()
+
+    @staticmethod
+    def draw_animal(c, x, y, animal):
+        c.setStrokeColor(NAVY)
+        c.setLineWidth(1.2)
+        if animal == "Fox":
+            path = c.beginPath()
+            path.moveTo(x - 25, y + 2)
+            path.lineTo(x - 20, y + 24)
+            path.lineTo(x - 8, y + 12)
+            path.lineTo(x + 8, y + 12)
+            path.lineTo(x + 20, y + 24)
+            path.lineTo(x + 25, y + 2)
+            path.lineTo(x, y - 21)
+            path.close()
+            c.drawPath(path, fill=0, stroke=1)
+        else:
+            c.circle(x, y, 22, fill=0, stroke=1)
+            c.circle(x - 9, y + 4, 6, fill=0, stroke=1)
+            c.circle(x + 9, y + 4, 6, fill=0, stroke=1)
+        c.circle(x - 8, y + 1, 1.8, fill=1, stroke=0)
+        c.circle(x + 8, y + 1, 1.8, fill=1, stroke=0)
+
+    @staticmethod
+    def draw_seal(c, x, y, seal):
+        c.setStrokeColor(NAVY)
+        c.setLineWidth(1.2)
+        if seal == "COMPASS":
+            c.circle(x, y, 21, fill=0, stroke=1)
+            c.line(x - 16, y, x + 16, y)
+            c.line(x, y - 16, x, y + 16)
+            c.circle(x, y, 3, fill=0, stroke=1)
+        else:
+            SealComparisonCards.draw_star(c, x, y, 20)
+
+    @staticmethod
+    def draw_star(c, x, y, radius):
+        path = c.beginPath()
+        for vertex in range(10):
+            angle = math.pi / 2 + vertex * math.pi / 5
+            r = radius if vertex % 2 == 0 else radius * .45
+            px, py = x + math.cos(angle) * r, y + math.sin(angle) * r
+            (path.moveTo if vertex == 0 else path.lineTo)(px, py)
+        path.close()
+        c.drawPath(path, fill=0, stroke=1)
+
+
 class RouteAssemblyBoard(Flowable):
     """Three blank slots for placing route strips or writing their endpoints in order."""
 
@@ -293,9 +391,8 @@ def home_player(width):
     flow += [PageBreak()]
 
     flow += page_heading(1, "Find Fenn's letter", "Fenn's real envelope has a fox seal with two pointed ears and exactly three dots. Which letter came from Fenn?")
-    flow += [grid(["Letter", "Seal", "Ears", "Dots", "Route start"], [
-        ["A", "Fox", "2", "3", "SUN"], ["B", "Fox", "2", "2", "POND"], ["C", "Owl", "0", "3", "MOON"],
-    ], [width*.18, width*.24, width*.13, width*.13, width*.32]), gap(19)]
+    flow += [SealComparisonCards(width, HOME_LETTER_CARDS, "home"),
+             p("Your grown-up may cut out the bordered letters, or you can compare them on this page.", "small"), gap(13)]
     flow += write_line("The correct letter is") + write_line("Our route starts at")
     flow += [box("<b>Story clue:</b> The letter says: 'Begin at my route start. Join the route strips until you reach a flag. The flag will tell you which delivery labels matter.'", width), PageBreak()]
 
@@ -391,10 +488,8 @@ def class_player(width):
     flow += cover_art(CELEBRATION_CLASSROOM_ART) + [PageBreak()]
 
     flow += page_heading(1, "Find the club invitation", "The correct club invitation has a COMPASS seal and exactly TWO stars. Which card should your group open?")
-    flow += [grid(["Card", "Seal", "Stars", "Route start"], [
-        ["A", "COMPASS", "1", "GARDEN"], ["B", "COMPASS", "2", "GATE"],
-        ["C", "STAR", "2", "LIBRARY"],
-    ], [width*.18, width*.37, width*.17, width*.28]), gap(18)]
+    flow += [SealComparisonCards(width, CLASS_INVITATION_CARDS, "classroom"),
+             p("Only your teacher cuts the bordered invitations. Your group can compare them on this page.", "small"), gap(13)]
     flow += write_line("Our invitation is") + write_line("Our route starts at")
     flow += [box("<b>Club message:</b> 'Begin at the route start on your invitation. Keep joining strips until you reach the WORKSHOP. Your route will tell you where the club keeps its equipment clues.'", width), PageBreak()]
 
@@ -488,6 +583,8 @@ def routes_to(rows, start, destination):
 
 
 def validate_logic():
+    assert [row[0] for row in HOME_LETTER_CARDS if row[1:4] == ("Fox", 2, 3)] == ["A"]
+    assert [row[0] for row in CLASS_INVITATION_CARDS if row[1:3] == ("COMPASS", 2)] == ["B"]
     assert routes_to(HOME_ROUTE_CARDS, "SUN", "RED FLAG") == [["A", "B", "C"]]
     assert routes_to(CLASS_ROUTE_CARDS, "GATE", "WORKSHOP") == [["A", "B", "C"]]
     home_labels = [("A", "RED", 2, 4), ("B", "RED", 1, 4), ("C", "BLUE", 2, 4), ("D", "RED", 2, 5)]
