@@ -198,6 +198,73 @@ HOME["steps"][0]["card_note"] = "Compare all four pictured signals. Each border,
 CLASSROOM["steps"][0]["card_note"] = "Compare all four pictured signals. Each border, peak count and dot count has a matching text label; no colour clue is needed. Keep cards on this page or let a teacher cut them."
 
 
+class DeviceCards(Flowable):
+    """Paper-only device candidates with countable rings and badge outlines."""
+
+    def __init__(self, width, rows, setting):
+        super().__init__()
+        self.width = width
+        self.height = 166
+        self.rows = rows
+        self.setting = setting
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 10
+        card_width = (self.width - gutter) / 2
+        card_height = 78
+        for index, (letter, place, ring_count, badge, result) in enumerate(self.rows):
+            x = (index % 2) * (card_width + gutter)
+            y = (1 - index // 2) * (card_height + gutter)
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.setLineWidth(0.9)
+            c.roundRect(x, y, card_width, card_height, 6, fill=0, stroke=1)
+            c.setFillColor(NAVY)
+            c.setFont("ArialBold", 8.7)
+            c.drawString(x + 8, y + 63, f"PAPER {'DEVICE' if self.setting == 'home' else 'KIT'} {letter}")
+            cx, cy = x + 30, y + 32
+            c.setStrokeColor(NAVY)
+            c.setLineWidth(1.35)
+            for radius in (11, 17)[:int(ring_count)]:
+                c.circle(cx, cy, radius, fill=0, stroke=1)
+            bx, by = x + 59, y + 31
+            if badge == "Triangle":
+                path = c.beginPath()
+                path.moveTo(bx - 9, by - 8)
+                path.lineTo(bx, by + 9)
+                path.lineTo(bx + 9, by - 8)
+                path.close()
+                c.drawPath(path)
+            elif badge == "Circle":
+                c.circle(bx, by, 9, fill=0, stroke=1)
+            else:
+                path = c.beginPath()
+                path.moveTo(bx - 10, by - 3)
+                path.lineTo(bx + 3, by - 3)
+                path.lineTo(bx + 3, by - 8)
+                path.lineTo(bx + 11, by)
+                path.lineTo(bx + 3, by + 8)
+                path.lineTo(bx + 3, by + 3)
+                path.lineTo(bx - 10, by + 3)
+                path.close()
+                c.drawPath(path)
+            c.setFillColor(INK)
+            c.setFont("ArialBold", 8.2)
+            tx = x + 80
+            c.drawString(tx, y + 49, f"{'STATION' if self.setting == 'home' else 'PORT'}  {place}")
+            c.drawString(tx, y + 36, f"RINGS  {ring_count}")
+            c.drawString(tx, y + 23, f"BADGE  {badge.upper()}")
+            c.drawString(tx, y + 10, f"{'CODE' if self.setting == 'home' else 'KEY'}  {result}")
+        c.restoreState()
+
+
+HOME["steps"][2]["card_factory"] = lambda width: DeviceCards(width, HOME["steps"][2]["rows"], "home")
+CLASSROOM["steps"][2]["card_factory"] = lambda width: DeviceCards(width, CLASSROOM["steps"][2]["rows"], "classroom")
+HOME["steps"][2]["card_note"] = "These are paper props. Count rings and compare badge outlines with the three role clues; the printed labels give the same facts."
+CLASSROOM["steps"][2]["card_note"] = "These are paper props. Count rings and compare badge outlines with the three role clues; the printed labels give the same facts."
+
+
 class StarMapAssemblyBoard(Flowable):
     """A printable workspace for arranging the numbered-destination route strips."""
 

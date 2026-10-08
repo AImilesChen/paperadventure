@@ -56,6 +56,13 @@ for item in manifest["items"]:
         else:
             assert "PEAKS  2" in signal_page and "DOTS  1" in signal_page
             assert "STATION  LYRA" in signal_page
+        device_page = all_text[3]
+        for label in ("RINGS  2", "BADGE", "PAPER"):
+            assert label in device_page, (path, label)
+        if item["setting"] == "home":
+            assert "PAPER DEVICE B" in device_page and "CODE  6" in device_page
+        else:
+            assert "PAPER KIT C" in device_page and "KEY  3-1-4" in device_page
         map_page = all_text[2]
         assert "PAPER STAR MAP / ARRANGE THE USEFUL STRIPS" in map_page
         assert "STRIP 1" in map_page and "STRIP 2" in map_page
