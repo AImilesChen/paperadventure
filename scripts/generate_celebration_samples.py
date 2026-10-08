@@ -335,7 +335,7 @@ class CelebrationRouteMap(Flowable):
     def __init__(self, width, setting):
         super().__init__()
         self.width = width
-        self.height = 114
+        self.height = 140
         self.setting = setting
 
     def draw(self):
@@ -343,23 +343,23 @@ class CelebrationRouteMap(Flowable):
         c.saveState()
         c.setFillColor(INK)
         c.setFont("ArialBold", 8.5)
-        c.drawString(0, 102, "PAPER ROUTE MAP / CONNECT ONLY MATCHING STRIP ENDS")
+        c.drawString(0, 128, "PAPER ROUTE MAP / CONNECT ONLY MATCHING STRIP ENDS")
         nodes = (["POND", "BRIDGE", "CLOUD", "RED FLAG", "SUN", "TREE"]
                  if self.setting == "home" else
                  ["GARDEN", "TABLE", "SHED", "WORKSHOP", "GATE", "LIBRARY"])
-        gap_width = 13
+        gap_width = 20
         card_width = (self.width - 2 * gap_width) / 3
         for number, name in enumerate(nodes):
             column = number % 3
             row = number // 3
             left = column * (card_width + gap_width)
-            bottom = 52 if row == 0 else 4
+            bottom = 70 if row == 0 else 4
             c.setStrokeColor(LINE)
             c.setLineWidth(0.9)
-            c.roundRect(left, bottom, card_width, 37, 6, fill=0, stroke=1)
+            c.roundRect(left, bottom, card_width, 42, 6, fill=0, stroke=1)
             c.setFillColor(NAVY)
             c.setFont("ArialBold", 9.3)
-            c.drawCentredString(left + card_width / 2, bottom + 13, f"MAP / {name}")
+            c.drawCentredString(left + card_width / 2, bottom + 15, f"MAP / {name}")
         c.restoreState()
 
 
