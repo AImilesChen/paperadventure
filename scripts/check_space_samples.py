@@ -47,6 +47,13 @@ for item in manifest["items"]:
     if item["role"] == "player":
         for number in range(1, 6):
             assert f"CHECKPOINT {number:02d} / 05" in joined
+        map_page = all_text[2]
+        assert "PAPER STAR MAP / ARRANGE THE USEFUL STRIPS" in map_page
+        assert "STRIP 1" in map_page and "STRIP 2" in map_page
+        if item["setting"] == "home":
+            assert "STRIP 3" in map_page and "NUMBERED STATION" in map_page
+        else:
+            assert "NUMBERED PORT" in map_page
         assert "ANSWER KEY" not in joined and "HINTS AND SKIPS" not in joined
     else:
         assert "ANSWER KEY" in joined and "HINTS AND SKIPS" in joined

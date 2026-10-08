@@ -7,7 +7,7 @@ import json
 from PIL import Image as PillowImage
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, letter
-from reportlab.platypus import Image, PageBreak, SimpleDocTemplate
+from reportlab.platypus import Flowable, Image, PageBreak, SimpleDocTemplate
 
 from generate_celebration_samples import box, gap, grid, p, page_heading, role_cards, strip_cards, write_line
 
@@ -116,6 +116,48 @@ CLASSROOM["steps"][2]["role_cards"] = [
 ]
 HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
+
+
+class StarMapAssemblyBoard(Flowable):
+    """A printable workspace for arranging the numbered-destination route strips."""
+
+    def __init__(self, width, slots, destination):
+        super().__init__()
+        self.width = width
+        self.height = 112
+        self.slots = slots
+        self.destination = destination
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setFillColor(NAVY)
+        c.setFont("ArialBold", 8.5)
+        c.drawString(0, 100, "PAPER STAR MAP / ARRANGE THE USEFUL STRIPS")
+        c.setFillColor(INK)
+        c.setFont("Arial", 8.8)
+        c.drawString(0, 84, "Start from the sector or station you recorded at Checkpoint 1.")
+        gutter = 9
+        slot_width = (self.width - gutter * (self.slots - 1)) / self.slots
+        for index in range(self.slots):
+            x = index * (slot_width + gutter)
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.setLineWidth(0.9)
+            c.rect(x, 14, slot_width, 58, fill=0, stroke=1)
+            c.setFillColor(NAVY)
+            c.setFont("ArialBold", 9)
+            c.drawString(x + 9, 55, f"STRIP {index + 1}")
+            c.setFillColor(INK)
+            c.setFont("Arial", 8.8)
+            c.drawString(x + 9, 37, "FROM: __________________")
+            c.drawString(x + 9, 21, "TO: _____________________")
+        c.setFont("ArialBold", 8.8)
+        c.drawString(0, 1, f"FINISH / {self.destination}: ______________________________")
+        c.restoreState()
+
+
+HOME["steps"][1]["template_factory"] = lambda width: StarMapAssemblyBoard(width, 3, "NUMBERED STATION")
+CLASSROOM["steps"][1]["template_factory"] = lambda width: StarMapAssemblyBoard(width, 2, "NUMBERED PORT")
 
 
 def footer(canvas, doc):
