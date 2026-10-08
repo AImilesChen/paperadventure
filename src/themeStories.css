@@ -63,6 +63,15 @@
   line-height: 1.45;
 }
 
+.product-story-variant {
+  display: block;
+  width: 100%;
+  max-height: 130px;
+  margin: 0 0 12px;
+  border-radius: 7px;
+  object-fit: cover;
+}
+
 .product-story-grid ol {
   margin: 0;
   padding-left: 1.25rem;

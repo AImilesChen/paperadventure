@@ -34,7 +34,7 @@ export const themeStories = Object.freeze({
   },
   christmas: {
     home: { code: 'H06', title: 'The Christmas Delivery Office', goal: 'Sort story gift cards and complete the final paper delivery.', beats: ['Check the labels', 'Match gift cards', 'Share route clues', 'Decode a note', 'Complete delivery'] },
-    classroom: { code: 'C06', title: 'The Winter Gift Sorting Station', goal: 'Each group sorts pretend gifts and checks a paper departure plan.', beats: ['Check the batch', 'Match destinations', 'Combine sorting rules', 'Check the route', 'Finish the manifest'] },
+    classroom: { code: 'C06', title: 'The Winter Gift Sorting Station', goal: 'Each group sorts pretend gifts and checks a paper departure plan.', image: '/assets/winter-classroom-v0.1.jpg', beats: ['Check the batch', 'Match destinations', 'Combine sorting rules', 'Check the route', 'Finish the manifest'] },
   },
 });
 
@@ -43,7 +43,7 @@ export const themes = Object.freeze([
   { id: 'dinosaur', title: 'Dinosaur', kicker: 'Follow the clues to a lost world', image: '/assets/dinosaur.png', tag: 'Curious explorers' },
   { id: 'space', title: 'Space', kicker: 'A mission among the stars', image: '/assets/space.png', tag: 'Out of this world' },
   { id: 'forest', title: 'Forest', kicker: 'Discover what the trees are hiding', image: '/assets/forest.png', tag: 'Nature lovers' },
-  { id: 'halloween', title: 'Halloween', kicker: 'A mystery with playful chills', image: '/assets/halloween.png', tag: 'Seasonal' },
+  { id: 'halloween', title: 'Halloween', kicker: 'A friendly pumpkin festival mystery', image: '/assets/halloween-friendly-v0.1.jpg', tag: 'Seasonal' },
   { id: 'christmas', title: 'Christmas', kicker: 'A festive quest to share', image: '/assets/christmas.png', tag: 'Seasonal' },
 ].map(theme => Object.freeze({
   ...theme,
