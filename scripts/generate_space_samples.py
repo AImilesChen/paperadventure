@@ -164,6 +164,8 @@ def player_flow(story, width):
             flow += [p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]
         else:
             flow += [grid(step["heads"], step["rows"], [width * f for f in fractions]), gap(13)]
+        if step.get("template_factory"):
+            flow += [step["template_factory"](width), gap(8)]
         if step.get("extra"):
             flow += [box(step["extra"], width, CREAM), gap(12)]
         for prompt in step["prompts"]:

@@ -55,6 +55,7 @@ for item in manifest["items"]:
             "christmas-H06": "FOX-OWL-RABBIT",
             "christmas-C06": "STAR-BELL-BOOK",
             "forest-C04": "TREEHOUSE ROW",
+            "halloween-H05": "FOUR PAPER SEALS / WRITE THE NUMBERS YOU FOUND",
         }
         for key, term in final_terms.items():
             if path.name.startswith(key):

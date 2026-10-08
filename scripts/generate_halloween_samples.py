@@ -1,10 +1,45 @@
 """Build internal, child-friendly Halloween H05 and autumn classroom C05 drafts."""
 
 from pathlib import Path
+from reportlab.lib import colors
+from reportlab.platypus import Flowable
 from generate_space_samples import render_drafts
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class PaperSealCards(Flowable):
+    """Four blank paper seals; players supply values from the previous checkpoints."""
+
+    def __init__(self, width):
+        super().__init__()
+        self.width = width
+        self.height = 116
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setFillColor(colors.HexColor("#153B56"))
+        c.setFont("ArialBold", 8.5)
+        c.drawString(0, 103, "FOUR PAPER SEALS / WRITE THE NUMBERS YOU FOUND")
+        gap_width = 8
+        card_width = (self.width - 3 * gap_width) / 4
+        for index, name in enumerate(("SUN", "MOON", "HAT", "STAR")):
+            left = index * (card_width + gap_width)
+            c.setStrokeColor(colors.HexColor("#BCD8E3"))
+            c.setLineWidth(0.8)
+            c.rect(left, 0, card_width, 90, fill=0, stroke=1)
+            center = left + card_width / 2
+            c.setStrokeColor(colors.HexColor("#153B56"))
+            c.circle(center, 37, 28, fill=0, stroke=1)
+            c.setFillColor(colors.HexColor("#153B56"))
+            c.setFont("ArialBold", 9)
+            c.drawCentredString(center, 75, name)
+            c.setFont("Arial", 9)
+            c.drawCentredString(center, 32, "NUMBER")
+            c.line(center - 15, 22, center + 15, 22)
+        c.restoreState()
 
 
 def step(title, story, heads, rows, answer, handoff, used, prompts, next_story, hints, extra=None):
@@ -48,7 +83,7 @@ HOME = {
              "Write each seal's number in the decoded order on the final paper lantern card.",
              ["Use the parcel letter, not the first row.", "Replace KITE-TREE-ACORN-FLAG in that order.", "Row B; STAR=3, order SUN-MOON-HAT-STAR."],
              "Encoded reply: KITE / TREE / ACORN / FLAG"),
-        step("Complete the paper lantern", "Put the four seal numbers in the order from the reply. Circle the matching four-digit card. No real light is needed.",
+        step("Complete the paper lantern", "Write each discovered number on its named paper seal. Put the four seals in the order from the reply, then circle the matching four-digit card. No real light is needed.",
              ["Card", "Four-digit paper code"],
              [["A", "5723"], ["B", "5732"], ["C", "7523"], ["D", "5724"]],
              "Card A; 5723", "Host unfolds paper ending", "Story conclusion", ["Seal order", "Matching code card"],
@@ -110,6 +145,7 @@ CLASSROOM["steps"][2]["role_cards"] = [
 ]
 HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
+HOME["steps"][4]["template_factory"] = PaperSealCards
 
 
 def validate_logic():
