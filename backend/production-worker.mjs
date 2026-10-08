@@ -10,8 +10,11 @@ const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
 const error = (status, code, message) => json({ error: { code, message } }, status);
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 const emailHash = (env, email) => sha256(`${env.SESSION_SECRET}|${email}`);
-const accessMonths = spec => Number.isInteger(spec?.onlineRedownloadMonths) && spec.onlineRedownloadMonths >= 1 && spec.onlineRedownloadMonths <= 120
-  ? spec.onlineRedownloadMonths : productRights.onlineRedownloadMonths;
+function accessMonths(spec) {
+  const months = spec?.onlineRedownloadMonths;
+  if (!Number.isInteger(months) || months < 1 || months > 120) throw new Error('Order access policy is missing or invalid');
+  return months;
+}
 const accessActive = entitlement => Boolean(entitlement?.status === 'active' && entitlement.access_expires_at &&
   Date.parse(`${entitlement.access_expires_at.replace(' ', 'T')}Z`) > Date.now());
 

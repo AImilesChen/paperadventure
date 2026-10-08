@@ -24,7 +24,7 @@ Routes: `/en/themes/`, `/en/for-classroom/`, `/en/occasions/halloween/`, `/en/th
 
 Routes: `/en/samples/`, `/en/samples/home/`, `/en/samples/classroom/`, `/en/pricing/`.
 
-> Visually distinguish a single candidate free fixed Celebration sample, other ready-made themes purchased per pack, and a separately priced custom generation. Home and Classroom are distinct editions. Show what Player Pack and Host/Teacher Guide would contain, but label all draft materials as unpublished. Planned prices are US dollars and one-time, with tax/access/licence details pending review. No points or subscription. Keep disabled download and purchase states explicit.
+> Visually distinguish a single candidate free fixed Celebration sample, other ready-made themes purchased per pack, and a separately priced custom generation. Home and Classroom are distinct editions. Show what Player Pack and Host/Teacher Guide would contain, but label all draft materials as unpublished. Planned prices are US dollars and one-time. The owner confirmed household/one-teacher use and 12 months of online re-download; tax, final legal wording and implementation still need review. No points or subscription. Keep disabled download and purchase states explicit.
 
 ## P05 支持、订单、账号与法律
 

@@ -7,6 +7,7 @@ import productionWorker, { handleProductionApi } from './production-worker.mjs';
 import { sha256, signAccessToken, verifyAccessToken } from './security.mjs';
 import { validateGeneratedStory, validatePurchase, validateSupportedRange } from './domain.mjs';
 import { buildGamePdf } from './pdf.mjs';
+import { productRights } from '../shared/catalog.mjs';
 
 function database() {
   const db = new DatabaseSync(':memory:');
@@ -200,7 +201,7 @@ test('custom story validator requires five linked stages; PDF keeps answers out 
 test('paid custom queue job generates private player and guide PDFs, then publishes entitlement', async () => {
   const { db, binding } = database();
   const spec = validatePurchase({ sku: 'custom_home', customIdea: 'A garden map', players: 4, age: '8-10', paper: 'A4', direction: 'mission' }).spec;
-  const specJson = JSON.stringify(spec);
+  const specJson = JSON.stringify({ ...spec, onlineRedownloadMonths: productRights.onlineRedownloadMonths, accessPolicyVersion: productRights.version });
   const specHash = await sha256(specJson);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('custom-price','custom_home','USD',1499,'exclusive',1)").run();
   db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status) VALUES ('order-1','custom','custom_home',?,?,?,?,1499,'USD','paid')").run(specJson,specHash,'email-hash','custom-price');
