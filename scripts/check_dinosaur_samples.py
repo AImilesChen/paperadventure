@@ -31,6 +31,14 @@ for item in manifest["items"]:
         all_text = "\n".join(page.extract_text() or "" for page in pages)
         for stage in range(1, 6):
             assert f"CHECKPOINT {stage:02d} / 05" in all_text, (path, stage)
+        footprint_page = pages[1 if item["setting"] == "home" else 2].extract_text() or ""
+        for label in "ABCD":
+            assert f"PRINT {label}" in footprint_page, (path, "missing footprint card", label)
+        assert "Right notch: ONE" in footprint_page and "Right notch: NONE" in footprint_page
+        if item["setting"] == "home":
+            trail_page = pages[2].extract_text() or ""
+            assert "MILO'S PAPER TRAIL" in trail_page
+            assert "STRIP 1" in trail_page and "STRIP 3" in trail_page
         assert "bordered cards" in (pages[5].extract_text() or ""), (path, "missing final paper candidates")
 
 qa_dir = ROOT / "tmp" / "pdfs" / "dinosaur-qa"

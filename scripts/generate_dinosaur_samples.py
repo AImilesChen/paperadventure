@@ -6,7 +6,7 @@ import json
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, letter
-from reportlab.platypus import Image, PageBreak, SimpleDocTemplate
+from reportlab.platypus import Flowable, Image, PageBreak, SimpleDocTemplate
 from PIL import Image as PillowImage
 
 from generate_celebration_samples import p, gap, box, grid, page_heading, role_cards, strip_cards, write_line
@@ -21,6 +21,106 @@ NAVY = colors.HexColor("#153B56")
 INK = colors.HexColor("#36546A")
 CORAL = colors.HexColor("#E94B35")
 CREAM = colors.HexColor("#FFFDF9")
+LINE = colors.HexColor("#8BAFC1")
+
+HOME_FOOTPRINTS = [
+    ("A", 3, "Round", 1, "SUN"), ("B", 3, "Pointed", 1, "MOON"),
+    ("C", 2, "Round", 1, "STAR"), ("D", 3, "Round", 0, "RAIN"),
+]
+CLASS_FOOTPRINTS = [
+    ("A", 3, "Pointed", 1, "LOWLAND"), ("B", 2, "Round", 1, "WOODS"),
+    ("C", 3, "Round", 1, "RIDGE"), ("D", 3, "Round", 0, "MARSH"),
+]
+
+
+class FootprintCards(Flowable):
+    """Four outline clues, encoded again in print for greyscale accessibility."""
+
+    def __init__(self, width, rows, field):
+        super().__init__()
+        self.width = width
+        self.height = 222
+        self.rows = rows
+        self.field = field
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        card_width = (self.width - 10) / 2
+        for index, (label, toes, heel, notch, destination) in enumerate(self.rows):
+            x = (index % 2) * (card_width + 10)
+            y = 112 if index < 2 else 0
+            c.setStrokeColor(LINE)
+            c.setLineWidth(.9)
+            c.rect(x, y, card_width, 104, fill=0, stroke=1)
+            c.setFillColor(NAVY)
+            c.setFont("ArialBold", 9)
+            c.drawString(x + 10, y + 87, f"PRINT {label}")
+            # The footprint is a story symbol, not a claim about real dinosaurs.
+            px = x + 37
+            for toe in range(toes):
+                offset = (toe - (toes - 1) / 2) * 15
+                c.circle(px + offset, y + 71, 5.2, fill=0, stroke=1)
+            c.setLineWidth(1.1)
+            if heel == "Round":
+                c.ellipse(px - 23, y + 19, px + 23, y + 58, fill=0, stroke=1)
+            else:
+                path = c.beginPath()
+                path.moveTo(px - 22, y + 54)
+                path.lineTo(px + 22, y + 54)
+                path.lineTo(px + 19, y + 34)
+                path.lineTo(px, y + 17)
+                path.lineTo(px - 19, y + 34)
+                path.close()
+                c.drawPath(path, fill=0, stroke=1)
+            if notch:
+                # Cut a visible V into the right outline, then redraw both edges.
+                c.setFillColor(colors.white)
+                c.rect(px + 16, y + 32, 10, 14, fill=1, stroke=0)
+                c.setStrokeColor(NAVY)
+                c.line(px + 22, y + 45, px + 16, y + 39)
+                c.line(px + 16, y + 39, px + 22, y + 33)
+            c.setFillColor(INK)
+            c.setFont("Arial", 8.7)
+            tx = x + 79
+            c.drawString(tx, y + 69, f"Toes: {toes}")
+            c.drawString(tx, y + 54, f"Heel: {heel.upper()}")
+            c.drawString(tx, y + 39, f"Right notch: {'ONE' if notch else 'NONE'}")
+            c.setFont("ArialBold", 8.7)
+            c.drawString(tx, y + 23, f"{self.field}: {destination}")
+        c.restoreState()
+
+
+class DinosaurTrailBoard(Flowable):
+    """Three-slot paper workspace that keeps the trail start and sign visible."""
+
+    def __init__(self, width):
+        super().__init__()
+        self.width = width
+        self.height = 91
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setFillColor(NAVY)
+        c.setFont("ArialBold", 8.8)
+        c.drawString(0, 78, "MILO'S PAPER TRAIL / ARRANGE THREE USEFUL STRIPS")
+        gap_width = 9
+        card_width = (self.width - 2 * gap_width) / 3
+        for index in range(3):
+            x = index * (card_width + gap_width)
+            c.setStrokeColor(LINE)
+            c.rect(x, 14, card_width, 56, fill=0, stroke=1)
+            c.setFillColor(NAVY)
+            c.setFont("ArialBold", 8.8)
+            c.drawString(x + 8, 53, f"STRIP {index + 1}")
+            c.setFillColor(INK)
+            c.setFont("Arial", 8.7)
+            c.drawString(x + 8, 36, "FROM: ________________")
+            c.drawString(x + 8, 21, "TO: __________________")
+        c.setFont("ArialBold", 8.7)
+        c.drawString(0, 1, "FINISH AT A SIGN: ____________________________")
+        c.restoreState()
 
 
 def footer(canvas, doc):
@@ -69,13 +169,19 @@ def cover(code, role, title, intro, width, records):
     return flow
 
 
-def checkpoint(number, title, story, headers, rows, proportions, width, questions, transition, strip_mode=False):
+def checkpoint(number, title, story, headers, rows, proportions, width, questions, transition,
+               strip_mode=False, footprint_mode=False, trail_board=False):
     flow = page_heading(number, title, story)
-    if strip_mode or number == 5:
+    if footprint_mode:
+        flow += [FootprintCards(width, rows, headers[-1].upper()),
+                 p("The outline and printed words show the same clues. Compare all three details; adult cutting is optional.", "small"), gap(7)]
+    elif strip_mode or number == 5:
         flow += strip_cards(headers, rows, width)
         flow += [p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]
     else:
         flow += [grid(headers, rows, [width * x for x in proportions]), gap(17)]
+    if trail_board:
+        flow += [DinosaurTrailBoard(width), gap(8)]
     for question in questions:
         flow += write_line(question)
     flow += [gap(10), box(f"<b>Next in the story:</b> {transition}", width), PageBreak() if number < 5 else gap(8)]
@@ -93,11 +199,10 @@ def home_player(width):
     flow += checkpoint(1, "Find Milo's footprint",
                        "Milo's print has THREE toe marks, a ROUND heel and ONE small notch on its RIGHT edge. Which record matches all three details?",
                        ["Print", "Toes", "Heel", "Right notch", "Route start"],
-                       [["A", "3", "Round", "One", "SUN"], ["B", "3", "Pointed", "One", "MOON"],
-                        ["C", "2", "Round", "One", "STAR"], ["D", "3", "Round", "None", "RAIN"]],
+                       HOME_FOOTPRINTS,
                        [.13, .14, .22, .25, .26], width,
                        ["Matching footprint", "Our route starts at"],
-                       "Take the start word to the route strips.")
+                       "Take the start word to the route strips.", footprint_mode=True)
     flow += checkpoint(2, "Repair the paper map",
                        "Begin at the route start from Checkpoint 1. Join strips where one place ends and the next begins. The real route ends at a SIGN.",
                        ["Strip", "From", "To"],
@@ -105,7 +210,7 @@ def home_player(width):
                         ["C", "RIVER", "PINE SIGN"], ["A", "SUN", "FERN"]],
                        [.18, .38, .44], width,
                        ["Our strip order", "The sign says"],
-                       "The sign name is needed to choose a paper supply pack.", strip_mode=True)
+                       "The sign name is needed to choose a paper supply pack.", strip_mode=True, trail_board=True)
     flow += checkpoint(3, "Choose the paper supplies",
                        "Assign the Guide, Milo and Scout clue lines to different players when possible. Let each read a line aloud. These are story clues, not real supplies.",
                        ["Card", "Sign", "Straps", "Tag", "Code"],
@@ -160,11 +265,10 @@ def class_player(width):
     flow += checkpoint(2, "Match the footprint record",
                        "The chosen batch says: Milo has THREE toe marks, a ROUND heel and ONE RIGHT notch. Match all three details.",
                        ["Print", "Toes", "Heel", "Right notch", "Region"],
-                       [["A", "3", "Pointed", "One", "LOWLAND"], ["B", "2", "Round", "One", "WOODS"],
-                        ["C", "3", "Round", "One", "RIDGE"], ["D", "3", "Round", "None", "MARSH"]],
+                       CLASS_FOOTPRINTS,
                        [.14, .14, .22, .24, .26], width,
                        ["Matching print", "Region"],
-                       "Different roles now hold the remaining location conditions.")
+                       "Different roles now hold the remaining location conditions.", footprint_mode=True)
     flow += checkpoint(3, "Share the location clues",
                        "Assign Reader, Observer and Checker one clue line each. Read them aloud; the Recorder circles the only zone matching all three.",
                        ["Zone", "Region", "Marker", "Flags"],
@@ -214,7 +318,7 @@ def guide(code, title, width, classroom):
             ("First remove the wrong zone.", "Order Zone C times from 09:00 to 09:45.", "P-Q-R-S; signal 09:45."),
             ("Use the whole record sheet.", "Compare every report field, not just one.", "Report A; explain two facts."),
         ]
-        prepare = "Print one Group Player Pack per group and one Teacher Guide for yourself, in the same paper size. At Checkpoint 3, a teacher may cut and distribute the three bordered role cards; without scissors, cover and reveal each card in turn. Combine roles for smaller groups or rotate them for larger groups. Every group has its own complete clues. Give one checkpoint at a time."
+        prepare = "Print one Group Player Pack per group and one Teacher Guide for yourself, in the same paper size. At Checkpoint 2, children can compare four illustrated paper footprints in place; a teacher may cut the cards first. At Checkpoint 3, distribute the three bordered role cards or cover and reveal each in turn. Combine roles for smaller groups or rotate them for larger groups. Every group has its own complete clues. Give one checkpoint at a time."
         ending = "Confirm Report A and ask each group which fact from someone else's card helped them decide. Close with: 'The records are clear again. Milo's paper route to camp can now be followed.' Do not rank groups or collect names."
         chain = [("1", "R2", "Footprint description"), ("2", "RIDGE", "Zone selection"),
                  ("3", "Zone C", "Time-strip filter"), ("4", "P-Q-R-S / 09:45", "Final report"),
@@ -232,7 +336,7 @@ def guide(code, title, width, classroom):
             ("Find the PINE rows first.", "Which PINE row has code 4?", "EAST and ROUND GATE."),
             ("Use all four recorded results.", "Eliminate wrong starts, signs, turns and gates.", "Camp A; explain two clues."),
         ]
-        prepare = "Print one Player Pack per cooperating group and one Host Guide for the adult, in the same paper size. Keep this guide private. Give the cover first, then one checkpoint page at a time. At Checkpoint 3, an adult may cut and distribute the three bordered role cards; without scissors, cover and reveal each card in turn. Optional route strips can be marked on the page. Everything can happen at a table."
+        prepare = "Print one Player Pack per cooperating group and one Host Guide for the adult, in the same paper size. Keep this guide private. Give the cover first, then one checkpoint page at a time. At Checkpoint 1, compare the four illustrated paper footprints in place or let an adult cut the cards. At Checkpoint 2, place the useful route strips on the trail board or write their order. At Checkpoint 3, an adult may distribute the three bordered role cards; without scissors, cover and reveal each in turn. Everything can happen at a table."
         ending = "Confirm Camp A only after players name at least two supporting clues. Then hand over a simple paper note: 'Milo and the guide arrive at the welcoming camp. You used the footprint, route, shared supplies and signpost together. Thank you!'"
         chain = [("1", "SUN", "Route start"), ("2", "PINE SIGN", "Supply clue"),
                  ("3", "Code 4", "Signpost table"), ("4", "EAST / ROUND", "Camp choice"),
@@ -263,9 +367,8 @@ def guide(code, title, width, classroom):
 
 
 def validate_logic():
-    home_prints = [("A", 3, "Round", 1), ("B", 3, "Pointed", 1),
-                   ("C", 2, "Round", 1), ("D", 3, "Round", 0)]
-    assert [x[0] for x in home_prints if x[1:] == (3, "Round", 1)] == ["A"]
+    assert [row[0] for row in HOME_FOOTPRINTS if row[1:4] == (3, "Round", 1)] == ["A"]
+    assert [row[0] for row in CLASS_FOOTPRINTS if row[1:4] == (3, "Round", 1)] == ["C"]
     packs = [("A", "PINE", 1, "Triangle"), ("B", "PINE", 2, "Triangle"),
              ("C", "PINE", 2, "Circle"), ("D", "ROCK", 2, "Triangle")]
     assert [x[0] for x in packs if x[1:] == ("PINE", 2, "Triangle")] == ["B"]

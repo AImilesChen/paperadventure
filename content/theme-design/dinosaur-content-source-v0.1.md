@@ -8,17 +8,17 @@
 
 ### 1. Find Milo's footprint
 
-观察卡："Milo's print has **three toe marks**, a **round heel**, and **one small notch** on its right edge." 候选：A = three toes / round heel / one right notch / route start **SUN**；B = three toes / pointed heel / one right notch / start MOON；C = two toes / round heel / one right notch / start STAR；D = three toes / round heel / no notch / start RAIN。
+观察卡："Milo's print has **three toe marks**, a **round heel**, and **one small notch** on its right edge." 四张独立线条足迹卡同时印图形与文字：A = three toes / round heel / one right notch / route start **SUN**；B = three toes / pointed heel / one right notch / start MOON；C = two toes / round heel / one right notch / start STAR；D = three toes / round heel / no notch / start RAIN。纸卡可由成人裁下，也可原页观察；图形为虚构符号，不作为古生物知识。
 
 唯一答案 A，得到 `footprint=A` 与 `route_start=SUN`。一级提示：数脚趾、看脚跟与缺口；二级：三个条件必须同时匹配；完整解法：只有 A 三脚趾、圆脚跟、右侧一个缺口，路线从 SUN 开始。跳关补发 `SUN` 路线起点卡。
 
 ### 2. Repair the map
 
-路线条（玩家页以 D/B/E/C/A 打乱顺序展示）：A `SUN → FERN`；B `FERN → RIVER`；C `RIVER → PINE SIGN`；D `SUN → CAVE`；E `CAVE → ROCK`。规则：从上关起点开始，只能首尾相接，真正路线以一块 **SIGN** 结束。完整路线 A-B-C，得到 `sign=PINE` 与可用路径；D-E 没有路标。一级提示：看每条的起止词；二级：从 SUN 出发找能到 SIGN 的连续路线；完整解法：SUN-FERN-RIVER-PINE SIGN。跳关补发 `PINE SIGN` 卡。
+路线条（玩家页以 D/B/E/C/A 打乱顺序展示）：A `SUN → FERN`；B `FERN → RIVER`；C `RIVER → PINE SIGN`；D `SUN → CAVE`；E `CAVE → ROCK`。玩家将三张有用路线条放到三格纸上路线板，或抄写端点；规则是从上关起点开始，只能首尾相接，真正路线以一块 **SIGN** 结束。完整路线 A-B-C，得到 `sign=PINE` 与可用路径；D-E 没有路标。一级提示：看每条的起止词；二级：从 SUN 出发找能到 SIGN 的连续路线；完整解法：SUN-FERN-RIVER-PINE SIGN。跳关补发 `PINE SIGN` 卡。
 
 ### 3. Pack the paper supplies
 
-三条分工线索（排版初稿在同一页，分别由角色朗读；正式版可排成独立可裁纸条）：Guide = "Use the sign name from your route"；Milo = "The correct paper pack has **two straps**"；Scout = "The correct pack has a **triangle tag**"。候选纸卡：A = PINE / one strap / triangle / code 2；B = PINE / two straps / triangle / code **4**；C = PINE / two straps / circle / code 5；D = ROCK / two straps / triangle / code 3。只有 B 满足三条件，得到 `supply=B`、`checkpoint_code=4`。一级提示：每人读一条；二级：把 PINE、two、triangle 同时放在候选旁；完整解法：B，代号 4。跳关补发 `CODE 4` 卡。单人或两人玩时由成人将未分配线索交给现有玩家，不隐藏必需信息。
+三条分工线索（现已为同页三张独立边框卡，可由成人裁下分发或遮盖朗读）：Guide = "Use the sign name from your route"；Milo = "The correct paper pack has **two straps**"；Scout = "The correct pack has a **triangle tag**"。候选纸卡：A = PINE / one strap / triangle / code 2；B = PINE / two straps / triangle / code **4**；C = PINE / two straps / circle / code 5；D = ROCK / two straps / triangle / code 3。只有 B 满足三条件，得到 `supply=B`、`checkpoint_code=4`。一级提示：每人读一条；二级：把 PINE、two、triangle 同时放在候选旁；完整解法：B，代号 4。跳关补发 `CODE 4` 卡。单人或两人玩时由成人将未分配线索交给现有玩家，不隐藏必需信息。
 
 ### 4. Read the signpost
 
@@ -40,11 +40,11 @@
 
 ### 2. Match the footprint record
 
-R2 卡写明："Milo has three toe marks, a round heel and one right notch." 候选足迹 A = three/pointed/right，区域 LOWLAND；B = two/round/right，区域 WOODS；C = **three/round/right**，区域 **RIDGE**；D = three/round/no notch，区域 MARSH。唯一答案 C/RIDGE，获得下一关地区条件。提示依次为检查脚趾/脚跟/缺口、只有一张三项全合、C/RIDGE。跳关补发 RIDGE 条。
+R2 卡写明："Milo has three toe marks, a round heel and one right notch." 四张独立线条足迹卡以图形与文字重复编码：A = three/pointed/right，区域 LOWLAND；B = two/round/right，区域 WOODS；C = **three/round/right**，区域 **RIDGE**；D = three/round/no notch，区域 MARSH。唯一答案 C/RIDGE，获得下一关地区条件。提示依次为检查脚趾/脚跟/缺口、只有一张三项全合、C/RIDGE。跳关补发 RIDGE 条。
 
 ### 3. Share the location clues
 
-三条分工线索（初稿在同一页，由不同角色朗读）：Observer = "The station is in the region from your matched footprint." Reader = "The station has a **circle marker**." Checker = "The station has **two flags**." 区域候选：Zone A = RIDGE/circle/one flag；Zone B = RIDGE/triangle/two flags；Zone C = **RIDGE/circle/two flags**；Zone D = WOODS/circle/two flags。唯一答案 Zone C。记录员只在听完三条线索后圈选；某角色缺席时教师把该线索交给现有成员。提示依次为每人读一条、三个条件求交集、Zone C。跳关补发 Zone C 条。
+三条分工线索（现已为同页三张独立边框卡，可由教师分发或遮盖朗读）：Observer = "The station is in the region from your matched footprint." Reader = "The station has a **circle marker**." Checker = "The station has **two flags**." 区域候选：Zone A = RIDGE/circle/one flag；Zone B = RIDGE/triangle/two flags；Zone C = **RIDGE/circle/two flags**；Zone D = WOODS/circle/two flags。唯一答案 Zone C。记录员只在听完三条线索后圈选；某角色缺席时教师把该线索交给现有成员。提示依次为每人读一条、三个条件求交集、Zone C。跳关补发 Zone C 条。
 
 ### 4. Put the time strips in order
 
@@ -54,10 +54,10 @@ Zone C 的四条记录（玩家页以 R/P/X/S/Q 打乱顺序展示）：P = `09:
 
 结论候选：A = R2 / RIDGE / Zone C / P-Q-R-S / 09:45；B = R2 / RIDGE / Zone B / P-Q-R-S / 09:45；C = R1 / RIDGE / Zone C / P-Q-R-S / 09:45；D = R2 / RIDGE / Zone C / P-R-Q-S / 09:45；E = R2 / RIDGE / Zone C / P-Q-R-S / 09:20。唯一答案 A。学生填写一句证据说明，可照抄记录，不以长篇写作为过关条件。教师核对后出示研究站回信："The records are clear again. Milo's paper route to camp can now be followed." 提示依次为查五格记录、逐项排除、选 A 并说出其中两项证据。
 
-**C02 教师准备：**每组一份学生档案与四张角色卡，每位教师一份指南；不依赖组间交换、设备、学生账号或真实姓名。图卡的轮廓、文字和编号在灰度打印时也要可辨。成人答案链为 `B/R2 → C/RIDGE → Zone C → P-Q-R-S/09:45 → Conclusion A`。研究站是虚构故事，不声称古生物科学或课程标准认证。
+**C02 教师准备：**每组一份学生档案与三张分工线索卡，Recorder 负责记录而不持额外谜题线索；每位教师一份指南。不依赖组间交换、设备、学生账号或真实姓名。图卡的轮廓、文字和编号在灰度打印时也要可辨。成人答案链为 `B/R2 → C/RIDGE → Zone C → P-Q-R-S/09:45 → Conclusion A`。研究站是虚构故事，不声称古生物科学或课程标准认证。
 
 ## 共同制作与验收记录
 
 - 从本文件单一事实源生成玩家页和答案指南；每关 `requires` 指向前关可见成果，`produces` 同时列在跳关补件表。不要在玩家页泄漏成人完整答案。
-- 内容制作下一步：卡片图形、故事插画、A4/US Letter 排版、独立抽取/核查、彩色及灰度实物打印、代表性家庭与课堂试玩。当前年龄、人数、时长、页数和许可范围均未获实测，不在网站宣称。
+- 内容制作下一步：档案袋、欢迎卡与地图等剩余纸艺制品，彩色及灰度实物打印、代表性家庭与课堂试玩。足迹卡轮廓、A4/US Letter 排版与自动核查已做到内部草稿；当前年龄、人数和时长均未获实测，不在网站宣称。
 - 试玩发现任何非唯一答案、线索缺失、文字读不懂、组内有人无任务、页面裁切或不安全动作，修订源文件与所有输出后重新测试；状态维持 `draft`。
