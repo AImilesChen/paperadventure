@@ -64,6 +64,8 @@ for theme, variant, code, title, ending in (
             if theme == "halloween":
                 assert "PUMPKIN CREW MAP / TWO USEFUL STRIPS" in content[2]
                 assert "AUTUMN CREW MAP / TWO USEFUL STRIPS" not in content[2]
+                for place in ("GATE", "PAPER ARCH", "ORANGE BOOTH", "SHED", "BLANK"):
+                    assert f"MAP / {place}" in content[2], (path, "missing map node", place)
                 for candidate in "ABCD":
                     assert f"DECOR {candidate}  /  PAPER CHOICE" in content[3], (path, candidate)
                 assert "BANNER  CIRCLE" in content[3] and "STARS  3" in content[3]

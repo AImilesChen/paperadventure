@@ -9,6 +9,8 @@
 
 节庆稿独立更换封面概念图、标题、开场叙事、教师准备说明、末关过渡与仅供教师交付的纸质回信。全部五关候选数据、正确答案、前后关成果、三级提示、角色线索与纸卡结构保持相同；生成器 `validate_logic()` 和 `scripts/check_classroom_variants.py` 同时核对。教师指南第 2 页的五关答案段落与对应中性版 PDF 提取文本完全一致，节庆回信不会印在玩家包里。
 
+C05 两套措辞的第二关均有同一张五地点未连线纸地图，地图标题分别是 `AUTUMN CREW MAP` 与 `PUMPKIN CREW MAP`；两套各自的混序路线条与 `GATE → PAPER ARCH → ORANGE BOOTH` 答案相同。地图不得预连正确路线，测试时须让小组按纸条画线，并分别确认灰度印刷与措辞理解。
+
 | 节庆稿 | 私有玩家包＋教师指南 | 清单与校验 | 独立试玩 ZIP |
 | --- | --- | --- | --- |
 | C05 Halloween | `output/pdf/variants/halloween-C05-halloween-*.pdf`，A4/Letter 各一对 | `content/halloween-classroom-halloween-pdf-manifest.v0.1.json` | `output/pdf/pilot-halloween-classroom-halloween-v0.1.zip` |

@@ -1,6 +1,6 @@
 # 首批主题试玩执行索引 v0.1
 
-更新：2026-10-08。此表把六个世界的内部试玩包对应到 **14 套实际表达**。它是执行与留证清单，不是已通过记录；截至本版，全部真人试玩及实物打印状态均为 **待执行**。ZIP 和 PDF 只保存在本地 `output/pdf/`，不得复制到 `public/` 或公开下载路径。
+更新：2026-10-09。此表把六个世界的内部试玩包对应到 **14 套实际表达**。它是执行与留证清单，不是已通过记录；截至本版，全部真人试玩及实物打印状态均为 **待执行**。ZIP 和 PDF 只保存在本地 `output/pdf/`，不得复制到 `public/` 或公开下载路径。
 
 | 场景 | 供测试者取用的私有 ZIP | 必须单独核验的故事动作 | 真人试玩 | A4 彩/灰 | Letter 彩/灰 |
 | --- | --- | --- | --- | --- | --- |
@@ -12,9 +12,9 @@
 | C03 Space Classroom | `pilot-space-v0.1.zip` | 多人信号、3×3 坐标星图/端口路线、设备卡与恢复报告 | 待执行 | 待执行 | 待执行 |
 | H04 Forest Home | `pilot-forest-v0.1.zip` | 邮戳图卡、包裹卡、虚构地址与回信 | 待执行 | 待执行 | 待执行 |
 | C04 Forest Classroom | `pilot-forest-v0.1.zip` | 三角色包裹属性交集、路线区域与结论页两条“来源/事实/支持字段”证据记录 | 待执行 | 待执行 | 待执行 |
-| H05 Halloween Home | `pilot-halloween-v0.1.zip` | 友好邀请图卡、包裹横纹/角形、四枚印记与纸灯结局 | 待执行 | 待执行 | 待执行 |
-| C05 Autumn Classroom | `pilot-halloween-v0.1.zip` | 中性秋日邀请、装饰横幅/星数、组内协作与开场计划 | 待执行 | 待执行 | 待执行 |
-| C05 Halloween Classroom 措辞稿 | `pilot-halloween-classroom-halloween-v0.1.zip` | 同一装饰答案；单独记录节庆措辞理解与舒适度 | 待执行 | 待执行 | 待执行 |
+| H05 Halloween Home | `pilot-halloween-v0.1.zip` | 友好邀请图卡、六地点纸地图画线排除 SHED 支线、包裹横纹/角形、四枚印记与纸灯结局 | 待执行 | 待执行 | 待执行 |
+| C05 Autumn Classroom | `pilot-halloween-v0.1.zip` | 中性秋日邀请、五地点纸地图到 ORANGE BOOTH、装饰横幅/星数、组内协作与开场计划 | 待执行 | 待执行 | 待执行 |
+| C05 Halloween Classroom 措辞稿 | `pilot-halloween-classroom-halloween-v0.1.zip` | 同一五地点地图/装饰答案；单独记录节庆措辞理解与舒适度 | 待执行 | 待执行 | 待执行 |
 | H06 Christmas Home | `pilot-christmas-v0.1.zip` | 批次图卡、礼物/目的地配对、A/B/C 顺序卡与结局信 | 待执行 | 待执行 | 待执行 |
 | C06 Winter Classroom | `pilot-christmas-v0.1.zip` | 中性冬日批次与配对、图标装载顺序卡、发车清单 | 待执行 | 待执行 | 待执行 |
 | C06 Christmas Classroom 措辞稿 | `pilot-christmas-classroom-christmas-v0.1.zip` | 同一装载答案；单独记录节庆措辞理解与舒适度 | 待执行 | 待执行 | 待执行 |

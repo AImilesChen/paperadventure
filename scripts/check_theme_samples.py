@@ -119,8 +119,14 @@ for item in manifest["items"]:
                 assert "STARS  3" in choice_page and "MARK  LEAF" in choice_page
             expected = ("PAPER FESTIVAL MAP / THREE USEFUL STRIPS" if item["setting"] == "home"
                         else "AUTUMN CREW MAP / TWO USEFUL STRIPS")
-            assert expected in second_page, (path, "missing festival map workspace")
-            assert "STRIP 1" in second_page and "FINISH /" in second_page
+            assert expected in second_page, (path, "missing festival map")
+            places = (("GATE", "BANNER", "PUMPKIN STAND", "PARCEL TABLE", "SHED", "END")
+                      if item["setting"] == "home"
+                      else ("GATE", "PAPER ARCH", "ORANGE BOOTH", "SHED", "BLANK"))
+            for place in places:
+                assert f"MAP / {place}" in second_page, (path, "missing map node", place)
+            assert "Connect named places only when a route strip links them" in second_page
+            assert "Useful strip order" in second_page, (path, "missing route record")
             assert "GIVE AFTER CODE 5723" not in joined and "AUTUMN CREW REPLY" not in joined
         elif THEME == "christmas":
             first_page = all_text[1]

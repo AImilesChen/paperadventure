@@ -5,10 +5,45 @@ from copy import deepcopy
 from math import cos, pi, sin
 from reportlab.lib import colors
 from reportlab.platypus import Flowable
-from generate_space_samples import PaperRouteWorkspace, render_drafts
+from generate_space_samples import render_drafts
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class FestivalMapBoard(Flowable):
+    """Unconnected paper-map places; route strips alone determine drawn links."""
+
+    def __init__(self, width, title, places):
+        super().__init__()
+        self.width = width
+        self.height = 140
+        self.title = title
+        self.places = places
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        navy = colors.HexColor("#153B56")
+        c.setFillColor(navy)
+        c.setFont("ArialBold", 8.5)
+        c.drawString(0, 126, self.title)
+        c.setFont("Arial", 8.5)
+        c.drawString(0, 112, "Connect named places only when a route strip links them; draw the route in pencil.")
+        c.setStrokeColor(colors.HexColor("#8BAFC1"))
+        c.setLineWidth(.8)
+        c.roundRect(0, 5, self.width, 94, 5, fill=0, stroke=1)
+        card_width = min(137, (self.width - 46) / 3)
+        columns = (0, (self.width - card_width) / 2, self.width - card_width)
+        for index, place in enumerate(self.places):
+            x = columns[index % 3]
+            y = 66 if index < 3 else 17
+            c.setFillColor(colors.white)
+            c.roundRect(x + 5, y, card_width - 10, 27, 4, fill=1, stroke=1)
+            c.setFillColor(navy)
+            c.setFont("ArialBold", 8.2)
+            c.drawCentredString(x + card_width / 2, y + 10, f"MAP / {place}")
+        c.restoreState()
 
 
 class InvitationCards(Flowable):
@@ -385,10 +420,12 @@ for story in (HOME, CLASSROOM):
     story["steps"][2]["card_note"] = "The picture and printed labels show the same clues. An adult may cut the four choice cards, or players can compare them on this page."
 HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
-HOME["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
-    width, "PIP'S PAPER FESTIVAL MAP / THREE USEFUL STRIPS", 3, "GATE", "PARCEL TABLE")
-CLASSROOM["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
-    width, "AUTUMN CREW MAP / TWO USEFUL STRIPS", 2, "GATE", "NAMED BOOTH")
+HOME["steps"][1]["template_factory"] = lambda width: FestivalMapBoard(
+    width, "PIP'S PAPER FESTIVAL MAP / THREE USEFUL STRIPS",
+    ("PUMPKIN STAND", "PARCEL TABLE", "END", "BANNER", "GATE", "SHED"))
+CLASSROOM["steps"][1]["template_factory"] = lambda width: FestivalMapBoard(
+    width, "AUTUMN CREW MAP / TWO USEFUL STRIPS",
+    ("PAPER ARCH", "ORANGE BOOTH", "BLANK", "GATE", "SHED"))
 HOME["steps"][4]["template_factory"] = PaperSealCards
 HOME["finale_factory"] = lambda width: FestivalEndingCard(width, False)
 CLASSROOM["finale_factory"] = lambda width: FestivalEndingCard(width, True)
@@ -404,8 +441,9 @@ HALLOWEEN_CLASSROOM["prepare"] = (
     "At Checkpoint 2, place or copy the two useful strips on the Pumpkin Crew map. "
     "The teacher chose this friendly Halloween wording; a neutral Autumn edition is also available as a separate file set. "
     "Map, Shape, Count and Recorder roles can be combined or rotated. No group depends on another.")
-HALLOWEEN_CLASSROOM["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
-    width, "PUMPKIN CREW MAP / TWO USEFUL STRIPS", 2, "GATE", "NAMED BOOTH")
+HALLOWEEN_CLASSROOM["steps"][1]["template_factory"] = lambda width: FestivalMapBoard(
+    width, "PUMPKIN CREW MAP / TWO USEFUL STRIPS",
+    ("PAPER ARCH", "ORANGE BOOTH", "BLANK", "GATE", "SHED"))
 HALLOWEEN_CLASSROOM["ending"] = (
     "Confirm Plan A after each group cites at least two clue sheets. Read: 'The friendly paper pumpkin festival "
     "is ready. Everyone shared a clue to make the opening plan clear.' Never ask students to reveal their "
