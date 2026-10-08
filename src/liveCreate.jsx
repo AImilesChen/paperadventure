@@ -17,7 +17,7 @@ export function LiveCreate({ Link, checkoutReady }) {
   }, []);
   const change = (key, value) => {
     const changesStory = key !== 'direction';
-    setDraft(current => ({ ...current, [key]: value, direction: changesStory ? '' : value }));
+    setDraft(current => ({ ...current, groups: key === 'setting' && value === 'home' ? '' : current.groups, [key]: value, direction: changesStory ? '' : value }));
     if (changesStory) setProposals([]);
     setCloudSaved(false);
     setError('');
