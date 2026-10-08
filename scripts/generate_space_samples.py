@@ -160,6 +160,46 @@ HOME["steps"][1]["template_factory"] = lambda width: StarMapAssemblyBoard(width,
 CLASSROOM["steps"][1]["template_factory"] = lambda width: StarMapAssemblyBoard(width, 2, "NUMBERED PORT")
 
 
+class PaperRouteWorkspace(Flowable):
+    """Theme-labelled, printable strip workspace for two- or three-leg paper routes."""
+
+    def __init__(self, width, title, slots, start, finish):
+        super().__init__()
+        self.width = width
+        self.height = 112
+        self.title = title
+        self.slots = slots
+        self.start = start
+        self.finish = finish
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setFillColor(NAVY)
+        c.setFont("ArialBold", 8.5)
+        c.drawString(0, 100, self.title)
+        c.setFillColor(INK)
+        c.setFont("Arial", 8.8)
+        c.drawString(0, 84, f"START / {self.start} — use your Checkpoint 1 result.")
+        gutter = 9
+        card_width = (self.width - (self.slots - 1) * gutter) / self.slots
+        for index in range(self.slots):
+            x = index * (card_width + gutter)
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.setLineWidth(.9)
+            c.rect(x, 14, card_width, 58, fill=0, stroke=1)
+            c.setFillColor(NAVY)
+            c.setFont("ArialBold", 8.8)
+            c.drawString(x + 9, 55, f"STRIP {index + 1}")
+            c.setFillColor(INK)
+            c.setFont("Arial", 8.7)
+            c.drawString(x + 9, 38, "FROM: __________________")
+            c.drawString(x + 9, 22, "TO: _____________________")
+        c.setFont("ArialBold", 8.7)
+        c.drawString(0, 1, f"FINISH / {self.finish}: ________________________")
+        c.restoreState()
+
+
 def footer(canvas, doc):
     width, height = doc.pagesize
     canvas.saveState()
@@ -201,7 +241,10 @@ def player_flow(story, width):
         if step.get("role_cards"):
             flow += role_cards(step["role_cards"], width)
             flow += [p("Only an adult or teacher cuts cards. Without scissors, cover and reveal one card at a time.", "small"), gap(5)]
-        if step.get("strip_cards") or number == 5:
+        if step.get("card_factory"):
+            flow += [step["card_factory"](width),
+                     p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]
+        elif step.get("strip_cards") or number == 5:
             flow += strip_cards(step["heads"], step["rows"], width)
             flow += [p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]
         else:

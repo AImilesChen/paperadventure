@@ -3,7 +3,7 @@
 from pathlib import Path
 from reportlab.lib import colors
 from reportlab.platypus import Flowable
-from generate_space_samples import render_drafts
+from generate_space_samples import PaperRouteWorkspace, render_drafts
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,7 +55,7 @@ HOME = {
     "code": "H05", "title": "The Missing Pumpkin Light", "role": "HOST GUIDE",
     "intro": "Pip's pretend paper pumpkin lantern has gone dim. Four paper seals can make the festival picture bright again. Find the seals and put them in the order written in the final note. There is no real light or flame.",
     "record": ["SUN seal and map start", "MOON seal and parcel batch", "HAT seal and paper parcel", "STAR seal and seal order", "Four-digit paper lantern code"],
-    "prepare": "Print one Player Pack per cooperating group and one private Host Guide in the same size. Hand out the cover, then one checkpoint at a time. Use only the paper clues, a pencil and optional safe scissors with adult supervision. No real lantern, candle, fire or outdoor activity is part of the game.",
+    "prepare": "Print one Player Pack per cooperating group and one private Host Guide in the same size. Hand out the cover, then one checkpoint at a time. At Checkpoint 2, place or copy three useful route strips on Pip's paper festival map. Use only the paper clues, a pencil and optional safe scissors handled by an adult. No real lantern, candle, fire or outdoor activity is part of the game.",
     "ending": "Once the children assemble 5-7-2-3 in the decoded SUN-MOON-HAT-STAR order, unfold a paper picture or read: 'Everyone's clue helped the festival picture shine.' This is a pretend paper-lit ending, never a request to light anything.",
     "steps": [
         step("Find Pip's letter", "Pip's letter has a FOX-shaped seal, TWO stars and a MOON postmark. Find the card matching all three parts.",
@@ -96,7 +96,7 @@ CLASSROOM = {
     "code": "C05", "title": "The Autumn Festival Crew", "role": "TEACHER GUIDE",
     "intro": "Your group is preparing a friendly PAPER autumn festival. Sort an invitation, find the pretend booth, share decoration clues and submit one opening plan. No costumes, candy, spooky scenes or family holiday stories are required.",
     "record": ["Invitation, crew and start", "Booth on the paper map", "Decoration and leaf mark", "Opening order and word", "Plan card and evidence"],
-    "prepare": "Print one Group Player Pack per group and one private Teacher Guide. Give each group its own complete pages. Use the neutral Autumn Festival title by default; an organiser may describe the same paper activity as Halloween if appropriate to the school. Map, Shape, Count and Recorder roles can be combined or rotated. No group depends on another.",
+    "prepare": "Print one Group Player Pack per group and one private Teacher Guide. Give each group its own complete pages. At Checkpoint 2, place or copy the two useful strips on the Autumn Crew map. This draft is the neutral Autumn Festival version; a Halloween-worded classroom edition has not been produced or checked. Map, Shape, Count and Recorder roles can be combined or rotated. No group depends on another.",
     "ending": "Confirm Plan A after each group cites at least two clue sheets. Read: 'The friendly paper festival is ready. Everyone shared a clue to make the opening plan clear.' Never ask students to reveal their religious, cultural or family celebration practices.",
     "steps": [
         step("Find the crew invitation", "The true invitation shows a SMILING PUMPKIN icon, TWO flags and a ROUND frame. All three labels are printed; colour does not matter.",
@@ -145,6 +145,10 @@ CLASSROOM["steps"][2]["role_cards"] = [
 ]
 HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
+HOME["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
+    width, "PIP'S PAPER FESTIVAL MAP / THREE USEFUL STRIPS", 3, "GATE", "PARCEL TABLE")
+CLASSROOM["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
+    width, "AUTUMN CREW MAP / TWO USEFUL STRIPS", 2, "GATE", "NAMED BOOTH")
 HOME["steps"][4]["template_factory"] = PaperSealCards
 
 

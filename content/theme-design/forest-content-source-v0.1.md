@@ -10,13 +10,13 @@
 |---|---|---|
 | 1 邮戳 | 任务邮戳为树叶边框、两颗星、星期符号 TUE。包裹批次 A=leaf/one star/TUE/M1；B=**leaf/two stars/TUE/M2**；C=moon/two stars/TUE/M3；D=leaf/two stars/FRI/M4。 | B，`batch=M2`，定位对应路线记录。 |
 | 2 记录排序 | M2 纸条 A=`POST OFFICE→BRIDGE`、B=`BRIDGE→MOSS LANE`、C=`MOSS LANE→BLUE TREE`；M1 干扰纸条 D=`POST OFFICE→POND`、E=`POND→NO MAILBOX`。只用上关批次 M2，从邮局出发到有颜色**与文字标签**的树；玩家页打乱为 D/B/E/C/A。 | A-B-C，`district=BLUE TREE`。 |
-| 3 分工认包裹 | Carrier 说“用上关地区”；Sorter 说“标签有 **two leaf marks**”；Keeper 说“纸包裹是 **round**”。候选 A=BLUE TREE/one leaf/round/fragment N；B=BLUE TREE/two leaves/square/P；C=**BLUE TREE/two leaves/round/W4**；D=POND/two leaves/round/Q。 | C，获得 `address_fragment=W4`。初稿同页分角色朗读；正式可排独立可裁条。 |
+| 3 分工认包裹 | Carrier 说“用上关地区”；Sorter 说“标签有 **two leaf marks**”；Keeper 说“纸包裹是 **round**”。候选 A=BLUE TREE/one leaf/round/fragment N；B=BLUE TREE/two leaves/square/P；C=**BLUE TREE/two leaves/round/W4**；D=POND/two leaves/round/Q。 | C，获得 `address_fragment=W4`。三张独立边框角色卡可由成人分发，也可遮盖后逐条读。 |
 | 4 修地址 | 虚构地图登记：BLUE TREE + W2=FOX DEN；BLUE TREE + **W4=OWL HOUSE**；POND + W4=BEAVER HUT；MOSS LANE + W4=RABBIT GATE。用地区及地址碎片求唯一收件标记。 | `recipient_marker=OWL HOUSE`；为最后投递提供证据。 |
 | 5 完成投递 | 候选 A=M2/BLUE TREE/W4/OWL HOUSE；B=M2/BLUE TREE/W4/FOX DEN；C=M2/POND/W4/OWL HOUSE；D=M1/BLUE TREE/W4/OWL HOUSE；E=M2/BLUE TREE/W2/OWL HOUSE。 | A。成人出示 Nori 的回信：“The label is clear again. Your careful record helped this parcel reach the right story home.” |
 
 三级提示（观察→推理→完整）：1 看边框、星数、日符→三项同真→B/M2；2 从 POST OFFICE 首尾接→找真正邮箱终点→A-B-C/BLUE TREE；3 每人读一个条件→求地区/叶数/外形交集→C/W4；4 地图同时查地区与碎片→只有一行满足→OWL HOUSE；5 查四项记录→逐一排错→投递卡 A。跳关补发 M2、BLUE TREE、W4、OWL HOUSE、回信。成人指南规定全部在纸上完成，不需要真实邮件、地址或户外地点。
 
-H04 制品：玩家记录页、邮戳/批次卡、混序路线条、分工包裹线索、虚构地址地图、投递候选与回信；Host Guide 含五关答案、三层提示、跳关、准备与收尾。黑白打印必须能凭邮戳形状、星数和文字区分。
+H04 制品：玩家记录页、邮戳/批次卡、混序路线条与三格纸邮路板、分工包裹线索、虚构地址登记表、投递候选与回信；Host Guide 含五关答案、三层提示、跳关、准备与收尾。地图图形仍待制作；黑白打印必须能凭邮戳形状、星数和文字区分。
 
 ## C04：The Forest Postal Investigators
 
@@ -32,7 +32,7 @@ H04 制品：玩家记录页、邮戳/批次卡、混序路线条、分工包裹
 
 三级提示：1 比邮戳三项→只一档全合→A/R7；2 串联 R7 记录→终点有 Row→L1-L2/TREEHOUSE ROW；3 每人读条件→区域/条纹/角形求交→C/P3；4 用 P3 和 Row 同时查表→OWL WINDOW；5 查四格记录→逐项排除→结论 A。跳关补发 R7、TREEHOUSE ROW、P3、OWL WINDOW、教师收尾卡。缺席成员的线索交给现有组员；任何组不需要另一组先完成。
 
-C04 制品：每组邮戳、混序记录、三角色属性、地图、证据单与结论；Teacher Guide 含每组份数、角色合并、答案、三级提示、跳关和复盘。人物、地点不对应任何真实住址或儿童信息。
+C04 制品：每组邮戳、混序记录条与两格调查路线板、三角色属性、地址登记表、证据单与结论；Teacher Guide 含每组份数、角色合并、答案、三级提示、跳关和复盘。人物、地点不对应任何真实住址或儿童信息。
 
 ## 制作和发布门槛
 

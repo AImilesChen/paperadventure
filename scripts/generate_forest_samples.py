@@ -1,7 +1,7 @@
 """Build internal Forest H04/C04 paper-game drafts from the approved theme blueprint."""
 
 from pathlib import Path
-from generate_space_samples import render_drafts
+from generate_space_samples import PaperRouteWorkspace, render_drafts
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +20,7 @@ HOME = {
     "code": "H04", "title": "The Forest Post Office Mystery", "role": "HOST GUIDE",
     "intro": "A rain shower has blurred one paper parcel label. Help Nori the forest post carrier use postmark and route records to deliver it to the right story character. Every address is fictional.",
     "record": ["Postmark and batch", "Paper route and district", "Parcel and address fragment", "Recipient marker", "Delivery card and two reasons"],
-    "prepare": "Print one Player Pack per cooperating group and one private Host Guide. Keep the guide apart from the player pages. Hand out the cover and then one checkpoint at a time. A pencil is enough. Read clues aloud or let children point when useful; divide role lines among available players.",
+    "prepare": "Print one Player Pack per cooperating group and one private Host Guide. Keep the guide apart from the player pages. Hand out the cover and then one checkpoint at a time. At Checkpoint 2, sort the three correct-batch route strips on Nori's paper route board or copy their place names. A pencil is enough; an adult may cut cards if desired. Read clues aloud or let children point; divide role lines among available players.",
     "ending": "After players identify Delivery Card A with at least two reasons, read Nori's note: 'The label is clear again. Your careful record helped this parcel reach the right story home.' No real address, mailbox or outdoor walk is required.",
     "steps": [
         step("Find the matching postmark", "The task postmark has a LEAF border, TWO stars and the weekday TUE. Match all three printed parts.",
@@ -60,7 +60,7 @@ CLASSROOM = {
     "code": "C04", "title": "The Forest Postal Investigators", "role": "TEACHER GUIDE",
     "intro": "Your group is a postal investigation team. A pretend parcel was filed under the wrong label. Make a paper evidence record so it reaches the correct fictional character. Every group has all its own clues.",
     "record": ["Postmark and batch", "Route area", "Parcel card and code", "Recipient marker", "Conclusion and evidence"],
-    "prepare": "Print one Group Player Pack per group and one private Teacher Guide. Give each group its own full set of five checkpoint pages, one at a time. Assign Route, Label, Shape and Recorder roles; merge or rotate roles for any group size. Ask groups to cite two different clue sheets; no group waits for another.",
+    "prepare": "Print one Group Player Pack per group and one private Teacher Guide. Give each group its own full set of five checkpoint pages, one at a time. At Checkpoint 2, groups can arrange the two correct-batch route strips on the paper investigation board or copy them there. Assign Route, Label, Shape and Recorder roles; merge or rotate roles for any group size. Ask groups to cite two different clue sheets; no group waits for another.",
     "ending": "Confirm Conclusion Card A after the group cites two independent reasons. Read: 'Your careful evidence corrected the pretend parcel label. The story post office can deliver it kindly.' No students' names, home addresses or real mail details are requested.",
     "steps": [
         step("Check the shift postmark", "This group's task mark is ROUND, has THREE dots and says WED. Find the one matching archive card.",
@@ -109,6 +109,10 @@ CLASSROOM["steps"][2]["role_cards"] = [
 ]
 HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
+HOME["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
+    width, "NORI'S POST ROUTE / SORT THREE M2 STRIPS", 3, "POST OFFICE", "NAMED TREE")
+CLASSROOM["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
+    width, "INVESTIGATION ROUTE / SORT TWO R7 STRIPS", 2, "POST OFFICE", "NAMED ROW")
 
 
 def validate_logic():

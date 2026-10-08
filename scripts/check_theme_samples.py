@@ -50,6 +50,22 @@ for item in manifest["items"]:
     if item["role"] == "player":
         for number in range(1, 6):
             assert f"CHECKPOINT {number:02d} / 05" in joined
+        second_page = all_text[2]
+        if THEME == "forest":
+            expected = ("POST ROUTE / SORT THREE M2 STRIPS" if item["setting"] == "home"
+                        else "INVESTIGATION ROUTE / SORT TWO R7 STRIPS")
+            assert expected in second_page, (path, "missing postal route workspace")
+            assert "STRIP 1" in second_page and "FINISH / NAMED" in second_page
+        elif THEME == "halloween":
+            expected = ("PAPER FESTIVAL MAP / THREE USEFUL STRIPS" if item["setting"] == "home"
+                        else "AUTUMN CREW MAP / TWO USEFUL STRIPS")
+            assert expected in second_page, (path, "missing festival map workspace")
+            assert "STRIP 1" in second_page and "FINISH /" in second_page
+        elif THEME == "christmas":
+            for item_label in ("GIFT A", "GIFT B", "GIFT C", "GIFT D") if item["setting"] == "home" else ("ITEM A", "ITEM B", "ITEM C", "ITEM X"):
+                assert item_label in second_page, (path, "missing item card", item_label)
+            assert "PAPER DESTINATIONS / MATCH ONE ITEM TO EACH PLACE" in second_page
+            assert second_page.count("MATCH:") == 3, (path, "missing destination cards")
         assert "bordered cards" in all_text[5], (path, "missing final paper candidates")
         final_terms = {
             "christmas-H06": "FOX-OWL-RABBIT",

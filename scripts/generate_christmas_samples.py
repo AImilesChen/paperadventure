@@ -1,10 +1,114 @@
 """Build internal Christmas H06 and neutral winter C06 paper-game drafts."""
 
 from pathlib import Path
+from math import cos, pi, sin
+from reportlab.lib import colors
+from reportlab.platypus import Flowable
 from generate_space_samples import render_drafts
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def draw_paper_symbol(c, symbol, x, y):
+    """Draw the same simple shape named by each Christmas/Winter clue card."""
+    c.setStrokeColor(colors.HexColor("#153B56"))
+    c.setLineWidth(1.2)
+    if symbol == "Round":
+        c.circle(x, y, 18, fill=0, stroke=1)
+    elif symbol == "Square":
+        c.rect(x - 17, y - 17, 34, 34, fill=0, stroke=1)
+    elif symbol == "Triangle":
+        path = c.beginPath()
+        path.moveTo(x, y + 21)
+        path.lineTo(x - 21, y - 17)
+        path.lineTo(x + 21, y - 17)
+        path.close()
+        c.drawPath(path, fill=0, stroke=1)
+    elif symbol == "BOOK":
+        c.rect(x - 21, y - 15, 42, 29, fill=0, stroke=1)
+        c.line(x, y - 15, x, y + 14)
+        c.line(x - 16, y + 8, x - 5, y + 8)
+        c.line(x + 5, y + 8, x + 16, y + 8)
+    elif symbol == "STAR":
+        path = c.beginPath()
+        for point in range(10):
+            angle = pi / 2 + point * pi / 5
+            radius = 21 if point % 2 == 0 else 9
+            px, py = x + radius * cos(angle), y + radius * sin(angle)
+            (path.moveTo if point == 0 else path.lineTo)(px, py)
+        path.close()
+        c.drawPath(path, fill=0, stroke=1)
+    elif symbol == "BELL":
+        path = c.beginPath()
+        path.moveTo(x - 18, y - 13)
+        path.curveTo(x - 11, y - 6, x - 14, y + 13, x, y + 15)
+        path.curveTo(x + 14, y + 13, x + 11, y - 6, x + 18, y - 13)
+        path.close()
+        c.drawPath(path, fill=0, stroke=1)
+        c.line(x - 20, y - 13, x + 20, y - 13)
+        c.circle(x, y - 18, 3, fill=0, stroke=1)
+
+
+class PictureItemCards(Flowable):
+    """Four independent story item cards with visual and printed clue labels."""
+
+    def __init__(self, width, rows, kind):
+        super().__init__()
+        self.width = width
+        self.height = 222
+        self.rows = rows
+        self.kind = kind
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        card_width = (self.width - 10) / 2
+        for index, (label, batch, symbol) in enumerate(self.rows):
+            x = index % 2 * (card_width + 10)
+            y = 112 if index < 2 else 0
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.rect(x, y, card_width, 104, fill=0, stroke=1)
+            c.setFillColor(colors.HexColor("#153B56"))
+            c.setFont("ArialBold", 9)
+            c.drawString(x + 10, y + 87, f"{self.kind} {label}")
+            draw_paper_symbol(c, symbol, x + 36, y + 46)
+            c.setFillColor(colors.HexColor("#36546A"))
+            c.setFont("Arial", 9)
+            c.drawString(x + 73, y + 61, f"Batch: {batch}")
+            c.drawString(x + 73, y + 39, f"{'Shape' if self.kind == 'GIFT' else 'Icon'}: {symbol.upper()}")
+        c.restoreState()
+
+
+class DestinationMatchCards(Flowable):
+    """Three paper destination cards that can be paired with the item cards."""
+
+    def __init__(self, width, destinations):
+        super().__init__()
+        self.width = width
+        self.height = 112
+        self.destinations = destinations
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setFillColor(colors.HexColor("#153B56"))
+        c.setFont("ArialBold", 8.8)
+        c.drawString(0, 100, "PAPER DESTINATIONS / MATCH ONE ITEM TO EACH PLACE")
+        gutter = 9
+        card_width = (self.width - 2 * gutter) / 3
+        for index, (place, symbol) in enumerate(self.destinations):
+            x = index * (card_width + gutter)
+            c.setStrokeColor(colors.HexColor("#8BAFC1"))
+            c.rect(x, 0, card_width, 88, fill=0, stroke=1)
+            c.setFillColor(colors.HexColor("#153B56"))
+            c.setFont("ArialBold", 8.3)
+            c.drawCentredString(x + card_width / 2, 70, place)
+            draw_paper_symbol(c, symbol, x + card_width / 2, 41)
+            c.setFillColor(colors.HexColor("#36546A"))
+            c.setFont("Arial", 8.3)
+            c.drawCentredString(x + card_width / 2, 11, f"MATCH: {symbol.upper()}")
+        c.restoreState()
 
 
 def step(title, story, heads, rows, answer, handoff, used, prompts, next_story, hints, extra=None):
@@ -20,7 +124,7 @@ HOME = {
     "code": "H06", "title": "The Christmas Delivery Office", "role": "HOST GUIDE",
     "intro": "The story delivery office has mixed up its last paper list. Match pretend gift cards with story destinations and find the final thank-you note. No one needs to buy, exchange or wrap a real gift.",
     "record": ["Label and batch", "Three gift-to-place pairs", "Three-stop paper route", "Last place and message", "Final delivery card and evidence"],
-    "prepare": "Print one Player Pack per cooperating group and one private Host Guide in the same size. Give the cover first, then each checkpoint in order. A pencil is the only required extra. Invite children to read or point. All cards, places and gifts are fictional paper props, not invitations to travel or shop.",
+    "prepare": "Print one Player Pack per cooperating group and one private Host Guide in the same size. Give the cover first, then each checkpoint in order. At Checkpoint 2, an adult may cut out the four picture gift cards and three destination cards; players can also draw matches on the intact page. A pencil is the only required extra. All cards, places and gifts are fictional paper props, not invitations to travel or shop.",
     "ending": "After players select Delivery Card A and explain two clues, read: 'The messenger finished the paper route. Every story friend has a matching picture card. Thank you for checking the list together.' Any family reward is an adult's optional separate choice.",
     "steps": [
         step("Choose the right list", "The task label has a SNOWFLAKE frame, TWO round dots and a STAR print. Match every property.",
@@ -62,7 +166,7 @@ CLASSROOM = {
     "code": "C06", "title": "The Winter Gift Sorting Station", "role": "TEACHER GUIDE",
     "intro": "Your group is a paper sorting crew. Match pretend picture items with named shelves, use simple size grades and check a paper departure list. No real gifts, family traditions or shopping are part of this activity.",
     "record": ["Shift batch", "Item-to-place matches", "Paper loading order", "Paper route and READY mark", "Final manifest and evidence"],
-    "prepare": "Print one Group Player Pack per group and one private Teacher Guide. Give each group a complete set of pages, one checkpoint at a time. Size, Order, Destination and Recorder roles may be merged or rotated. Use the neutral Winter title by default. The organiser may choose explicit Christmas wording only after reviewing school context; do not infer it from student location or language.",
+    "prepare": "Print one Group Player Pack per group and one private Teacher Guide. Give each group a complete set of pages, one checkpoint at a time. At Checkpoint 2, the four picture-item cards and three destination cards may be paired loose or marked on the intact page. Size, Order, Destination and Recorder roles may be merged or rotated. This draft uses neutral Winter wording; a Christmas-worded classroom edition has not been produced or checked.",
     "ending": "Confirm Manifest A after the group cites two different facts. Read: 'The paper sorting station is ready. Your team checked every picture card and route.' Do not ask children to share holiday, religion, family purchasing or gift practices.",
     "steps": [
         step("Check the shift batch", "Today's mark has a SQUARE frame, TWO lines and the printed word SNOW. Compare all three features.",
@@ -112,6 +216,15 @@ CLASSROOM["steps"][2]["role_cards"] = [
 ]
 HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
+HOME["steps"][1]["destinations"] = [
+    ("OWL WINDOW", "Round"), ("FOX DEN", "Square"), ("RABBIT GATE", "Triangle")]
+CLASSROOM["steps"][1]["destinations"] = [
+    ("LIBRARY DESK", "BOOK"), ("SKY SHELF", "STAR"), ("MUSIC NOOK", "BELL")]
+for story, kind in ((HOME, "GIFT"), (CLASSROOM, "ITEM")):
+    second = story["steps"][1]
+    second.pop("extra", None)
+    second["card_factory"] = lambda width, step=second, label=kind: PictureItemCards(width, step["rows"], label)
+    second["template_factory"] = lambda width, step=second: DestinationMatchCards(width, step["destinations"])
 
 
 def validate_logic():
@@ -121,9 +234,13 @@ def validate_logic():
             assert len(item["hints"]) == 3
             assert all(len(row) == len(item["heads"]) for row in item["rows"])
     assert [r[0] for r in HOME["steps"][0]["rows"] if r[1:4] == ["Snowflake", "2", "Star"]] == ["A"]
+    assert {r[2] for r in HOME["steps"][1]["rows"] if r[1] == "B3"} == {
+        symbol for _, symbol in HOME["steps"][1]["destinations"]}
     assert [r[0] for r in HOME["steps"][2]["rows"] if r[1:] == ["B", "A", "C"]] == ["B"]
     assert [r[0] for r in HOME["steps"][4]["rows"] if r[1:] == ["B3", "FOX-OWL-RABBIT", "RABBIT", "GO!"]] == ["A"]
     assert [r[0] for r in CLASSROOM["steps"][0]["rows"] if r[1:4] == ["Square", "2", "SNOW"]] == ["B"]
+    assert {r[2] for r in CLASSROOM["steps"][1]["rows"] if r[1] == "T2"} == {
+        symbol for _, symbol in CLASSROOM["steps"][1]["destinations"]}
     assert [r[0] for r in CLASSROOM["steps"][2]["rows"] if r[1:] == ["STAR", "BELL", "BOOK"]] == ["B"]
     assert [r[0] for r in CLASSROOM["steps"][4]["rows"] if r[1:] == ["T2", "STAR-BELL-BOOK", "R1", "READY"]] == ["A"]
 

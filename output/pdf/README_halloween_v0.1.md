@@ -11,4 +11,6 @@
 
 玩家包各 6 页，指南各 3 页。`scripts/generate_halloween_samples.py` 是卡片与答案的生成真源；更改内容源时必须同步改脚本、重生输出及哈希。`content/halloween-pdf-manifest.v0.1.json` 标记 `public: false`；`scripts/check_theme_samples.py halloween` 检查页数、纸张、哈希、答案隔离并渲染全部页面到 `tmp/pdfs/halloween-qa/`。
 
+第二关 H05 有三格纸上庆典地图工作区，C05 有两格中性秋日路线工作区；配合独立路线条使用。它们是文字路线排布板，尚非完成的场景地图插画。H05 第五关另有四张可填写的纸质印记卡。
+
 没有明火、真实灯、电路、惊吓或糖果依赖。**仍不能发布：**家庭/课堂真人试玩，A4/Letter 彩色与灰度实物打印，素材许可、英文文案、法律/税务/商品许可复核，以及课堂措辞变体的独立校验均未完成。

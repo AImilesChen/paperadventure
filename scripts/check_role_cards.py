@@ -31,7 +31,11 @@ def main():
                 classroom = "-C" in pdf_path.name
                 card_page = pdf.pages[4 if theme == "dinosaur" and classroom else 2]
                 card_text = card_page.extract_text() or ""
-                card_labels = re.findall(r"^(?:Strip|Gift|Item) [A-Z0-9]+$", card_text, re.MULTILINE)
+                # pdfplumber reads two illustrated Christmas cards on the same line.
+                if theme == "christmas":
+                    card_labels = re.findall(r"\b(?:GIFT|ITEM) [A-DX]\b", card_text)
+                else:
+                    card_labels = re.findall(r"^Strip [A-Z0-9]+$", card_text, re.MULTILINE)
                 expected = PAPER_CARD_COUNTS[theme][1 if classroom else 0]
                 assert len(card_labels) == expected, (pdf_path.name, card_labels, expected)
                 checked += 1
