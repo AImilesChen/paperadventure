@@ -34,6 +34,8 @@ def main():
                 # pdfplumber reads two illustrated Christmas cards on the same line.
                 if theme == "christmas":
                     card_labels = re.findall(r"\b(?:GIFT|ITEM) [A-DX]\b", card_text)
+                elif theme == "space":
+                    card_labels = re.findall(r"^Strip [A-E] / From: .+ / To: .+$", card_text, re.MULTILINE)
                 else:
                     card_labels = re.findall(r"^Strip [A-Z0-9]+$", card_text, re.MULTILINE)
                 expected = PAPER_CARD_COUNTS[theme][1 if classroom else 0]

@@ -1,6 +1,6 @@
 # Space H03/C03｜谜题内容源 v0.1
 
-**状态：**内部文字/数据与 PDF 排版草稿，尚未真人试玩。依照 [Space 蓝图](space.md)锁定两条独立五关因果链；首关四张图文信号卡已制作，其余纸艺仍需补足。`scripts/generate_space_samples.py` 为本批 PDF 卡片/答案生成真源；修改本稿时须同步修改脚本并重生校验。所有“信号、设备、频率”只存在于纸上故事，不是电子实验。网页继续标记 `not_published`。
+**状态：**内部文字/数据与 PDF 排版草稿，尚未真人试玩。依照 [Space 蓝图](space.md)锁定两条独立五关因果链；首关四张图文信号卡、第二关 3×3 坐标星图及第三关四张图文设备卡已有纸面初稿，仍须实测。`scripts/generate_space_samples.py` 为本批 PDF 卡片/答案生成真源；修改本稿时须同步修改脚本并重生校验。所有“信号、设备、频率”只存在于纸上故事，不是电子实验。网页继续标记 `not_published`。
 
 ## H03：The Lost Space Signal
 
@@ -9,7 +9,7 @@
 | 关 | 玩家看到的规则与候选 | 唯一成果及下一关用途 |
 |---|---|---|
 | 1 有效信号 | 任务卡说“圆形边框、三道波纹、右下角一个方形缺口”。信号 A=圆/两波纹/方缺口/sector VEGA；B=方/三波纹/方缺口/ALTAIR；C=圆/三波纹/方缺口/**ORION**；D=圆/三波纹/无缺口/NOVA。 | 选 C，得到 `sector=ORION`；只检查对应星图区。 |
-| 2 星图 | 混序纸条 A=`ORION→BLUE STAR`、B=`BLUE STAR→CRESCENT`、C=`CRESCENT→STATION 7`、D=`ORION→RED STAR`、E=`RED STAR→EMPTY FIELD`。从上关 sector 出发，首尾连接，目标是有编号的 STATION；玩家页以 D/B/E/C/A 排列。 | A-B-C 到 `STATION 7`；成为设备选择的约束。 |
+| 2 星图 | 混序纸条 A=`ORION→BLUE STAR`、B=`BLUE STAR→CRESCENT`、C=`CRESCENT→STATION 7`、D=`ORION→RED STAR`、E=`RED STAR→EMPTY FIELD`。从上关 sector 出发，首尾连接，目标是有编号的 STATION；玩家页以 D/B/E/C/A 排列。坐标星图：A2=ORION、B2=BLUE STAR、B3=CRESCENT、C3=STATION 7、B1=RED STAR、C1=EMPTY FIELD，其他格空白；线条连接仅由所选纸条决定。 | A-B-C 到 `STATION 7`；成为设备选择的约束。 |
 | 3 纸质校准 | Guide 线索：设备必须对应上关站号；Robot 线索：有 **two rings**；Scout 线索：带 **triangle badge**。候选 A=Station 7/one ring/triangle/code 2；B=**Station 7/two rings/triangle/code 6**；C=Station 7/two rings/circle/code 4；D=Station 5/two rings/triangle/code 3。角色可分工朗读，人数不足合并。 | 唯一 B，得到 `code=6` 与解码表入口；不能靠故事插画猜设备。 |
 | 4 解读短讯 | 设备编号决定使用哪一行字典。Code 2：SUN=B/MOON=E/STAR=A/PATH=C/RING=H；Code 4：L/I/G/H/T；Code 6：C/O/M/E/T。纸上消息顺序为 SUN/MOON/STAR/PATH/RING；必须使用上关取得的 Code 6 行。 | 得 `word=COMET`；这是确认探测器的字面标记，非现实天文学事实。 |
 | 5 恢复联络 | 探测器 A=ORION/Station 7/Code 6/COMET；B=ORION/Station 7/Code 6/MOON；C=ORION/Station 5/Code 6/COMET；D=VEGA/Station 7/Code 6/COMET；E=ORION/Station 7/Code 4/COMET。 | 唯一 A。成人按纸上回传卡回应：“Pip received your message. The team found the true signal by sharing every clue.” |
@@ -25,7 +25,7 @@ H03 资料包：封面记录页、五关候选卡/纸星图/角色线索/字典/
 | 关 | 学生看到的规则与候选 | 唯一成果及下一关用途 |
 |---|---|---|
 | 1 信号/噪声 | 有效信号须是方形边框、两座波峰、一个圆点。A=方/一峰/一点/VEGA；B=圆/两峰/一点/NOVA；C=方/两峰/零点/ORION；D=**方/两峰/一点/LYRA**。 | D，得到 `station=LYRA`。 |
-| 2 星图关系 | 纸条 A=`LYRA→NODE B`、B=`NODE B→PORT 4`、C=`LYRA→NODE A`、D=`NODE A→BLANK`，玩家页混序。只能从 LYRA 接到有编号的 PORT。 | A-B，得到 `port=4`，用于设备条件。 |
+| 2 星图关系 | 纸条 A=`LYRA→NODE B`、B=`NODE B→PORT 4`、C=`LYRA→NODE A`、D=`NODE A→BLANK`，玩家页混序。只能从 LYRA 接到有编号的 PORT。坐标星图：A2=LYRA、B2=NODE B、C2=PORT 4、B1=NODE A、C1=BLANK，其他格空白；没有预先画出的正确路径。 | A-B，得到 `port=4`，用于设备条件。 |
 | 3 合作选设备 | Mapper 持“从星图得到的端口”，Reader 持“two rings”，Checker 持“arrow badge”。候选 A=Port 4/one ring/arrow/key 2-1-4；B=Port 4/two rings/circle/key 4-1-3；C=**Port 4/two rings/arrow/key 3-1-4**；D=Port 2/two rings/arrow/key 3-1-2。 | C，得到 `key=3-1-4`，按此顺序读字母表。 |
 | 4 转换消息 | 字典 1=E、2=A、3=S、4=T；按上关设备 key 顺序读取，不能把数字自然排序。 | `message=SET`；组员在回传栏抄写 SET。 |
 | 5 记录恢复 | 结论 A=LYRA/Port 4/Kit B/SET；B=**LYRA/Port 4/Kit C/SET**；C=LYRA/Port 2/Kit C/SET；D=VEGA/Port 4/Kit C/SET；E=LYRA/Port 4/Kit C/SAT。 | 唯一 B。填本组纸质恢复记录，教师按指南出示“通信站已恢复”的收尾卡。 |

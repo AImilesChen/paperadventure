@@ -7,7 +7,7 @@ import json
 from PIL import Image as PillowImage
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, letter
-from reportlab.platypus import Flowable, Image, PageBreak, SimpleDocTemplate
+from reportlab.platypus import Flowable, Image, PageBreak, SimpleDocTemplate, Table, TableStyle
 
 from generate_celebration_samples import box, gap, grid, p, page_heading, role_cards, strip_cards, write_line
 
@@ -116,6 +116,31 @@ CLASSROOM["steps"][2]["role_cards"] = [
 ]
 HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
+HOME_MAP_NODES = {
+    "A2": "ORION", "B2": "BLUE STAR", "B3": "CRESCENT",
+    "C3": "STATION 7", "B1": "RED STAR", "C1": "EMPTY FIELD",
+}
+CLASS_MAP_NODES = {
+    "A2": "LYRA", "B2": "NODE B", "C2": "PORT 4",
+    "B1": "NODE A", "C1": "BLANK",
+}
+
+
+def star_route_cards(rows, width):
+    """Compact, independently readable paper strips leave room for the coordinate map."""
+    flow = []
+    for card_id, origin, target in rows:
+        card = Table([[p(f"<b>Strip {card_id}</b> &nbsp; / &nbsp; From: {origin} &nbsp; / &nbsp; To: {target}", "table")]], colWidths=[width])
+        card.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F7FBFD")),
+            ("BOX", (0, 0), (-1, -1), .8, colors.HexColor("#8BAFC1")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ]))
+        flow += [card, gap(4)]
+    return flow
 
 
 class SignalCards(Flowable):
@@ -266,45 +291,67 @@ CLASSROOM["steps"][2]["card_note"] = "These are paper props. Count rings and com
 
 
 class StarMapAssemblyBoard(Flowable):
-    """A printable workspace for arranging the numbered-destination route strips."""
+    """A coordinate star map with no pre-drawn solution, plus an optional strip-order workspace."""
 
-    def __init__(self, width, slots, destination):
+    def __init__(self, width, slots, destination, nodes):
         super().__init__()
         self.width = width
-        self.height = 112
+        self.height = 210
         self.slots = slots
         self.destination = destination
+        self.nodes = nodes
 
     def draw(self):
         c = self.canv
         c.saveState()
         c.setFillColor(NAVY)
         c.setFont("ArialBold", 8.5)
-        c.drawString(0, 100, "PAPER STAR MAP / ARRANGE THE USEFUL STRIPS")
+        c.drawString(0, 198, "PAPER STAR MAP / MATCH STRIPS, THEN DRAW THE ROUTE")
         c.setFillColor(INK)
         c.setFont("Arial", 8.8)
-        c.drawString(0, 84, "Start from the sector or station you recorded at Checkpoint 1.")
+        c.drawString(0, 182, "Start from your Checkpoint 1 result. Names connect only when a route strip says so.")
+        cell_width = self.width / 3
+        for row in range(3):
+            for col in range(3):
+                x = col * cell_width
+                y = 144 - row * 28
+                coordinate = f"{chr(ord('A') + col)}{row + 1}"
+                c.setStrokeColor(colors.HexColor("#8BAFC1"))
+                c.setLineWidth(.7)
+                c.rect(x, y, cell_width, 28, fill=0, stroke=1)
+                c.setFillColor(NAVY)
+                c.setFont("ArialBold", 9)
+                c.drawString(x + 8, y + 10, coordinate)
+                if coordinate in self.nodes:
+                    c.setStrokeColor(NAVY)
+                    c.circle(x + 38, y + 14, 3.2, fill=0, stroke=1)
+                    c.setFillColor(INK)
+                    c.setFont("ArialBold", 8.6)
+                    c.drawString(x + 47, y + 10, self.nodes[coordinate])
+        c.setFillColor(INK)
+        c.setFont("Arial", 8.3)
+        c.drawString(0, 74, "Draw your route on the map or number the strips below; no cutting is needed.")
         gutter = 9
         slot_width = (self.width - gutter * (self.slots - 1)) / self.slots
         for index in range(self.slots):
             x = index * (slot_width + gutter)
             c.setStrokeColor(colors.HexColor("#8BAFC1"))
             c.setLineWidth(0.9)
-            c.rect(x, 14, slot_width, 58, fill=0, stroke=1)
+            c.rect(x, 14, slot_width, 52, fill=0, stroke=1)
             c.setFillColor(NAVY)
-            c.setFont("ArialBold", 9)
-            c.drawString(x + 9, 55, f"STRIP {index + 1}")
+            c.setFont("ArialBold", 8.7)
+            c.drawString(x + 9, 50, f"STRIP {index + 1}")
             c.setFillColor(INK)
-            c.setFont("Arial", 8.8)
-            c.drawString(x + 9, 37, "FROM: __________________")
-            c.drawString(x + 9, 21, "TO: _____________________")
+            c.setFont("Arial", 8.3)
+            c.drawString(x + 9, 35, "FROM: __________________")
+            c.drawString(x + 9, 20, "TO: _____________________")
         c.setFont("ArialBold", 8.8)
         c.drawString(0, 1, f"FINISH / {self.destination}: ______________________________")
         c.restoreState()
 
 
-HOME["steps"][1]["template_factory"] = lambda width: StarMapAssemblyBoard(width, 3, "NUMBERED STATION")
-CLASSROOM["steps"][1]["template_factory"] = lambda width: StarMapAssemblyBoard(width, 2, "NUMBERED PORT")
+HOME["steps"][1]["template_factory"] = lambda width: StarMapAssemblyBoard(width, 3, "NUMBERED STATION", HOME_MAP_NODES)
+CLASSROOM["steps"][1]["template_factory"] = lambda width: StarMapAssemblyBoard(width, 2, "NUMBERED PORT", CLASS_MAP_NODES)
 
 
 class PaperRouteWorkspace(Flowable):
@@ -434,7 +481,10 @@ def player_flow(story, width):
         if step.get("card_factory"):
             flow += [step["card_factory"](width),
                      p(step.get("card_note", "An adult or teacher may cut the bordered cards; you can also compare or number them on this page."), "small"), gap(8)]
-        elif step.get("strip_cards") or number == 5:
+        elif step.get("strip_cards"):
+            flow += star_route_cards(step["rows"], width)
+            flow += [p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]
+        elif number == 5:
             flow += strip_cards(step["heads"], step["rows"], width)
             flow += [p("An adult or teacher may cut the bordered cards; you can also compare or number them on this page.", "small"), gap(8)]
         else:

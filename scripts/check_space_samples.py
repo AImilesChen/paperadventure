@@ -64,12 +64,15 @@ for item in manifest["items"]:
         else:
             assert "PAPER KIT C" in device_page and "KEY  3-1-4" in device_page
         map_page = all_text[2]
-        assert "PAPER STAR MAP / ARRANGE THE USEFUL STRIPS" in map_page
+        assert "PAPER STAR MAP / MATCH STRIPS, THEN DRAW THE ROUTE" in map_page
         assert "STRIP 1" in map_page and "STRIP 2" in map_page
+        assert all(coordinate in map_page for coordinate in ("A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"))
         if item["setting"] == "home":
             assert "STRIP 3" in map_page and "NUMBERED STATION" in map_page
+            assert all(node in map_page for node in ("ORION", "BLUE STAR", "CRESCENT", "STATION 7", "RED STAR", "EMPTY FIELD"))
         else:
             assert "NUMBERED PORT" in map_page
+            assert all(node in map_page for node in ("LYRA", "NODE A", "NODE B", "PORT 4", "BLANK"))
         assert "ANSWER KEY" not in joined and "HINTS AND SKIPS" not in joined
         assert "PIP'S PAPER REPLY" not in joined and "STAR STATION REPLY" not in joined
     else:

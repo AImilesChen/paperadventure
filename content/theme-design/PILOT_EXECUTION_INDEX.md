@@ -8,8 +8,8 @@
 | C01 Celebration Classroom | `pilot-celebration-v0.1.zip` | 邀请图卡、组内角色分工、四张各有代码的装备卡、纸徽章 | 待执行 | 待执行 | 待执行 |
 | H02 Dinosaur Home | `pilot-dinosaur-v0.1.zip` | 足迹观察、路线拼接、补给卡背带/标签与营地结论 | 待执行 | 待执行 | 待执行 |
 | C02 Dinosaur Classroom | `pilot-dinosaur-v0.1.zip` | R2 批次进入足迹选择，RIDGE 地区进入第三关标记/旗帜区域卡 | 待执行 | 待执行 | 待执行 |
-| H03 Space Home | `pilot-space-v0.1.zip` | 信号图卡、纸星图、设备候选与回信 | 待执行 | 待执行 | 待执行 |
-| C03 Space Classroom | `pilot-space-v0.1.zip` | 多人信号、设备卡、恢复报告 | 待执行 | 待执行 | 待执行 |
+| H03 Space Home | `pilot-space-v0.1.zip` | 信号图卡、3×3 坐标纸星图与混序路线条、设备候选与回信 | 待执行 | 待执行 | 待执行 |
+| C03 Space Classroom | `pilot-space-v0.1.zip` | 多人信号、3×3 坐标星图/端口路线、设备卡与恢复报告 | 待执行 | 待执行 | 待执行 |
 | H04 Forest Home | `pilot-forest-v0.1.zip` | 邮戳图卡、包裹卡、虚构地址与回信 | 待执行 | 待执行 | 待执行 |
 | C04 Forest Classroom | `pilot-forest-v0.1.zip` | 三角色包裹属性交集、路线区域与证据 | 待执行 | 待执行 | 待执行 |
 | H05 Halloween Home | `pilot-halloween-v0.1.zip` | 友好邀请图卡、包裹横纹/角形、四枚印记与纸灯结局 | 待执行 | 待执行 | 待执行 |
