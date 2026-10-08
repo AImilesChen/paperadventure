@@ -51,6 +51,14 @@ for item in manifest["items"]:
         for number in range(1, 6):
             assert f"CHECKPOINT {number:02d} / 05" in joined
         assert "bordered cards" in all_text[5], (path, "missing final paper candidates")
+        final_terms = {
+            "christmas-H06": "FOX-OWL-RABBIT",
+            "christmas-C06": "STAR-BELL-BOOK",
+            "forest-C04": "TREEHOUSE ROW",
+        }
+        for key, term in final_terms.items():
+            if path.name.startswith(key):
+                assert term in all_text[5], (path, "final candidate text split or missing", term)
         assert "ANSWER KEY" not in joined and "HINTS AND SKIPS" not in joined
     else:
         assert "ANSWER KEY" in joined and "HINTS AND SKIPS" in joined
