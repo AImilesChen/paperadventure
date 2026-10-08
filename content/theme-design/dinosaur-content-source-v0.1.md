@@ -40,7 +40,7 @@
 
 ### 2. Match the footprint record
 
-R2 卡写明："Milo has three toe marks, a round heel and one right notch." 四张独立线条足迹卡以图形与文字重复编码：A = three/pointed/right，区域 LOWLAND；B = two/round/right，区域 WOODS；C = **three/round/right**，区域 **RIDGE**；D = three/round/no notch，区域 MARSH。唯一答案 C/RIDGE，获得下一关地区条件。提示依次为检查脚趾/脚跟/缺口、只有一张三项全合、C/RIDGE。跳关补发 RIDGE 条。
+第二关先印四条批次观察笔记：R1 = three/pointed/one right notch；R2 = **three/round/one right notch**；R3 = two/round/one right notch；R4 = three/round/no notch。学生必须从第一关得到的 R2 选择笔记，不能直接由叙事文字读到 R2 性状。四张独立线条足迹卡以图形与文字重复编码：A = three/pointed/right，区域 LOWLAND；B = two/round/right，区域 WOODS；C = **three/round/right**，区域 **RIDGE**；D = three/round/no notch，区域 MARSH。唯一答案 C/RIDGE，获得下一关地区条件。提示依次为找到自己批次的观察笔记、按所选笔记核对三项、C/RIDGE。跳关补发 RIDGE 条。
 
 ### 3. Share the location clues
 

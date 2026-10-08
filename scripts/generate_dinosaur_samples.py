@@ -3,6 +3,7 @@
 from pathlib import Path
 import hashlib
 import json
+import math
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, letter
@@ -31,6 +32,101 @@ CLASS_FOOTPRINTS = [
     ("A", 3, "Pointed", 1, "LOWLAND"), ("B", 2, "Round", 1, "WOODS"),
     ("C", 3, "Round", 1, "RIDGE"), ("D", 3, "Round", 0, "MARSH"),
 ]
+CLASS_BATCHES = [
+    ("A", "LEAF", 1, "MILO", "R1"), ("B", "LEAF", 2, "MILO", "R2"),
+    ("C", "STAR", 2, "MILO", "R3"), ("D", "LEAF", 2, "TARO", "R4"),
+]
+CLASS_BATCH_NOTES = [
+    ("R1", "3", "POINTED", "ONE"), ("R2", "3", "ROUND", "ONE"),
+    ("R3", "2", "ROUND", "ONE"), ("R4", "3", "ROUND", "NONE"),
+]
+
+
+class ObservationBatchCards(Flowable):
+    """Classroom dossier cards: countable marks and labelled seals on each card."""
+
+    def __init__(self, width, rows):
+        super().__init__()
+        self.width = width
+        self.height = 194
+        self.rows = rows
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 10
+        card_width = (self.width - gutter) / 2
+        card_height = 92
+        for index, (label, seal, dots, heading, mark) in enumerate(self.rows):
+            x = (index % 2) * (card_width + gutter)
+            y = (1 - index // 2) * (card_height + gutter)
+            c.setStrokeColor(LINE)
+            c.setLineWidth(0.9)
+            c.roundRect(x, y, card_width, card_height, 6, fill=0, stroke=1)
+            c.setFillColor(NAVY)
+            c.setFont("ArialBold", 8.8)
+            c.drawString(x + 9, y + 76, f"BATCH {label}  /  STORY DOSSIER")
+            cx, cy = x + 35, y + 49
+            c.setLineWidth(1.25)
+            if seal == "LEAF":
+                path = c.beginPath()
+                path.moveTo(cx - 13, cy - 10)
+                path.curveTo(cx - 21, cy + 11, cx + 2, cy + 19, cx + 15, cy + 13)
+                path.curveTo(cx + 17, cy - 4, cx + 1, cy - 17, cx - 13, cy - 10)
+                c.drawPath(path, fill=0, stroke=1)
+                c.line(cx - 11, cy - 10, cx + 10, cy + 10)
+            else:
+                points = []
+                for point in range(10):
+                    angle = math.pi / 2 + point * math.pi / 5
+                    radius = 17 if point % 2 == 0 else 8
+                    points.append((cx + radius * math.cos(angle), cy + radius * math.sin(angle)))
+                path = c.beginPath()
+                path.moveTo(*points[0])
+                for px, py in points[1:]:
+                    path.lineTo(px, py)
+                path.close()
+                c.drawPath(path, fill=0, stroke=1)
+            for dot in range(dots):
+                c.circle(cx - 5 + dot * 10, y + 22, 2.7, fill=1, stroke=0)
+            c.setFillColor(INK)
+            c.setFont("ArialBold", 8.2)
+            tx = x + 74
+            c.drawString(tx, y + 57, f"SEAL  {seal}")
+            c.drawString(tx, y + 43, f"DOTS  {dots}")
+            c.drawString(tx, y + 29, f"HEADING  {heading}")
+            c.drawString(tx, y + 15, f"MARK  {mark}")
+        c.restoreState()
+
+
+class BatchNoteTable(Flowable):
+    """Compact dossier notes make the first result necessary without adding a page."""
+
+    def __init__(self, width):
+        super().__init__()
+        self.width = width
+        self.height = 124
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setFillColor(NAVY)
+        c.setFont("ArialBold", 9)
+        c.drawString(0, 111, "STATION BATCH NOTES / USE ONLY YOUR MARK")
+        c.setStrokeColor(LINE)
+        c.setLineWidth(0.8)
+        c.rect(0, 4, self.width, 98, fill=0, stroke=1)
+        for y in (79, 61, 43, 25):
+            c.line(0, y, self.width, y)
+        columns = (9, self.width * .19, self.width * .38, self.width * .66)
+        c.setFont("ArialBold", 8.1)
+        for x, label in zip(columns, ("MARK", "TOES", "HEEL", "RIGHT NOTCH")):
+            c.drawString(x, 87, label)
+        c.setFont("Arial", 8.5)
+        for row, y in zip(CLASS_BATCH_NOTES, (66, 48, 30, 12)):
+            for x, value in zip(columns, row):
+                c.drawString(x, y, value)
+        c.restoreState()
 
 
 class FootprintCards(Flowable):
@@ -213,9 +309,15 @@ def cover(code, role, title, intro, width, records):
 
 
 def checkpoint(number, title, story, headers, rows, proportions, width, questions, transition,
-               strip_mode=False, footprint_mode=False, trail_board=False):
+               strip_mode=False, footprint_mode=False, trail_board=False, batch_mode=False,
+               batch_notes=False):
     flow = page_heading(number, title, story)
-    if footprint_mode:
+    if batch_notes:
+        flow += [BatchNoteTable(width), gap(8)]
+    if batch_mode:
+        flow += [ObservationBatchCards(width, rows),
+                 p("Each dossier card repeats its seal and dot count in words. A teacher may cut the cards, or the group can compare them on this page.", "small"), gap(7)]
+    elif footprint_mode:
         flow += [FootprintCards(width, rows, headers[-1].upper()),
                  p("The outline and printed words show the same clues. Compare all three details; adult cutting is optional.", "small"), gap(7)]
     elif strip_mode or number == 5:
@@ -300,18 +402,18 @@ def class_player(width):
     flow += checkpoint(1, "Choose the observation batch",
                        "Find the record with a LEAF seal, TWO dots and the heading MILO. Keep its batch mark.",
                        ["Batch", "Seal", "Dots", "Heading", "Mark"],
-                       [["A", "LEAF", "1", "MILO", "R1"], ["B", "LEAF", "2", "MILO", "R2"],
-                        ["C", "STAR", "2", "MILO", "R3"], ["D", "LEAF", "2", "TARO", "R4"]],
+                       CLASS_BATCHES,
                        [.16, .22, .16, .23, .23], width,
                        ["Correct batch", "Batch mark"],
-                       "The matching batch tells you which footprint description to use.")
+                       "The matching batch tells you which footprint description to use.", batch_mode=True)
     flow += checkpoint(2, "Match the footprint record",
-                       "The chosen batch says: Milo has THREE toe marks, a ROUND heel and ONE RIGHT notch. Match all three details.",
+                       "Use the batch mark you found at Checkpoint 1. Read only its note below, then match all three details to a footprint card.",
                        ["Print", "Toes", "Heel", "Right notch", "Region"],
                        CLASS_FOOTPRINTS,
                        [.14, .14, .22, .24, .26], width,
                        ["Matching print", "Region"],
-                       "Different roles now hold the remaining location conditions.", footprint_mode=True)
+                       "Different roles now hold the remaining location conditions.", footprint_mode=True,
+                       batch_notes=True)
     flow += checkpoint(3, "Share the location clues",
                        "Assign Reader, Observer and Checker one clue line each. Read them aloud; the Recorder circles the only zone matching all three.",
                        ["Zone", "Region", "Marker", "Flags"],
@@ -350,18 +452,18 @@ def class_player(width):
 def guide(code, title, width, classroom):
     if classroom:
         answers = ["1. Batch B/R2: LEAF, two dots, MILO.",
-                   "2. Print C/RIDGE: three toes, round heel, one right notch.",
+                   "2. Use the R2 note. Print C/RIDGE: three toes, round heel, one right notch.",
                    "3. Zone C: RIDGE, CIRCLE marker, two flags.",
                    "4. P-Q-R-S, 09:45: only Zone C strips, earliest to latest. X is Zone B.",
                    "5. Report A: R2/RIDGE/C/P-Q-R-S/09:45 all match."]
         prompts = [
             ("Look at all three card details.", "Compare seal, dots and heading together.", "Batch B; give R2."),
-            ("Check three footprint parts.", "Find three toes, round heel, right notch.", "Print C; give RIDGE."),
+            ("Find the note with your batch mark.", "R2 says three toes, round heel, one right notch.", "Print C; give RIDGE."),
             ("Let every role read a condition.", "Intersect RIDGE, CIRCLE and two flags.", "Zone C."),
             ("First remove the wrong zone.", "Order Zone C times from 09:00 to 09:45.", "P-Q-R-S; signal 09:45."),
             ("Use the whole record sheet.", "Compare every report field, not just one.", "Report A; explain two facts."),
         ]
-        prepare = "Print one Group Player Pack per group and one Teacher Guide for yourself, in the same paper size. At Checkpoint 2, children can compare four illustrated paper footprints in place; a teacher may cut the cards first. At Checkpoint 3, distribute the three bordered role cards or cover and reveal each in turn. Combine roles for smaller groups or rotate them for larger groups. Every group has its own complete clues. Give one checkpoint at a time."
+        prepare = "Print one Group Player Pack per group and one Teacher Guide for yourself, in the same paper size. At Checkpoint 1, compare the four pictured batch cards in place or cut them first. At Checkpoint 2, children must use their batch mark to choose one note before comparing the four illustrated footprints; a teacher may cut those cards too. At Checkpoint 3, distribute the three bordered role cards or cover and reveal each in turn. Combine roles for smaller groups or rotate them for larger groups. Every group has its own complete clues. Give one checkpoint at a time."
         ending = "Confirm Report A and ask each group which fact from someone else's card helped them decide. Close with: 'The records are clear again. Milo's paper route to camp can now be followed.' Do not rank groups or collect names."
         chain = [("1", "R2", "Footprint description"), ("2", "RIDGE", "Zone selection"),
                  ("3", "Zone C", "Time-strip filter"), ("4", "P-Q-R-S / 09:45", "Final report"),
@@ -411,6 +513,12 @@ def guide(code, title, width, classroom):
 
 
 def validate_logic():
+    assert [row[0] for row in CLASS_BATCHES if row[1:4] == ("LEAF", 2, "MILO")] == ["B"]
+    assert [row[4] for row in CLASS_BATCHES if row[0] == "B"] == ["R2"]
+    assert [row[1:] for row in CLASS_BATCH_NOTES if row[0] == "R2"] == [("3", "ROUND", "ONE")]
+    selected_note = next(row for row in CLASS_BATCH_NOTES if row[0] == "R2")
+    assert [row[0] for row in CLASS_FOOTPRINTS
+            if (str(row[1]), row[2].upper(), "ONE" if row[3] else "NONE") == selected_note[1:]] == ["C"]
     assert [row[0] for row in HOME_FOOTPRINTS if row[1:4] == (3, "Round", 1)] == ["A"]
     assert [row[0] for row in CLASS_FOOTPRINTS if row[1:4] == (3, "Round", 1)] == ["C"]
     packs = [("A", "PINE", 1, "Triangle"), ("B", "PINE", 2, "Triangle"),

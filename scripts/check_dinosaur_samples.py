@@ -31,6 +31,18 @@ for item in manifest["items"]:
         all_text = "\n".join(page.extract_text() or "" for page in pages)
         for stage in range(1, 6):
             assert f"CHECKPOINT {stage:02d} / 05" in all_text, (path, stage)
+        if item["setting"] == "classroom":
+            batch_page = pages[1].extract_text() or ""
+            for label, mark in zip("ABCD", ("R1", "R2", "R3", "R4")):
+                assert f"BATCH {label}  /  STORY DOSSIER" in batch_page, (path, label)
+                assert f"MARK  {mark}" in batch_page, (path, mark)
+            assert "SEAL  LEAF" in batch_page and "SEAL  STAR" in batch_page
+            assert "DOTS  1" in batch_page and "DOTS  2" in batch_page
+            note_page = pages[2].extract_text() or ""
+            assert "use only your mark" in note_page.lower()
+            for mark in ("R1", "R2", "R3", "R4"):
+                assert mark in note_page, (path, "missing batch note", mark)
+            assert "three toe marks, a ROUND heel" not in note_page, (path, "answer leaks outside selected note")
         footprint_page = pages[1 if item["setting"] == "home" else 2].extract_text() or ""
         for label in "ABCD":
             assert f"PRINT {label}" in footprint_page, (path, "missing footprint card", label)
