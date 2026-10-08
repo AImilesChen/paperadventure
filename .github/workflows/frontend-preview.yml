@@ -26,3 +26,9 @@ jobs:
       - run: npm run test:static
       - run: npm run test:sites
       - run: npm run test:backend
+      - uses: actions/upload-artifact@v7
+        with:
+          name: paper-adventure-preview-${{ github.sha }}
+          path: dist/client/
+          if-no-files-found: error
+          retention-days: 7
