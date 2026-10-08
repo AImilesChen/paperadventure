@@ -53,20 +53,26 @@ for item in manifest["items"]:
         second_page = all_text[2]
         if THEME == "forest":
             first_page = all_text[1]
+            parcel_page = all_text[3]
             for candidate in "ABCD":
                 assert f"POSTMARK {candidate}" in first_page, (path, "missing postmark card", candidate)
+                assert f"PARCEL {candidate}  /  PAPER RECORD" in parcel_page, (path, "missing parcel card", candidate)
             if item["setting"] == "home":
                 assert "BORDER  LEAF" in first_page and "BORDER  MOON" in first_page
                 assert "STARS  2" in first_page and "BATCH  M2" in first_page
                 assert first_page.count("BORDER  LEAF") == 3
                 assert first_page.count("STARS  2") == 3
                 assert first_page.count("DAY  TUE") == 3
+                assert "LEAVES  2" in parcel_page and "OUTLINE  ROUND" in parcel_page
+                assert "FRAGMENT  W4" in parcel_page and "DISTRICT  BLUE TREE" in parcel_page
             else:
                 assert "BORDER  ROUND" in first_page and "BORDER  SQUARE" in first_page
                 assert "DOTS  3" in first_page and "BATCH  R7" in first_page
                 assert first_page.count("BORDER  ROUND") == 3
                 assert first_page.count("DOTS  3") == 3
                 assert first_page.count("DAY  WED") == 3
+                assert "STRIPES  2" in parcel_page and "CORNERS  ROUND" in parcel_page
+                assert "CODE  P3" in parcel_page and "AREA  TREEHOUSE ROW" in parcel_page
             expected = ("POST ROUTE / SORT THREE M2 STRIPS" if item["setting"] == "home"
                         else "INVESTIGATION ROUTE / SORT TWO R7 STRIPS")
             assert expected in second_page, (path, "missing postal route workspace")

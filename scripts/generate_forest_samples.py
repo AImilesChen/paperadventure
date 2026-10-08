@@ -87,6 +87,63 @@ class PostmarkCards(Flowable):
         c.restoreState()
 
 
+class ParcelCandidateCards(Flowable):
+    """Four countable paper parcels for the three-role intersection puzzle."""
+
+    def __init__(self, width, rows, setting):
+        super().__init__()
+        self.width = width
+        self.height = 193
+        self.rows = rows
+        self.setting = setting
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        gutter = 10
+        card_width = (self.width - gutter) / 2
+        card_height = 91
+        navy = colors.HexColor("#153B56")
+        ink = colors.HexColor("#36546A")
+        line = colors.HexColor("#8BAFC1")
+        for index, (label, place, count, outline, result) in enumerate(self.rows):
+            x = (index % 2) * (card_width + gutter)
+            y = (1 - index // 2) * (card_height + gutter)
+            c.setStrokeColor(line)
+            c.setLineWidth(0.9)
+            c.roundRect(x, y, card_width, card_height, 6, fill=0, stroke=1)
+            c.setFillColor(navy)
+            c.setFont("ArialBold", 8.8)
+            c.drawString(x + 9, y + 75, f"PARCEL {label}  /  PAPER RECORD")
+            cx, cy = x + 37, y + 40
+            c.setStrokeColor(navy)
+            c.setLineWidth(1.3)
+            if outline == "Round":
+                c.roundRect(cx - 25, cy - 17, 50, 36, 8, fill=0, stroke=1)
+            else:
+                c.rect(cx - 25, cy - 17, 50, 36, fill=0, stroke=1)
+            for mark in range(int(count)):
+                mx = cx - 9 + mark * 17
+                if self.setting == "home":
+                    leaf = c.beginPath()
+                    leaf.moveTo(mx - 5, cy - 3)
+                    leaf.curveTo(mx - 7, cy + 5, mx + 1, cy + 9, mx + 6, cy + 5)
+                    leaf.curveTo(mx + 7, cy - 2, mx, cy - 6, mx - 5, cy - 3)
+                    c.drawPath(leaf, fill=0, stroke=1)
+                    c.line(mx - 4, cy - 3, mx + 4, cy + 4)
+                else:
+                    stripe_y = cy + 5 - mark * 10
+                    c.line(cx - 11, stripe_y, cx + 11, stripe_y)
+            c.setFillColor(ink)
+            c.setFont("ArialBold", 8.1)
+            tx = x + 76
+            c.drawString(tx, y + 57, f"{'DISTRICT' if self.setting == 'home' else 'AREA'}  {place}")
+            c.drawString(tx, y + 42, f"{'LEAVES' if self.setting == 'home' else 'STRIPES'}  {count}")
+            c.drawString(tx, y + 27, f"{'OUTLINE' if self.setting == 'home' else 'CORNERS'}  {outline.upper()}")
+            c.drawString(tx, y + 12, f"{'FRAGMENT' if self.setting == 'home' else 'CODE'}  {result}")
+        c.restoreState()
+
+
 class StoryAddressMap(Flowable):
     """A fictional four-block map that repeats district and code in each house."""
 
@@ -279,6 +336,10 @@ HOME["steps"][1]["strip_cards"] = True
 CLASSROOM["steps"][1]["strip_cards"] = True
 HOME["steps"][0]["card_factory"] = lambda width: PostmarkCards(width, HOME["steps"][0]["rows"], "home")
 CLASSROOM["steps"][0]["card_factory"] = lambda width: PostmarkCards(width, CLASSROOM["steps"][0]["rows"], "classroom")
+HOME["steps"][2]["card_factory"] = lambda width: ParcelCandidateCards(width, HOME["steps"][2]["rows"], "home")
+CLASSROOM["steps"][2]["card_factory"] = lambda width: ParcelCandidateCards(width, CLASSROOM["steps"][2]["rows"], "classroom")
+for story in (HOME, CLASSROOM):
+    story["steps"][2]["card_note"] = "The picture and printed labels show the same clues. A grown-up may cut each parcel card, or the group can compare them here."
 HOME["steps"][0]["card_note"] = "Compare the leaf or moon outline, star count and day together. Each printed label repeats the pictured clue; no colour clue is needed."
 CLASSROOM["steps"][0]["card_note"] = "Compare the round or square outline, dot count and day together. Each printed label repeats the pictured clue; no colour clue is needed."
 HOME["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
