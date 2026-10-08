@@ -12,9 +12,9 @@
 | `HANDOFF.md` | 已补交 | 本目录的 `HANDOFF.md`。 |
 | 首页和多页面 HTML | 有功能等价物 | React/Vite 源码，构建后在 `dist/client/` 产生 31 个页面；并非手册示例的独立 Tailwind HTML。 |
 | 页面设计截图 | 部分 | 项目根目录 `qa-*.png`；全路由与错误/空/权限态的补图清单见 `ROUTE_STATE_MATRIX.md`。 |
-| 品牌素材 | 已在本地补齐 | `public/icon.svg`、字标/横版/竖版 Logo、favicon 多尺寸、Apple touch icon、OG 图、Hero 和主题图。 |
+| 品牌素材 | 已在本地补齐；来源审核待完成 | `public/icon.svg`、字标/横版/竖版 Logo、favicon 多尺寸、Apple touch icon、OG 图、Hero 和主题图；34 个公开/内部视觉文件的尺寸、字节数和 SHA-256 已列入 `ASSET_FILE_REGISTER.md`，不等于权利审核。 |
 | 实际材料预览 | 内部草稿已补交 | `material-previews/` 两张由 Home/Classroom 未发布 PDF 渲染的样张，不能公开宣称成品。 |
 | PRD 和设计系统 | 已有 | 根目录整合 PRD；本目录 `HANDOFF.md`、`tokens.json` 与源码 CSS。 |
-| 线上 favicon | 待部署验证 | 核查时 `https://paperadventure.app/favicon.ico` 返回 404，原因是旧预览部署没有图标文件；新 ZIP 已生成，尚未上传。 |
+| 线上 favicon | 已部署，视觉待复核 | 2026-10-08 GitHub Actions run 37787113031 发布新资源；`https://paperadventure.app/favicon.ico` 返回 HTTP 200 和图标 MIME 类型。右侧浏览器标签页视觉效果仍待复核。 |
 
-结论：UI 设计交接资料已形成可供前端继续使用的包，但阶段状态仍为 `[NEEDS_REVIEW]`：竞品像素级视觉核验、全路由/状态截图、素材权利追溯和线上 favicon 验证未完成。浏览器标签页显示通用地球图标是旧线上部署缺少 favicon 的直接表现；本地已修正，线上需部署并复验。
+结论：UI 设计交接资料已形成可供前端继续使用的包，但阶段状态仍为 `[NEEDS_REVIEW]`：竞品视觉核验、全路由/状态截图、素材权利追溯、浏览器标签页视觉效果和 OG 社交抓取尚未完成。旧部署的 favicon 404 已在 2026-10-08 修复并通过线上 HTTP 检查。

@@ -12,7 +12,7 @@
 | 全站页面源、关键状态与路由说明 | DONE | `../src/`, `../shared/page-manifest.mjs`, `ROUTE_STATE_MATRIX.md`。 |
 | 原型的现有桌面/手机截图与行为 QA | DONE | `../qa-*.png`, `../design-qa.md`。 |
 | 全 31 路由及缺失状态的新一轮现场截图 | NEEDS_REVIEW | 按 `ROUTE_STATE_MATRIX.md` 补图，覆盖 1440/390 和关键错误/空/禁用态。 |
-| Logo、favicon、OG 与素材来源表 | DONE | `../public/`, `ASSET_PROVENANCE.md`。 |
+| Logo、favicon、OG 与素材来源表 | DONE（文件版本已登记） | `../public/`, `ASSET_PROVENANCE.md`, `ASSET_FILE_REGISTER.md`；34 个文件的尺寸和 SHA-256 可复核，使用权仍须另审。 |
 | 两张实际材料预览 | DONE（内部草稿） | `material-previews/`，来自未公开 PDF；不发布到站点。 |
 | 完整资产权利/生成日志与字体许可 | NEEDS_REVIEW | 原始图像提示词未保存，需正式发布前审核。 |
 | Cloudflare 图标部署与线上验收 | 部分完成 | 2026-10-08 GitHub Actions run 37787113031 已将 favicon 与图标部署到预览 Worker；`/favicon.ico` 返回 HTTP 200。右侧浏览器的标签页视觉核验仍待控制组件恢复。 |
