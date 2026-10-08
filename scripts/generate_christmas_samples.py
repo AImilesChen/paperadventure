@@ -36,12 +36,12 @@ HOME = {
              "All three places must appear exactly once in the paper route.",
              ["First remove the wrong batch.", "Match each shape to the stated character and place.", "A-Owl, B-Fox, C-Rabbit; keep their places."],
              "Destination cards: OWL WINDOW / FOX DEN / RABBIT GATE"),
-        step("Share the route conditions", "Guide: FOX DEN comes BEFORE OWL WINDOW. Clock: RABBIT GATE is LAST. Map: start at the paper OFFICE and visit all three places once. Choose one order.",
-             ["Route", "First", "Second", "Last"],
-             [["A", "OWL WINDOW", "FOX DEN", "RABBIT GATE"], ["B", "FOX DEN", "OWL WINDOW", "RABBIT GATE"], ["C", "FOX DEN", "RABBIT GATE", "OWL WINDOW"], ["D", "RABBIT GATE", "FOX DEN", "OWL WINDOW"]],
+        step("Share the route conditions", "Use your gift-to-place pairs from Checkpoint 2. Guide: FOX DEN comes BEFORE OWL WINDOW. Clock: RABBIT GATE is LAST. Map: visit the three places once. Put the gift LETTERS in route order.",
+             ["Route", "First gift", "Second gift", "Last gift"],
+             [["A", "A", "B", "C"], ["B", "B", "A", "C"], ["C", "B", "C", "A"], ["D", "C", "B", "A"]],
              "Route B; FOX-OWL-RABBIT", "FOX-OWL-RABBIT / RABBIT GATE", "Last-stop paper envelope", ["Matching route", "Last story place"],
              "Only the last place has the coded paper thank-you note.",
-             ["Let each role read one condition.", "Rabbit is last and Fox is before Owl.", "Route B; give FOX-OWL-RABBIT."]),
+             ["Use the three gift-to-place pairs first.", "Rabbit's gift is last and Fox's gift comes before Owl's.", "Route B: gifts B-A-C; give FOX-OWL-RABBIT."]),
         step("Read the final paper note", "Find the envelope for the LAST place on your route. Use the printed dictionary in order; the note is pretend and no one needs to go anywhere.",
              ["Envelope", "Paper code", "Note state"],
              [["FOX DEN", "--", "Blank"], ["RABBIT GATE", "TREE / STAR / MOON", "Coded"], ["OWL WINDOW", "--", "Blank"]],
@@ -107,7 +107,7 @@ def validate_logic():
             assert len(item["hints"]) == 3
             assert all(len(row) == len(item["heads"]) for row in item["rows"])
     assert [r[0] for r in HOME["steps"][0]["rows"] if r[1:4] == ["Snowflake", "2", "Star"]] == ["A"]
-    assert [r[0] for r in HOME["steps"][2]["rows"] if r[1:] == ["FOX DEN", "OWL WINDOW", "RABBIT GATE"]] == ["B"]
+    assert [r[0] for r in HOME["steps"][2]["rows"] if r[1:] == ["B", "A", "C"]] == ["B"]
     assert [r[0] for r in HOME["steps"][4]["rows"] if r[1:] == ["B3", "FOX-OWL-RABBIT", "RABBIT", "GO!"]] == ["A"]
     assert [r[0] for r in CLASSROOM["steps"][0]["rows"] if r[1:4] == ["Square", "2", "SNOW"]] == ["B"]
     assert [r[0] for r in CLASSROOM["steps"][2]["rows"] if r[1:] == ["STAR", "BELL", "BOOK"]] == ["B"]

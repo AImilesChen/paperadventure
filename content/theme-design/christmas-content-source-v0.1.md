@@ -10,7 +10,7 @@
 |---|---|---|
 | 1 标签批次 | 待找清单有雪花框、两枚圆点、纸星印。A=snow/two/star/**B3**；B=snow/one/star/B2；C=leaf/two/star/B4；D=snow/two/moon/B5。 | A，得 `batch=B3`，只处理 B3 订单。 |
 | 2 纸礼物配对 | B3 订单：Owl 角色喜爱圆形图画，Fox 喜爱方形图画，Rabbit 喜爱三角图画；礼物卡 A=circle、B=square、C=triangle，目的地卡分别 OWL WINDOW、FOX DEN、RABBIT GATE。卡片只用于故事，不收集孩子喜好。 | 唯一配对 A→OWL、B→FOX、C→RABBIT；三站进入路线排序。 |
-| 3 分工排路线 | Guide 卡：“FOX DEN 在 OWL WINDOW 之前”；Clock 卡：“RABBIT GATE 最后”；Map 卡：“从纸上 OFFICE 出发恰好经过这三站，不重复”。候选顺序 A=OWL-FOX-RABBIT；B=**FOX-OWL-RABBIT**；C=FOX-RABBIT-OWL；D=RABBIT-FOX-OWL。 | B，得 `route=FOX→OWL→RABBIT`；最后一站用于读留言。 |
+| 3 分工排路线 | 使用第二关配对：礼物 A=Owl、B=Fox、C=Rabbit。Guide 卡：“FOX DEN 在 OWL WINDOW 之前”；Clock 卡：“RABBIT GATE 最后”；Map 卡：“三站不重复”。候选**礼物字母**顺序 A=A-B-C；B=**B-A-C**；C=B-C-A；D=C-B-A。必须先把礼物字母译为地点才能应用条件。 | 候选 B，得 `route=FOX→OWL→RABBIT`；最后一站用于读留言。 |
 | 4 解留言 | 只有 RABBIT GATE 的纸信封印有编码 `TREE / STAR / MOON`；完整字典 TREE=G、STAR=O、MOON=!，按原顺序读。其它站只有空白故事纸卡，不作为额外答案。 | `message=GO!`，确认最后一站 `RABBIT GATE`；标点是回信标记的一部分，不需真正出发。 |
 | 5 最终投递 | 回信候选 A=B3/FOX-OWL-RABBIT/RABBIT GATE/GO!；B=B3/OWL-FOX-RABBIT/RABBIT GATE/GO!；C=B2/FOX-OWL-RABBIT/RABBIT GATE/GO!；D=B3/FOX-OWL-RABBIT/FOX DEN/GO!；E=B3/FOX-OWL-RABBIT/RABBIT GATE/NO!。 | A。成人出示纸质感谢信；可选奖励由成人另行决定，不写进商品必需材料。 |
 
