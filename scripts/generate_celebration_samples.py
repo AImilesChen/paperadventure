@@ -179,6 +179,39 @@ class BadgeTemplate(Flowable):
         c.restoreState()
 
 
+class FinaleLetterCard(Flowable):
+    """An optional adult-held paper ending, complete without a gift or real hiding spot."""
+
+    def __init__(self, width):
+        super().__init__()
+        self.width = width
+        self.height = 163
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setStrokeColor(LINE)
+        c.setLineWidth(.9)
+        c.roundRect(0, 0, self.width, self.height, 7, fill=0, stroke=1)
+        c.setFillColor(NAVY)
+        c.setFont("ArialBold", 8.7)
+        c.drawString(14, 141, "FENN'S PAPER LETTER  /  GIVE AFTER PARCEL A IS CONFIRMED")
+        c.setFillColor(INK)
+        c.setFont("Arial", 9.3)
+        lines = [
+            "Dear explorers,",
+            "Your RED flag, label 4 and TABLE clue pointed to the right parcel.",
+            "You found the path by sharing what each explorer knew.",
+            "That is the real treasure!",
+            "From Fenn the fox",
+        ]
+        for index, line in enumerate(lines):
+            c.drawString(17, 117 - index * 19, line)
+        c.setFont("Arial", 8.2)
+        c.drawString(17, 14, "Optional grown-up note: ____________________________________________")
+        c.restoreState()
+
+
 class RouteAssemblyBoard(Flowable):
     """Three blank slots for placing route strips or writing their endpoints in order."""
 
@@ -255,7 +288,7 @@ def home_player(width):
                 ["5. Finale", "Parcel ID: __________________________________"],
             ], [width * .29, width * .71]), gap(17),
             p("How to play", "h2"),
-            p("Work together. Your grown-up hands out the checkpoint pages one at a time. Keep this trail page nearby. You need only a pencil and these printed pages; the final surprise can be a simple note in an envelope."),
+            p("Work together. Your grown-up hands out the checkpoint pages one at a time. Keep this trail page nearby. You need only a pencil and these printed pages; the final surprise is a paper letter kept in the adult guide. An envelope is optional."),
             p("If a clue feels tricky, ask for a hint. No one needs to run, enter a hidden place, or use a special lock.", "small")]
     flow += [PageBreak()]
 
@@ -296,7 +329,7 @@ def home_player(width):
         ["C", "BLUE", "4", "TABLE"], ["D", "RED", "5", "TABLE"],
     ], width) + [p("Your grown-up may cut out the bordered parcel cards; you can also compare them on this page.", "small"), gap(10)]
     flow += write_line("The matching parcel is")
-    flow += [box("<b>Tell your grown-up your parcel ID and explain your three clues.</b><br/>When they confirm it, open the celebration envelope together. Fenn says: 'You found the path by sharing what each explorer knew. That is the real treasure!'", width, CREAM), gap(15),
+    flow += [box("<b>Tell your grown-up your parcel ID and explain your three clues.</b><br/>After they confirm it, they will hand you Fenn's paper letter. Read it together to finish the story.", width, CREAM), gap(15),
              p("Optional team note: Our best teamwork moment was _______________________________", "small")]
     return flow
 
@@ -305,14 +338,14 @@ def home_guide(width):
     flow = [p("HOME / H01 / HOST GUIDE", "eyebrow"), p("The Missing Birthday Chest", "title"),
             box("<b>Content draft for adult review.</b> This is a complete paper puzzle sequence, but it has not been play-tested or approved for public download. The 'treasure' can be a simple note in an envelope; a purchased gift or locked box is never required.", width, CREAM),
             gap(17), p("Prepare the activity", "h2"),
-            p("Print one Player Pack for the group and one Host Guide for yourself, in the same paper size. Keep this guide and the answer table away from players. Give the cover/trail first, then one checkpoint page at a time. Provide pencils. Write an optional warm celebration message on a separate sheet and seal it in an envelope."),
-            p("For Checkpoint 4, you can say the code key came from the chosen label. For Checkpoint 5, either keep the finale envelope in your hand or place it on an accessible table that you have checked. Do not send children to a private room or unsafe hiding place."),
+            p("Print one Player Pack for the group and one Host Guide for yourself, in the same paper size. Keep this guide and the answer table away from players. Give the cover/trail first, then one checkpoint page at a time. Provide pencils. The printable Fenn letter on the last guide page completes the story; you may add a personal celebration message if you wish."),
+            p("For Checkpoint 4, you can say the code key came from the chosen label. For Checkpoint 5, keep the cut-out Fenn letter in your hand or place an optional envelope on an accessible table that you have checked. Do not send children to a private room or unsafe hiding place."),
             p("Print count: Player Pack 1 per cooperating group; Host Guide 1 per adult. At Checkpoint 2, optional bordered route strips can be cut out or numbered on the page. At Checkpoint 3, an adult may cut out the three role cards and hand out one per explorer, or cover and reveal them in turn. No cutting is required to solve the puzzle. A4 and US Letter files are exported separately."),
             gap(10), p("Story state at a glance", "h2"),
             grid(["Checkpoint", "Required result", "Used next for"], [
                 ["1", "Letter A; SUN", "Route start"], ["2", "A-B-C; RED FLAG", "Label colour"],
                 ["3", "Label A; number 4", "Code key and finale"], ["4", "TABLE", "Final parcel place"],
-                ["5", "Parcel A", "Deliver finale envelope"],
+                ["5", "Parcel A", "Hand over Fenn's paper letter"],
             ], [width*.19, width*.37, width*.44]), PageBreak()]
 
     flow += [p("Answer key and checks", "eyebrow"), p("Five connected checkpoints", "h1"),
@@ -320,7 +353,7 @@ def home_guide(width):
              p("2. <b>A-B-C -> RED FLAG.</b> A ends at TREE, B begins there and ends at BRIDGE, C reaches RED FLAG. D-E reaches CLOUD but no flag. Record RED."),
              p("3. <b>Label A, number 4.</b> The route gives RED; the Maker requires 2 stars; the Keeper requires 4. Each other label fails exactly one condition."),
              p("4. <b>TABLE.</b> SUN=T, CLOUD=A, FLAG=B, MOON=L, PATH=E. The coded row uses that exact order."),
-             p("5. <b>Parcel A.</b> It alone matches RED, 4, and TABLE. B fails the place; C fails the flag; D fails the number. Deliver the prepared envelope only after the group explains all three."),
+             p("5. <b>Parcel A.</b> It alone matches RED, 4, and TABLE. B fails the place; C fails the flag; D fails the number. Hand over the included paper letter only after the group explains all three."),
              gap(9), p("Hint ladder", "h2"),
              grid(["Stage", "First hint", "Stronger hint"], [
                  ["1", "Count the dots and check the animal.", "Which fox has three dots?"],
@@ -331,11 +364,14 @@ def home_guide(width):
              ], [width*.13, width*.42, width*.45]), PageBreak()]
 
     flow += [p("Before you play", "eyebrow"), p("Adult safety and quality check", "h1"),
-             p("<b>Adult supervision:</b> This is a paper-based story game. Confirm the group's reading needs and real space. Do not place materials where reaching, climbing, running, or touching private belongings is required. The story's TABLE word may remain fictional; you may hand over the envelope."),
+             p("<b>Adult supervision:</b> This is a paper-based story game. Confirm the group's reading needs and real space. Do not place materials where reaching, climbing, running, or touching private belongings is required. The story's TABLE word may remain fictional; hand over the paper letter directly if preferred."),
              p("<b>Flexible occasion:</b> The source PRD uses a birthday chest, but this draft can be introduced as a general celebration. Do not assume a child's name, exact age, or personal occasion. Add such details only if the adult chooses them."),
              p("<b>When players struggle:</b> Offer the first hint, then the stronger hint. Keep the previous solved page visible. If a group guesses the final card, ask them to explain the flag, number, and place before the reveal."),
              p("<b>Draft QA:</b> Check that each page prints within margins, that the stage order is preserved, and that the adult guide stays separate from player copies. At Checkpoint 5, the adult may cut the parcel cards or leave them on the page. Record any ambiguous instruction or wrong answer during a representative play session before publishing."),
-             box("<b>Publication status:</b> NOT PLAY-TESTED. Do not call this a finished free sample, sell it, or enable downloads from the site until content, printing, accessibility, and legal/product checks pass.", width, CREAM)]
+             box("<b>Publication status:</b> NOT PLAY-TESTED. Do not call this a finished free sample, sell it, or enable downloads from the site until content, printing, accessibility, and legal/product checks pass.", width, CREAM),
+             gap(18), p("Printable finale letter", "h2"),
+             p("Keep this guide private. An adult may cut along the card border or copy the words onto plain paper; an envelope is optional.", "small"),
+             FinaleLetterCard(width)]
     return flow
 
 

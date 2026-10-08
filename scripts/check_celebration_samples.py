@@ -37,8 +37,11 @@ def main():
                     assert "OUR ADVENTURE CLUB BADGE" in text, (path.name, "missing paper badge template")
                 if "H01" in path.name:
                     assert "Parcel A" in text and "Parcel D" in text and "bordered parcel cards" in text, (path.name, "missing parcel cards")
+                    assert "FENN'S PAPER LETTER" not in text, (path.name, "adult finale revealed in player pack")
             else:
                 assert "Publication status: NOT PLAY-TESTED" in text, path.name
+                if "H01" in path.name:
+                    assert "FENN'S PAPER LETTER" in text and "That is the real treasure!" in text, (path.name, "missing printable finale")
             for page in pdf.pages:
                 assert len(page.chars) > 150, (path.name, page.page_number, "possibly blank")
                 for char in page.chars:
