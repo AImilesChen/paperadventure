@@ -42,8 +42,14 @@ CLASS_INVITATION_CARDS = [
     ("C", "STAR", 2, "LIBRARY"),
 ]
 HOME_LABEL_CARDS = [
-    ("A", "RED", 2, 4), ("B", "RED", 1, 4),
-    ("C", "BLUE", 2, 4), ("D", "RED", 2, 5),
+    ("A", "RED", 2, 4, "FOX"), ("B", "RED", 1, 4, "BELL"),
+    ("C", "BLUE", 2, 4, "KITE"), ("D", "RED", 2, 5, "LEAF"),
+]
+HOME_CODE_ROWS = [
+    ("FOX", "T", "A", "B", "L", "E"),
+    ("BELL", "S", "H", "E", "L", "F"),
+    ("KITE", "C", "H", "A", "I", "R"),
+    ("LEAF", "F", "L", "O", "O", "R"),
 ]
 CLASS_EQUIPMENT_CARDS = [
     ("A", "BLUE", 2, "TRIANGLE", "2 - 4 - 1 - 3"),
@@ -404,8 +410,8 @@ class CelebrationChoiceCards(Flowable):
                 c.drawCentredString(right, y + 34, str(value))
                 c.setFont("Arial", 8)
                 c.drawCentredString(right, y + 24, f"NUMBER {value}")
-                c.setFont("Arial", 8)
-                c.drawString(x + 11, y + 10, "DELIVERY LABEL")
+                c.setFont("ArialBold", 8)
+                c.drawString(x + 11, y + 10, f"CODE MARK / {row[4]}")
             else:
                 if value == "TRIANGLE":
                     path = c.beginPath()
@@ -463,7 +469,7 @@ def home_player(width):
             grid(["Checkpoint", "Record what you discovered"], [
                 ["1. Letter", "Letter ID and route start: ____________________"],
                 ["2. Route", "Flag colour: ________________________________"],
-                ["3. Label", "Label number: ______________________________"],
+                ["3. Label", "Label number / code mark: ____________________"],
                 ["4. Message", "Place word: _________________________________"],
                 ["5. Finale", "Parcel ID: __________________________________"],
             ], [width * .29, width * .71]), gap(17),
@@ -489,13 +495,13 @@ def home_player(width):
         ["Maker", "The correct label has exactly TWO stars."],
         ["Keeper", "The correct label number is FOUR."],
     ], width) + [p("An adult may cut out the three role clues and four bordered labels; you can also compare them on this page.", "small"), gap(6), CelebrationChoiceCards(width, HOME_LABEL_CARDS, "home"), gap(9)]
-    flow += write_line("Our label is") + write_line("Its number is")
-    flow += [box("<b>Story clue:</b> Inside the correct label is a small code key. Your grown-up will hand out that key on the next page.", width), PageBreak()]
+    flow += write_line("Our label is") + write_line("Its number is") + write_line("Its code mark is")
+    flow += [box("<b>Story clue:</b> Use the code mark printed on your chosen label to select one dictionary row on the next page.", width), PageBreak()]
 
-    flow += page_heading(4, "Read the hidden message", "Use the key found in your chosen label. Replace each picture-word with its letter, then read the five letters in order.")
-    flow += [grid(["Picture-word", "Letter"], [
-        ["SUN", "T"], ["CLOUD", "A"], ["FLAG", "B"], ["MOON", "L"], ["PATH", "E"],
-    ], [width*.6, width*.4]), gap(15), box("<b>Fenn's coded note:</b><br/><br/>SUN &nbsp;&nbsp; CLOUD &nbsp;&nbsp; FLAG &nbsp;&nbsp; MOON &nbsp;&nbsp; PATH", width, CREAM), gap(18)]
+    flow += page_heading(4, "Read the hidden message", "Find the dictionary row with your label's CODE MARK. Read the letter under each picture-word in the printed order. Do not use a different label's row.")
+    flow += [grid(["Code mark", "SUN", "CLOUD", "FLAG", "MOON", "PATH"], HOME_CODE_ROWS,
+                  [width*.25, width*.14, width*.17, width*.15, width*.14, width*.15]),
+             gap(15), box("<b>Fenn's coded note:</b><br/><br/>SUN &nbsp;&nbsp; CLOUD &nbsp;&nbsp; FLAG &nbsp;&nbsp; MOON &nbsp;&nbsp; PATH", width, CREAM), gap(18)]
     flow += write_line("The place word is")
     flow += [p("This is a story clue, not an instruction to search without your grown-up. The adult will either use an approved table or hand you the finale envelope.", "small"), PageBreak()]
 
@@ -515,8 +521,8 @@ def home_guide(width):
             box("<b>Content draft for adult review.</b> This is a complete paper puzzle sequence, but it has not been play-tested or approved for public download. The 'treasure' can be a simple note in an envelope; a purchased gift or locked box is never required.", width, CREAM),
             gap(17), p("Prepare the activity", "h2"),
             p("Print one Player Pack for the group and one Host Guide for yourself, in the same paper size. Keep this guide and the answer table away from players. Give the cover/trail first, then one checkpoint page at a time. Provide pencils. The printable Fenn letter on the last guide page completes the story; you may add a personal celebration message if you wish."),
-            p("For Checkpoint 4, you can say the code key came from the chosen label. For Checkpoint 5, keep the cut-out Fenn letter in your hand or place an optional envelope on an accessible table that you have checked. Do not send children to a private room or unsafe hiding place."),
-            p("Print count: Player Pack 1 per cooperating group; Host Guide 1 per adult. At Checkpoint 2, optional bordered route strips can be cut out or numbered on the page. At Checkpoint 3, an adult may cut out the three role cards and four delivery labels, or cover and reveal them in turn. No cutting is required to solve the puzzle. A4 and US Letter files are exported separately."),
+            p("At Checkpoint 4, use the chosen label's code mark to pick a dictionary row. At Checkpoint 5, hand over Fenn's paper letter or use a checked, accessible table. Do not send children into private or unsafe spaces."),
+            p("Print one Player Pack per group and one private Host Guide. At Checkpoint 2, cut or number the route strips. At Checkpoint 3, an adult may cut the three role cards and four labels or reveal them on the page. Cutting is optional. Use matching A4 or US Letter files."),
             gap(10), p("Story state at a glance", "h2"),
             grid(["Checkpoint", "Required result", "Used next for"], [
                 ["1", "Letter A; SUN", "Route start"], ["2", "A-B-C; RED FLAG", "Label colour"],
@@ -527,15 +533,15 @@ def home_guide(width):
     flow += [p("Answer key and checks", "eyebrow"), p("Five connected checkpoints", "h1"),
              p("1. <b>Letter A.</b> It is the only fox seal with two ears and three dots. Its start word is SUN. B has two dots; C is an owl."),
              p("2. <b>A-B-C -> RED FLAG.</b> A ends at TREE, B begins there and ends at BRIDGE, C reaches RED FLAG. D-E reaches CLOUD but no flag. Record RED."),
-             p("3. <b>Label A, number 4.</b> The route gives RED; the Maker requires 2 stars; the Keeper requires 4. Each other label fails exactly one condition."),
-             p("4. <b>TABLE.</b> SUN=T, CLOUD=A, FLAG=B, MOON=L, PATH=E. The coded row uses that exact order."),
+             p("3. <b>Label A, number 4, code mark FOX.</b> The route gives RED; the Maker requires 2 stars; the Keeper requires 4. Each other label fails exactly one condition."),
+             p("4. <b>TABLE.</b> The FOX row gives SUN=T, CLOUD=A, FLAG=B, MOON=L, PATH=E in the printed order. Other code marks produce other words, so the chosen label is needed."),
              p("5. <b>Parcel A.</b> It alone matches RED, 4, and TABLE. B fails the place; C fails the flag; D fails the number. Hand over the included paper letter only after the group explains all three."),
              gap(9), p("Hint ladder", "h2"),
              grid(["Stage", "First hint", "Stronger hint"], [
                  ["1", "Count the dots and check the animal.", "Which fox has three dots?"],
                  ["2", "Start where your letter says. Match place names.", "One SUN route reaches RED FLAG; the other stops at CLOUD."],
                  ["3", "Listen to all three explorers.", "Compare RED, two stars, and number 4 together."],
-                 ["4", "Trade each picture-word for one letter.", "The first two letters are T and A."],
+                 ["4", "Find the row matching your label's code mark.", "The FOX row starts with T and A."],
                  ["5", "Read your trail page again.", "Find the one card with RED, 4, and TABLE."],
              ], [width*.13, width*.42, width*.45]), PageBreak()]
 
@@ -663,8 +669,11 @@ def validate_logic():
     assert [row[0] for row in CLASS_INVITATION_CARDS if row[1:3] == ("COMPASS", 2)] == ["B"]
     assert routes_to(HOME_ROUTE_CARDS, "SUN", "RED FLAG") == [["A", "B", "C"]]
     assert routes_to(CLASS_ROUTE_CARDS, "GATE", "WORKSHOP") == [["A", "B", "C"]]
-    assert [x[0] for x in HOME_LABEL_CARDS if x[1:] == ("RED", 2, 4)] == ["A"]
-    assert "".join({"SUN":"T", "CLOUD":"A", "FLAG":"B", "MOON":"L", "PATH":"E"}[s] for s in ["SUN","CLOUD","FLAG","MOON","PATH"]) == "TABLE"
+    assert [x[0] for x in HOME_LABEL_CARDS if x[1:4] == ("RED", 2, 4)] == ["A"]
+    assert len({x[4] for x in HOME_LABEL_CARDS}) == 4
+    assert {row[0]: "".join(row[1:]) for row in HOME_CODE_ROWS} == {
+        "FOX": "TABLE", "BELL": "SHELF", "KITE": "CHAIR", "LEAF": "FLOOR",
+    }
     assert [x[0] for x in CLASS_EQUIPMENT_CARDS if x[1:4] == ("BLUE", 2, "TRIANGLE")] == ["A"]
     assert len({x[4] for x in CLASS_EQUIPMENT_CARDS}) == 4
     assert CLASS_EQUIPMENT_CARDS[0][4] == "2 - 4 - 1 - 3"

@@ -54,10 +54,16 @@ def main():
                     assert first.count("SEAL DOTS") == 3, (path.name, "stamp dots not distinguished from animal eyes")
                     third = pdf.pages[3].extract_text() or ""
                     assert all(f"LABEL {letter}" in third for letter in "ABCD"), (path.name, "missing delivery label cards")
-                    assert third.count("DELIVERY LABEL") == 4
+                    assert third.count("CODE MARK /") == 4
+                    assert all(f"CODE MARK / {mark}" in third for mark in ("FOX", "BELL", "KITE", "LEAF"))
                     assert "FLAG / RED" in third and "FLAG / BLUE" in third
                     assert "1 STAR" in third and "2 STARS" in third
                     assert "NUMBER 4" in third and "NUMBER 5" in third
+                    fourth = pdf.pages[4].extract_text() or ""
+                    assert all(row in fourth for row in (
+                        "FOX T A B L E", "BELL S H E L F", "KITE C H A I R", "LEAF F L O O R",
+                    )), (path.name, "dictionary rows do not match label code marks")
+                    assert "Find the dictionary row with your label's CODE MARK" in fourth
             else:
                 assert "Publication status: NOT PLAY-TESTED" in text, path.name
                 if "H01" in path.name:
