@@ -4,6 +4,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { publicPages } from '../shared/page-manifest.mjs';
+import { themes } from '../shared/catalog.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
@@ -62,4 +63,21 @@ test('theme detail distinguishes both fixed-pack previews from unavailable payme
   }
   assert.match(html, /<button[^>]*disabled[^>]*>Home(?:<!-- -->)? pack not available<\/button>/);
   assert.match(html, /<button[^>]*disabled[^>]*>Classroom(?:<!-- -->)? pack not available<\/button>/);
+});
+
+test('each theme explains distinct Home and Classroom stories before a pack is published', async () => {
+  assert.equal(themes.length, 6);
+  const codes = new Set();
+  for (const theme of themes) {
+    const html = await read(`en/themes/${theme.id}/index.html`);
+    for (const setting of ['home', 'classroom']) {
+      const story = theme.story[setting];
+      assert.equal(story.beats.length, 5, `${theme.id} ${setting}`);
+      assert.ok(!codes.has(story.code), story.code);
+      codes.add(story.code);
+      assert.ok(html.includes(story.title.replaceAll("'", '&#x27;')), `${story.code} title missing`);
+      assert.ok(html.includes(story.goal.replaceAll("'", '&#x27;')), `${story.code} goal missing`);
+      assert.equal(theme[setting].readyStatus, 'not_published');
+    }
+  }
 });
