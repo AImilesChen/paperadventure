@@ -22,4 +22,6 @@ The owner has a GitHub account. The private repository is `https://github.com/AI
 
 Browser preference: the user explicitly requires all website browsing and UI interaction to stay in Codex's right-side in-app browser. Never launch or operate the computer's Chrome, Edge, or other desktop browser, including indirectly through an authentication helper.
 
+On 2026-10-08 the user reaffirmed that the site aims to serve a global audience and asked to finish product functionality before setting up this site's Stripe account. Continue local and preview-safe product development without connecting Stripe or opening real payment. The first paid markets and merchant legal identity can be resolved at the payment-release stage; do not narrow public browsing access based on the absence of a market decision. The dual-track legal/tax/privacy implementation update is `../故事冒险网站_法律税费隐私_双轨开发核查_v0.2.md`.
+
 On 2026-10-07, an attempted GitHub HTTPS push caused `git-remote-https.exe` to crash and display a Windows application-error dialog. The Git process has been stopped and the local commits are intact. Do not retry Git CLI authentication or remote pushes from this environment without a method that cannot launch or disturb the desktop; use only the in-app browser for future web interactions.

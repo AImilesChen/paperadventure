@@ -15,6 +15,7 @@ export const publicPages = Object.freeze([
   page('/en/samples/classroom/', 'Classroom Adventure Sample', 'Preview the planned player pages and teacher guide for a classroom adventure. The sample PDF is not yet published.'),
   page('/en/pricing/', 'Planned Prices and Rights', 'Compare planned one-time prices for ready-made packs and custom adventures. Checkout is closed while the products and policies are reviewed.'),
   page('/en/help/', 'Help', 'Find answers about planned printable packs, custom adventures, file access, and support.'),
+  page('/en/help/start/', 'Getting Started', 'Preview how an adult organiser guides a printable story adventure from invitation to final reveal.'),
   page('/en/help/print/', 'Printing Help', 'Preview printing guidance for player pages and organiser materials.'),
   page('/en/help/recover/', 'Order Recovery', 'See how verified order recovery will work when purchases become available.'),
   page('/en/help/report/', 'Report a Problem', 'Preview the support path for a missing or defective adventure file.'),

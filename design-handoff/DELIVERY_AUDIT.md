@@ -10,7 +10,7 @@
 | 首页页面生成 Prompt | 已补写可复现稿 | `PAGE_AND_ASSET_PROMPTS.md`；当时的原始 Prompt 仍未找到。 |
 | Logo / OG / Hero 图提示词 | 已补写可复现稿 | 同上；原始图像生成记录仍需追溯。 |
 | `HANDOFF.md` | 已补交 | 本目录的 `HANDOFF.md`。 |
-| 首页和多页面 HTML | 有功能等价物 | React/Vite 源码，构建后在 `dist/client/` 产生 30 个页面；并非手册示例的独立 Tailwind HTML。 |
+| 首页和多页面 HTML | 有功能等价物 | React/Vite 源码，构建后在 `dist/client/` 产生 31 个页面；并非手册示例的独立 Tailwind HTML。 |
 | 页面设计截图 | 部分 | 项目根目录 `qa-*.png`；全路由与错误/空/权限态的补图清单见 `ROUTE_STATE_MATRIX.md`。 |
 | 品牌素材 | 已在本地补齐 | `public/icon.svg`、字标/横版/竖版 Logo、favicon 多尺寸、Apple touch icon、OG 图、Hero 和主题图。 |
 | 实际材料预览 | 内部草稿已补交 | `material-previews/` 两张由 Home/Classroom 未发布 PDF 渲染的样张，不能公开宣称成品。 |

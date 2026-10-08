@@ -54,3 +54,12 @@ test('brand icons and social card are built and linked from every preview route'
     assert.ok((await stat(path.join(out, file))).size > 0, file);
   }
 });
+
+test('theme detail distinguishes both fixed-pack previews from unavailable payment', async () => {
+  const html = await read('en/themes/celebration/index.html');
+  for (const setting of ['home', 'classroom']) {
+    assert.ok(html.includes(`/en/checkout/demo/?kind=ready&amp;theme=celebration&amp;setting=${setting}`));
+  }
+  assert.match(html, /<button[^>]*disabled[^>]*>Home(?:<!-- -->)? pack not available<\/button>/);
+  assert.match(html, /<button[^>]*disabled[^>]*>Classroom(?:<!-- -->)? pack not available<\/button>/);
+});

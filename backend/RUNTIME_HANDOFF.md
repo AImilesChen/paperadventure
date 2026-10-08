@@ -25,6 +25,8 @@ All flags in the template are **false**. The checked-in catalog remains a previe
 
 ## Setup sequence after business details arrive
 
+The owner requested on 2026-10-08 that product functionality be developed before this site's Stripe setup. The public site may target a global audience while checkout stays closed; do not treat a limited launch-market decision as a prerequisite for local development. See `../../故事冒险网站_法律税费隐私_双轨开发核查_v0.2.md` for the current dual-track compliance and tax handoff.
+
 1. Choose exact initial checkout markets, business identity, sender domain, consumer licence, file access period, tax treatment, legal text and refund flow. Have the legal documents reviewed for the markets actually sold to. Do not flip `LEGAL_RELEASED` merely because a draft exists.
    The four supported-age/player limits in the Wrangler template are `0` on purpose. Replace them only with ranges supported by actual Home and Classroom play-testing; the numbers used in unit tests are mock fixtures, not product claims.
 2. Play-test and approve the Celebration Home and Classroom PDFs separately. Upload final files to a private R2 bucket; create a `ready_packs` version and four `ready_pack_files` rows per setting, with each R2 object's `customMetadata.sha256` matching the database. Only then consider `FREE_SAMPLE_ENABLED=true`.

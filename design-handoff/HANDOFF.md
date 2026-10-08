@@ -13,7 +13,7 @@ Updated: 2026-10-08. This package describes the **noindex design preview**, not 
 
 ## Source and design system
 
-The runnable implementation is in `../src/`; `../index.html` is the entry template. `../scripts/generate-static-pages.mjs` generates 30 route-specific pages in `../dist/client/`, including the home, catalog, theme, pricing, creator, help and legal preview pages. This React/Vite implementation is the working equivalent of the manual's separate `landing.html` and keyword HTML files; it is not a Tailwind/Stitch export.
+The runnable implementation is in `../src/`; `../index.html` is the entry template. `../scripts/generate-static-pages.mjs` generates 31 route-specific pages in `../dist/client/`, including the home, catalog, theme, pricing, creator, help and legal preview pages. This React/Vite implementation is the working equivalent of the manual's separate `landing.html` and keyword HTML files; it is not a Tailwind/Stitch export.
 
 | Element | Current choice |
 | --- | --- |
