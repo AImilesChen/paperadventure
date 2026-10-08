@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "output" / "pdf"
 OUT.mkdir(parents=True, exist_ok=True)
 CELEBRATION_ART = ROOT / "public" / "assets" / "celebration.png"
+CELEBRATION_CLASSROOM_ART = ROOT / "public" / "assets" / "celebration-classroom-v0.1.jpg"
 
 BLUE = colors.HexColor("#DDF1FA")
 NAVY = colors.HexColor("#153B56")
@@ -132,8 +133,8 @@ def page_heading(number, title, story):
     return [p(f"CHECKPOINT {number:02d} / 05", "eyebrow"), p(title, "h1"), p(story), gap(8)]
 
 
-def cover_art():
-    art = Image(str(CELEBRATION_ART), width=125, height=94)
+def cover_art(path):
+    art = Image(str(path), width=125, height=94)
     art.hAlign = "CENTER"
     return [gap(10), art, gap(5), p("Story-world illustration - the puzzle answers are in the printed clue tables.", "small")]
 
@@ -174,7 +175,7 @@ def make_doc(filename, pagesize, code, paper_label, flow):
 def home_player(width):
     flow = [p("HOME / H01 / PLAYER PACK", "eyebrow"), p("The Missing Birthday Chest", "title"),
             box("<b>Dear explorers,</b><br/>Fenn the fox has safely tucked away a celebration surprise. It is not lost or stolen. Follow the five paper clues, share what you notice, and tell your grown-up which parcel should be delivered at the end.", width, CREAM),
-            gap(20), p("Your team trail", "h2"),
+            *cover_art(CELEBRATION_ART), gap(14), p("Your team trail", "h2"),
             grid(["Checkpoint", "Record what you discovered"], [
                 ["1. Letter", "Letter ID and route start: ____________________"],
                 ["2. Route", "Flag colour: ________________________________"],
@@ -283,7 +284,7 @@ def class_player(width):
             ], [width*.31, width*.69]), gap(16),
             p("Work as one group", "h2"), p("Take turns as Reader, Spotter, Recorder and Checker. If your group has fewer than four people, combine roles. Every group has all the clues it needs; you do not need another group's answer."),
             p("Use a pencil. Your teacher gives one checkpoint page at a time. Ask for a hint when needed. A team name is optional; do not write private information on the badge.", "small")]
-    flow += cover_art() + [PageBreak()]
+    flow += cover_art(CELEBRATION_CLASSROOM_ART) + [PageBreak()]
 
     flow += page_heading(1, "Find the club invitation", "The correct club invitation has a COMPASS seal and exactly TWO stars. Which card should your group open?")
     flow += [grid(["Card", "Seal", "Stars", "Route start"], [

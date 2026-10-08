@@ -3,6 +3,8 @@
 from pathlib import Path
 import hashlib
 import json
+import shutil
+import subprocess
 
 from PIL import Image, ImageOps
 from pypdf import PdfReader
@@ -31,9 +33,15 @@ for item in manifest["items"]:
             assert f"CHECKPOINT {stage:02d} / 05" in all_text, (path, stage)
 
 qa_dir = ROOT / "tmp" / "pdfs" / "dinosaur-qa"
+qa_dir.mkdir(parents=True, exist_ok=True)
+poppler = shutil.which("pdftoppm")
+assert poppler, "pdftoppm is required to render current PDF pages for visual QA"
 for paper in ["A4", "Letter"]:
     for code, role in [("H02", "player"), ("H02", "host"), ("C02", "player"), ("C02", "teacher")]:
         prefix = f"dinosaur-{code}-{role}-v0.1-{paper}"
+        pdf_path = ROOT / "output" / "pdf" / f"{prefix}.pdf"
+        subprocess.run([poppler, "-r", "96", "-png", str(pdf_path), str(qa_dir / prefix)],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         pngs = sorted(qa_dir.glob(f"{prefix}-*.png"))
         assert len(pngs) == (6 if role == "player" else 3), (prefix, len(pngs))
         thumbs = []

@@ -12,6 +12,7 @@
 | `../public/assets/halloween-friendly-v0.1.jpg` | 2026-10-08 使用 Codex 内置 imagegen 以原 `halloween.png` 为编辑目标生成，项目本地保留高分辨率 PNG；提示与边界见 `THEME_VISUAL_VARIANTS.md` | 新的友好纸艺世界封面候选，网页使用压缩 JPEG；仍非可售 PDF 预览，正式发布前复核权利及儿童感受。 |
 | `../public/assets/winter-classroom-v0.1.jpg` | 2026-10-08 使用 Codex 内置 imagegen 以原 `christmas.png` 为编辑目标生成，项目本地保留高分辨率 PNG；提示与边界见 `THEME_VISUAL_VARIANTS.md` | C06 非特定节庆 Winter 视觉候选；网页课堂故事卡展示压缩 JPEG，对应资料包已有未验收的内部 PDF 草稿。 |
 | `../public/assets/autumn-classroom-v0.1.jpg` | 2026-10-08 使用 Codex 内置 imagegen 以友好万圣节变体为编辑目标生成，项目本地保留高分辨率 PNG；提示与边界见 `THEME_VISUAL_VARIANTS.md` | C05 非特定节庆 Autumn 视觉候选；网页课堂故事卡展示压缩 JPEG，对应资料包已有未验收的内部 PDF 草稿。 |
+| `../public/assets/celebration-classroom-v0.1.jpg` | 2026-10-08 使用 Codex 内置 imagegen 以原 `celebration.png` 为编辑目标生成；项目内保留优化 PNG，原始高分辨率图在 CodexHome 生成目录；来源见 `THEME_VISUAL_VARIANTS.md` | C01 探险俱乐部概念图，用于网页课堂故事卡和内部 PDF 封面，替代不相符的生日礼物封面；仍需正式素材及儿童感受审查。 |
 | `material-previews/celebration-home-draft.jpg` | 从未公开的 `output/pdf/celebration-H01-player-v0.1-A4.pdf` 第 2 页渲染；详情见 `../content/celebration-pdf-manifest.v0.1.json` | 仅私有设计审阅，已加 DRAFT 标记；不得当作可下载成品在站点公开。 |
 | `material-previews/celebration-classroom-draft.jpg` | 从未公开的 `output/pdf/celebration-C01-player-v0.1-A4.pdf` 第 2 页渲染；同上 | 同上。 |
 | `../qa-*.png` | 前期 Codex 右侧浏览器原型 QA 截图 | 设计比较证据，不是用户评价或商品材料。 |
