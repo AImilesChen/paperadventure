@@ -75,8 +75,14 @@ for item in manifest["items"]:
                 assert "CODE  P3" in parcel_page and "AREA  TREEHOUSE ROW" in parcel_page
             expected = ("POST ROUTE / SORT THREE M2 STRIPS" if item["setting"] == "home"
                         else "INVESTIGATION ROUTE / SORT TWO R7 STRIPS")
-            assert expected in second_page, (path, "missing postal route workspace")
-            assert "STRIP 1" in second_page and "FINISH / NAMED" in second_page
+            assert expected in second_page, (path, "missing postal route map")
+            places = (("POST OFFICE", "BRIDGE", "MOSS LANE", "BLUE TREE", "POND", "NO MAILBOX")
+                      if item["setting"] == "home"
+                      else ("POST OFFICE", "STONE PATH", "TREEHOUSE ROW", "POND", "NO ROUTE"))
+            for place in places:
+                assert f"MAP / {place}" in second_page, (path, "missing postal map node", place)
+            assert "Use your batch to choose strips" in second_page
+            assert ("Strip order" if item["setting"] == "home" else "Useful strip order") in second_page
             fourth_page = all_text[4]
             assert ("FICTIONAL FOREST MAP" if item["setting"] == "home"
                     else "INVESTIGATION MAP / FOUR STORY BLOCKS") in fourth_page

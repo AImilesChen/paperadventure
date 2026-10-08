@@ -4,10 +4,45 @@ from pathlib import Path
 from math import cos, pi, sin
 from reportlab.lib import colors
 from reportlab.platypus import Flowable
-from generate_space_samples import PaperRouteWorkspace, render_drafts
+from generate_space_samples import render_drafts
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class PostalRouteMap(Flowable):
+    """Unconnected fictional postal places; the batch-matched strips determine links."""
+
+    def __init__(self, width, title, places):
+        super().__init__()
+        self.width = width
+        self.height = 140
+        self.title = title
+        self.places = places
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        navy = colors.HexColor("#153B56")
+        c.setFillColor(navy)
+        c.setFont("ArialBold", 8.5)
+        c.drawString(0, 126, self.title)
+        c.setFont("Arial", 8.5)
+        c.drawString(0, 112, "Use your batch to choose strips; connect places only when their names match.")
+        c.setStrokeColor(colors.HexColor("#8BAFC1"))
+        c.setLineWidth(.8)
+        c.roundRect(0, 5, self.width, 94, 5, fill=0, stroke=1)
+        card_width = min(137, (self.width - 46) / 3)
+        columns = (0, (self.width - card_width) / 2, self.width - card_width)
+        for index, place in enumerate(self.places):
+            x = columns[index % 3]
+            y = 66 if index < 3 else 17
+            c.setFillColor(colors.white)
+            c.roundRect(x + 5, y, card_width - 10, 27, 4, fill=1, stroke=1)
+            c.setFillColor(navy)
+            c.setFont("ArialBold", 8.2)
+            c.drawCentredString(x + card_width / 2, y + 10, f"MAP / {place}")
+        c.restoreState()
 
 
 class PostmarkCards(Flowable):
@@ -373,10 +408,12 @@ for story in (HOME, CLASSROOM):
     story["steps"][2]["card_note"] = "The picture and printed labels show the same clues. A grown-up may cut each parcel card, or the group can compare them here."
 HOME["steps"][0]["card_note"] = "Compare the leaf or moon outline, star count and day together. Each printed label repeats the pictured clue; no colour clue is needed."
 CLASSROOM["steps"][0]["card_note"] = "Compare the round or square outline, dot count and day together. Each printed label repeats the pictured clue; no colour clue is needed."
-HOME["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
-    width, "NORI'S POST ROUTE / SORT THREE M2 STRIPS", 3, "POST OFFICE", "NAMED TREE")
-CLASSROOM["steps"][1]["template_factory"] = lambda width: PaperRouteWorkspace(
-    width, "INVESTIGATION ROUTE / SORT TWO R7 STRIPS", 2, "POST OFFICE", "NAMED ROW")
+HOME["steps"][1]["template_factory"] = lambda width: PostalRouteMap(
+    width, "NORI'S POST ROUTE / SORT THREE M2 STRIPS",
+    ("BRIDGE", "MOSS LANE", "BLUE TREE", "POST OFFICE", "POND", "NO MAILBOX"))
+CLASSROOM["steps"][1]["template_factory"] = lambda width: PostalRouteMap(
+    width, "INVESTIGATION ROUTE / SORT TWO R7 STRIPS",
+    ("STONE PATH", "TREEHOUSE ROW", "NO ROUTE", "POST OFFICE", "POND"))
 HOME["steps"][3]["card_factory"] = lambda width: StoryAddressMap(
     width, "NORI'S FICTIONAL FOREST MAP", HOME["steps"][3]["rows"])
 CLASSROOM["steps"][3]["card_factory"] = lambda width: StoryAddressMap(
