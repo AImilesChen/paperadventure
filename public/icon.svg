@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Paper Adventure Workshop</title>
+  <rect width="64" height="64" rx="15" fill="#d8f0fc"/>
+  <path d="M10 30 52 12 39 53 31 39 10 30Z" fill="#ec4d35" stroke="#0d294f" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="m31 39 21-27-30 22" fill="none" stroke="#fffaf1" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

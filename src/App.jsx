@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, ArrowLeft, ArrowUpRight, CaretDown, Check, Compass, DownloadSimple, List, Minus, PaperPlaneTilt, PencilSimple, Plus, Printer, Sparkle, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowRight, ArrowLeft, ArrowUpRight, CaretDown, Check, Compass, DownloadSimple, List, Minus, PencilSimple, Plus, Printer, Sparkle, UsersThree, X } from '@phosphor-icons/react';
 import { AccountPreview, AdventuresShelf, CheckoutPreview, HelpExperience, LegalExperience, OrderExperience, PricingExperience, SamplesExperience, ThemesExplorer } from './extended.jsx';
 import { themes } from '../shared/catalog.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
@@ -18,7 +18,7 @@ function path() { return window.location.pathname; }
 let pendingNavigation = '';
 function navigate(to, approved = false) { const target = new URL(to, window.location.origin); if (!approved && target.pathname === '/en/create/' && (target.searchParams.has('theme') || target.searchParams.has('custom'))) { const saved = initialDraft(); const incoming = target.searchParams.get('theme') || ''; if ((saved.theme || saved.idea) && (target.searchParams.has('custom') || saved.theme !== incoming || Boolean(saved.custom))) { pendingNavigation = to; window.dispatchEvent(new Event('draft-conflict')); return; } } window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')); window.scrollTo({ top: 0, behavior: 'instant' }); }
 function Link({ to, children, className = '', ...props }) { return <a href={to} className={className} onClick={e => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); navigate(to); } }} {...props}>{children}</a>; }
-function Brand() { return <Link to="/en/" className="brand"><span className="brand-mark"><PaperPlaneTilt size={23} weight="fill" /></span><span>Paper Adventure<br /><strong>Workshop</strong></span></Link>; }
+function Brand() { return <Link to="/en/" className="brand"><span className="brand-mark"><img src="/icon.svg" alt="" width="38" height="38" /></span><span>Paper Adventure<br /><strong>Workshop</strong></span></Link>; }
 
 function Header({ route }) {
   const [open, setOpen] = useState(false);

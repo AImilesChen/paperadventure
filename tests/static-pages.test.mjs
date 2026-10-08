@@ -42,3 +42,15 @@ test('preview HTML never loads analytics vendors before a visitor chooses', asyn
   assert.doesNotMatch(html, /<script[^>]+src="https:\/\/(?:www\.googletagmanager\.com|www\.clarity\.ms|analytics\.ahrefs\.com|plausible\.shipsolo\.io)/);
   assert.match(html, /<div id="root" data-clarity-mask="true">/);
 });
+
+test('brand icons and social card are built and linked from every preview route', async () => {
+  const html = await read('en/index.html');
+  assert.match(html, /<link rel="icon" type="image\/svg\+xml" href="\/icon\.svg"/);
+  assert.match(html, /<link rel="icon" type="image\/x-icon" href="\/favicon\.ico"/);
+  assert.match(html, /<link rel="apple-touch-icon" sizes="180x180" href="\/apple-touch-icon\.png"/);
+  assert.match(html, /<meta property="og:image" content="https:\/\/paperadventure\.app\/og-image\.jpg"/);
+  assert.match(html, /<meta name="twitter:image" content="https:\/\/paperadventure\.app\/og-image\.jpg"/);
+  for (const file of ['icon.svg', 'favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'icon-512.png', 'og-image.jpg']) {
+    assert.ok((await stat(path.join(out, file))).size > 0, file);
+  }
+});

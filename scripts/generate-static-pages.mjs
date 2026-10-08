@@ -34,8 +34,13 @@ try {
       `<meta property="og:title" content="${escape(record.title)} | Paper Adventure Workshop" />`,
       `<meta property="og:description" content="${escape(record.description)}" />`,
       `<meta property="og:url" content="${escape(url)}" />`,
-      `<meta property="og:image" content="${origin}/assets/hero-workshop.png" />`,
+      `<meta property="og:image" content="${origin}/og-image.jpg" />`,
+      '<meta property="og:image:width" content="1200" />',
+      '<meta property="og:image:height" content="630" />',
       '<meta name="twitter:card" content="summary_large_image" />',
+      `<meta name="twitter:title" content="${escape(record.title)} | Paper Adventure Workshop" />`,
+      `<meta name="twitter:description" content="${escape(record.description)}" />`,
+      `<meta name="twitter:image" content="${origin}/og-image.jpg" />`,
       `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebPage', name: record.title, description: record.description, url, isPartOf: { '@type': 'WebSite', name: 'Paper Adventure Workshop', url: origin } }).replaceAll('<', '\\u003c')}</script>`,
     ].join('\n    ');
     const html = template
