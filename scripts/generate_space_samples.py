@@ -467,16 +467,19 @@ def guide_flow(story, width):
     for i, step in enumerate(steps, 1):
         flow.append(p(f"<b>{i}. {step['title']}:</b> {step['answer']}."))
     flow += [gap(14), p("Final story hand-off", "h2"), p(story["ending"]),
-             p("When a group skips a step, hand over that step's standard result; later cards must still be solvable."),
-             PageBreak(), p("HINTS AND SKIPS", "eyebrow"), p("Keep every group moving", "h1"),
+             p("When a group skips a step, hand over that step's standard result; later cards must still be solvable.")]
+    if story.get("finale_factory"):
+        flow += [gap(13), story["finale_factory"](width)]
+    flow += [PageBreak(), p("HINTS AND SKIPS", "eyebrow"), p("Keep every group moving", "h1"),
              p("Offer one level at a time: where to look, how to reason, then the full solution. A skipped step receives the same result as a solved step."),
              grid(["Step", "Observe", "Reason", "Solve / hand off"],
                   [[str(i), *step["hints"]] for i, step in enumerate(steps, 1)],
                   [width * .09, width * .27, width * .30, width * .34]), gap(13),
              p("Safety and release gate", "h2"),
              p("The story locations and labels are fictional. Check both paper sizes, colour and grey printing, readable labels, role participation, ambiguous answers and real play timing. Revise every output after testing."),
-             box("<b>Release gate:</b> Human play-tests, physical print checks, image rights, copy and legal/product review are still required. The catalog remains unpublished.", width, CREAM),
-             gap(5), PaperReplyCard(width, "home" if story is HOME else "classroom")]
+             box("<b>Release gate:</b> Human play-tests, physical print checks, image rights, copy and legal/product review are still required. The catalog remains unpublished.", width, CREAM)]
+    if story["code"] in ("H03", "C03"):
+        flow += [gap(5), PaperReplyCard(width, "home" if story is HOME else "classroom")]
     return flow
 
 

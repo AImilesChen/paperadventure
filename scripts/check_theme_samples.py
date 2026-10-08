@@ -63,6 +63,7 @@ for item in manifest["items"]:
                 assert f"BLOCK {number}  /" in fourth_page, (path, "missing map block", number)
             assert ("BLUE TREE  +  W4" if item["setting"] == "home"
                     else "TREEHOUSE ROW  +  P3") in fourth_page, (path, "missing answer location")
+            assert "NORI'S PAPER POSTCARD" not in joined and "POST OFFICE REPLY" not in joined
         elif THEME == "halloween":
             expected = ("PAPER FESTIVAL MAP / THREE USEFUL STRIPS" if item["setting"] == "home"
                         else "AUTUMN CREW MAP / TWO USEFUL STRIPS")
@@ -87,6 +88,11 @@ for item in manifest["items"]:
     else:
         assert "ANSWER KEY" in joined and "HINTS AND SKIPS" in joined
         assert "Release gate" in joined
+        if THEME == "forest":
+            assert ("NORI'S PAPER POSTCARD" if item["setting"] == "home"
+                    else "POST OFFICE REPLY") in all_text[1]
+        elif THEME in {"halloween", "christmas"}:
+            assert "PIP'S PAPER REPLY" not in joined and "STAR STATION REPLY" not in joined
 
     prefix = QA / path.stem
     subprocess.run([str(POPPLER), "-f", "1", "-l", str(len(pages)),

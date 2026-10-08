@@ -54,6 +54,49 @@ class StoryAddressMap(Flowable):
         c.restoreState()
 
 
+class ForestPostcard(Flowable):
+    """Guide-only postcard for the fictional delivery or classroom conclusion."""
+
+    def __init__(self, width, classroom):
+        super().__init__()
+        self.width = width
+        self.height = 113
+        self.classroom = classroom
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setStrokeColor(colors.HexColor("#8BAFC1"))
+        c.setLineWidth(0.9)
+        c.roundRect(0, 0, self.width, self.height, 6, fill=0, stroke=1)
+        c.setFillColor(colors.HexColor("#153B56"))
+        c.setFont("ArialBold", 8.5)
+        if self.classroom:
+            title = "POST OFFICE REPLY  /  SHARE AFTER CONCLUSION CARD A"
+            lines = [
+                "To the postal investigators,",
+                "R7, TREEHOUSE ROW and P3 pointed to OWL WINDOW.",
+                "You checked two different sheets before fixing the paper label.",
+                "The story parcel can now be delivered kindly.",
+                "From the forest post office",
+            ]
+        else:
+            title = "NORI'S PAPER POSTCARD  /  GIVE AFTER DELIVERY CARD A"
+            lines = [
+                "Dear forest helpers,",
+                "M2, BLUE TREE and W4 led the parcel to OWL HOUSE.",
+                "Your careful record made the story address clear again.",
+                "Thank you for helping me finish this paper delivery!",
+                "From Nori, the forest post carrier",
+            ]
+        c.drawString(12, 96, title)
+        c.setFillColor(colors.HexColor("#36546A"))
+        c.setFont("Arial", 8.6)
+        for index, line in enumerate(lines):
+            c.drawString(14, 79 - index * 15, line)
+        c.restoreState()
+
+
 def step(title, story, heads, rows, answer, handoff, used, prompts, next_story, hints, extra=None):
     item = {"title": title, "story": story, "heads": heads, "rows": rows,
             "answer": answer, "handoff": handoff, "used": used,
@@ -166,6 +209,8 @@ CLASSROOM["steps"][3]["card_factory"] = lambda width: StoryAddressMap(
     width, "INVESTIGATION MAP / FOUR STORY BLOCKS", CLASSROOM["steps"][3]["rows"])
 for story in (HOME, CLASSROOM):
     story["steps"][3]["card_note"] = "Keep the four-block map intact. Match the place and printed fragment together before recording a recipient."
+HOME["finale_factory"] = lambda width: ForestPostcard(width, False)
+CLASSROOM["finale_factory"] = lambda width: ForestPostcard(width, True)
 
 
 def validate_logic():
