@@ -123,6 +123,49 @@ class DinosaurTrailBoard(Flowable):
         c.restoreState()
 
 
+class DinosaurFinaleCard(Flowable):
+    """Guide-only paper ending for the family camp or classroom research crew."""
+
+    def __init__(self, width, classroom):
+        super().__init__()
+        self.width = width
+        self.height = 113
+        self.classroom = classroom
+
+    def draw(self):
+        c = self.canv
+        c.saveState()
+        c.setStrokeColor(LINE)
+        c.setLineWidth(0.9)
+        c.roundRect(0, 0, self.width, self.height, 6, fill=0, stroke=1)
+        c.setFillColor(NAVY)
+        c.setFont("ArialBold", 8.5)
+        if self.classroom:
+            title = "RESEARCH STATION NOTE  /  SHARE AFTER REPORT A"
+            lines = [
+                "To the station crew,",
+                "Your R2, RIDGE, Zone C and 09:45 clues fit one report.",
+                "You put the paper records back in order by sharing evidence.",
+                "Milo's story route can now be followed on the map.",
+                "Thank you from the station guide",
+            ]
+        else:
+            title = "MILO'S PAPER WELCOME  /  GIVE AFTER CAMP A"
+            lines = [
+                "Dear explorers,",
+                "Your SUN trail led through PINE SIGN to the round gate.",
+                "You found my welcoming paper camp by sharing every clue.",
+                "Thank you for helping me find my story way home!",
+                "From Milo and the camp guide",
+            ]
+        c.drawString(12, 96, title)
+        c.setFillColor(INK)
+        c.setFont("Arial", 8.6)
+        for index, line in enumerate(lines):
+            c.drawString(14, 79 - index * 15, line)
+        c.restoreState()
+
+
 def footer(canvas, doc):
     width, height = doc.pagesize
     canvas.saveState()
@@ -355,6 +398,7 @@ def guide(code, title, width, classroom):
         flow.append(p(answer))
     flow += [gap(13), p("Final story hand-off", "h2"), p(ending),
              p("The answer comes from the printed clues; never improvise a second solution or add an unprinted required condition."),
+             gap(14), DinosaurFinaleCard(width, classroom),
              PageBreak(), p("HINTS AND SKIPS", "eyebrow"), p("Keep the story moving", "h1"),
              p("For each step, offer an observation hint, then a reasoning hint, then the full solution. If a group skips, hand them the standard result shown in the answer key so later checkpoints remain solvable."),
              grid(["Step", "Observation", "Reasoning", "Full solution / hand-off"],

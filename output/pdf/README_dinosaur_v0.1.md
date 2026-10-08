@@ -11,6 +11,6 @@
 
 H02 答案链：`Print A / SUN → strips A-B-C / PINE SIGN → supply B / code 4 → EAST / ROUND GATE → Camp A`。C02 答案链：`Batch B / R2 → Print C / RIDGE → Zone C → P-Q-R-S / 09:45 → Report A`。两套故事和结局不同，不以改人数复用同一题。
 
-生成脚本为 `scripts/generate_dinosaur_samples.py`；结构/校验和检查为 `scripts/check_dinosaur_samples.py`；[机器可读清单](../../content/dinosaur-pdf-manifest.v0.1.json)中八项均为 `draft`、`public: false`。已核对 6/3 页数、五关存在、草稿标识、SHA-256，并渲染 A4/Letter 每页做版式检查。H02 第一关与 C02 第二关有四张图文一致的线条足迹卡，H02 第二关有三格路线板；第三关为三张可分发或遮盖的角色线索卡。尚未进行纸张实物打印、灰度打印或真实家庭/课堂试玩。
+生成脚本为 `scripts/generate_dinosaur_samples.py`；结构/校验和检查为 `scripts/check_dinosaur_samples.py`；[机器可读清单](../../content/dinosaur-pdf-manifest.v0.1.json)中八项均为 `draft`、`public: false`。已核对 6/3 页数、五关存在、草稿标识、SHA-256，并渲染 A4/Letter 每页做版式检查。H02 第一关与 C02 第二关有四张图文一致的线条足迹卡，H02 第二关有三格路线板；第三关为三张可分发或遮盖的角色线索卡。成人/教师指南第 2 页各有仅在确认结局后分享的纸质欢迎/研究站回信卡，玩家包中没有。尚未进行纸张实物打印、灰度打印或真实家庭/课堂试玩。
 
 发布前须填写[试玩与发布验收表](../../content/恐龙主题_H02_C02_试玩与发布验收表_v0.1.md)，复核图像权利、文案、许可、隐私与商品条件。任何答案歧义、漏线索、裁切或安全问题都回改内容源、重新导出与复测。

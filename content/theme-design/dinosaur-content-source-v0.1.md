@@ -28,7 +28,7 @@
 
 营地候选：A = route start SUN / sign PINE / EAST / ROUND GATE；B = SUN / PINE / EAST / SQUARE GATE；C = SUN / ROCK / EAST / ROUND GATE；D = MOON / PINE / EAST / ROUND GATE；E = SUN / PINE / WEST / ROUND GATE。玩家须说出至少两个来自不同关的证据；唯一答案 A。成人出示结局："Milo and the guide arrive at the welcoming camp. The team used the footprint, route, shared supplies and signpost together. Milo sends a paper thank-you card." 无真实露营或礼物要求。一级提示：把记录页四个结果一起看；二级：先删掉错误起点和路标，再比方向和门；完整解法：只有 A 同时是 SUN/PINE/EAST/ROUND。跳关时仍交付上述四个标准结果，不改变结局。
 
-**H02 主持准备与安全：**打印玩家包一份/合作组、指南一份/成人，备铅笔；可选剪路线条，但不剪也能在纸上写 A-B-C。补给均为纸卡，不采集、品尝或购买真实物品；不要求户外行走。成人答案栏按 `A/SUN → A-B-C/PINE → B/4 → EAST/ROUND → Camp A` 锁定。所有页不得在关卡 1—4 提前显示最终营地答案。
+**H02 主持准备与安全：**打印玩家包一份/合作组、指南一份/成人，备铅笔；可选剪路线条，但不剪也能在纸上写 A-B-C。指南答案页有 Milo 的纸质欢迎卡，只在确认 Camp A 后交付，玩家包不印该卡。补给均为纸卡，不采集、品尝或购买真实物品；不要求户外行走。成人答案栏按 `A/SUN → A-B-C/PINE → B/4 → EAST/ROUND → Camp A` 锁定。所有页不得在关卡 1—4 提前显示最终营地答案。
 
 ## C02：The Dinosaur Research Station Mix-up
 
@@ -54,10 +54,10 @@ Zone C 的四条记录（玩家页以 R/P/X/S/Q 打乱顺序展示）：P = `09:
 
 结论候选：A = R2 / RIDGE / Zone C / P-Q-R-S / 09:45；B = R2 / RIDGE / Zone B / P-Q-R-S / 09:45；C = R1 / RIDGE / Zone C / P-Q-R-S / 09:45；D = R2 / RIDGE / Zone C / P-R-Q-S / 09:45；E = R2 / RIDGE / Zone C / P-Q-R-S / 09:20。唯一答案 A。学生填写一句证据说明，可照抄记录，不以长篇写作为过关条件。教师核对后出示研究站回信："The records are clear again. Milo's paper route to camp can now be followed." 提示依次为查五格记录、逐项排除、选 A 并说出其中两项证据。
 
-**C02 教师准备：**每组一份学生档案与三张分工线索卡，Recorder 负责记录而不持额外谜题线索；每位教师一份指南。不依赖组间交换、设备、学生账号或真实姓名。图卡的轮廓、文字和编号在灰度打印时也要可辨。成人答案链为 `B/R2 → C/RIDGE → Zone C → P-Q-R-S/09:45 → Conclusion A`。研究站是虚构故事，不声称古生物科学或课程标准认证。
+**C02 教师准备：**每组一份学生档案与三张分工线索卡，Recorder 负责记录而不持额外谜题线索；每位教师一份指南。指南答案页有纸质研究站回信，只在确认 Report A 后分享。不依赖组间交换、设备、学生账号或真实姓名。图卡的轮廓、文字和编号在灰度打印时也要可辨。成人答案链为 `B/R2 → C/RIDGE → Zone C → P-Q-R-S/09:45 → Conclusion A`。研究站是虚构故事，不声称古生物科学或课程标准认证。
 
 ## 共同制作与验收记录
 
 - 从本文件单一事实源生成玩家页和答案指南；每关 `requires` 指向前关可见成果，`produces` 同时列在跳关补件表。不要在玩家页泄漏成人完整答案。
-- 内容制作下一步：档案袋、欢迎卡与地图等剩余纸艺制品，彩色及灰度实物打印、代表性家庭与课堂试玩。足迹卡轮廓、A4/US Letter 排版与自动核查已做到内部草稿；当前年龄、人数和时长均未获实测，不在网站宣称。
+- 内容制作下一步：档案袋与更完整的地图等剩余纸艺制品，彩色及灰度实物打印、代表性家庭与课堂试玩。足迹卡轮廓、纸质结局卡、A4/US Letter 排版与自动核查已做到内部草稿；当前年龄、人数和时长均未获实测，不在网站宣称。
 - 试玩发现任何非唯一答案、线索缺失、文字读不懂、组内有人无任务、页面裁切或不安全动作，修订源文件与所有输出后重新测试；状态维持 `draft`。

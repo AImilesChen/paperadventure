@@ -40,6 +40,11 @@ for item in manifest["items"]:
             assert "MILO'S PAPER TRAIL" in trail_page
             assert "STRIP 1" in trail_page and "STRIP 3" in trail_page
         assert "bordered cards" in (pages[5].extract_text() or ""), (path, "missing final paper candidates")
+        assert "MILO'S PAPER WELCOME" not in all_text and "RESEARCH STATION NOTE" not in all_text
+    else:
+        answer_page = pages[1].extract_text() or ""
+        assert ("MILO'S PAPER WELCOME" if item["setting"] == "home"
+                else "RESEARCH STATION NOTE") in answer_page
 
 qa_dir = ROOT / "tmp" / "pdfs" / "dinosaur-qa"
 qa_dir.mkdir(parents=True, exist_ok=True)
