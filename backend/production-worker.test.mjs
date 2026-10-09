@@ -11,7 +11,7 @@ import { productRights } from '../shared/catalog.mjs';
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -113,7 +113,7 @@ test('classroom wording choice is snapshotted and serves only its selected priva
   const digest = createHash('sha256').update(bytes).digest('hex');
   for (const paper of ['A4','Letter']) for (const role of ['player','guide']) {
     db.prepare('INSERT INTO ready_pack_files (ready_pack_id,paper,role,r2_key,sha256,bytes) VALUES (?,?,?,?,?,?)').run('pack-c05',paper,role,`base/c05/${paper}/${role}.pdf`,digest,4);
-    db.prepare('INSERT INTO ready_pack_variants (ready_pack_id,variant_id,paper,role,r2_key,sha256,bytes) VALUES (?,?,?,?,?,?,?)').run('pack-c05','halloween',paper,role,`variant/c05/${paper}/${role}.pdf`,digest,4);
+    db.prepare("INSERT INTO ready_pack_variants (ready_pack_id,variant_id,paper,role,r2_key,sha256,bytes,status) VALUES (?,?,?,?,?,?,?,'published')").run('pack-c05','halloween',paper,role,`variant/c05/${paper}/${role}.pdf`,digest,4);
   }
   let requestedKey;
   const env = { ...config(binding),
