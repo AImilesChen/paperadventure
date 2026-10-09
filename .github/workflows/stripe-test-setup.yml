@@ -34,11 +34,11 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test:backend
-      - name: Confirm all three secrets exist on the isolated Cloudflare Worker
+      - name: Confirm Stripe key and webhook secrets exist on the isolated Cloudflare Worker
         run: |
           test -n "$CLOUDFLARE_API_TOKEN"
           npx --yes wrangler@4.74.0 secret list --name paper-adventure-api-stage --format json > "$RUNNER_TEMP/paw-stage-secrets.json"
-          node -e "const fs=require('node:fs');const rows=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-stage-secrets.json','utf8'));const names=new Set(rows.map(item=>item.name));const needed=['STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','STRIPE_TEST_BUYER_EMAIL'];const missing=needed.filter(name=>!names.has(name));if(missing.length)throw Error('Missing Cloudflare Worker secrets: '+missing.join(', '));console.log('Three required Worker secret names are present')"
+          node -e "const fs=require('node:fs');const rows=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-stage-secrets.json','utf8'));const names=new Set(rows.map(item=>item.name));const needed=['STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET'];const missing=needed.filter(name=>!names.has(name));if(missing.length)throw Error('Missing Cloudflare Worker secrets: '+missing.join(', '));console.log('Stripe API and webhook Worker secret names are present; buyer email may be a text variable')"
       - name: Read existing stage database ID
         run: |
           npx --yes wrangler@4.74.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/paw-d1.json"
@@ -47,7 +47,7 @@ jobs:
         run: |
           node scripts/write-stage-wrangler.mjs
           npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --file backend/test-checkout-prices.sql --yes
-          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc
+          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
       - name: Verify test checkout capability on the real domain
         run: |
           for attempt in {1..12}; do

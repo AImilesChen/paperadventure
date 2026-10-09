@@ -1,1 +1,1 @@
-2026-10-09: owner confirmed all three Stripe sandbox Secrets are configured on paper-adventure-api-stage; activate and verify sandbox checkout.
+2026-10-09: accept Cloudflare text buyer email and recheck corrected Stripe webhook secret before sandbox activation.
