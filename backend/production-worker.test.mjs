@@ -235,7 +235,8 @@ test('paid custom queue job generates private player and guide PDFs, then publis
   assert.ok(Date.parse(`${customEntitlement.access_expires_at.replace(' ', 'T')}Z`) > Date.now() + 360 * 86400000);
   assert.ok(Date.parse(`${customEntitlement.access_expires_at.replace(' ', 'T')}Z`) < Date.now() + 367 * 86400000);
   assert.ok(Date.parse(`${customEntitlement.revision_expires_at.replace(' ', 'T')}Z`) < Date.now() + 31 * 86400000);
-  assert.equal(db.prepare("SELECT input_tokens FROM generation_usage WHERE order_id = 'order-1'").get().input_tokens, 1000);
+  assert.equal(db.prepare("SELECT input_tokens FROM generation_usage WHERE order_id = 'order-1' AND status = 'published'").get().input_tokens, 1000);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM generation_usage WHERE order_id = 'order-1' AND status = 'failed'").get().n, 1);
   assert.equal(stored.size, 3);
   const player = new TextDecoder().decode(stored.get('custom/order-1/v1/player.pdf').bytes);
   assert.match(player, /^%PDF-1\.4/);
