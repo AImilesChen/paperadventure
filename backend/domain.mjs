@@ -17,7 +17,12 @@ export function validatePurchase(input) {
   const themeId = input.themeId && themes.some(theme => theme.id === input.themeId) ? input.themeId : null;
   if (offer.kind === 'ready') {
     if (!themeId || input.customIdea) throw new ApiError(400, 'INVALID_SPEC', 'A ready-made pack requires a listed theme.');
-    return { offer, spec: { sku: offer.sku, kind: 'ready', setting: offer.setting, themeId, packVersion: requireText(input.packVersion, 'Pack version', 40) } };
+    const variantId = input.variantId == null || input.variantId === '' ? null : String(input.variantId);
+    if (variantId && !(offer.setting === 'classroom' && ((themeId === 'halloween' && variantId === 'halloween') || (themeId === 'christmas' && variantId === 'christmas')))) {
+      throw new ApiError(400, 'INVALID_SPEC', 'Choose a supported classroom story wording.');
+    }
+    return { offer, spec: { sku: offer.sku, kind: 'ready', setting: offer.setting, themeId, variantId,
+      packVersion: requireText(input.packVersion, 'Pack version', 40) } };
   }
   const players = Number(input.players);
   const groups = offer.setting === 'classroom' ? Number(input.groups) : null;
