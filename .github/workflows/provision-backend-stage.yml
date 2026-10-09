@@ -1,0 +1,56 @@
+name: Provision isolated backend stage
+
+on:
+  push:
+    branches:
+      - frontend-prd-v13-2026-10-08
+    paths:
+      - backend/stage-provision.trigger
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-adventure-backend-stage
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: "1"
+      CLOUDFLARE_ACCOUNT_ID: "77bc392d46985cd3425691358f5e8a77"
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:backend
+      - name: Check Cloudflare token
+        run: test -n "$CLOUDFLARE_API_TOKEN"
+      - name: Create or reuse isolated D1, R2 and Queue resources
+        run: |
+          set -euo pipefail
+          if ! npx --yes wrangler@4.74.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/paw-d1.json" 2> "$RUNNER_TEMP/paw-d1.err"; then
+            npx --yes wrangler@4.74.0 d1 create paper-adventure-stage-db
+            npx --yes wrangler@4.74.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/paw-d1.json"
+          fi
+          if ! npx --yes wrangler@4.74.0 r2 bucket info paper-adventure-stage-private --json > "$RUNNER_TEMP/paw-r2.json" 2> "$RUNNER_TEMP/paw-r2.err"; then
+            npx --yes wrangler@4.74.0 r2 bucket create paper-adventure-stage-private
+          fi
+          if ! npx --yes wrangler@4.74.0 queues info paper-adventure-stage-generation > "$RUNNER_TEMP/paw-queue.txt" 2> "$RUNNER_TEMP/paw-queue.err"; then
+            npx --yes wrangler@4.74.0 queues create paper-adventure-stage-generation
+          fi
+          node -e "const fs=require('node:fs'); const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-d1.json','utf8')); const id=d.uuid||d.result?.uuid||d.database?.uuid; if(!/^[0-9a-f-]{36}$/i.test(id||'')) throw Error('D1 UUID missing'); fs.appendFileSync(process.env.GITHUB_ENV,'PAPER_ADVENTURE_STAGE_D1_ID='+id+'\\n')"
+      - name: Apply stage schema and deploy unindexed backend Worker
+        run: |
+          node scripts/write-stage-wrangler.mjs
+          npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
+          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
