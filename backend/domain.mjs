@@ -34,7 +34,10 @@ export function validatePurchase(input) {
   if (!paper) throw new ApiError(400, 'INVALID_SPEC', 'Choose A4 or US Letter.');
   const direction = ['mystery', 'mission'].includes(input.direction) ? input.direction : null;
   if (!direction) throw new ApiError(400, 'INVALID_SPEC', 'Choose a story direction.');
-  return { offer, spec: { sku: offer.sku, kind: 'custom', setting: offer.setting, themeId, customIdea: idea, players, groups, age, paper, direction,
+  const proposalTitle = input.proposalTitle ? requireText(input.proposalTitle, 'Proposal title', 80) : null;
+  const proposalSummary = input.proposalSummary ? requireText(input.proposalSummary, 'Proposal summary', 400) : null;
+  if (Boolean(proposalTitle) !== Boolean(proposalSummary)) throw new ApiError(400, 'INVALID_SPEC', 'The selected proposal is incomplete.');
+  return { offer, spec: { sku: offer.sku, kind: 'custom', setting: offer.setting, themeId, customIdea: idea, players, groups, age, paper, direction, proposalTitle, proposalSummary,
     place: String(input.place || '').trim().slice(0, 180), reading: String(input.reading || '').trim().slice(0, 40), materials: String(input.materials || '').trim().slice(0, 180) } };
 }
 

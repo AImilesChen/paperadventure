@@ -126,6 +126,9 @@ test('Celebration cannot enter paid ready-made checkout even when the sample fla
 
 test('purchase validation distinguishes ready packs from custom activity and rejects invalid groups', () => {
   assert.equal(validatePurchase(purchase).spec.kind, 'ready');
+  const proposed = validatePurchase({ sku: 'custom_home', customIdea: 'A moon library', players: 4, age: '8-10', paper: 'A4', direction: 'mission', proposalTitle: 'The missing star map', proposalSummary: 'Follow a lost map through a paper observatory.' });
+  assert.equal(proposed.spec.proposalTitle, 'The missing star map');
+  assert.equal(proposed.spec.proposalSummary, 'Follow a lost map through a paper observatory.');
   assert.equal(validatePurchase({ sku: 'ready_classroom', themeId: 'halloween', packVersion: 'v1', variantId: 'halloween' }).spec.variantId, 'halloween');
   assert.throws(() => validatePurchase({ sku: 'ready_classroom', themeId: 'halloween', packVersion: 'v1', variantId: 'christmas' }), /story wording/);
   assert.equal(validatePurchase({ sku: 'custom_classroom', customIdea: 'A moon library', players: 20, groups: 4, age: '8-10', paper: 'A4', direction: 'mission' }).spec.kind, 'custom');
