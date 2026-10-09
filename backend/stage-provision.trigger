@@ -1,1 +1,1 @@
-2026-10-09: apply migration 0005 to seed six public story worlds in isolated D1 stage.
+2026-10-09: deploy D1-driven theme visibility after six-world seed migration.
