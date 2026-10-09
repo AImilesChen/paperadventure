@@ -22,3 +22,9 @@ Error envelope: `{ "error": { "code": "STABLE_CODE", "message": "Human-readable 
 ## Required Cloudflare bindings when integration starts
 
 `DB` (D1), `PRIVATE_FILES` (R2), `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SESSION_SECRET`, `OPENAI_API_KEY`, email provider secret, public origin, and optional queue/analytics bindings. Configure secrets in Cloudflare; never commit secret values. Keep the preview worker separate from the existing Sites adapter in `worker/index.js`.
+
+## v1.4 implementation-stage additions
+
+The separate `production-worker.mjs` exposes `GET /api/v1/auth/session` as a no-store, public-safe boolean status (`available`, `authenticated`); it never returns an email. `POST /api/v1/auth/logout` clears the HttpOnly session cookie after same-origin validation. The page header uses those endpoints to show `Sign in` to guests and `My adventures` / `Sign out` after verification. Transactional email must be configured before `account` is enabled.
+
+Celebration is never a paid ready-made SKU. Its Home and Classroom packs may be exposed as `downloadable_trial` when **both** have four versioned files each, are marked `release_ready` or `published`, and `FREE_SAMPLE_ENABLED=true`. The guest download endpoint verifies R2 bytes against their D1 hash. This trial status is distinct from `published` paid packs; it requires content and asset rights review before public activation, but not completed human play-testing.

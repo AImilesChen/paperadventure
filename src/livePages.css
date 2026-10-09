@@ -3,3 +3,15 @@
 .live-revision{display:grid;gap:15px;margin:28px 0;padding:22px;border-radius:10px;background:#edf8fc}.live-revision h3{margin:0;font-size:1.4rem}.live-revision p{margin:0}
 .legal-document section+section{margin-top:27px;padding-top:21px;border-top:1px solid #c8dfe7}.legal-document p{white-space:pre-wrap}
 .live-price-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.live-price-grid>.live-panel{display:flex;flex-direction:column}.live-price-grid .button{margin-top:auto}.live-price-note{margin-top:22px}@media(max-width:650px){.live-price-grid{grid-template-columns:1fr}}
+
+/* Free trial file controls */
+.live-tabs button{border:1px solid #b8d0dc;border-radius:9px;background:#fff;color:#155576;padding:9px 14px;font-weight:900}
+.live-tabs .active{border-bottom:2px solid #ad3425;color:#ad3425}
+.live-downloads button{display:inline-flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #98bfcd;border-radius:9px;background:#fff;color:#155576;padding:12px;text-align:left;font-weight:900}
+.live-downloads button:hover{border-color:#ad3425;color:#ad3425}
+.live-downloads button:disabled{opacity:.55;cursor:wait}
+.nav-account-mobile{display:none}
+.nav-signout{border:0;background:none;color:#0d294f;font-size:.84rem;font-weight:800;white-space:nowrap}
+.nav-signout:hover{color:#eb4c34}
+@media(max-width:1100px){.nav-login{display:inline-flex}}
+@media(max-width:800px){.nav-login,.nav-actions>.nav-signout{display:none}.site-nav .nav-account-mobile{display:block}.site-nav .nav-signout{width:100%;padding:13px 0;border-bottom:1px solid #e4edf0;text-align:left}}

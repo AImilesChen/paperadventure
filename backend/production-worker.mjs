@@ -57,21 +57,28 @@ async function liveCatalog(env) {
   if (!env.DB) return base;
   const visibleWorlds = await query(env.DB, "SELECT id FROM theme_worlds WHERE status = 'published'").all();
   const visibleIds = new Set((visibleWorlds.results || []).map(world => world.id));
-  const result = await query(env.DB, `SELECT p.id,p.theme_world_id,p.setting,p.version FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id
-    WHERE p.status = 'published' AND w.status = 'published' AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
+  const result = await query(env.DB, `SELECT p.id,p.theme_world_id,p.setting,p.version,p.status FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id
+    WHERE ((p.status = 'published' AND p.theme_world_id <> 'celebration') OR
+      (p.status IN ('release_ready','published') AND p.theme_world_id = 'celebration'))
+      AND w.status = 'published' AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
     ORDER BY p.published_at DESC, p.version DESC`).all();
   const ready = result.results || [];
   const variantRows = await query(env.DB, `SELECT ready_pack_id,variant_id FROM ready_pack_variants WHERE status = 'published' GROUP BY ready_pack_id,variant_id HAVING COUNT(*) = 4`).all();
   const variantsFor = pack => (variantRows.results || []).filter(row => row.ready_pack_id === pack?.id).map(row => row.variant_id);
-  const free = env.FREE_SAMPLE_ENABLED === 'true' && ready.some(pack => pack.theme_world_id === 'celebration');
+  const trialPacks = ready.filter(pack => pack.theme_world_id === 'celebration');
+  const free = env.FREE_SAMPLE_ENABLED === 'true' &&
+    ['home','classroom'].every(setting => trialPacks.some(pack => pack.setting === setting));
   const prices = await query(env.DB, 'SELECT sku,unit_amount,currency FROM price_versions WHERE sale_enabled = 1').all();
   const liveSkus = new Set((prices.results || []).filter(price => offers.some(offer => offer.sku === price.sku && offer.unitAmount === price.unit_amount && price.currency === 'USD')).map(price => price.sku));
-  const availablePaidPack = setting => ready.some(pack => pack.setting === setting && !(free && pack.theme_world_id === 'celebration'));
+  const availablePaidPack = setting => ready.some(pack => pack.setting === setting && pack.theme_world_id !== 'celebration' && pack.status === 'published');
+  const readyStatus = (themeId, setting) => themeId === 'celebration'
+    ? (free ? 'downloadable_trial' : 'not_published')
+    : (ready.some(pack => pack.theme_world_id === themeId && pack.setting === setting && pack.status === 'published') ? 'published' : 'not_published');
   const canCheckout = await checkoutReady(env);
   return { ...base, publicationState: canCheckout || free ? 'partially_configured' : base.publicationState,
     freeSampleThemeId: free ? 'celebration' : null,
-    themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'home') ? 'published' : 'not_published', freeSample: free && theme.id === 'celebration' && ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'home'), packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
-      classroom: { readyStatus: ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom') ? 'published' : 'not_published', freeSample: free && theme.id === 'celebration' && ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom'), packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null,
+    themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: readyStatus(theme.id, 'home'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
+      classroom: { readyStatus: readyStatus(theme.id, 'classroom'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null,
         variantIds: variantsFor(ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')) } })),
     offers: offers.map(offer => ({ ...offer, saleEnabled: canCheckout && liveSkus.has(offer.sku) && (offer.kind === 'custom' ? generationReady(env) : availablePaidPack(offer.setting)) })) };
 }
@@ -97,7 +104,7 @@ async function checkout(request, env) {
   const { offer, spec } = validatePurchase(input);
   if (offer.kind === 'custom' && !generationReady(env)) throw new ApiError(503, 'GENERATION_NOT_READY', 'Custom generation is not available.');
   if (offer.kind === 'custom') validateSupportedRange(spec, env);
-  if (offer.kind === 'ready' && env.FREE_SAMPLE_ENABLED === 'true' && spec.themeId === 'celebration') throw new ApiError(409, 'SAMPLE_IS_FREE', 'Use the free sample download for this theme.');
+  if (offer.kind === 'ready' && spec.themeId === 'celebration') throw new ApiError(409, 'SAMPLE_IS_FREE', 'Celebration is the free sample theme and is not sold as a ready-made pack.');
   const key = request.headers.get('Idempotency-Key');
   if (!key || !/^[A-Za-z0-9_-]{16,100}$/.test(key)) throw new ApiError(400, 'IDEMPOTENCY_REQUIRED', 'A valid idempotency key is required.');
   const price = await query(env.DB, 'SELECT * FROM price_versions WHERE sku = ? AND sale_enabled = 1 ORDER BY created_at DESC LIMIT 1', offer.sku).first();
@@ -342,7 +349,9 @@ async function savedDraft(request, env) {
 
 async function freeSample(request, env, setting, paper, role) {
   if (!env.DB || !env.PRIVATE_FILES || env.FREE_SAMPLE_ENABLED !== 'true') throw new ApiError(404, 'SAMPLE_NOT_PUBLISHED', 'The free sample is not published.');
-  const pack = await query(env.DB, "SELECT p.* FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id WHERE p.theme_world_id = 'celebration' AND p.setting = ? AND p.status = 'published' AND w.status = 'published' ORDER BY p.published_at DESC LIMIT 1", setting).first();
+  const catalog = await liveCatalog(env);
+  if (catalog.freeSampleThemeId !== 'celebration') throw new ApiError(404, 'SAMPLE_NOT_PUBLISHED', 'Both free sample editions must be ready before download.');
+  const pack = await query(env.DB, "SELECT p.* FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id WHERE p.theme_world_id = 'celebration' AND p.setting = ? AND p.status IN ('release_ready','published') AND w.status = 'published' AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4 ORDER BY p.published_at DESC, p.version DESC LIMIT 1", setting).first();
   if (!pack) throw new ApiError(404, 'SAMPLE_NOT_PUBLISHED', 'The free sample is not published.');
   const file = await query(env.DB, 'SELECT * FROM ready_pack_files WHERE ready_pack_id = ? AND paper = ? AND role = ?', pack.id, paper, role).first();
   if (!file) throw new ApiError(404, 'FILE_NOT_FOUND', 'The sample file is unavailable.');
@@ -465,9 +474,17 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'POST' && path === '/api/v1/proposals') return await proposals(request, env);
     if (request.method === 'POST' && path === '/api/v1/access-links') return await requestAccessLink(request, env);
     if (request.method === 'GET' && path === '/api/v1/auth/verify') return await verifyAccessLink(request, env);
+    if (request.method === 'GET' && path === '/api/v1/auth/session') {
+      const available = Boolean(env.DB && env.SESSION_SECRET && emailReady(env) && env.PUBLIC_ORIGIN);
+      return json({ available, authenticated: available && Boolean(await authenticatedEmailHash(request, env)) });
+    }
     if (request.method === 'GET' && path === '/api/v1/my-orders') return await myOrders(request, env);
     if (['GET','PUT','DELETE'].includes(request.method) && path === '/api/v1/my-draft') return await savedDraft(request, env);
-    if (request.method === 'POST' && path === '/api/v1/auth/logout') return new Response(null, { status: 204, headers: { 'set-cookie': 'paw_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0', 'cache-control': 'no-store' } });
+    if (request.method === 'POST' && path === '/api/v1/auth/logout') {
+      requireSameOrigin(request, env);
+      const secure = new URL(env.PUBLIC_ORIGIN || request.url).protocol === 'https:' ? '; Secure' : '';
+      return new Response(null, { status: 204, headers: { 'set-cookie': `paw_session=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`, 'cache-control': 'no-store' } });
+    }
     const sample = path.match(/^\/api\/v1\/samples\/(home|classroom)\/(A4|Letter)\/(player|guide)$/);
     if (request.method === 'GET' && sample) return await freeSample(request, env, sample[1], sample[2], sample[3]);
     const order = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)$/);

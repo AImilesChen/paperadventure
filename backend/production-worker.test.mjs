@@ -34,15 +34,20 @@ function database() {
 
 function seedReady(db) {
   db.prepare("INSERT OR IGNORE INTO theme_worlds (id,title_en,status) VALUES ('celebration','Celebration','published')").run();
-  db.prepare("INSERT INTO ready_packs (id,theme_world_id,setting,version,status,licence_version) VALUES ('pack-h01','celebration','home','v1','published','licence-1')").run();
+  for (const [id, theme, setting, status] of [
+    ['pack-h01','celebration','home','release_ready'],
+    ['pack-c01','celebration','classroom','release_ready'],
+    ['pack-d02','dinosaur','home','published'],
+  ]) db.prepare("INSERT INTO ready_packs (id,theme_world_id,setting,version,status,licence_version) VALUES (?,?,?,'v1',?,'licence-1')").run(id,theme,setting,status);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('price-1','ready_home','USD',999,'price_test_1','exclusive',1)").run();
   const pdfHash = createHash('sha256').update(new Uint8Array([37,80,68,70])).digest('hex');
-  for (const paper of ['A4','Letter']) for (const role of ['player','guide']) db.prepare('INSERT INTO ready_pack_files (ready_pack_id,paper,role,r2_key,sha256,bytes) VALUES (?,?,?,?,?,?)').run('pack-h01',paper,role,`ready/h01/${paper}/${role}.pdf`,pdfHash,4);
+  for (const pack of ['pack-h01','pack-c01','pack-d02']) for (const paper of ['A4','Letter']) for (const role of ['player','guide'])
+    db.prepare('INSERT INTO ready_pack_files (ready_pack_id,paper,role,r2_key,sha256,bytes) VALUES (?,?,?,?,?,?)').run(pack,paper,role,`ready/${pack}/${paper}/${role}.pdf`,pdfHash,4);
   for (const kind of ['privacy','terms','cookies','refunds']) db.prepare("INSERT INTO legal_documents (kind,version,title,effective_at,sections_json,status) VALUES (?,?,?,'2026-10-07',?,'published')").run(kind,'reviewed-test-1',kind,JSON.stringify([{ heading: 'Test only', body: 'Mock test policy.' }]));
 }
 
 const request = (path, method = 'GET', data, headers = {}) => new Request(`https://adventure.example${path}`, { method, headers: { ...(data ? { 'content-type': 'application/json' } : {}), ...headers }, body: data ? JSON.stringify(data) : undefined });
-const purchase = { sku: 'ready_home', themeId: 'celebration', packVersion: 'v1', email: 'Adult@example.com' };
+const purchase = { sku: 'ready_home', themeId: 'dinosaur', packVersion: 'v1', email: 'Adult@example.com' };
 const config = binding => ({ DB: binding, PRIVATE_FILES: { get: async () => null }, RESEND_API_KEY: 're_test', EMAIL_FROM: 'hello@adventure.example', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', SESSION_SECRET: 'test-session-secret', PUBLIC_ORIGIN: 'https://adventure.example', CHECKOUT_ENABLED: 'true', LEGAL_RELEASED: 'true', TAX_CONFIGURED: 'true', CUSTOM_LICENCE_VERSION: 'custom-v1', SUPPORTED_AGE_MIN: '6', SUPPORTED_AGE_MAX: '12', HOME_PLAYER_MAX: '8', CLASSROOM_STUDENT_MAX: '40' });
 
 test('DeepSeek key enables generation capability without requiring an OpenAI key', async () => {
@@ -74,18 +79,14 @@ test('catalog follows D1 world publication without implying a pack is available'
   assert.equal(catalog.offers.every(offer => offer.saleEnabled === false), true);
 });
 
-test('pausing a world hides its fixed pack from catalog, sample and checkout', async () => {
+test('pausing Celebration hides both free trial editions without affecting another paid theme', async () => {
   const { db, binding } = database();
   seedReady(db);
   db.prepare("UPDATE theme_worlds SET status = 'paused' WHERE id = 'celebration'").run();
   const env = { ...config(binding), FREE_SAMPLE_ENABLED: 'false' };
   const catalog = await handleProductionApi(request('/api/v1/catalog'), env).then(response => response.json());
   assert.equal(catalog.themes.some(theme => theme.id === 'celebration'), false);
-  assert.equal(catalog.offers.find(offer => offer.sku === 'ready_home').saleEnabled, false);
-  const checkout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', purchase,
-    { 'Idempotency-Key': 'paused-world-order-001', origin: 'https://adventure.example' }), env);
-  assert.equal(checkout.status, 503);
-  assert.equal((await checkout.json()).error.code, 'PACK_NOT_PUBLISHED');
+  assert.equal(catalog.offers.find(offer => offer.sku === 'ready_home').saleEnabled, true);
   const sample = await handleProductionApi(request('/api/v1/samples/home/A4/player'), { ...env, FREE_SAMPLE_ENABLED: 'true' });
   assert.equal(sample.status, 404);
 });
@@ -95,13 +96,32 @@ test('free sample checks actual R2 bytes even when custom metadata is absent', a
   seedReady(db);
   const env = { ...config(binding), FREE_SAMPLE_ENABLED: 'true',
     PRIVATE_FILES: { get: async () => ({ body: new Uint8Array([37,80,68,70]) }) } };
+  const catalog = await handleProductionApi(request('/api/v1/catalog'), env).then(response => response.json());
+  assert.equal(catalog.freeSampleThemeId, 'celebration');
+  assert.equal(catalog.themes.find(theme => theme.id === 'celebration').home.readyStatus, 'downloadable_trial');
+  assert.equal(catalog.themes.find(theme => theme.id === 'celebration').classroom.freeSample, true);
   const good = await handleProductionApi(request('/api/v1/samples/home/A4/player'), env);
   assert.equal(good.status, 200);
   assert.deepEqual(new Uint8Array(await good.arrayBuffer()), new Uint8Array([37,80,68,70]));
+  assert.equal((await handleProductionApi(request('/api/v1/samples/classroom/Letter/guide'), env)).status, 200);
   const bad = await handleProductionApi(request('/api/v1/samples/home/A4/player'),
     { ...env, PRIVATE_FILES: { get: async () => ({ body: new Uint8Array([37,80,68,71]) }) } });
   assert.equal(bad.status, 503);
   assert.equal((await bad.json()).error.code, 'FILE_INTEGRITY_FAILED');
+  db.prepare("UPDATE ready_packs SET status = 'internal_test' WHERE id = 'pack-c01'").run();
+  const incomplete = await handleProductionApi(request('/api/v1/catalog'), env).then(response => response.json());
+  assert.equal(incomplete.freeSampleThemeId, null);
+  assert.equal((await handleProductionApi(request('/api/v1/samples/home/A4/player'), env)).status, 404);
+});
+
+test('Celebration cannot enter paid ready-made checkout even when the sample flag is off', async () => {
+  const { db, binding } = database();
+  seedReady(db);
+  const env = { ...config(binding), FREE_SAMPLE_ENABLED: 'false' };
+  const response = await handleProductionApi(request('/api/v1/checkout-intents', 'POST',
+    { ...purchase, themeId: 'celebration' }, { origin: 'https://adventure.example' }), env);
+  assert.equal(response.status, 409);
+  assert.equal((await response.json()).error.code, 'SAMPLE_IS_FREE');
 });
 
 test('purchase validation distinguishes ready packs from custom activity and rejects invalid groups', () => {
@@ -163,6 +183,21 @@ test('signed email access tokens expire and reject tampering', async () => {
   assert.equal(await verifyAccessToken('other', token), null);
   assert.equal(await verifyAccessToken('secret', token + 'x'), null);
   assert.equal(await verifyAccessToken('secret', token, Date.now() + 20000), null);
+});
+
+test('adult session state and sign-out reflect verified access without exposing an email', async () => {
+  const { binding } = database();
+  const env = config(binding);
+  const anonymous = await handleProductionApi(request('/api/v1/auth/session'), env).then(response => response.json());
+  assert.deepEqual(anonymous, { available: true, authenticated: false });
+  const token = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: 'adult-hash', exp: Math.floor(Date.now()/1000) + 3600 });
+  const signedIn = await handleProductionApi(request('/api/v1/auth/session', 'GET', undefined, { cookie: `paw_session=${token}` }), env).then(response => response.json());
+  assert.deepEqual(signedIn, { available: true, authenticated: true });
+  const foreignLogout = await handleProductionApi(request('/api/v1/auth/logout', 'POST', undefined, { origin: 'https://elsewhere.example' }), env);
+  assert.equal(foreignLogout.status, 403);
+  const logout = await handleProductionApi(request('/api/v1/auth/logout', 'POST', undefined, { origin: 'https://adventure.example' }), env);
+  assert.equal(logout.status, 204);
+  assert.match(logout.headers.get('set-cookie'), /Max-Age=0/);
 });
 
 test('isolated backend stage serves noindex pages and blocks robots', async () => {
@@ -237,7 +272,7 @@ test('verified Stripe payment grants only the matching ready pack and private fi
   assert.equal((await sendEvent(event).then(response => response.json())).duplicate, true);
   assert.equal(db.prepare('SELECT status FROM orders WHERE id = ?').get(orderId).status, 'published');
   const readyEntitlement = db.prepare('SELECT ready_pack_id,access_expires_at FROM entitlements WHERE order_id = ?').get(orderId);
-  assert.equal(readyEntitlement.ready_pack_id, 'pack-h01');
+  assert.equal(readyEntitlement.ready_pack_id, 'pack-d02');
   assert.ok(Date.parse(`${readyEntitlement.access_expires_at.replace(' ', 'T')}Z`) > Date.now() + 360 * 86400000);
   assert.ok(Date.parse(`${readyEntitlement.access_expires_at.replace(' ', 'T')}Z`) < Date.now() + 367 * 86400000);
   await productionWorker.scheduled(null, env);
