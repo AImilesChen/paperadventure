@@ -500,7 +500,7 @@ test('Cloudflare Email binding delivers a one-use sign-in link without a Resend 
 test('stage account gate permits only the configured delivery-test inbox', async () => {
   const { binding } = database();
   const sentMessages = [];
-  const env = { ...config(binding), ACCOUNT_ENABLED: 'false', ACCOUNT_TEST_EMAIL: 'support@paperadventure.app', RESEND_API_KEY: undefined,
+  const env = { ...config(binding), ACCOUNT_ENABLED: 'false', EMAIL_LOGIN_ENABLED: 'false', ACCOUNT_TEST_EMAIL: 'support@paperadventure.app', RESEND_API_KEY: undefined,
     EMAIL_FROM: 'support@paperadventure.app', EMAIL_PUBLIC_DESTINATIONS_READY: 'true',
     EMAIL: { send: async message => { sentMessages.push(message); return { messageId: 'stage-test-1' }; } } };
   const state = await handleProductionApi(request('/api/v1/auth/session'), env).then(response => response.json());
