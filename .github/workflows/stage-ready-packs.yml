@@ -1,0 +1,86 @@
+name: Stage private draft ready packs
+
+on:
+  push:
+    branches:
+      - frontend-prd-v13-2026-10-08
+    paths:
+      - backend/stage-ready.trigger
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-adventure-stage-ready
+  cancel-in-progress: false
+
+jobs:
+  build-drafts:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Install PDF build and audit libraries
+        run: python -m pip install --disable-pip-version-check reportlab pillow pdfplumber pypdf
+      - name: Generate 56 private draft PDFs and manifests
+        shell: pwsh
+        run: |
+          python scripts/generate_celebration_samples.py
+          python scripts/generate_dinosaur_samples.py
+          python scripts/generate_space_samples.py
+          python scripts/generate_forest_samples.py
+          python scripts/generate_halloween_samples.py
+          python scripts/generate_christmas_samples.py
+      - name: Audit PDF structure and geometry
+        shell: pwsh
+        run: |
+          python scripts/check_celebration_samples.py
+          python scripts/check_role_cards.py
+          python scripts/audit_pdf_layout.py
+          node scripts/build-stage-ready-plan.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: private-draft-packs
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            output/pdf/*.pdf
+            output/pdf/variants/*.pdf
+            output/stage-ready-plan.json
+            output/stage-ready.sql
+            output/pdf/layout-audit-v0.1.json
+
+  upload-private-stage:
+    needs: build-drafts
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: '1'
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: private-draft-packs
+          path: output
+      - name: Confirm private stage credentials
+        run: test -n "$CLOUDFLARE_API_TOKEN"
+      - name: Upload private PDFs and stage internal records
+        run: node scripts/upload-stage-ready.mjs
+      - name: Confirm public catalog remains unpublished
+        run: |
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.offers?.some(x=>x.saleEnabled)||v.freeSampleThemeId)throw Error('Draft pack became public');console.log('Draft packs are private')})"
