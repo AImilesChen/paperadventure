@@ -1,4 +1,5 @@
 import { writeFileSync } from 'node:fs';
+import { googleClientId } from '../shared/google-client.mjs';
 
 const databaseId = process.env.PAPER_ADVENTURE_STAGE_D1_ID;
 if (!/^[0-9a-f-]{36}$/i.test(databaseId || '')) throw new Error('A valid stage D1 UUID is required');
@@ -25,7 +26,8 @@ const config = {
     LIVE_PAYMENTS_ENABLED: 'false',
     FREE_SAMPLE_ENABLED: 'true',
     PROPOSALS_ENABLED: 'false',
-    ACCOUNT_ENABLED: 'false',
+    ACCOUNT_ENABLED: 'true',
+    GOOGLE_CLIENT_ID: googleClientId,
     ACCOUNT_TEST_EMAIL: 'support@paperadventure.app',
     EMAIL_PUBLIC_DESTINATIONS_READY: 'true',
     EMAIL_FROM: 'support@paperadventure.app',

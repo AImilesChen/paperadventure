@@ -1,1 +1,1 @@
-2026-10-09: verify Celebration trial rollout with bounded catalog propagation retries and all release gates intact.
+2026-10-09: configure public Google Web Client ID and enable adult accounts on isolated API; retain paid/generation gates.
