@@ -15,10 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
       DEEPSEEK_MODEL: deepseek-flash
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -30,14 +28,21 @@ jobs:
       - run: npm ci
       - run: npm run test:backend
       - name: Check private DeepSeek credential
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
         run: |
           if [ -z "$DEEPSEEK_API_KEY" ]; then
             echo "No DeepSeek key found under DEEPSEEK_API_KEY, DEEPSEEK_KEY, or DEEPSEEK_API_TOKEN in this repository's Actions secrets"
             exit 1
           fi
       - name: Generate Home and Classroom PDFs with DeepSeek
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
         run: node scripts/deepseek-smoke.mjs
       - name: Bind verified key to isolated stage Worker
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           test -n "$CLOUDFLARE_API_TOKEN"
           printf '%s' "$DEEPSEEK_API_KEY" | npx --yes wrangler@4.74.0 secret put DEEPSEEK_API_KEY --name paper-adventure-api-stage
