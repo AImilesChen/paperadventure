@@ -54,3 +54,8 @@ jobs:
           node scripts/write-stage-wrangler.mjs
           npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
           npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
+      - name: Verify cloud API and disabled release flags
+        run: |
+          curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.status!=='configured_runtime'||v.checkout||v.generation||v.proposals||v.account||v.sample||v.legal)throw Error('Stage capability mismatch: '+s);console.log('Stage API healthy; all release capabilities disabled')})"
+          curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.offers?.some(x=>x.saleEnabled)||v.freeSampleThemeId)throw Error('Stage catalog unexpectedly published');console.log('Stage catalog remains unpublished')})"
+          curl --fail --silent --show-error --head https://paper-adventure-api-stage.chenminjian08.workers.dev/en/ | grep -iq 'x-robots-tag: noindex, nofollow'
