@@ -1,1 +1,1 @@
-2026-10-09: apply AI preview range and account-limited proposals with Wrangler configuration as source of truth.
+2026-10-09: deploy tested Stripe sandbox integration with checkout closed until three setup secrets are present.

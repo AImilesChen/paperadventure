@@ -2,6 +2,11 @@ name: Activate Stripe sandbox checkout
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - frontend-prd-v13-2026-10-08
+    paths:
+      - backend/stripe-test-setup.trigger
 
 permissions:
   contents: read
