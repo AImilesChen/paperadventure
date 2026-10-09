@@ -1,1 +1,1 @@
-2026-10-09: verify apex Google account gate remains closed after privacy-review rollback.
+2026-10-09: open Google adult accounts after publishing and checking current privacy notice.
