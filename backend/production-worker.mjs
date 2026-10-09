@@ -435,9 +435,13 @@ async function orderView(request, env, orderId) {
   const order = await query(env.DB, 'SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ?', orderId, hash).first();
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified order was found.');
   const entitlement = await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first();
+  const activity = order.product_kind === 'custom' ? await query(env.DB, 'SELECT status FROM custom_activities WHERE order_id = ?', order.id).first() : null;
+  const failedAttempts = order.product_kind === 'custom' ? await query(env.DB, "SELECT COUNT(*) AS count FROM generation_usage WHERE order_id = ? AND status = 'failed'", order.id).first() : null;
   const spec = JSON.parse(order.purchase_spec_json);
   return json({ id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
+    generationState: order.product_kind === 'custom' ? (activity?.status || (order.status === 'pending_payment' ? 'awaiting_payment' : 'pending')) : null,
+    generationFailedAttempts: failedAttempts?.count || 0,
     paper: order.product_kind === 'custom' ? spec.paper : null,
     variantId: order.product_kind === 'ready' ? spec.variantId || null : null,
     accessExpiresAt: entitlement?.access_expires_at || null,
