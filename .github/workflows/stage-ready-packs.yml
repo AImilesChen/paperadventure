@@ -89,7 +89,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: private-draft-packs
-          path: output
+          path: .
       - name: Confirm private stage credentials
         run: test -n "$CLOUDFLARE_API_TOKEN"
       - name: Upload private PDFs and stage internal records

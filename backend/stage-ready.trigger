@@ -1,1 +1,1 @@
-2026-10-09 phase-1 full PDF and manifest audit
+2026-10-09 phase-1 private staging artifact path fix
