@@ -61,7 +61,7 @@ async function liveCatalog(env) {
     WHERE p.status = 'published' AND w.status = 'published' AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
     ORDER BY p.published_at DESC, p.version DESC`).all();
   const ready = result.results || [];
-  const variantRows = await query(env.DB, `SELECT ready_pack_id,variant_id FROM ready_pack_variants GROUP BY ready_pack_id,variant_id HAVING COUNT(*) = 4`).all();
+  const variantRows = await query(env.DB, `SELECT ready_pack_id,variant_id FROM ready_pack_variants WHERE status = 'published' GROUP BY ready_pack_id,variant_id HAVING COUNT(*) = 4`).all();
   const variantsFor = pack => (variantRows.results || []).filter(row => row.ready_pack_id === pack?.id).map(row => row.variant_id);
   const free = env.FREE_SAMPLE_ENABLED === 'true' && ready.some(pack => pack.theme_world_id === 'celebration');
   const prices = await query(env.DB, 'SELECT sku,unit_amount,currency FROM price_versions WHERE sale_enabled = 1').all();
@@ -109,7 +109,7 @@ async function checkout(request, env) {
     const files = await query(env.DB, 'SELECT paper, role FROM ready_pack_files WHERE ready_pack_id = ?', readyPack.id).all();
     if (files.results?.length !== 4) throw new ApiError(503, 'PACK_FILES_INCOMPLETE', 'The printable pack is incomplete.');
     if (spec.variantId) {
-      const variantFiles = await query(env.DB, 'SELECT paper, role FROM ready_pack_variants WHERE ready_pack_id = ? AND variant_id = ?', readyPack.id, spec.variantId).all();
+      const variantFiles = await query(env.DB, 'SELECT paper, role FROM ready_pack_variants WHERE ready_pack_id = ? AND variant_id = ? AND status = 'published'', readyPack.id, spec.variantId).all();
       if (variantFiles.results?.length !== 4) throw new ApiError(503, 'PACK_VARIANT_NOT_READY', 'This classroom story wording is not available.');
     }
   }
