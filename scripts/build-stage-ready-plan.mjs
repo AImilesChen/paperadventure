@@ -105,13 +105,15 @@ export function buildStageReadyPlan(root, options = {}) {
       variantId: manifest.variantId, files });
   }
   for (const pack of packs.filter(item => item.world !== 'celebration')) {
-    const path = 'output/previews/' + pack.world + '-' + pack.setting + '-' + pack.version + '.jpg';
-    const bytes = readFileSync(resolve(root, path));
-    if (bytes.length < 10000 || bytes.length > 3 * 1024 * 1024 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
-      throw new Error('Invalid paid-pack preview: ' + path);
+    for (const page of [1, 2]) {
+      const path = 'output/previews/' + pack.world + '-' + pack.setting + '-' + pack.version + '-p' + page + '.jpg';
+      const bytes = readFileSync(resolve(root, path));
+      if (bytes.length < 10000 || bytes.length > 3 * 1024 * 1024 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+        throw new Error('Invalid paid-pack preview: ' + path);
+      }
+      previews.push({ path, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'),
+        r2Key: 'internal/draft-previews/' + pack.world + '/' + pack.setting + '/' + pack.version + '-p' + page + '.jpg' });
     }
-    previews.push({ path, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'),
-      r2Key: 'internal/draft-previews/' + pack.world + '/' + pack.setting + '/' + pack.version + '.jpg' });
   }
   const statements = [];
   for (const pack of packs) {
