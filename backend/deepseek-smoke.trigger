@@ -1,1 +1,1 @@
-2026-10-09 verify configured DeepSeek secret with private story-to-PDF smoke
+2026-10-09 rerun private DeepSeek structured-output story-to-PDF smoke
