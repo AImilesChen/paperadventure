@@ -336,3 +336,22 @@ test('adult email link can be used once and creates a private order session', as
   assert.equal(orders.status, 200);
   assert.deepEqual((await orders.json()).orders, []);
 });
+
+test('Cloudflare Email binding delivers a one-use sign-in link without a Resend key', async () => {
+  const { binding } = database();
+  const sentMessages = [];
+  const env = { ...config(binding), RESEND_API_KEY: undefined, EMAIL_FROM: 'support@paperadventure.app',
+    EMAIL: { send: async message => { sentMessages.push(message); return { messageId: 'cf-test-1' }; } },
+    FETCH: async () => { throw new Error('Resend must not be called when Cloudflare Email is bound'); } };
+  const health = await handleProductionApi(request('/api/v1/health'), env);
+  assert.equal((await health.json()).account, true);
+  const sent = await handleProductionApi(request('/api/v1/access-links', 'POST', { email: 'ADULT@example.com' },
+    { origin: 'https://adventure.example', 'cf-connecting-ip': '203.0.113.9' }), env);
+  assert.equal(sent.status, 200);
+  assert.equal(sentMessages.length, 1);
+  assert.equal(sentMessages[0].from, 'support@paperadventure.app');
+  assert.equal(sentMessages[0].to, 'adult@example.com');
+  const link = sentMessages[0].text.match(/https:\/\/\S+/)[0];
+  assert.equal((await handleProductionApi(new Request(link), env)).status, 303);
+  assert.equal((await handleProductionApi(new Request(link), env)).status, 401);
+});
