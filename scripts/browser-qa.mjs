@@ -51,8 +51,9 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
   if (viewport.name === 'mobile') {
     await page.goto(base + '/en/', { waitUntil: 'domcontentloaded' });
     const menu = page.getByRole('button', { name: 'Open menu' });
-    await menu.click();
-    if (await page.getByRole('button', { name: 'Close menu' }).getAttribute('aria-expanded') !== 'true') problems.push('Mobile menu failed to open');
+    await menu.focus();
+    await page.keyboard.press('Enter');
+    if (await page.getByRole('button', { name: 'Close menu' }).getAttribute('aria-expanded') !== 'true') problems.push('Mobile menu failed to open from keyboard');
     await page.keyboard.press('Escape');
     if (await page.getByRole('button', { name: 'Open menu' }).getAttribute('aria-expanded') !== 'false') problems.push('Mobile menu failed to close on Escape');
   }
