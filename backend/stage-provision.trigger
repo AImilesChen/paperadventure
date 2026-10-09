@@ -1,1 +1,1 @@
-2026-10-09: verify deployed isolated backend stage API and release flags.
+2026-10-09: refresh isolated backend stage after apex API service binding and email capability safeguards.
