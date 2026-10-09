@@ -1,1 +1,1 @@
-2026-10-09: refresh isolated backend stage after apex API service binding and email capability safeguards.
+2026-10-09: apply migration 0005 to seed six public story worlds in isolated D1 stage.
