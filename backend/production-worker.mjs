@@ -18,8 +18,10 @@ function accessMonths(spec) {
 const accessActive = entitlement => Boolean(entitlement?.status === 'active' && entitlement.access_expires_at &&
   Date.parse(`${entitlement.access_expires_at.replace(' ', 'T')}Z`) > Date.now());
 
+const emailReady = env => Boolean(env.EMAIL_FROM && (typeof env.EMAIL?.send === 'function' || env.RESEND_API_KEY));
+
 function paymentReady(env) {
-  return Boolean(env.DB && env.PRIVATE_FILES && env.RESEND_API_KEY && env.EMAIL_FROM && env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET && env.SESSION_SECRET && env.PUBLIC_ORIGIN &&
+  return Boolean(env.DB && env.PRIVATE_FILES && emailReady(env) && env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET && env.SESSION_SECRET && env.PUBLIC_ORIGIN &&
     env.CHECKOUT_ENABLED === 'true' && env.LEGAL_RELEASED === 'true' && env.TAX_CONFIGURED === 'true' &&
     (env.STRIPE_SECRET_KEY.startsWith('sk_test_') || (env.LIVE_PAYMENTS_ENABLED === 'true' && env.STRIPE_SECRET_KEY.startsWith('sk_live_'))));
 }
@@ -188,7 +190,7 @@ async function authenticatedEmailHash(request, env) {
 }
 
 async function requestAccessLink(request, env) {
-  if (!env.DB || !env.SESSION_SECRET || !env.RESEND_API_KEY || !env.EMAIL_FROM || !env.PUBLIC_ORIGIN) throw new ApiError(503, 'EMAIL_NOT_READY', 'Email verification is not configured.');
+  if (!env.DB || !env.SESSION_SECRET || !emailReady(env) || !env.PUBLIC_ORIGIN) throw new ApiError(503, 'EMAIL_NOT_READY', 'Email verification is not configured.');
   requireSameOrigin(request, env);
   const body = await requestBody(request);
   const email = normalizeEmail(body.email);
@@ -215,13 +217,19 @@ async function sendAccessEmail(env, email, hash, { subject, intro, idempotencyKe
   await query(env.DB, 'INSERT INTO access_challenges (nonce_hash,email_hash,expires_at) VALUES (?,?,?)', nonceHash, hash, exp).run();
   const token = await signAccessToken(env.SESSION_SECRET, { scope: 'email-link', emailHash: hash, nonce, exp });
   const link = `${new URL(env.PUBLIC_ORIGIN).origin}/api/v1/auth/verify?token=${encodeURIComponent(token)}`;
+  const text = `${intro} ${link}\n\nIf you did not request it, you can ignore this email.`;
+  if (typeof env.EMAIL?.send === 'function') {
+    try { await env.EMAIL.send({ from: env.EMAIL_FROM, to: email, subject, text }); }
+    catch { throw new ApiError(502, 'EMAIL_SEND_FAILED', 'The verification email could not be sent.'); }
+    return;
+  }
   const response = await (env.FETCH || fetch)('https://api.resend.com/emails', { method: 'POST', headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json', 'Idempotency-Key': idempotencyKey },
-    body: JSON.stringify({ from: env.EMAIL_FROM, to: [email], subject, text: `${intro} ${link}\n\nIf you did not request it, you can ignore this email.` }) });
+    body: JSON.stringify({ from: env.EMAIL_FROM, to: [email], subject, text }) });
   if (!response.ok) throw new ApiError(502, 'EMAIL_SEND_FAILED', 'The verification email could not be sent.');
 }
 
 async function dispatchNotification(orderId, kind, env) {
-  if (!env.DB || !env.RESEND_API_KEY || !env.EMAIL_FROM || !env.STRIPE_SECRET_KEY) return;
+  if (!env.DB || !emailReady(env) || !env.STRIPE_SECRET_KEY) return;
   const notice = await query(env.DB, "SELECT * FROM delivery_notifications WHERE order_id = ? AND kind = ? AND status = 'pending'", orderId, kind).first();
   if (!notice || notice.attempts >= 5) return;
   const order = await query(env.DB, 'SELECT * FROM orders WHERE id = ?', orderId).first();
@@ -413,7 +421,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);
       const catalog = await liveCatalog(env);
-      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), generation: generationReady(env), proposals: env.PROPOSALS_ENABLED === 'true' && Boolean(env.DB && env.SESSION_SECRET && env.OPENAI_API_KEY && env.OPENAI_MODEL && rangeReady(env)), account: Boolean(env.DB && env.SESSION_SECRET && env.RESEND_API_KEY && env.EMAIL_FROM && env.PUBLIC_ORIGIN), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), generation: generationReady(env), proposals: env.PROPOSALS_ENABLED === 'true' && Boolean(env.DB && env.SESSION_SECRET && env.OPENAI_API_KEY && env.OPENAI_MODEL && rangeReady(env)), account: Boolean(env.DB && env.SESSION_SECRET && emailReady(env) && env.PUBLIC_ORIGIN), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
