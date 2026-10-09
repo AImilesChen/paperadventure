@@ -1,1 +1,1 @@
-2026-10-09: rerun live privacy notice QA with isolated Playwright context.
+2026-10-09: verify live Google sign-in after publishing privacy notice and opening accounts.
