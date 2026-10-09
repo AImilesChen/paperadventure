@@ -4,7 +4,8 @@ import AxeBuilder from '@axe-core/playwright';
 const browser = await chromium.launch({ headless: true });
 const problems = [];
 for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 390, height: 844 }]) {
-  const page = await browser.newPage({ viewport, reducedMotion: 'reduce' });
+  const context = await browser.newContext({ viewport, reducedMotion: 'reduce' });
+  const page = await context.newPage();
   try {
     const response = await page.goto('https://paperadventure.app/en/privacy/', { waitUntil: 'domcontentloaded', timeout: 20000 });
     if (!response?.ok()) throw new Error('Privacy page HTTP error');
@@ -21,7 +22,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
       problems.push(viewport.name + ': accessibility ' + violation.id + ': ' + violation.nodes.length + ' elements');
     }
   } catch (error) { problems.push(viewport.name + ': ' + error.message); }
-  await page.close();
+  await context.close();
 }
 await browser.close();
 console.log(JSON.stringify({ checked: 2, problems }, null, 2));
