@@ -61,6 +61,8 @@ async function liveCatalog(env) {
     WHERE p.status = 'published' AND w.status = 'published' AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
     ORDER BY p.published_at DESC, p.version DESC`).all();
   const ready = result.results || [];
+  const variantRows = await query(env.DB, `SELECT ready_pack_id,variant_id FROM ready_pack_variants GROUP BY ready_pack_id,variant_id HAVING COUNT(*) = 4`).all();
+  const variantsFor = pack => (variantRows.results || []).filter(row => row.ready_pack_id === pack?.id).map(row => row.variant_id);
   const free = env.FREE_SAMPLE_ENABLED === 'true' && ready.some(pack => pack.theme_world_id === 'celebration');
   const prices = await query(env.DB, 'SELECT sku,unit_amount,currency FROM price_versions WHERE sale_enabled = 1').all();
   const liveSkus = new Set((prices.results || []).filter(price => offers.some(offer => offer.sku === price.sku && offer.unitAmount === price.unit_amount && price.currency === 'USD')).map(price => price.sku));
@@ -69,7 +71,8 @@ async function liveCatalog(env) {
   return { ...base, publicationState: canCheckout || free ? 'partially_configured' : base.publicationState,
     freeSampleThemeId: free ? 'celebration' : null,
     themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'home') ? 'published' : 'not_published', freeSample: free && theme.id === 'celebration' && ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'home'), packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
-      classroom: { readyStatus: ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom') ? 'published' : 'not_published', freeSample: free && theme.id === 'celebration' && ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom'), packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null } })),
+      classroom: { readyStatus: ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom') ? 'published' : 'not_published', freeSample: free && theme.id === 'celebration' && ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom'), packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null,
+        variantIds: variantsFor(ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')) } })),
     offers: offers.map(offer => ({ ...offer, saleEnabled: canCheckout && liveSkus.has(offer.sku) && (offer.kind === 'custom' ? generationReady(env) : availablePaidPack(offer.setting)) })) };
 }
 
@@ -105,6 +108,10 @@ async function checkout(request, env) {
     if (!readyPack) throw new ApiError(503, 'PACK_NOT_PUBLISHED', 'This ready-made pack is not published.');
     const files = await query(env.DB, 'SELECT paper, role FROM ready_pack_files WHERE ready_pack_id = ?', readyPack.id).all();
     if (files.results?.length !== 4) throw new ApiError(503, 'PACK_FILES_INCOMPLETE', 'The printable pack is incomplete.');
+    if (spec.variantId) {
+      const variantFiles = await query(env.DB, 'SELECT paper, role FROM ready_pack_variants WHERE ready_pack_id = ? AND variant_id = ?', readyPack.id, spec.variantId).all();
+      if (variantFiles.results?.length !== 4) throw new ApiError(503, 'PACK_VARIANT_NOT_READY', 'This classroom story wording is not available.');
+    }
   }
   const buyerHash = await emailHash(env, email);
   const legal = await publishedLegal(env);
@@ -354,6 +361,7 @@ async function orderView(request, env, orderId) {
   return json({ id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
     paper: order.product_kind === 'custom' ? spec.paper : null,
+    variantId: order.product_kind === 'ready' ? spec.variantId || null : null,
     accessExpiresAt: entitlement?.access_expires_at || null,
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
     revisionExpiresAt: entitlement?.revision_expires_at || null });
@@ -371,7 +379,9 @@ async function fileDownload(request, env, orderId, role) {
   const spec = JSON.parse(order.purchase_spec_json);
   const paper = new URL(request.url).searchParams.get('paper') === 'Letter' ? 'Letter' : 'A4';
   let file;
-  if (order.product_kind === 'ready') file = await query(env.DB, 'SELECT r2_key, sha256 FROM ready_pack_files WHERE ready_pack_id = ? AND paper = ? AND role = ?', entitlement.ready_pack_id, paper, role).first();
+  if (order.product_kind === 'ready') file = spec.variantId
+    ? await query(env.DB, 'SELECT r2_key, sha256, bytes FROM ready_pack_variants WHERE ready_pack_id = ? AND variant_id = ? AND paper = ? AND role = ?', entitlement.ready_pack_id, spec.variantId, paper, role).first()
+    : await query(env.DB, 'SELECT r2_key, sha256, bytes FROM ready_pack_files WHERE ready_pack_id = ? AND paper = ? AND role = ?', entitlement.ready_pack_id, paper, role).first();
   else {
     if (paper !== spec.paper) throw new ApiError(404, 'FILE_NOT_FOUND', 'This paper size was not generated.');
     const artifact = await query(env.DB, "SELECT * FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", entitlement.custom_activity_id).first();
