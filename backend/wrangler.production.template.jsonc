@@ -19,7 +19,8 @@
   "triggers": { "crons": ["*/15 * * * *"] },
   "vars": {
     "PUBLIC_ORIGIN": "https://paperadventure.app",
-    "OPENAI_MODEL": "REPLACE_WITH_APPROVED_MODEL",
+    "AI_PROVIDER": "deepseek",
+    "DEEPSEEK_MODEL": "deepseek-flash",
     "CUSTOM_LICENCE_VERSION": "draft-not-approved",
     "SUPPORTED_AGE_MIN": "0",
     "SUPPORTED_AGE_MAX": "0",
