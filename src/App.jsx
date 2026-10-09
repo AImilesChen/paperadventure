@@ -8,6 +8,7 @@ import { crossesAnalyticsBoundary } from './analytics-route.mjs';
 import { CatalogPage, ThemeDetailPage, PricingPageV13 } from './productPages.jsx';
 import { LiveAccount, LiveShelf, LiveOrder, LiveSamples, LiveCheckout, LiveLegal, LivePricing } from './livePages.jsx';
 import { LiveCreate } from './liveCreate.jsx';
+import { useModalFocus } from './useModalFocus.js';
 
 const faq = [
   ['What will I make?', 'A printable story adventure is planned to include connected puzzles, clues, hints, and an organiser guide. This prototype shows the design and creation flow; real generated files are not available here.'],
@@ -151,6 +152,8 @@ export function App() {
     });
   }, [route]);
   const [conflictTo, setConflictTo] = useState('');
+  const dismissConflict = () => { pendingNavigation = ''; setConflictTo(''); };
+  const conflictDialogRef = useModalFocus(Boolean(conflictTo), dismissConflict);
   useEffect(() => { const show = () => setConflictTo(pendingNavigation); window.addEventListener('draft-conflict', show); return () => window.removeEventListener('draft-conflict', show); }, []);
   let page;
   if (route !== '/' && !pageFor(route) && !isPrivateOrderRoute(route)) page = <NotFoundPage />;
@@ -171,5 +174,5 @@ export function App() {
   else if (route.startsWith('/en/account')) page = runtime?.account ? <LiveAccount Link={Link} /> : <AccountPreview Link={Link} />;
   else if (['/en/privacy/', '/en/terms/', '/en/cookies/', '/en/refunds/'].includes(route)) page = runtime?.legal ? <LiveLegal kind={route.split('/')[2]} /> : <LegalExperience Link={Link} kind={route.split('/')[2]} />;
   else page = <NotFoundPage />;
-  return <><Header route={route} />{page}<Footer runtime={runtime} />{conflictTo && <div className="modal-backdrop" role="presentation"><div className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="draft-dialog-title"><span className="eyebrow">SAVED DRAFT</span><h2 id="draft-dialog-title">Start a new adventure?</h2><p>You already have an idea saved in this browser. Choosing the new world will replace that draft.</p><div className="modal-actions"><button className="button-quiet" onClick={() => { pendingNavigation = ''; setConflictTo(''); }}>Keep my draft</button><button className="button" onClick={() => { const to = conflictTo; pendingNavigation = ''; setConflictTo(''); navigate(to, true); }}>Use new world <ArrowRight size={18} /></button></div></div></div>}</>;
+  return <><Header route={route} />{page}<Footer runtime={runtime} />{conflictTo && <div className="modal-backdrop" role="presentation"><div ref={conflictDialogRef} tabIndex={-1} className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="draft-dialog-title"><span className="eyebrow">SAVED DRAFT</span><h2 id="draft-dialog-title">Start a new adventure?</h2><p>You already have an idea saved in this browser. Choosing the new world will replace that draft.</p><div className="modal-actions"><button className="button-quiet" onClick={dismissConflict}>Keep my draft</button><button className="button" onClick={() => { const to = conflictTo; pendingNavigation = ''; setConflictTo(''); navigate(to, true); }}>Use new world <ArrowRight size={18} /></button></div></div></div>}</>;
 }
