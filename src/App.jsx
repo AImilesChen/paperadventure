@@ -184,9 +184,19 @@ export function App() {
   useEffect(() => { const sync = () => setRouteLocation(`${path()}${window.location.search}`); window.addEventListener('popstate', sync); return () => window.removeEventListener('popstate', sync); }, []);
   useEffect(() => {
     const page = pageFor(route);
+    const indexableHere = ['paperadventure.app', 'localhost', '127.0.0.1'].includes(window.location.hostname) && Boolean(page?.indexable);
+    let robots = document.querySelector('meta[name="robots"]');
+    if (indexableHere) robots?.remove();
+    else {
+      if (!robots) {
+        robots = document.createElement('meta');
+        robots.name = 'robots';
+        document.head.appendChild(robots);
+      }
+      robots.content = 'noindex';
+    }
     if (!page) {
       document.title = `${isPrivateOrderRoute(route) ? 'Your order' : 'Page not found'} | Paper Adventure Workshop`;
-      document.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex,nofollow');
       document.querySelector('link[rel="canonical"]')?.remove();
       return;
     }

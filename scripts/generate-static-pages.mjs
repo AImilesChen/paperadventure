@@ -13,8 +13,8 @@ const out = path.join(root, 'dist', 'client');
 const origin = process.env.SITE_ORIGIN || 'https://paperadventure.app';
 if (!/^https:\/\/[^/]+$/.test(origin)) throw new Error('SITE_ORIGIN must be an HTTPS origin without a path');
 
-// Publication remains gated by real packs, reviewed policies and live-service QA.
-// Every generated page is deliberately excluded from search until those gates pass.
+// Public catalogue and content pages are indexable on the canonical domain.
+// Private, transactional and unfinished legal-review routes retain noindex.
 const escape = value => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 const template = await readFile(path.join(out, 'index.html'), 'utf8');
 const server = await createServer({ root, server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
@@ -31,7 +31,7 @@ try {
     const tags = [
       `<title>${escape(record.title)} | Paper Adventure Workshop</title>`,
       `<meta name="description" content="${escape(record.description)}" />`,
-      '<meta name="robots" content="noindex,nofollow" />',
+      ...(record.indexable ? [] : ['<meta name="robots" content="noindex" />']),
       `<link rel="canonical" href="${escape(url)}" />`,
       '<meta property="og:type" content="website" />',
       `<meta property="og:title" content="${escape(record.title)} | Paper Adventure Workshop" />`,
@@ -78,11 +78,12 @@ try {
   assert.doesNotMatch(unknown, /Privacy Notice/);
   assert.match(renderPreview('/en/create/unexpected/', '', null), /That page isn&#x27;t here\./);
   console.log('Verified query and saved-draft hydration against the pre-rendered pages');
-  // Let the owner's Ahrefs audit crawl the preview; all other bots remain blocked.
-  // noindex remains in HTML and response headers until the release gates pass.
-  await writeFile(path.join(out, 'robots.txt'), 'User-agent: AhrefsSiteAudit\nAllow: /\n\nUser-agent: AhrefsBot\nAllow: /\n\nUser-agent: *\nDisallow: /\n');
-  await writeFile(path.join(out, '_headers'), '/*\n  X-Robots-Tag: noindex, nofollow\n');
-  console.log(`Generated ${publicPages.length} pre-rendered, noindex pages for ${origin}`);
+  const indexablePages = publicPages.filter(record => record.indexable);
+  const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + indexablePages.map(record => `  <url><loc>${escape(origin + record.path)}</loc></url>`).join('\n') + '\n</urlset>\n';
+  await writeFile(path.join(out, 'sitemap.xml'), sitemap);
+  await writeFile(path.join(out, 'robots.txt'), 'User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://paperadventure.app/sitemap.xml\n');
+  await writeFile(path.join(out, '_headers'), ['/en/account/*', '/en/my-adventures/*', '/en/checkout/*', '/en/orders/*', '/en/help/recover/*', '/en/terms/*', '/en/cookies/*', '/en/refunds/*'].map(route => route + '\n  X-Robots-Tag: noindex\n').join('\n'));
+  console.log(`Generated ${publicPages.length} pre-rendered pages and ${indexablePages.length} sitemap URLs for ${origin}`);
 } finally {
   delete globalThis.window;
   delete globalThis.localStorage;

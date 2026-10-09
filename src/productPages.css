@@ -20,3 +20,58 @@
 @media(max-width:650px){.audience-switch{gap:9px}.audience-switch a{padding:14px}.audience-switch span{font-size:1.15rem}.audience-switch small{font-size:.68rem}.catalog-count{align-self:flex-start}}
 
 .product-detail-art .product-pdf-preview{margin:0;padding:18px 20px 22px;border-top:1px solid #c9e0e8;background:#f4fbfd}.product-detail-art .product-pdf-preview img{width:min(100%,360px);height:auto;aspect-ratio:auto;object-fit:contain;margin:0 auto;border:1px solid #c9e0e8;box-shadow:0 8px 20px #123b5020}.product-detail-art .product-pdf-preview figcaption{margin-top:11px;color:#466273;font-size:.78rem;line-height:1.5}
+
+
+/* Search-friendly Home catalogue in the existing paper-art language. */
+.catalog-home-hero{overflow:hidden;background:#d9f1fb;border-bottom:1px solid #c4e3ef}
+.catalog-hero-inner{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(330px,.85fr);gap:5%;align-items:center;padding-top:62px;padding-bottom:62px}
+.catalog-home-copy .eyebrow{display:inline-flex;align-items:center;gap:8px;color:#aa3526}
+.catalog-home-copy h1{max-width:720px;margin:13px 0 18px;color:#102e55;font-size:clamp(3.15rem,5.2vw,5.6rem);line-height:1.01;letter-spacing:-.055em}
+.catalog-home-copy h1 .dot{color:#df4a36}
+.catalog-home-copy>p{max-width:650px;margin:0;color:#31576c;font-size:1.08rem;line-height:1.65}
+.catalog-hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:27px}
+.catalog-hero-actions .button,.catalog-hero-actions .button-quiet{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:48px}
+.catalog-hero-actions .button-quiet{padding:11px 16px;border:1px solid #95bfd0;border-radius:8px;background:#f7fcfe;color:#123a55;font-weight:900;text-decoration:none}
+.catalog-hero-actions .button-quiet:hover{background:#fff}
+.catalog-hero-facts{display:flex;flex-wrap:wrap;gap:9px;margin:23px 0 0;padding:0;list-style:none}
+.catalog-hero-facts li{padding:7px 11px;border:1px solid #a6d4e5;border-radius:999px;background:#eef9fc;color:#284f66;font-size:.78rem;font-weight:900}
+.catalog-hero-visual{position:relative;max-width:520px;margin-left:auto;padding:0 15px 28px 0}
+.catalog-hero-visual>img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border:9px solid #fffdf7;border-radius:13px;box-shadow:0 20px 35px #1e547026;transform:rotate(2deg)}
+.catalog-hero-note{position:absolute;right:0;bottom:0;display:grid;gap:2px;width:min(76%,285px);padding:16px 19px;border:1px solid #d4c9b8;border-radius:8px;background:#fffdf7;box-shadow:0 10px 20px #1e547021;transform:rotate(-3deg)}
+.catalog-hero-note span{color:#b53d2a;font-size:.68rem;font-weight:900;letter-spacing:.08em}
+.catalog-hero-note strong{color:#153a56;font-family:'Bree Serif',serif;font-size:1.18rem;font-weight:400}
+.catalog-hero-note small{color:#4d6b7a;font-size:.75rem}
+.catalog-content{padding-top:27px;padding-bottom:64px}
+.catalog-page .audience-switch{margin-bottom:52px}
+.catalog-section-heading{max-width:760px;margin-bottom:23px}
+.catalog-section-heading .eyebrow{color:#b33e2a}
+.catalog-section-heading h2{margin:8px 0 9px;color:#102f55;font-size:clamp(2rem,3.4vw,3.2rem);line-height:1.13;letter-spacing:-.035em}
+.catalog-section-heading p{margin:0;color:#42647a;line-height:1.6}
+.catalog-home-benefits{padding:8px 0 52px}
+.catalog-benefit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.catalog-benefit-grid article{padding:23px;border:1px solid #c7e0e9;border-radius:12px;background:#f5fbfd}
+.catalog-benefit-grid article>strong{color:#bd3f2e;font-size:.76rem;letter-spacing:.08em}
+.catalog-benefit-grid h3{margin:12px 0 7px;color:#153a56;font-family:'Bree Serif',serif;font-size:1.4rem;font-weight:400}
+.catalog-benefit-grid p{margin:0;color:#4b697b;font-size:.88rem;line-height:1.55}
+.catalog-listing{scroll-margin-top:90px}
+.catalog-listing-heading{display:flex;align-items:end;justify-content:space-between;gap:24px;max-width:none}
+.catalog-listing-heading>div{max-width:760px}
+.catalog-total{flex:none;padding:9px 13px;border:1px solid #b6d8e5;border-radius:999px;background:#eaf7fc;color:#9e3929;font-size:.78rem;font-weight:900}
+.catalog-listing-body{scroll-margin-top:100px}
+.catalog-page .product-card-copy h3{margin:0 0 5px;color:#153a56;font-family:'Bree Serif',serif;font-size:1.6rem;font-weight:400}
+.catalog-contents{margin-top:57px;padding:35px;border-radius:15px;background:#e9f6fb}
+.catalog-contents-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.catalog-contents-grid article{padding:24px;border:1px solid #c8dfe8;border-radius:11px;background:#fffdfa}
+.catalog-contents-grid span{color:#af3d2c;font-size:.69rem;font-weight:900;letter-spacing:.08em}
+.catalog-contents-grid h3{margin:8px 0 7px;color:#153a56;font-family:'Bree Serif',serif;font-size:1.55rem;font-weight:400}
+.catalog-contents-grid p{margin:0;color:#4c6b7e;font-size:.88rem;line-height:1.55}
+.catalog-contents-note{margin:18px 0 0;color:#3e6478;font-size:.82rem;font-weight:800}
+.catalog-home-faq{display:grid;grid-template-columns:minmax(200px,.7fr) minmax(0,1.3fr);gap:6%;margin:60px 0}
+.catalog-faq-list{border-top:1px solid #bdd9e3}
+.catalog-faq-list details{padding:18px 0;border-bottom:1px solid #bdd9e3}
+.catalog-faq-list summary{color:#153a56;font-weight:900;cursor:pointer}
+.catalog-faq-list summary:focus-visible{outline:3px solid #a83d2c;outline-offset:4px}
+.catalog-faq-list p{margin:10px 0 0;color:#4d6c7e;font-size:.88rem;line-height:1.6}
+.catalog-faq-list a{color:#ad3826;font-weight:800}
+@media(max-width:950px){.catalog-hero-inner{grid-template-columns:1fr;gap:30px}.catalog-hero-visual{width:min(100%,520px);margin:0 auto}.catalog-home-faq{grid-template-columns:1fr;gap:5px}}
+@media(max-width:650px){.catalog-hero-inner{padding-top:42px;padding-bottom:43px}.catalog-home-copy h1{font-size:clamp(2.65rem,10vw,4rem)}.catalog-home-copy>p{font-size:.96rem}.catalog-hero-actions{align-items:stretch;flex-direction:column}.catalog-hero-actions .button,.catalog-hero-actions .button-quiet{width:100%}.catalog-hero-visual{padding-right:10px}.catalog-hero-note{width:min(80%,270px)}.catalog-page .audience-switch{margin-bottom:38px}.catalog-benefit-grid,.catalog-contents-grid{grid-template-columns:1fr}.catalog-listing-heading{align-items:start;flex-direction:column;gap:14px}.catalog-contents{padding:22px}.catalog-home-faq{margin:45px 0}}

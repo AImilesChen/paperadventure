@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { publicPages } from '../shared/page-manifest.mjs';
+import { themes } from '../shared/catalog.mjs';
 
 const base = 'http://127.0.0.1:4173';
 const out = 'output/browser-qa';
@@ -10,7 +11,7 @@ const browser = await chromium.launch({ headless: true });
 const problems = [];
 const snapshots = [];
 const accessibility = [];
-const routesToCapture = new Set(['/en/', '/en/themes/', '/en/themes/celebration/', '/en/create/', '/en/pricing/', '/en/privacy/']);
+const routesToCapture = new Set(['/en/', '/en/themes/', '/en/themes/celebration/', '/en/for-home/', '/en/create/', '/en/pricing/', '/en/privacy/']);
 
 for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 390, height: 844 }]) {
   const context = await browser.newContext({ viewport, reducedMotion: 'reduce' });
@@ -31,7 +32,8 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
       if (!state.h1) problems.push(viewport.name + ' ' + route + ' missing main heading');
       if (state.bodyOverflow > 16) problems.push(viewport.name + ' ' + route + ' horizontal overflow ' + state.bodyOverflow + 'px');
       if (state.brokenImages.length) problems.push(viewport.name + ' ' + route + ' broken images: ' + state.brokenImages.join(', '));
-      if (!state.noindex) problems.push(viewport.name + ' ' + route + ' missing preview noindex');
+      const indexable = publicPages.find(item => item.path === route)?.indexable;
+      if (state.noindex === indexable) problems.push(viewport.name + ' ' + route + ' has the wrong robots metadata');
       snapshots.push({ viewport: viewport.name, route, ...state });
       if (routesToCapture.has(route)) {
         const scan = await new AxeBuilder({ page }).analyze();
@@ -91,10 +93,10 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     if (await page.getByRole('button', { name: 'Open menu' }).getAttribute('aria-expanded') !== 'false') problems.push('Mobile menu failed to close on Escape');
   }
   if (viewport.name === 'desktop') {
-    for (const [route, title] of [['/en/for-home/', 'Six adventures for home.'], ['/en/for-classroom/', 'Six adventures for the classroom.']]) {
+    for (const [route, title] of [['/en/for-home/', 'Printable Adventure Games for Kids at Home.'], ['/en/for-classroom/', 'Printable Classroom Adventure Games for Kids']]) {
       await page.goto(base + route, { waitUntil: 'domcontentloaded' });
       if (!await page.getByRole('heading', { name: title }).isVisible()) problems.push(route + ' has the wrong audience heading');
-      if (await page.locator('.product-theme-card').count() !== 6) problems.push(route + ' does not show all six themes');
+      if (await page.locator('.product-theme-card').count() !== themes.length) problems.push(route + ' does not show all available themes');
     }
     await page.goto(base + '/en/for-classroom/', { waitUntil: 'domcontentloaded' });
     const classroomDetail = page.locator('.product-theme-card').nth(1).locator('a.product-image-link');
