@@ -1,1 +1,1 @@
-2026-10-09: verify live Google account UI with synthetic invalid credential after OAuth Client ID activation.
+2026-10-09: verify real GIS script/button frame on apex plus synthetic invalid-token callback.
