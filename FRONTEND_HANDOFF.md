@@ -1,5 +1,7 @@
 # Paper Adventure｜当前前端交接
 
+**最新实测状态（2026-10-09）：**页头及手机菜单已有 Sign in，Celebration Home/Classroom 的 A4/Letter 双文件下载界面和后端完整性校验已实现。[浏览器 QA](https://github.com/AImilesChen/paperadventure/actions/runs/37895214325)、[预览部署](https://github.com/AImilesChen/paperadventure/actions/runs/37895448269)与[私有 DeepSeek 生成 PDF 实测](https://github.com/AImilesChen/paperadventure/actions/runs/37895214301)通过。邮箱登录和免费 PDF 公开下载尚未启用，Stripe 未接入；以下较早的“密钥缺失/生成未实测”记录已被本段及对应工作流结果取代。
+
 **2026-10-09 交付口径更新：**PRD/定价/英文文案/合规/UI 的 v1.4 补充包见 [前端开发前交付包](content/前端开发前交付包_索引与阶段门_v1.4.md)。Celebration Home 与 Classroom 两版均为免费样例；完整 v0.1 可先作为标明版本的试玩稿开放下载，不以真人试玩为下载前提。下文较早的“候选/不得下载”口径仅说明当时实际部署状态，不能代替 v1.4 产品决定。DeepSeek Key 后续已配置，但私有生成在语义 QA 未通过；公开开关仍关闭。
 
 **2026-10-09 DeepSeek 更新：**生成后端已支持 DeepSeek，隔离 Worker 已部署；[私有冒烟检查](https://github.com/AImilesChen/paperadventure/actions/runs/37883884339)发现当前仓库无可用 DeepSeek Secret，故真实生成仍未验证或对外开放。详细状态见[前四阶段记录](content/前四阶段开发与验收状态_2026-10-09.md)。
