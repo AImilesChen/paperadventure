@@ -9,7 +9,7 @@
 | 六个主题详情 `/en/themes/{id}/` | 现成/定制两种权益、候选免费样例、未发布按钮禁用、未知主题回退 | 已有实现，`../design-qa.md` 记录一般路由检查 | Celebration + 一款付费候选的桌面/手机截图；未知主题与禁用态。 |
 | 流程 `/en/how-it-works/` | 四步介绍和创建入口 | 已有实现 | 桌面/手机截图。 |
 | 创建器 `/en/create/` | 空字段报错、Home/Classroom 分歧、提案选择、Review、草稿覆盖确认 | `../design-qa.md` 有行为检查 | 关键四步及错误/冲突弹层的手机和桌面截图。 |
-| 样例 `/en/samples/`, `/en/samples/home/`, `/en/samples/classroom/` | 未发布样例说明、Home/课堂切换、真实草稿材料与封面区分 | `material-previews/` 中两张**内部草稿**材料截图 | 公开样例 PDF 未通过试玩/发布闸门，站点不得显示为可下载成品。 |
+| 样例 `/en/samples/`, `/en/samples/home/`, `/en/samples/classroom/` | 未发布/可下载试玩两种状态、Home/课堂切换、玩家/成人配套文件、版本与纸张选择 | `material-previews/` 中两张**内部草稿**材料截图 | Celebration 两版完整 v0.1 可先标为试玩稿供下载；页面不得说它是已验收的正式商品。下载前核对配套玩家/指南、纸张、版本和素材发布范围。 |
 | 价格 `/en/pricing/` | 固定包/定制包、Home/Classroom、候选免费包、税/许可待确认 | `../qa-pricing-v13.png` | 手机截图；价格与权益最终复核。 |
 | 帮助 `/en/help/`, `/en/help/start/`, `/en/help/print/`, `/en/help/recover/`, `/en/help/report/` | FAQ、开始体验、打印说明、找回订单、问题反馈和不可用提示 | 已有实现；`/en/help/start/` 已补独立预渲染路由 | 各家族桌面/手机和错误态截图。 |
 | 结账 `/en/checkout/`, `/en/checkout/demo/` | 不可付款、费用摘要、条款与税待确认 | `../qa-extended-checkout-mobile.png` | 桌面和禁用按钮焦点截图；真实收款不在设计预览内。 |

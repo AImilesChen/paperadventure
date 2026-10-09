@@ -1,5 +1,7 @@
 # Paper Adventure Workshop — UI design handoff
 
+> **2026-10-09 补充交接：**核心用户路径、登录、免费试玩下载与状态设计见 [UI 功能流程与关键页面 v1.4](UI功能流程与关键页面_v1.4.md)；旧交接中的“试玩前不得下载”应读为“正式销售前须审查”，不阻止标明版本的免费试玩稿。现场截图与素材权利仍为待复核。
+
 Updated: 2026-10-08. This package describes the **noindex design preview**, not a released store.
 
 ## Product and chosen direction

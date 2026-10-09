@@ -1,5 +1,7 @@
 # Paper Adventure Workshop
 
+**Current product/design source of truth:** [Pre-frontend handoff v1.4](content/前端开发前交付包_索引与阶段门_v1.4.md). It records the agreed free Celebration Home and Classroom sample, separate ready-made and custom prices, page copy, legal review conditions, and UI flow. Earlier prototype behavior and documents may differ.
+
 English-first printable story adventure website prototype. The current public preview is https://paperadventure.app/en/ and deliberately blocks search indexing. Prices, checkout, accounts, PDFs, emails, analytics and generation remain behind release gates until the corresponding product, legal and service checks pass.
 
 ## Local development
