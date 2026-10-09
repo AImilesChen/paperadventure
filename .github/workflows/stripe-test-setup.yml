@@ -68,3 +68,8 @@ jobs:
           done
           echo "::error::Stripe sandbox capability did not propagate"
           exit 1
+      - name: Keep private test packs hidden from anonymous visitors
+        run: |
+          code=$(curl --silent --output /dev/null --write-out '%{http_code}' https://paperadventure.app/api/v1/test-packs)
+          test "$code" = 403
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.offers?.some(x=>x.kind==='ready'&&x.saleEnabled)||v.themes?.some(t=>t.id!=='celebration'&&['home','classroom'].some(k=>t[k]?.readyStatus==='published')))throw Error('Test pack leaked into public catalog');console.log('Anonymous catalog keeps paid ready packs closed')})"
