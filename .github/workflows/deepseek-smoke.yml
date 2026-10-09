@@ -17,6 +17,8 @@ jobs:
     env:
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
       DEEPSEEK_MODEL: deepseek-flash
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -35,3 +37,10 @@ jobs:
           fi
       - name: Generate Home and Classroom PDFs with DeepSeek
         run: node scripts/deepseek-smoke.mjs
+      - name: Bind verified key to isolated stage Worker
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          printf '%s' "$DEEPSEEK_API_KEY" | npx --yes wrangler@4.74.0 secret put DEEPSEEK_API_KEY --name paper-adventure-api-stage
+      - name: Keep public generation disabled
+        run: |
+          curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.generation||v.proposals||v.checkout)throw Error('Stage release flag unexpectedly enabled');console.log('DeepSeek stage secret configured; public generation remains disabled')})"
