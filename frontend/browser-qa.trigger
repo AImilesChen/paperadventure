@@ -1,1 +1,1 @@
-2026-10-09 rerun desktop/mobile and live sample QA after canonical indexability change.
+2026-10-09 verify teacher-facing Classroom catalogue on desktop and mobile after public deployment.
