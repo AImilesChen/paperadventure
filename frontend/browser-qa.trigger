@@ -1,1 +1,1 @@
-2026-10-09 browser QA pass 9 keyboard menu
+2026-10-09: verify v1.4 sign-in navigation and Celebration trial UI in isolated browser QA.
