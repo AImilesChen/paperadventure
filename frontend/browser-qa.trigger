@@ -1,1 +1,1 @@
-2026-10-09: rerun live Celebration Home/Classroom v0.1 browser QA after feedback-link accessibility fix.
+2026-10-09: verify live Google account UI with synthetic invalid credential after OAuth Client ID activation.
