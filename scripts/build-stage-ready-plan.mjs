@@ -114,7 +114,7 @@ export function buildStageReadyPlan(root, options = {}) {
 
 const current = fileURLToPath(import.meta.url);
 if (process.argv[1] && resolve(process.argv[1]) === current) {
-  const root = resolve(process.argv[2] || new URL('..', import.meta.url).pathname);
+  const root = resolve(process.argv[2] || process.cwd());
   const plan = buildStageReadyPlan(root);
   const output = resolve(root, 'output');
   mkdirSync(output, { recursive: true });
