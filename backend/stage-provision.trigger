@@ -1,1 +1,1 @@
-2026-10-09: deploy tested Stripe sandbox integration with checkout closed until three setup secrets are present.
+2026-10-09 deploy numbered public-safe Player Pack previews with Stripe test settings unchanged

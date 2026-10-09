@@ -96,6 +96,7 @@ jobs:
         run: test -n "$CLOUDFLARE_API_TOKEN"
       - name: Upload private PDFs and stage internal records
         run: node scripts/upload-stage-ready.mjs
-      - name: Confirm paid ready packs remain unpublished
+      - name: Confirm paid ready packs remain test-only
         run: |
-          curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.freeSampleThemeId!=='celebration'||v.themes?.some(t=>t.id!=='celebration'&&(['home','classroom'].some(s=>t[s]?.readyStatus==='published'||t[s]?.freeSample)))||v.offers?.some(x=>x.kind==='ready'&&x.saleEnabled))throw Error('Paid draft pack became public');console.log('Paid draft packs remain private')})"
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.checkoutMode!=='test')throw Error('Expected Stripe test checkout only');console.log('Checkout remains in Stripe test mode')})"
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.freeSampleThemeId!=='celebration'||v.themes?.some(t=>t.id!=='celebration'&&(['home','classroom'].some(s=>t[s]?.readyStatus==='published'||t[s]?.freeSample))))throw Error('Paid draft pack became a live published pack');console.log('Paid drafts remain test-only; Celebration remains free')})"

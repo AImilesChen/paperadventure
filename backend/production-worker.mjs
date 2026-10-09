@@ -127,8 +127,9 @@ async function testReadyCatalog(request, env) {
   return json({ packs, mode: 'stripe_test' });
 }
 
-async function testPackPreview(request, env, themeId, setting) {
+async function testPackPreview(request, env, themeId, setting, previewPage = null) {
   if (!testCheckoutReady(env) || !['home','classroom'].includes(setting) ||
+      ![null, 1, 2].includes(previewPage) ||
       !['dinosaur','space','forest','halloween','christmas'].includes(themeId)) {
     throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
   }
@@ -137,7 +138,7 @@ async function testPackPreview(request, env, themeId, setting) {
       AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
     ORDER BY p.version DESC LIMIT 1`, themeId, setting).first();
   if (!pack || !/^v[0-9]+(?:[.][0-9]+){1,2}$/.test(pack.version)) throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
-  const key = `internal/draft-previews/${themeId}/${setting}/${pack.version}.jpg`;
+  const key = `internal/draft-previews/${themeId}/${setting}/${pack.version}${previewPage ? `-p${previewPage}` : ''}.jpg`;
   const object = await env.PRIVATE_FILES.get(key);
   if (!object || object.size > 3 * 1024 * 1024) throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
   const bytes = new Uint8Array(await new Response(object.body).arrayBuffer());
@@ -558,8 +559,8 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     }
     if (request.method === 'GET' && path === '/api/v1/catalog') return json(await liveCatalog(env));
     if (request.method === 'GET' && path === '/api/v1/test-packs') return await testReadyCatalog(request, env);
-    const testPreview = path.match(/^\/api\/v1\/test-pack-previews\/([a-z]+)\/(home|classroom)$/);
-    if (request.method === 'GET' && testPreview) return await testPackPreview(request, env, testPreview[1], testPreview[2]);
+    const testPreview = path.match(/^\/api\/v1\/test-pack-previews\/([a-z]+)\/(home|classroom)(?:\/([12]))?$/);
+    if (request.method === 'GET' && testPreview) return await testPackPreview(request, env, testPreview[1], testPreview[2], testPreview[3] ? Number(testPreview[3]) : null);
     if (request.method === 'GET' && path.startsWith('/api/v1/themes/')) {
       const id = path.slice('/api/v1/themes/'.length);
       const catalog = await liveCatalog(env);
