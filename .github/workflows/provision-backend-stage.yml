@@ -35,6 +35,15 @@ jobs:
       - run: npm run test:backend
       - name: Check Cloudflare token
         run: test -n "$CLOUDFLARE_API_TOKEN"
+      - name: Check existing Worker DeepSeek secret names
+        run: |
+          for worker in paper-adventure-api-stage paper-adventure-preview-v2; do
+            if npx --yes wrangler@4.74.0 secret list --name "$worker" --format json > "$RUNNER_TEMP/$worker-secrets.json" 2> "$RUNNER_TEMP/$worker-secrets.err"; then
+              WORKER="$worker" node -e "const fs=require('node:fs'); const rows=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+process.env.WORKER+'-secrets.json','utf8')); const names=Array.isArray(rows)?rows.map(x=>x.name).filter(x=>/deepseek/i.test(x)):[]; console.log(process.env.WORKER+' DeepSeek secret names: '+(names.join(', ')||'none'))"
+            else
+              echo "$worker secret-name check unavailable"
+            fi
+          done
       - name: Create or reuse isolated D1, R2 and Queue resources
         run: |
           set -euo pipefail
