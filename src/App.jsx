@@ -169,6 +169,8 @@ function LegalPage({ kind }) { const title = { privacy:'Privacy Policy', terms:'
 
 export function App() {
   const [routeLocation, setRouteLocation] = useState(() => `${path()}${window.location.search}`);
+  const [queryReady, setQueryReady] = useState(false);
+  useEffect(() => setQueryReady(true), []);
   const route = routeLocation.split('?')[0];
   const [runtime, setRuntime] = useState(null);
   const [runtimeCatalog, setRuntimeCatalog] = useState(null);
@@ -214,7 +216,7 @@ export function App() {
   let page;
   if (route !== '/' && !pageFor(route) && !isPrivateOrderRoute(route)) page = <NotFoundPage />;
   else if (route === '/en/' || route === '/') page = <Home sampleReady={Boolean(runtime?.sample)} />;
-  else if (route.startsWith('/en/themes/') && route !== '/en/themes/') page = <ThemeDetailPage Link={Link} themeId={route.split('/')[3]} selectedSetting={new URLSearchParams(routeLocation.split("?")[1] || "").get("setting")} catalog={runtimeCatalog} runtime={runtime} />;
+  else if (route.startsWith('/en/themes/') && route !== '/en/themes/') page = <ThemeDetailPage Link={Link} themeId={route.split('/')[3]} selectedSetting={queryReady ? new URLSearchParams(routeLocation.split("?")[1] || "").get("setting") : null} catalog={runtimeCatalog} runtime={runtime} />;
   else if (route.startsWith('/en/themes')) page = <CatalogPage key={route} Link={Link} initialSetting="home" overview catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;

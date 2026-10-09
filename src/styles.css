@@ -124,7 +124,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .nav-audience-link[aria-current="page"],.nav-theme-link[aria-current="page"]{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:7px}
 .theme-audience-switch{display:flex;gap:12px;width:89%;max-width:1318px;margin:20px auto 0}
 .theme-audience-switch button{display:flex;align-items:center;justify-content:space-between;gap:15px;min-width:230px;padding:12px 17px;border:1.5px solid #accbdc;border-radius:10px;background:#f7fcff;color:#24465f;font:900 .9rem 'Nunito Sans',sans-serif;cursor:pointer}
-.theme-audience-switch button span{color:#607b8d;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}
+.theme-audience-switch button span{color:#4b6576;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}
 .theme-audience-switch button.active{border-color:#143b5a;background:#143b5a;color:#fff}
 .theme-audience-switch button.active span{color:#d6e8f2}
 @media(max-width:1300px){.site-nav{display:none;position:absolute;top:73px;left:0;right:0;padding:20px 5%;background:#fffdf9;box-shadow:0 13px 20px #163a4c24}.site-nav.open{display:grid;gap:0}.site-nav a{padding:13px 0;border-bottom:1px solid #e4edf0;font-size:.92rem}.nav-shell{justify-content:space-between}.nav-actions{margin-left:auto}.menu-toggle{display:block}}
