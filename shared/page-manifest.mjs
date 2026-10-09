@@ -6,7 +6,14 @@ export const publicPages = Object.freeze([
   page('/en/', 'Printable Story Adventures for Home & Classroom', 'Explore printable story adventures for kids. Choose distinct Home and Classroom games, try a free Celebration pack, or create a custom story.'),
   page('/en/themes/', 'Printable Adventure Themes for Kids', 'Explore illustrated story worlds with separate Home and Classroom missions. Browse ready-made games and ideas for custom printable adventures.'),
   page('/en/for-home/', 'Printable Adventure Games for Kids at Home', 'Explore print-at-home story adventures for ages 6–12. Try the free Celebration game, browse themed Home packs, or create a custom story.'),
-  ...themes.map(theme => page(`/en/themes/${theme.id}/`, `${theme.title} Story World`, `Explore the ${theme.title} Home and Classroom stories, including available trial downloads and custom adventure options.`)),
+  ...themes.flatMap(theme => [
+    page(`/en/themes/${theme.id}/`, `${theme.title} Story World`, `Choose the Home or Classroom story in the ${theme.title} world.`, false),
+    ...['home', 'classroom'].map(setting => page(
+      `/en/themes/${theme.id}/${setting}/`,
+      `${theme.story[setting].title} | Printable ${setting === 'home' ? 'Home' : 'Classroom'} Adventure`,
+      `${theme.story[setting].goal} Explore the five paper checkpoints, printable materials and adult guide for this ${setting === 'home' ? 'Home' : 'Classroom'} game.`,
+    )),
+  ]),
   page('/en/for-classroom/', 'Printable Classroom Adventure Games for Kids', 'Printable story adventures for classrooms, ages 6–12. Explore group missions, the free Celebration game, and Player Packs with Teacher Guides in A4 and US Letter.'),
   page('/en/occasions/halloween/', 'Halloween Story Adventures', 'Explore playful Halloween story-world ideas and preview a printable group adventure.'),
   page('/en/how-it-works/', 'How Paper Adventures Work', 'See how a story idea becomes a printable group adventure, from setup to player pages and an organiser guide.'),

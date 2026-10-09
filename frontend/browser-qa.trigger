@@ -1,1 +1,1 @@
-2026-10-09 verify teacher-facing Classroom catalogue on desktop and mobile after public deployment.
+2026-10-09 verify twelve Home/Classroom theme detail pages, responsive layout, accessibility and catalogue navigation after public deployment.

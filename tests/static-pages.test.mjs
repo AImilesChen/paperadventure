@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { publicPages } from '../shared/page-manifest.mjs';
 import { productRights, themes } from '../shared/catalog.mjs';
+import { themeDetailContent } from '../src/themeDetailContent.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
@@ -61,33 +62,36 @@ test('brand icons and social card are built and linked from every preview route'
   }
 });
 
-test('Celebration remains free while other fixed-pack checkout previews stay separate', async () => {
-  const html = await read('en/themes/celebration/index.html');
-  for (const setting of ['home', 'classroom']) {
-    assert.ok(!html.includes(`/en/checkout/demo/?kind=ready&amp;theme=celebration&amp;setting=${setting}`));
-  }
-  assert.match(html, /<button[^>]*disabled[^>]*>Home(?:<!-- -->)? pack not available<\/button>/);
-  assert.match(html, /<button[^>]*disabled[^>]*>Classroom(?:<!-- -->)? pack not available<\/button>/);
-  assert.doesNotMatch(html, /Download free (?:home|classroom) sample/);
-  assert.match(html, /Celebration Home and Classroom are both free trial editions/);
-  const paid = await read('en/themes/dinosaur/index.html');
-  for (const setting of ['home', 'classroom']) {
-    assert.ok(paid.includes(`/en/checkout/demo/?kind=ready&amp;theme=dinosaur&amp;setting=${setting}`));
+test('legacy theme addresses stay available while edition pages have distinct canonical routes', async () => {
+  for (const theme of themes) {
+    const legacy = await read(`en/themes/${theme.id}/index.html`);
+    assert.match(legacy, /<meta name="robots" content="noindex" \/>/);
+    for (const setting of ['home', 'classroom']) {
+      assert.ok(legacy.includes(`/en/themes/${theme.id}/${setting}/`), `${theme.id} ${setting}`);
+    }
   }
 });
 
-test('each theme explains distinct Home and Classroom stories before a pack is published', async () => {
+test('all twelve edition pages explain their actual paper materials and five checkpoints', async () => {
   assert.equal(themes.length, 6);
   const codes = new Set();
   for (const theme of themes) {
-    const html = await read(`en/themes/${theme.id}/index.html`);
     for (const setting of ['home', 'classroom']) {
       const story = theme.story[setting];
-      assert.equal(story.beats.length, 5, `${theme.id} ${setting}`);
+      const details = themeDetailContent[theme.id][setting];
+      const html = await read(`en/themes/${theme.id}/${setting}/index.html`);
       assert.ok(!codes.has(story.code), story.code);
       codes.add(story.code);
+      assert.equal(details.stages.length, 5, `${theme.id} ${setting}`);
+      assert.equal(details.reasons.length, 3, `${theme.id} ${setting}`);
+      assert.equal(details.materials.length, 4, `${theme.id} ${setting}`);
       assert.ok(html.includes(story.title.replaceAll("'", '&#x27;')), `${story.code} title missing`);
       assert.ok(html.includes(story.goal.replaceAll("'", '&#x27;')), `${story.code} goal missing`);
+      assert.equal((html.match(/class="theme-step-number"/g) || []).length, 5, `${story.code} checkpoint count`);
+      assert.match(html, /Four PDF files per edition:/);
+      assert.match(html, /A4 or US Letter/);
+      assert.ok(html.includes(`/en/themes/${theme.id}/${setting === 'home' ? 'classroom' : 'home'}/`));
+      assert.ok(!html.includes('/en/checkout/?kind=ready'), `${story.code} checkout should await live runtime`);
       assert.equal(theme[setting].readyStatus, 'not_published');
     }
   }
