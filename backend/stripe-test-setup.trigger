@@ -1,1 +1,1 @@
-2026-10-09: accept Cloudflare text buyer email and recheck corrected Stripe webhook secret before sandbox activation.
+2026-10-09: inspect Stripe binding names and buyer email variable type after sandbox activation mismatch.
