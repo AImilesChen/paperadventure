@@ -50,6 +50,18 @@ test('six public story worlds are seeded without publishing their packs', () => 
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ready_packs WHERE status = 'published'").get().n, 0);
 });
 
+test('catalog follows D1 world publication without implying a pack is available', async () => {
+  const { db, binding } = database();
+  db.prepare("UPDATE theme_worlds SET status = 'paused' WHERE id = 'space'").run();
+  const response = await handleProductionApi(request('/api/v1/catalog'), config(binding));
+  assert.equal(response.status, 200);
+  const catalog = await response.json();
+  assert.equal(catalog.themes.length, 5);
+  assert.equal(catalog.themes.some(theme => theme.id === 'space'), false);
+  assert.equal(catalog.freeSampleThemeId, null);
+  assert.equal(catalog.offers.every(offer => offer.saleEnabled === false), true);
+});
+
 test('purchase validation distinguishes ready packs from custom activity and rejects invalid groups', () => {
   assert.equal(validatePurchase(purchase).spec.kind, 'ready');
   assert.equal(validatePurchase({ sku: 'custom_classroom', customIdea: 'A moon library', players: 20, groups: 4, age: '8-10', paper: 'A4', direction: 'mission' }).spec.kind, 'custom');
