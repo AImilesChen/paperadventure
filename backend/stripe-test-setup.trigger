@@ -1,1 +1,1 @@
-2026-10-09: inspect Stripe binding names and buyer email variable type after sandbox activation mismatch.
+2026-10-09: diagnose sandbox readiness booleans without exposing Stripe key or buyer email values.

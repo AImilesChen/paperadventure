@@ -63,7 +63,7 @@ jobs:
       - name: Verify test checkout capability on the real domain
         run: |
           for attempt in {1..12}; do
-            if curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.status!=='configured_runtime'||v.checkout!==true||v.checkoutMode!=='test'||v.generation!==true||v.proposals!==true||v.legal!==false)throw Error('Stripe sandbox capability not ready: '+JSON.stringify({checkout:v.checkout,checkoutMode:v.checkoutMode,generation:v.generation,proposals:v.proposals,legal:v.legal}));console.log('Stripe test checkout and AI generation ready; live payment and legal release remain off')})"; then exit 0; fi
+            if curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.status!=='configured_runtime'||v.checkout!==true||v.checkoutMode!=='test'||v.generation!==true||v.proposals!==true||v.legal!==false)throw Error('Stripe sandbox capability not ready: '+JSON.stringify({checkout:v.checkout,checkoutMode:v.checkoutMode,generation:v.generation,proposals:v.proposals,legal:v.legal,testCheckoutChecks:v.testCheckoutChecks}));console.log('Stripe test checkout and AI generation ready; live payment and legal release remain off')})"; then exit 0; fi
             sleep 3
           done
           echo "::error::Stripe sandbox capability did not propagate"
