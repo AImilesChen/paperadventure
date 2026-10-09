@@ -1,1 +1,1 @@
-2026-10-09: deploy D1-driven theme visibility after six-world seed migration.
+2026-10-09: deploy paused-world safeguards for catalog, checkout and free samples.
