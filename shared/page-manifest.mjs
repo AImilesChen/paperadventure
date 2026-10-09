@@ -4,9 +4,10 @@ const page = (path, title, description) => ({ path, title, description });
 
 export const publicPages = Object.freeze([
   page('/en/', 'Printable Story Adventures for Home & Classroom', 'Explore story worlds for home and classroom. Preview ready-made printable games and custom adventures built around your own idea.'),
-  page('/en/themes/', 'Story Worlds', 'Browse six story worlds and explore the planned Home, Classroom, and custom adventure options.'),
-  ...themes.map(theme => page(`/en/themes/${theme.id}/`, `${theme.title} Story World`, `Explore the ${theme.title} story world and preview ways to play at home or in a classroom. Finished packs are still in preparation.`)),
-  page('/en/for-classroom/', 'Classroom Adventures', 'Explore story adventure ideas for classroom groups and preview the teacher-led setup.'),
+  page('/en/themes/', 'Themes for Home and Classroom', 'Browse six Home and six Classroom story missions across the same illustrated worlds.'),
+  page('/en/for-home/', 'Home Story Adventures', 'Explore six family story themes and the free printable Celebration Home trial.'),
+  ...themes.map(theme => page(`/en/themes/${theme.id}/`, `${theme.title} Story World`, `Explore the ${theme.title} Home and Classroom stories, including available trial downloads and custom adventure options.`)),
+  page('/en/for-classroom/', 'Classroom Story Adventures', 'Explore six teacher-led story themes and the free printable Celebration Classroom trial.'),
   page('/en/occasions/halloween/', 'Halloween Story Adventures', 'Explore playful Halloween story-world ideas and preview a printable group adventure.'),
   page('/en/how-it-works/', 'How Paper Adventures Work', 'See how a story idea becomes a printable group adventure, from setup to player pages and an organiser guide.'),
   page('/en/create/', 'Create an Adventure', 'Preview a custom story adventure setup for your players, space, and story idea. Generation and checkout are not live yet.'),

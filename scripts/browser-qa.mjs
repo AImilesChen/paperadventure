@@ -54,6 +54,12 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     if (!await signIn.isVisible() || await signIn.getAttribute('href') !== '/en/account/') problems.push('Desktop Sign in is not discoverable in the header');
     const themesEntry = page.locator('#primary-navigation .nav-theme-link');
     if (!await themesEntry.isVisible() || await themesEntry.getAttribute('href') !== '/en/themes/') problems.push('Desktop themed activities are not discoverable in the header');
+    const homeEntry = page.locator('#primary-navigation a[href="/en/for-home/"]');
+    const classroomEntry = page.locator('#primary-navigation a[href="/en/for-classroom/"]');
+    if (!await homeEntry.isVisible() || !await classroomEntry.isVisible()) problems.push('Home and Classroom entries are not both visible in the desktop header');
+    await page.locator('.theme-audience-switch button').nth(1).click();
+    if (!await page.locator('.theme-card').nth(1).getByText('The Dinosaur Research Station Mix-up').isVisible()) problems.push('Home gallery did not switch to the six Classroom stories');
+    if (!await page.locator('.theme-card').nth(1).getAttribute('href').then(href => href?.includes('setting=classroom'))) problems.push('Classroom gallery card lost its setting');
     if (await page.locator('.sample-spotlight-card a[href^="/en/samples/"]').count() !== 2) problems.push('Home does not link to both Celebration editions');
     const rail = page.locator('.theme-track').first();
     const beforeScroll = await rail.evaluate(element => element.scrollLeft);
@@ -76,9 +82,22 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     const themesEntry = page.locator('#primary-navigation .nav-theme-link');
     const createEntry = page.locator('#primary-navigation .nav-create-mobile');
     if (!await themesEntry.isVisible() || await themesEntry.getAttribute('href') !== '/en/themes/') problems.push('Mobile themed activities are not discoverable in the menu');
+    if (!await page.locator('#primary-navigation a[href="/en/for-home/"]').isVisible() || !await page.locator('#primary-navigation a[href="/en/for-classroom/"]').isVisible()) problems.push('Mobile menu does not expose both Home and Classroom');
     if (!await createEntry.isVisible() || await createEntry.getAttribute('href') !== '/en/create/') problems.push('Mobile custom creation is not discoverable in the menu');
     await page.keyboard.press('Escape');
     if (await page.getByRole('button', { name: 'Open menu' }).getAttribute('aria-expanded') !== 'false') problems.push('Mobile menu failed to close on Escape');
+  }
+  if (viewport.name === 'desktop') {
+    for (const [route, title] of [['/en/for-home/', 'Six adventures for home.'], ['/en/for-classroom/', 'Six adventures for the classroom.']]) {
+      await page.goto(base + route, { waitUntil: 'domcontentloaded' });
+      if (!await page.getByRole('heading', { name: title }).isVisible()) problems.push(route + ' has the wrong audience heading');
+      if (await page.locator('.product-theme-card').count() !== 6) problems.push(route + ' does not show all six themes');
+    }
+    await page.goto(base + '/en/for-classroom/', { waitUntil: 'domcontentloaded' });
+    const classroomDetail = page.locator('.product-theme-card').nth(1).locator('a.product-image-link');
+    if (!await classroomDetail.getAttribute('href').then(href => href?.includes('setting=classroom'))) problems.push('Classroom catalog did not preserve the selected setting');
+    await page.goto(base + '/en/themes/dinosaur/?setting=classroom', { waitUntil: 'domcontentloaded' });
+    if (!await page.locator('.product-story-grid article.selected').first().getByText('The Dinosaur Research Station Mix-up').isVisible()) problems.push('Theme detail did not prioritize the selected Classroom story');
   }
   await context.close();
 }

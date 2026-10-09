@@ -2,3 +2,18 @@
 
 .product-preview-links{display:grid;gap:8px;margin-top:17px}
 .product-preview-links .text-link{font-size:.8rem}
+
+/* Two complete six-theme catalog paths. */
+.audience-switch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:8px 0 25px}
+.audience-switch a{display:grid;gap:5px;padding:20px 22px;border:1.5px solid #bad8e5;border-radius:13px;background:#f7fcfe;color:#234a62}
+.audience-switch a:hover{border-color:#679cb5;background:#edf8fc}
+.audience-switch a.active{border-color:#153d5a;background:#e2f2f9;box-shadow:0 5px 0 #bbdbe9}
+.audience-switch span{font-family:'Bree Serif',serif;font-size:1.45rem}
+.audience-switch strong{font-size:.78rem;color:#a73725;text-transform:uppercase;letter-spacing:.07em}
+.audience-switch small{font-size:.77rem;color:#567285}
+.catalog-count{color:#466273;font-size:.8rem;font-weight:900}
+.product-audience-label{color:#a73725;font-size:.68rem;font-weight:900;letter-spacing:.08em}
+.product-card-copy .product-story-title{margin:6px 0 8px;color:#143c59;font-size:.95rem;font-weight:900}
+.product-card-copy .product-story-teaser{margin-top:0;min-height:61px}
+.product-story-grid article.selected{border:2px solid #a8cddd;background:#f3fbfe}
+@media(max-width:650px){.audience-switch{gap:9px}.audience-switch a{padding:14px}.audience-switch span{font-size:1.15rem}.audience-switch small{font-size:.68rem}.catalog-count{align-self:flex-start}}
