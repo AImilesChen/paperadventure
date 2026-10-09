@@ -1,0 +1,48 @@
+name: Frontend browser QA
+
+on:
+  push:
+    branches:
+      - frontend-prd-v13-2026-10-08
+    paths:
+      - frontend/browser-qa.trigger
+
+permissions:
+  contents: read
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install isolated browser runtime
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Check all routes and representative responsive screens
+        run: |
+          set -euo pipefail
+          npm run preview -- --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/paw-preview.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" || true' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/en/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/browser-qa.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-browser-qa
+          retention-days: 7
+          if-no-files-found: warn
+          path: output/browser-qa/
