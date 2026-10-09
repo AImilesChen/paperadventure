@@ -1,1 +1,1 @@
-2026-10-09: configure public Google Web Client ID and enable adult accounts on isolated API; retain paid/generation gates.
+2026-10-09: restore public account gate after Google button and callback smoke; preserve public Client ID for later privacy-reviewed launch.

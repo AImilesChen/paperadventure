@@ -1,6 +1,6 @@
 # Paper Adventure｜当前前端交接
 
-**2026-10-09 现况补充：**Celebration Home 与 Classroom 两版 v0.1 试玩 PDF 已经上线，A4/US Letter 各有玩家包与成人指南；[线上发布与八文件校验](https://github.com/AImilesChen/paperadventure/actions/runs/37898428905)通过。Google 登录界面与后端令牌验证代码已实现，但因尚无本网站 Google Web Client ID，正式账户入口未开启。付费、公开定制生成、统计与 SEO 仍保持关闭。后文早期“免费文件未上线/邮箱登录”叙述仅为历史记录。
+**2026-10-09 现况补充：**Celebration Home 与 Classroom 两版 v0.1 试玩 PDF 已经上线，A4/US Letter 各有玩家包与成人指南；[线上发布与八文件校验](https://github.com/AImilesChen/paperadventure/actions/runs/37898428905)通过。Google Web Client ID 已配置，真实 Google 脚本/按钮和模拟凭证的前后端联调已通过；因隐私页仍标为待审草稿，公开账户入口恢复关闭，待正式告知完成后再开启。付费、公开定制生成、统计与 SEO 仍保持关闭。后文早期“免费文件未上线/邮箱登录”叙述仅为历史记录。
 
 **最新实测状态（2026-10-09）：**页头及手机菜单已有 Sign in，Celebration Home/Classroom 的 A4/Letter 双文件下载界面和后端完整性校验已实现。[浏览器 QA](https://github.com/AImilesChen/paperadventure/actions/runs/37895214325)、[预览部署](https://github.com/AImilesChen/paperadventure/actions/runs/37895448269)与[私有 DeepSeek 生成 PDF 实测](https://github.com/AImilesChen/paperadventure/actions/runs/37895214301)通过。邮箱登录和免费 PDF 公开下载尚未启用，Stripe 未接入；以下较早的“密钥缺失/生成未实测”记录已被本段及对应工作流结果取代。
 

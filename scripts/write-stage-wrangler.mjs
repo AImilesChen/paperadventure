@@ -26,7 +26,7 @@ const config = {
     LIVE_PAYMENTS_ENABLED: 'false',
     FREE_SAMPLE_ENABLED: 'true',
     PROPOSALS_ENABLED: 'false',
-    ACCOUNT_ENABLED: 'true',
+    ACCOUNT_ENABLED: 'false',
     GOOGLE_CLIENT_ID: googleClientId,
     ACCOUNT_TEST_EMAIL: 'support@paperadventure.app',
     EMAIL_PUBLIC_DESTINATIONS_READY: 'true',

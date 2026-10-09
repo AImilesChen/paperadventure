@@ -1,6 +1,6 @@
 # Backend API contract v0.1
 
-> **Current deployed state (2026-10-09):** The separate production Worker serves two versioned Celebration free-trial packs (Home and Classroom, A4 and US Letter Player Pack + adult guide). Its guest PDF endpoint checks stored hashes. Paid checkout, public generation and adult accounts remain release-gated. Google sign-in code is implemented but requires a Google Web Client ID before it can be enabled. Historical scaffold notes below describe the original preview Worker, not the live free-trial state.
+> **Current deployed state (2026-10-09):** The separate production Worker serves two versioned Celebration free-trial packs (Home and Classroom, A4 and US Letter Player Pack + adult guide). Its guest PDF endpoint checks stored hashes. Paid checkout, public generation and adult accounts remain release-gated. Google Web Client ID is configured and the sign-in path passed live script/button and synthetic callback checks, but public account activation remains gated pending a reviewed privacy notice. Historical scaffold notes below describe the original preview Worker, not the live free-trial state.
 
 > This file describes the original fail-closed preview worker (`worker.mjs`). A separate implementation-stage Cloudflare runtime now exists in `production-worker.mjs`; see [`RUNTIME_HANDOFF.md`](RUNTIME_HANDOFF.md) for its routes, bindings and release gates. The preview worker remains unchanged so the local Sites prototype cannot accidentally sell or expose files.
 
