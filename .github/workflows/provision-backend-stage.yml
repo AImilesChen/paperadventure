@@ -86,6 +86,7 @@ jobs:
           test "$verified" = true
           curl --fail --silent --show-error --head https://paper-adventure-api-stage.chenminjian08.workers.dev/en/ | grep -iq 'x-robots-tag: noindex, nofollow'
           node scripts/verify-celebration-release.mjs
+          node scripts/verify-google-account-gated.mjs
       - name: Check restricted adult sign-in delivery to project support inbox
         run: |
           curl --fail --silent --show-error --request POST \
