@@ -1,1 +1,1 @@
-2026-10-09 browser QA pass 8 remaining text contrast
+2026-10-09 browser QA pass 9 keyboard menu
