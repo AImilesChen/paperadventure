@@ -18,7 +18,8 @@ function accessMonths(spec) {
 const accessActive = entitlement => Boolean(entitlement?.status === 'active' && entitlement.access_expires_at &&
   Date.parse(`${entitlement.access_expires_at.replace(' ', 'T')}Z`) > Date.now());
 
-const emailReady = env => Boolean(env.EMAIL_FROM && (typeof env.EMAIL?.send === 'function' || env.RESEND_API_KEY));
+const cloudflareEmailReady = env => env.EMAIL_PUBLIC_DESTINATIONS_READY === 'true' && typeof env.EMAIL?.send === 'function';
+const emailReady = env => Boolean(env.EMAIL_FROM && (cloudflareEmailReady(env) || env.RESEND_API_KEY));
 
 function paymentReady(env) {
   return Boolean(env.DB && env.PRIVATE_FILES && emailReady(env) && env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET && env.SESSION_SECRET && env.PUBLIC_ORIGIN &&
@@ -218,7 +219,7 @@ async function sendAccessEmail(env, email, hash, { subject, intro, idempotencyKe
   const token = await signAccessToken(env.SESSION_SECRET, { scope: 'email-link', emailHash: hash, nonce, exp });
   const link = `${new URL(env.PUBLIC_ORIGIN).origin}/api/v1/auth/verify?token=${encodeURIComponent(token)}`;
   const text = `${intro} ${link}\n\nIf you did not request it, you can ignore this email.`;
-  if (typeof env.EMAIL?.send === 'function') {
+  if (cloudflareEmailReady(env)) {
     try { await env.EMAIL.send({ from: env.EMAIL_FROM, to: email, subject, text }); }
     catch { throw new ApiError(502, 'EMAIL_SEND_FAILED', 'The verification email could not be sent.'); }
     return;
