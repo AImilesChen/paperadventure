@@ -66,8 +66,13 @@ function IssueForm({ orderId }) {
 
 export function LiveOrder({ Link, orderId }) {
   const [order, setOrder] = useState(null); const [error, setError] = useState('');
-  const refresh = () => api(`/api/v1/orders/${orderId}`).then(setOrder).catch(failure => setError(failure.message));
-  useEffect(() => { refresh(); }, [orderId]);
+  const refresh = () => api(`/api/v1/orders/${orderId}`).then(data => { setOrder(data); setError(''); }).catch(failure => setError(failure.message));
+  useEffect(() => { setOrder(null); setError(''); refresh(); }, [orderId]);
+  useEffect(() => {
+    if (!order || !['pending_payment', 'paid', 'fulfilling'].includes(order.status)) return;
+    const timer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 10000);
+    return () => clearInterval(timer);
+  }, [orderId, order?.status]);
   return <main className="extended-page live-page"><Intro eyebrow="ORDER" title="Your adventure order."><p>Payment and file status come from the server. Returning from Stripe alone does not confirm payment.</p></Intro><section className="live-shell">{error ? <div className="live-panel"><Alert>{error}</Alert><Link className="button" to="/en/account/">Verify purchase email <ArrowRight size={18} /></Link></div> : !order ? <p>Checking your order…</p> : <div className="live-panel"><span className="eyebrow">{order.kind === 'ready' ? 'READY-MADE' : 'CUSTOM-MADE'}</span><h2>{order.sku.replaceAll('_', ' ')}</h2><p>Order status: <strong>{order.status}</strong></p><p>Charged total: {formatUsd(order.amountTotal)} · {order.currency}</p>{order.status === "published" && order.accessExpiresAt && <p>Online re-download until {new Date(order.accessExpiresAt.replace(" ", "T") + "Z").toLocaleDateString()}.</p>}{order.filesReady ? <div className="live-downloads">{(order.kind === 'ready' ? ['A4','Letter'] : [order.paper]).map(paper => <div key={paper}><strong>{paper}</strong><a href={`/api/v1/files/${orderId}/player?paper=${paper}`}>Player Pack <DownloadSimple size={17} /></a><a href={`/api/v1/files/${orderId}/guide?paper=${paper}`}>{order.sku.includes('classroom') ? 'Teacher Guide' : 'Host Guide'} <DownloadSimple size={17} /></a></div>)}</div> : <p>{order.status === "published" && order.accessExpiresAt && Date.parse(order.accessExpiresAt.replace(" ", "T") + "Z") <= Date.now() ? "The online re-download period has ended. Files already downloaded may still be used within your Home or Classroom licence." : "Files are not ready yet. If this is a custom order, generation and checking begin only after confirmed payment."}</p>}<RevisionForm order={order} refresh={refresh} /><IssueForm orderId={orderId} /><button className="button-quiet" onClick={refresh}>Refresh status</button><p className="live-note">If a file is missing or incorrect, contact support through the help page. A system correction does not use a paid revision.</p></div>}</section></main>;
 }
 
