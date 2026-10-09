@@ -51,6 +51,8 @@ jobs:
             if curl --fail --silent --show-error --head "https://paperadventure.app/assets/$asset_name" > /dev/null; then
               curl --fail --silent --show-error --head https://paperadventure.app/en/ | grep -iq "x-robots-tag: noindex, nofollow"
               curl --fail --silent --show-error --head https://preview.paperadventure.app/en/ | grep -iq "x-robots-tag: noindex, nofollow"
+              curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.status!=='configured_runtime'||v.checkout||v.generation)throw Error('Apex API stage mismatch: '+s);console.log('Apex forwards API requests to the isolated backend')})"
+              curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(!Array.isArray(v.themes)||v.themes.length<6)throw Error('Apex catalog stage mismatch: '+s);console.log('Apex catalog is backed by the stage API')})"
               echo "Preview domain serves the new build asset and remains noindex."
               exit 0
             fi
