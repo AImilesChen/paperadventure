@@ -1,1 +1,1 @@
-2026-10-09: provision isolated backend stage with release flags disabled.
+2026-10-09: retry isolated backend stage after noindex robots test correction.
