@@ -11,7 +11,7 @@ const browser = await chromium.launch({ headless: true });
 const problems = [];
 const snapshots = [];
 const accessibility = [];
-const routesToCapture = new Set(['/en/', '/en/themes/', '/en/themes/celebration/', '/en/for-home/', '/en/create/', '/en/pricing/', '/en/privacy/']);
+const routesToCapture = new Set(['/en/', '/en/themes/', '/en/themes/celebration/', '/en/for-home/', '/en/for-classroom/', '/en/create/', '/en/pricing/', '/en/privacy/']);
 
 for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 390, height: 844 }]) {
   const context = await browser.newContext({ viewport, reducedMotion: 'reduce' });
@@ -93,10 +93,11 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     if (await page.getByRole('button', { name: 'Open menu' }).getAttribute('aria-expanded') !== 'false') problems.push('Mobile menu failed to close on Escape');
   }
   if (viewport.name === 'desktop') {
-    for (const [route, title] of [['/en/for-home/', 'Printable Adventure Games for Kids at Home.'], ['/en/for-classroom/', 'Printable Classroom Adventure Games for Kids']]) {
+    for (const [route, title] of [['/en/for-home/', 'Printable Adventure Games for Kids at Home.'], ['/en/for-classroom/', 'Printable Classroom Adventure Games for Kids.']]) {
       await page.goto(base + route, { waitUntil: 'domcontentloaded' });
       if (!await page.getByRole('heading', { name: title }).isVisible()) problems.push(route + ' has the wrong audience heading');
       if (await page.locator('.product-theme-card').count() !== themes.length) problems.push(route + ' does not show all available themes');
+      if (route === '/en/for-classroom/' && (!await page.locator('.catalog-classroom-hero').isVisible() || !await page.getByRole('heading', { name: 'What comes in a Classroom pack?' }).isVisible())) problems.push('Classroom page lacks its teacher-facing introduction or pack explanation');
     }
     await page.goto(base + '/en/for-classroom/', { waitUntil: 'domcontentloaded' });
     const classroomDetail = page.locator('.product-theme-card').nth(1).locator('a.product-image-link');

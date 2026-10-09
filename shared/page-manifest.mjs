@@ -7,7 +7,7 @@ export const publicPages = Object.freeze([
   page('/en/themes/', 'Printable Adventure Themes for Kids', 'Explore illustrated story worlds with separate Home and Classroom missions. Browse ready-made games and ideas for custom printable adventures.'),
   page('/en/for-home/', 'Printable Adventure Games for Kids at Home', 'Explore print-at-home story adventures for ages 6–12. Try the free Celebration game, browse themed Home packs, or create a custom story.'),
   ...themes.map(theme => page(`/en/themes/${theme.id}/`, `${theme.title} Story World`, `Explore the ${theme.title} Home and Classroom stories, including available trial downloads and custom adventure options.`)),
-  page('/en/for-classroom/', 'Printable Classroom Adventure Games for Kids', 'Browse printable group story games with distinct Classroom missions, Player Packs and Teacher Guides. Try the free Celebration edition.'),
+  page('/en/for-classroom/', 'Printable Classroom Adventure Games for Kids', 'Printable story adventures for classrooms, ages 6–12. Explore group missions, the free Celebration game, and Player Packs with Teacher Guides in A4 and US Letter.'),
   page('/en/occasions/halloween/', 'Halloween Story Adventures', 'Explore playful Halloween story-world ideas and preview a printable group adventure.'),
   page('/en/how-it-works/', 'How Paper Adventures Work', 'See how a story idea becomes a printable group adventure, from setup to player pages and an organiser guide.'),
   page('/en/create/', 'Create a Custom Printable Adventure', 'Choose players, setting and story direction for a custom printable adventure. Explore the current Google sign-in and Stripe test checkout flow.'),

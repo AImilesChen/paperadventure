@@ -75,3 +75,14 @@
 .catalog-faq-list a{color:#ad3826;font-weight:800}
 @media(max-width:950px){.catalog-hero-inner{grid-template-columns:1fr;gap:30px}.catalog-hero-visual{width:min(100%,520px);margin:0 auto}.catalog-home-faq{grid-template-columns:1fr;gap:5px}}
 @media(max-width:650px){.catalog-hero-inner{padding-top:42px;padding-bottom:43px}.catalog-home-copy h1{font-size:clamp(2.65rem,10vw,4rem)}.catalog-home-copy>p{font-size:.96rem}.catalog-hero-actions{align-items:stretch;flex-direction:column}.catalog-hero-actions .button,.catalog-hero-actions .button-quiet{width:100%}.catalog-hero-visual{padding-right:10px}.catalog-hero-note{width:min(80%,270px)}.catalog-page .audience-switch{margin-bottom:38px}.catalog-benefit-grid,.catalog-contents-grid{grid-template-columns:1fr}.catalog-listing-heading{align-items:start;flex-direction:column;gap:14px}.catalog-contents{padding:22px}.catalog-home-faq{margin:45px 0}}
+
+
+/* Teacher-facing Classroom catalogue uses the same paper-art system with its own cues. */
+.catalog-classroom-hero{background:#e0f2f1;border-bottom-color:#c2e1dc}
+.catalog-classroom-hero .catalog-home-copy .eyebrow,.catalog-classroom-hero .catalog-hero-note span{color:#2c746a}
+.catalog-classroom-hero .catalog-hero-facts li{border-color:#aad7cf;background:#f0fbf8;color:#2f625e}
+.catalog-classroom-hero .catalog-hero-note{border-color:#bed9d1}
+.catalog-classroom-benefits .catalog-benefit-grid article{border-color:#c9e0d9;background:#f3faf7}
+.catalog-classroom-benefits .catalog-benefit-grid article>strong{color:#32786c}
+.catalog-classroom-contents{background:#edf7f3}
+.catalog-classroom-contents .catalog-contents-grid article{border-color:#cbded7}
