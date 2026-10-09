@@ -20,7 +20,7 @@ for world in ("dinosaur", "space", "forest", "halloween", "christmas"):
         subprocess.run([renderer, "-f", "1", "-l", "1", "-singlefile", "-r", "110", "-jpeg",
                         "-jpegopt", "quality=84", str(ROOT / source["file"]), str(prefix)],
                        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        result = prefix.with_suffix(".jpg")
+        result = Path(str(prefix) + ".jpg")
         if not result.exists() or result.stat().st_size < 10000:
             raise RuntimeError(f"Preview render failed: {result}")
         count += 1

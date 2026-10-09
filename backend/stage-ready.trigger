@@ -1,1 +1,1 @@
-2026-10-09 private previews upload syntax fix
+2026-10-09 retain dotted preview version names
