@@ -117,7 +117,8 @@ test('classroom wording choice is snapshotted and serves only its selected priva
   }
   let requestedKey;
   const env = { ...config(binding),
-    FETCH: async () => Response.json({ id: 'cs_variant', url: 'https://checkout.stripe.com/test' }),
+    FETCH: async (url, init) => Response.json({ id: 'cs_variant', url: 'https://checkout.stripe.com/test',
+      client_reference_id: new URLSearchParams(init.body).get('client_reference_id') }),
     PRIVATE_FILES: { get: async key => { requestedKey = key; return { body: bytes }; } } };
   const catalog = await handleProductionApi(request('/api/v1/catalog'), env).then(response => response.json());
   assert.deepEqual(catalog.themes.find(theme => theme.id === 'halloween').classroom.variantIds, ['halloween']);
