@@ -1,1 +1,1 @@
-2026-10-09 redeploy order progress and verify private test catalog
+2026-10-09 deploy private ready preview endpoint and selected proposal

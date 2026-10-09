@@ -72,4 +72,6 @@ jobs:
         run: |
           code=$(curl --silent --output /dev/null --write-out '%{http_code}' https://paperadventure.app/api/v1/test-packs)
           test "$code" = 403
+          preview_code=$(curl --silent --output /dev/null --write-out '%{http_code}' https://paperadventure.app/api/v1/test-pack-previews/dinosaur/home)
+          test "$preview_code" = 403
           curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.offers?.some(x=>x.kind==='ready'&&x.saleEnabled)||v.themes?.some(t=>t.id!=='celebration'&&['home','classroom'].some(k=>t[k]?.readyStatus==='published')))throw Error('Test pack leaked into public catalog');console.log('Anonymous catalog keeps paid ready packs closed')})"
