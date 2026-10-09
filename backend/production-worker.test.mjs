@@ -340,7 +340,7 @@ test('adult email link can be used once and creates a private order session', as
 test('Cloudflare Email binding delivers a one-use sign-in link without a Resend key', async () => {
   const { binding } = database();
   const sentMessages = [];
-  const env = { ...config(binding), RESEND_API_KEY: undefined, EMAIL_FROM: 'support@paperadventure.app',
+  const env = { ...config(binding), RESEND_API_KEY: undefined, EMAIL_FROM: 'support@paperadventure.app', EMAIL_PUBLIC_DESTINATIONS_READY: 'true',
     EMAIL: { send: async message => { sentMessages.push(message); return { messageId: 'cf-test-1' }; } },
     FETCH: async () => { throw new Error('Resend must not be called when Cloudflare Email is bound'); } };
   const health = await handleProductionApi(request('/api/v1/health'), env);
