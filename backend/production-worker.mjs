@@ -549,7 +549,7 @@ export default {
   async fetch(request, env, context) {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/')) return handleProductionApi(request, env, context);
-    if (env.STAGE_PREVIEW === 'true' && url.pathname === '/robots.txt') return new Response('User-agent: *\\nDisallow: /\\n', { headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex, nofollow' } });
+    if (env.STAGE_PREVIEW === 'true' && url.pathname === '/robots.txt') return new Response('User-agent: *\nDisallow: /\n', { headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex, nofollow' } });
     const response = await (env.ASSETS?.fetch(request) || error(503, 'ASSETS_NOT_READY', 'Site assets are not configured.'));
     if (env.STAGE_PREVIEW !== 'true') return response;
     const headers = new Headers(response.headers);
