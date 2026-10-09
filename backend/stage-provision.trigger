@@ -1,1 +1,1 @@
-2026-10-09: deploy verified PDF-byte download integrity to isolated backend stage.
+2026-10-09: migrate private classroom wording variants and deploy selection logic.
