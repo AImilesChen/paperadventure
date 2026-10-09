@@ -1,1 +1,1 @@
-2026-10-09 verify twelve theme edition pages and the updated Stripe test checkout entry on desktop and mobile.
+2026-10-09 verify AI navigation, theme filters, print plans and two-page player previews

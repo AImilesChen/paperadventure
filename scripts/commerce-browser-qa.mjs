@@ -88,7 +88,8 @@ function check(condition, message) { if (!condition) throw new Error(message); }
 try {
   await page.goto(base + '/en/themes/dinosaur/home/', { waitUntil: 'domcontentloaded' });
   await page.getByRole('link', { name: /Open test checkout/ }).waitFor();
-  await page.locator('.theme-preview-strip figure img').waitFor();
+  await page.locator('.theme-preview-pages figure img').first().waitFor();
+  check(await page.locator('.theme-preview-pages figure img').count() === 2, 'Ready-made page needs both real player-page previews');
   await page.getByRole('link', { name: /Open test checkout/ }).click();
   await page.getByLabel('Adult delivery email').fill('tester@example.com');
   await page.getByRole('button', { name: /Continue to Stripe test/ }).click();
@@ -150,7 +151,8 @@ try {
   }));
   await page.goto(base + '/en/themes/dinosaur/home/', { waitUntil: 'domcontentloaded' });
   await page.getByRole('link', { name: /Open test checkout/ }).waitFor();
-  await page.locator('.theme-preview-strip figure img').waitFor();
+  await page.locator('.theme-preview-pages figure img').first().waitFor();
+  check(await page.locator('.theme-preview-pages figure img').count() === 2, 'Ready-made page needs both real player-page previews');
   await page.getByRole('link', { name: /Open test checkout/ }).click();
   const signIn = page.getByRole('link', { name: 'Sign in with Google' });
   await signIn.waitFor();

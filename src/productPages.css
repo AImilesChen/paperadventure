@@ -86,3 +86,12 @@
 .catalog-classroom-benefits .catalog-benefit-grid article>strong{color:#32786c}
 .catalog-classroom-contents{background:#edf7f3}
 .catalog-classroom-contents .catalog-contents-grid article{border-color:#cbded7}
+
+/* Expandable discovery groups remain secondary to searchable, indexable catalog content. */
+.catalog-discovery-filters{display:flex;flex-wrap:wrap;gap:9px;margin:23px 0 0}
+.catalog-discovery-filters button{display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:8px 14px;border:1.5px solid #a7ccda;border-radius:999px;background:#f8fcfe;color:#234b61;font-weight:900}
+.catalog-discovery-filters button span{display:grid;min-width:23px;height:23px;place-items:center;border-radius:50%;background:#e5f1f6;color:#315a6e;font-size:.73rem}
+.catalog-discovery-filters button:hover{border-color:#598ba3;background:#edf8fb}
+.catalog-discovery-filters button.active{border-color:#143c59;background:#143c59;color:#fff}
+.catalog-discovery-filters button.active span{background:#e3f2f6;color:#143c59}
+.catalog-discovery-filters button:focus-visible{outline:3px solid #a93b2a;outline-offset:3px}

@@ -17,7 +17,7 @@ export const publicPages = Object.freeze([
   page('/en/for-classroom/', 'Printable Classroom Adventure Games for Kids', 'Printable story adventures for classrooms, ages 6–12. Explore group missions, the free Celebration game, and Player Packs with Teacher Guides in A4 and US Letter.'),
   page('/en/occasions/halloween/', 'Halloween Story Adventures', 'Explore playful Halloween story-world ideas and preview a printable group adventure.'),
   page('/en/how-it-works/', 'How Paper Adventures Work', 'See how a story idea becomes a printable group adventure, from setup to player pages and an organiser guide.'),
-  page('/en/create/', 'Create a Custom Printable Adventure', 'Choose players, setting and story direction for a custom printable adventure. Explore the current Google sign-in and Stripe test checkout flow.'),
+  page('/en/create/', 'AI Custom Printable Adventure for Home or Classroom', 'Create a custom printable story adventure with AI. Choose a Home or Classroom setup, review short story directions, then continue through the current Stripe test flow.'),
   page('/en/samples/', 'Free Printable Adventure Samples', 'Explore the free Celebration story games for Home and Classroom, with Player Packs and adult guides in A4 and US Letter.'),
   page('/en/samples/home/', 'Free Printable Home Adventure Game', 'Download the free Celebration Home Player Pack and Host Guide in A4 or US Letter and see how a family story adventure works.'),
   page('/en/samples/classroom/', 'Free Printable Classroom Adventure Game', 'Download the free Celebration Classroom Player Pack and Teacher Guide in A4 or US Letter for a guided group story mission.'),

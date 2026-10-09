@@ -19,10 +19,14 @@ for (let attempt = 0; attempt < 12; attempt++) {
   await wait(2000);
 }
 if (catalog.freeSampleThemeId !== 'celebration' || !celebration?.home?.freeSample ||
-    !celebration?.classroom?.freeSample || catalog.offers?.some(offer => offer.saleEnabled)) {
+    !celebration?.classroom?.freeSample) {
   throw new Error('Public catalog mismatch: ' + JSON.stringify({ freeSampleThemeId: catalog.freeSampleThemeId,
     home: celebration?.home?.freeSample, classroom: celebration?.classroom?.freeSample,
     paid: catalog.offers?.some(offer => offer.saleEnabled) }));
+}
+const health = await (await get('/api/v1/health')).json();
+if (catalog.offers?.some(offer => offer.saleEnabled) && health.checkoutMode !== 'test') {
+  throw new Error('Paid offers must remain test-only during draft release');
 }
 for (const setting of ['home', 'classroom']) {
   if (celebration[setting].packVersion !== 'v0.1') throw new Error('Unexpected trial version');

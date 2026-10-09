@@ -55,11 +55,12 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     const signIn = page.locator('.nav-actions .nav-login');
     if (!await signIn.isVisible() || await signIn.getAttribute('href') !== '/en/account/') problems.push('Desktop Sign in is not discoverable in the header');
     const primaryLinks = page.locator('#primary-navigation .nav-primary-link');
-    const expectedPaths = ['/en/for-home/', '/en/for-classroom/', '/en/how-it-works/', '/en/pricing/'];
+    const expectedPaths = ['/en/for-home/', '/en/for-classroom/', '/en/create/', '/en/how-it-works/', '/en/pricing/'];
     if (JSON.stringify(await primaryLinks.evaluateAll(links => links.map(link => link.getAttribute('href')))) !== JSON.stringify(expectedPaths)) problems.push('Desktop primary navigation has unexpected links or order');
     if (!await primaryLinks.first().isVisible() || !await primaryLinks.nth(1).isVisible()) problems.push('Home and Classroom entries are not both visible in the desktop header');
     if (await page.locator('#primary-navigation a[href="/en/samples/home/"], #primary-navigation a[href="/en/themes/"]').count()) problems.push('Secondary sample or all-themes link still occupies desktop primary navigation');
     if (!await page.locator('.nav-actions a[href="/en/create/"]').isVisible()) problems.push('Desktop Create an adventure action is missing');
+    if (!await primaryLinks.nth(2).isVisible() || await primaryLinks.nth(2).innerText() !== 'AI custom adventure') problems.push('Desktop navigation lacks a clearly labelled AI custom entry');
     await page.locator('.theme-audience-switch button').nth(1).click();
     if (!await page.locator('.theme-card').nth(1).getByText('The Dinosaur Research Station Mix-up').isVisible()) problems.push('Home gallery did not switch to the six Classroom stories');
     if (!await page.locator('.theme-card').nth(1).getAttribute('href').then(href => href?.endsWith('/classroom/'))) problems.push('Classroom gallery card lost its setting');
@@ -82,13 +83,12 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     if (await page.getByRole('button', { name: 'Close menu' }).getAttribute('aria-expanded') !== 'true') problems.push('Mobile menu failed to open from keyboard');
     const signIn = page.locator('#primary-navigation .nav-account-mobile').first();
     if (!await signIn.isVisible() || await signIn.getAttribute('href') !== '/en/account/') problems.push('Mobile Sign in is not discoverable in the menu');
-    const createEntry = page.locator('#primary-navigation .nav-create-mobile');
-    const expectedPaths = ['/en/for-home/', '/en/for-classroom/', '/en/how-it-works/', '/en/pricing/'];
+    const expectedPaths = ['/en/for-home/', '/en/for-classroom/', '/en/create/', '/en/how-it-works/', '/en/pricing/'];
     const primaryLinks = page.locator('#primary-navigation .nav-primary-link');
     if (JSON.stringify(await primaryLinks.evaluateAll(links => links.map(link => link.getAttribute('href')))) !== JSON.stringify(expectedPaths)) problems.push('Mobile primary navigation has unexpected links or order');
     if (!await primaryLinks.first().isVisible() || !await primaryLinks.nth(1).isVisible()) problems.push('Mobile menu does not expose both Home and Classroom');
     if (await page.locator('#primary-navigation a[href="/en/samples/home/"], #primary-navigation a[href="/en/themes/"]').count()) problems.push('Secondary sample or all-themes link still occupies mobile primary navigation');
-    if (!await createEntry.isVisible() || await createEntry.getAttribute('href') !== '/en/create/') problems.push('Mobile custom creation is not discoverable in the menu');
+    if (!await primaryLinks.nth(2).isVisible() || await primaryLinks.nth(2).innerText() !== 'AI custom adventure') problems.push('Mobile menu lacks a clearly labelled AI custom entry');
     await page.keyboard.press('Escape');
     if (await page.getByRole('button', { name: 'Open menu' }).getAttribute('aria-expanded') !== 'false') problems.push('Mobile menu failed to close on Escape');
   }
@@ -98,6 +98,11 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
       if (!await page.getByRole('heading', { name: title }).isVisible()) problems.push(route + ' has the wrong audience heading');
       if (await page.locator('.product-theme-card').count() !== themes.length) problems.push(route + ' does not show all available themes');
       if (route === '/en/for-classroom/' && (!await page.locator('.catalog-classroom-hero').isVisible() || !await page.getByRole('heading', { name: 'What comes in a Classroom pack?' }).isVisible())) problems.push('Classroom page lacks its teacher-facing introduction or pack explanation');
+      await page.getByRole('button', { name: /Parties & seasons/ }).click();
+      if (await page.locator('.product-theme-card').count() !== 3) problems.push(route + ' occasion filter did not narrow the catalog');
+      await page.getByRole('button', { name: /Any-day adventures/ }).click();
+      if (await page.locator('.product-theme-card').count() !== 3) problems.push(route + ' any-day filter did not narrow the catalog');
+      await page.getByRole('button', { name: /All themes/ }).click();
     }
     await page.goto(base + '/en/for-classroom/', { waitUntil: 'domcontentloaded' });
     const classroomDetail = page.locator('.product-theme-card').nth(1).locator('a.product-image-link');
@@ -106,6 +111,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     if (!await page.getByRole('heading', { level: 1, name: "The Dinosaur Research Station Mix-up." }).isVisible()) problems.push('Theme detail did not prioritize the selected Classroom story');
     if (await page.locator('.theme-checkpoints li').count() !== 5) problems.push('Classroom theme detail lost its five checkpoint explanation');
     if (!await page.getByRole('heading', { name: 'Inside the Classroom adventure' }).isVisible()) problems.push('Classroom theme detail lacks its pack contents');
+    if (!await page.getByText(/6 Player Pack pages \+ 3 Teacher Guide pages/).isVisible()) problems.push('Classroom print plan does not show draft PDF page counts');
   }
   await context.close();
 }

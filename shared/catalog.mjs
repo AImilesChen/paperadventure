@@ -52,12 +52,12 @@ export const themeStories = Object.freeze({
 });
 
 export const themes = Object.freeze([
-  { id: 'celebration', title: 'Celebration', kicker: 'A little magic for a big day', image: '/assets/celebration.png', tag: 'Party favourite' },
-  { id: 'dinosaur', title: 'Dinosaur', kicker: 'Follow the clues to a lost world', image: '/assets/dinosaur.png', tag: 'Curious explorers' },
-  { id: 'space', title: 'Space', kicker: 'A mission among the stars', image: '/assets/space.png', tag: 'Out of this world' },
-  { id: 'forest', title: 'Forest', kicker: 'Discover what the trees are hiding', image: '/assets/forest.png', tag: 'Nature lovers' },
-  { id: 'halloween', title: 'Halloween', kicker: 'A friendly pumpkin festival mystery', image: '/assets/halloween-friendly-v0.1.jpg', tag: 'Seasonal' },
-  { id: 'christmas', title: 'Christmas', kicker: 'A festive quest to share', image: '/assets/christmas.png', tag: 'Seasonal' },
+  { id: 'celebration', discoveryGroup: 'occasion', title: 'Celebration', kicker: 'A little magic for a big day', image: '/assets/celebration.png', tag: 'Party favourite' },
+  { id: 'dinosaur', discoveryGroup: 'everyday', title: 'Dinosaur', kicker: 'Follow the clues to a lost world', image: '/assets/dinosaur.png', tag: 'Curious explorers' },
+  { id: 'space', discoveryGroup: 'everyday', title: 'Space', kicker: 'A mission among the stars', image: '/assets/space.png', tag: 'Out of this world' },
+  { id: 'forest', discoveryGroup: 'everyday', title: 'Forest', kicker: 'Discover what the trees are hiding', image: '/assets/forest.png', tag: 'Nature lovers' },
+  { id: 'halloween', discoveryGroup: 'occasion', title: 'Halloween', kicker: 'A friendly pumpkin festival mystery', image: '/assets/halloween-friendly-v0.1.jpg', tag: 'Seasonal' },
+  { id: 'christmas', discoveryGroup: 'occasion', title: 'Christmas', kicker: 'A festive quest to share', image: '/assets/christmas.png', tag: 'Seasonal' },
 ].map(theme => Object.freeze({
   ...theme,
   story: Object.freeze(themeStories[theme.id]),

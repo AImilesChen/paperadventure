@@ -72,12 +72,12 @@ jobs:
           npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
           npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --file backend/release-celebration-trial.sql --yes
           npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc
-      - name: Verify cloud API and disabled release flags
+      - name: Verify cloud API and test-only release flags
         run: |
-          curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.status!=='configured_runtime'||(v.checkout&&v.checkoutMode!=='test')||!v.generation||!v.proposals||!v.account||!v.sample||v.legal)throw Error('Stage capability mismatch: '+s);console.log('Stage API healthy; free sample, Google account and signed-in AI previews live; paid features off')})"
+          curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.status!=='configured_runtime'||(v.checkout&&v.checkoutMode!=='test')||!v.generation||!v.proposals||!v.account||!v.sample||v.legal)throw Error('Stage capability mismatch: '+s);console.log('Stage API healthy; free sample, Google account and signed-in AI previews live; checkout test-only')})"
           verified=false
           for attempt in {1..12}; do
-            if curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);const c=v.themes?.find(t=>t.id==='celebration');if(v.offers?.some(x=>x.saleEnabled)||v.freeSampleThemeId!=='celebration'||!c?.home?.freeSample||!c?.classroom?.freeSample)throw Error('Free trial catalog mismatch: '+JSON.stringify({freeSampleThemeId:v.freeSampleThemeId,home:c?.home?.freeSample,classroom:c?.classroom?.freeSample,paid:v.offers?.some(x=>x.saleEnabled)}));console.log('Only Celebration Home and Classroom released as free trials')})"; then
+            if curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);const c=v.themes?.find(t=>t.id==='celebration');if(v.freeSampleThemeId!=='celebration'||!c?.home?.freeSample||!c?.classroom?.freeSample||v.themes?.some(t=>t.id!=='celebration'&&[t.home,t.classroom].some(p=>p?.readyStatus==='published'||p?.freeSample)))throw Error('Test catalog mismatch: '+JSON.stringify({freeSampleThemeId:v.freeSampleThemeId,home:c?.home?.freeSample,classroom:c?.classroom?.freeSample}));console.log('Celebration free; other themes remain test-only')})"; then
               verified=true
               break
             fi

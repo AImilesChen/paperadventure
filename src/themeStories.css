@@ -79,3 +79,15 @@
 @media(max-width:1050px){.theme-checkpoints{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:850px){.theme-detail-hero-grid{grid-template-columns:1fr}.theme-detail-hero-art{max-width:620px}.theme-prep{grid-template-columns:1fr;gap:0}}
 @media(max-width:650px){.theme-breadcrumb{padding-top:16px}.theme-edition-switch{gap:8px}.theme-edition-switch a{min-height:77px;padding:11px}.theme-edition-switch strong{font-size:.9rem}.theme-detail-hero-grid{padding-top:34px;padding-bottom:38px}.theme-detail-hero h1{font-size:clamp(2.55rem,10vw,3.6rem)}.theme-detail-goal{font-size:1rem}.theme-detail-facts{gap:7px}.theme-detail-facts li{padding:10px}.theme-detail-hero-actions{flex-direction:column}.theme-detail-hero-actions>*{width:100%}.theme-detail-section{padding:42px 0}.theme-file-grid,.theme-reasons-grid,.theme-choice-grid{grid-template-columns:1fr}.theme-checkpoints{grid-template-columns:1fr}.theme-checkpoints li{flex-direction:row}.theme-checkpoints li>div{flex:1}.theme-preview-strip{grid-template-columns:1fr;gap:18px;padding:20px}.theme-preview-strip figure{margin:0}.theme-choice-grid article{min-height:0}}
+
+/* Real draft Player Pack pages, with adult answers held back. */
+.theme-preview-strip:has(.theme-preview-pages){grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}
+.theme-preview-pages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.theme-preview-pages figure{width:100%;margin:0}
+.theme-preview-pages img{width:100%;aspect-ratio:700/990;object-fit:contain}
+.theme-print-specs{display:grid;gap:11px;margin:19px 0 17px}
+.theme-print-specs>div{display:grid;grid-template-columns:minmax(140px,.34fr) minmax(0,1fr);gap:13px;padding:13px 0;border-top:1px solid #c9dfe6}
+.theme-print-specs strong{color:#153a56;font-size:.83rem}
+.theme-print-specs span{color:#486b7d;font-size:.83rem;line-height:1.55}
+@media(max-width:850px){.theme-preview-strip:has(.theme-preview-pages){grid-template-columns:1fr}}
+@media(max-width:650px){.theme-preview-pages{grid-template-columns:1fr;max-width:330px}.theme-print-specs>div{grid-template-columns:1fr;gap:4px}}
