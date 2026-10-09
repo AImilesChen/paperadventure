@@ -137,6 +137,13 @@ test('classroom wording choice is snapshotted and serves only its selected priva
     { cookie: `paw_session=${token}` }), env);
   assert.equal(file.status, 200);
   assert.equal(requestedKey, 'variant/c05/Letter/player.pdf');
+  db.prepare("UPDATE ready_pack_variants SET status = 'internal_test' WHERE ready_pack_id = 'pack-c05'").run();
+  const unpublished = await handleProductionApi(request('/api/v1/catalog'), env).then(response => response.json());
+  assert.deepEqual(unpublished.themes.find(theme => theme.id === 'halloween').classroom.variantIds, []);
+  const blocked = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', purchaseSpec,
+    { 'Idempotency-Key': 'classroom-variant-002', origin: 'https://adventure.example' }), env);
+  assert.equal(blocked.status, 503);
+  assert.equal((await blocked.json()).error.code, 'PACK_VARIANT_NOT_READY');
 });
 
 test('signed email access tokens expire and reject tampering', async () => {
