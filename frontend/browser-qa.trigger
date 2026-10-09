@@ -1,1 +1,1 @@
-2026-10-09 validate authorised fixed-pack and AI custom journeys with mocked API and checkout.
+2026-10-09 recheck authorised fixed-pack and AI custom journeys after order-render wait fix.

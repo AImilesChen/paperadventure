@@ -104,6 +104,7 @@ try {
     checkoutPayloads[1]?.themeId === 'halloween' &&
     checkoutPayloads[1]?.variantId === 'halloween',
     'Seasonal classroom wording was not carried into checkout');
+  await page.locator('.live-downloads a').first().waitFor();
   check(await page.locator('.live-downloads a').count() === 4,
     'Classroom order does not show four private PDF downloads');
 
