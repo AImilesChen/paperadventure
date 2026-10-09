@@ -1,1 +1,1 @@
-2026-10-09: deploy paused-world safeguards for catalog, checkout and free samples.
+2026-10-09: deploy verified PDF-byte download integrity to isolated backend stage.
