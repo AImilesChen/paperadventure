@@ -13,7 +13,8 @@ const accessibility = [];
 const routesToCapture = new Set(['/en/', '/en/themes/', '/en/themes/celebration/', '/en/create/', '/en/pricing/', '/en/privacy/']);
 
 for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 390, height: 844 }]) {
-  const page = await browser.newPage({ viewport, reducedMotion: 'reduce' });
+  const context = await browser.newContext({ viewport, reducedMotion: 'reduce' });
+  const page = await context.newPage();
   page.on('pageerror', error => problems.push(viewport.name + ' JavaScript: ' + error.message));
   const routes = viewport.name === 'desktop' ? publicPages.map(item => item.path) : [...routesToCapture];
   for (const route of routes) {
@@ -55,7 +56,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     await page.keyboard.press('Escape');
     if (await page.getByRole('button', { name: 'Open menu' }).getAttribute('aria-expanded') !== 'false') problems.push('Mobile menu failed to close on Escape');
   }
-  await page.close();
+  await context.close();
 }
 await browser.close();
 writeFileSync(out + '/report.json', JSON.stringify({ snapshots, accessibility, problems }, null, 2) + '\n');
