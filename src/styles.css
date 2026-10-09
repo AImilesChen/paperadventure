@@ -66,3 +66,44 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .theme-track{scroll-snap-type:x proximity}
 .theme-card{scroll-snap-align:start}
 
+
+/* Home merchandising: reveal themed activities and the two finished trial editions. */
+.nav-theme-link{display:inline-flex;align-items:center;gap:6px;color:#a73625!important}
+.nav-theme-link[aria-current="page"]{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:7px}
+.nav-create-mobile{display:none!important}
+.hero{min-height:540px;padding-bottom:0}
+.hero-copy{transform:none}
+.hero h1{max-width:720px}
+.hero h1 em{color:#ad3425}
+.hero-lede{max-width:585px}
+.hero-visual{transform:none!important}
+.hero-visual>img{transform:none!important;height:500px}
+.hero-facts{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px}
+.hero-facts span{padding:8px 11px;border:1px solid #afd3e5;border-radius:7px;background:#ffffffb8;color:#35556d;font-size:.74rem;font-weight:800}
+.hero-facts strong{color:#123b5b;font-size:.9rem}
+.themes-section{padding-top:34px}
+.theme-card{display:flex;flex-direction:column}
+.theme-card-copy{align-items:flex-start;min-height:85px}
+.theme-card-copy p{font-size:.81rem;font-weight:800}
+.theme-mission{min-height:66px;margin:0!important;padding:0 20px 12px;color:#506b7b!important;font-size:.82rem!important;line-height:1.45}
+.theme-use{margin-top:auto}
+.sample-spotlight{padding:80px max(5.5%,calc((100vw - 1318px)/2)) 75px;background:#fffaf0}
+.sample-spotlight-intro{display:flex;align-items:center;justify-content:space-between;gap:28px}
+.sample-spotlight-intro h2{max-width:750px;margin:12px 0 14px}
+.sample-spotlight-intro p{max-width:670px;margin:0;color:#4b6577;font-size:1.02rem}
+.sample-price{flex:none;display:grid;place-items:center;width:116px;height:116px;border:2px dashed #d49662;border-radius:50%;background:#fff;color:#ac3b28;text-align:center;font-family:'Bree Serif',serif;font-size:1.75rem;line-height:1}
+.sample-price small{font-family:'Nunito Sans',sans-serif;font-size:.7rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+.sample-spotlight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-top:34px}
+.sample-spotlight-card{display:grid;grid-template-columns:44% 56%;overflow:hidden;border:1px solid #d8d7cd;border-radius:15px;background:#fff;box-shadow:0 8px 0 #e9ddca}
+.sample-spotlight-card img{width:100%;height:100%;min-height:300px;object-fit:cover}
+.sample-spotlight-card>div{display:flex;flex-direction:column;align-items:flex-start;padding:26px 27px}
+.sample-setting{color:#a73926;font-size:.68rem;font-weight:900;letter-spacing:.1em}
+.sample-spotlight-card h3{margin:10px 0 9px;font-family:'Bree Serif',serif;font-size:1.55rem;font-weight:400;line-height:1.2}
+.sample-spotlight-card p{margin:0 0 20px;color:#4e6978;font-size:.86rem}
+.sample-spotlight-card .text-link{margin-top:auto}
+.sample-spotlight-note{margin:22px 0 0;color:#516b7a;font-size:.81rem;font-weight:800}
+.home-create-link{margin-top:28px}
+@media(max-width:1100px){.nav-shell{gap:15px}.site-nav{gap:13px}.nav-theme-link svg{display:none}.hero{min-height:500px}.hero-visual>img{height:455px}.sample-spotlight-card{grid-template-columns:1fr}.sample-spotlight-card img{height:230px;min-height:0}.sample-spotlight-card>div{min-height:225px}}
+@media(max-width:800px){.nav-theme-link svg{display:inline}.nav-create-mobile{display:flex!important;align-items:center;justify-content:space-between}.hero{padding-top:32px;padding-bottom:28px}.hero-visual>img{height:390px}.themes-section{padding-top:45px}.sample-spotlight{padding:65px 5%}.sample-spotlight-card>div{padding:22px}}
+@media(max-width:600px){.hero h1{font-size:clamp(2.9rem,10.5vw,4rem)}.hero-facts{margin-top:20px}.hero-facts span{font-size:.69rem}.hero-visual>img{height:auto}.themes-section{padding-top:38px}.theme-mission{min-height:0}.sample-spotlight{padding:58px 5%}.sample-spotlight-intro{align-items:flex-start}.sample-spotlight-intro h2{font-size:2.15rem}.sample-price{width:75px;height:75px;font-size:1.2rem}.sample-price small{font-size:.48rem}.sample-spotlight-grid{grid-template-columns:1fr;gap:18px}.sample-spotlight-card{grid-template-columns:37% 63%}.sample-spotlight-card img{height:100%;min-height:250px}.sample-spotlight-card>div{min-height:0;padding:18px}.sample-spotlight-card h3{font-size:1.3rem}.sample-spotlight-card p{font-size:.78rem}.sample-spotlight-card .text-link{font-size:.78rem}.steps-section{padding-top:67px}}
+@media(max-width:390px){.sample-spotlight-card{grid-template-columns:1fr}.sample-spotlight-card img{height:210px;min-height:0}}

@@ -52,6 +52,9 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     await page.goto(base + '/en/', { waitUntil: 'domcontentloaded' });
     const signIn = page.locator('.nav-actions .nav-login');
     if (!await signIn.isVisible() || await signIn.getAttribute('href') !== '/en/account/') problems.push('Desktop Sign in is not discoverable in the header');
+    const themesEntry = page.locator('#primary-navigation .nav-theme-link');
+    if (!await themesEntry.isVisible() || await themesEntry.getAttribute('href') !== '/en/themes/') problems.push('Desktop themed activities are not discoverable in the header');
+    if (await page.locator('.sample-spotlight-card a[href^="/en/samples/"]').count() !== 2) problems.push('Home does not link to both Celebration editions');
   }
   if (viewport.name === 'mobile') {
     await page.goto(base + '/en/', { waitUntil: 'domcontentloaded' });
@@ -61,6 +64,10 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     if (await page.getByRole('button', { name: 'Close menu' }).getAttribute('aria-expanded') !== 'true') problems.push('Mobile menu failed to open from keyboard');
     const signIn = page.locator('#primary-navigation .nav-account-mobile').first();
     if (!await signIn.isVisible() || await signIn.getAttribute('href') !== '/en/account/') problems.push('Mobile Sign in is not discoverable in the menu');
+    const themesEntry = page.locator('#primary-navigation .nav-theme-link');
+    const createEntry = page.locator('#primary-navigation .nav-create-mobile');
+    if (!await themesEntry.isVisible() || await themesEntry.getAttribute('href') !== '/en/themes/') problems.push('Mobile themed activities are not discoverable in the menu');
+    if (!await createEntry.isVisible() || await createEntry.getAttribute('href') !== '/en/create/') problems.push('Mobile custom creation is not discoverable in the menu');
     await page.keyboard.press('Escape');
     if (await page.getByRole('button', { name: 'Open menu' }).getAttribute('aria-expanded') !== 'false') problems.push('Mobile menu failed to close on Escape');
   }
