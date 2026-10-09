@@ -1,1 +1,1 @@
-2026-10-09 diagnose custom checkout browser flow after fixed-pack assertions.
+2026-10-09 verify authorised custom test offer and complete commerce browser path.
