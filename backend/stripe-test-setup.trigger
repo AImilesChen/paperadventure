@@ -1,1 +1,1 @@
-2026-10-09: owner replaced Stripe test secret key on Cloudflare; redeploy sandbox and verify live readiness.
+2026-10-09: remove temporary checkout diagnostics, preserve Cloudflare bindings, redeploy and verify test readiness.

@@ -501,18 +501,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);
       const catalog = await liveCatalog(env);
-      const testCheckoutChecks = env.STAGE_PREVIEW === 'true' ? {
-        testFlag: env.TEST_CHECKOUT_ENABLED === 'true',
-        database: Boolean(env.DB),
-        privateFiles: Boolean(env.PRIVATE_FILES),
-        email: emailReady(env),
-        account: accountReady(env),
-        testKey: env.STRIPE_SECRET_KEY?.startsWith('sk_test_') === true,
-        webhook: env.STRIPE_WEBHOOK_SECRET?.startsWith('whsec_') === true,
-        buyerEmail: Boolean(normalizeEmail(env.STRIPE_TEST_BUYER_EMAIL)),
-        generation: generationReady(env),
-      } : null;
-      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), checkoutMode: testCheckoutReady(env) ? 'test' : paymentReady(env) ? 'live' : 'closed', generation: generationReady(env), proposals: env.PROPOSALS_ENABLED === 'true' && accountReady(env) && Boolean(aiProvider(env) && rangeReady(env)), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4, ...(testCheckoutChecks ? { testCheckoutChecks } : {}) });
+      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), checkoutMode: testCheckoutReady(env) ? 'test' : paymentReady(env) ? 'live' : 'closed', generation: generationReady(env), proposals: env.PROPOSALS_ENABLED === 'true' && accountReady(env) && Boolean(aiProvider(env) && rangeReady(env)), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
