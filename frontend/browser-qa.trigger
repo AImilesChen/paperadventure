@@ -1,1 +1,1 @@
-2026-10-09 browser QA pass 5 contrast palette
+2026-10-09 browser QA pass 6 final contrast and landmarks
