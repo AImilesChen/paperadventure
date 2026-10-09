@@ -71,7 +71,7 @@ jobs:
           node scripts/write-stage-wrangler.mjs
           npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
           npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --file backend/release-celebration-trial.sql --yes
-          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
+          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc
       - name: Verify cloud API and disabled release flags
         run: |
           curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.status!=='configured_runtime'||v.checkout||!v.generation||!v.proposals||!v.account||!v.sample||v.legal)throw Error('Stage capability mismatch: '+s);console.log('Stage API healthy; free sample, Google account and signed-in AI previews live; paid features off')})"
