@@ -1,1 +1,1 @@
-2026-10-09: retry isolated backend stage after noindex robots test correction.
+2026-10-09: verify deployed isolated backend stage API and release flags.
