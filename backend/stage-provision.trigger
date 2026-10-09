@@ -1,1 +1,1 @@
-2026-10-09: apply classroom variant publication gate migration 0007.
+2026-10-09: deploy DeepSeek-capable stage Worker and inspect existing secret names.
