@@ -11,7 +11,7 @@ import { productRights } from '../shared/catalog.mjs';
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -95,6 +95,8 @@ test('free sample checks actual R2 bytes even when custom metadata is absent', a
 
 test('purchase validation distinguishes ready packs from custom activity and rejects invalid groups', () => {
   assert.equal(validatePurchase(purchase).spec.kind, 'ready');
+  assert.equal(validatePurchase({ sku: 'ready_classroom', themeId: 'halloween', packVersion: 'v1', variantId: 'halloween' }).spec.variantId, 'halloween');
+  assert.throws(() => validatePurchase({ sku: 'ready_classroom', themeId: 'halloween', packVersion: 'v1', variantId: 'christmas' }), /story wording/);
   assert.equal(validatePurchase({ sku: 'custom_classroom', customIdea: 'A moon library', players: 20, groups: 4, age: '8-10', paper: 'A4', direction: 'mission' }).spec.kind, 'custom');
   assert.throws(() => validatePurchase({ sku: 'custom_classroom', customIdea: 'A moon library', players: 20, groups: 21, age: '8-10', paper: 'A4', direction: 'mission' }), /groups/);
   const spec = validatePurchase({ sku: 'custom_home', customIdea: 'A moon library', players: 4, age: '8-10', paper: 'A4', direction: 'mission' }).spec;
