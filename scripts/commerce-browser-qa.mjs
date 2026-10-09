@@ -86,10 +86,10 @@ await page.route('**/api/v1/**', async route => {
 
 function check(condition, message) { if (!condition) throw new Error(message); }
 try {
-  await page.goto(base + '/en/themes/dinosaur/?setting=home', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('link', { name: /Test home pack/ }).waitFor();
-  await page.locator('.product-pdf-preview img').waitFor();
-  await page.getByRole('link', { name: /Test home pack/ }).click();
+  await page.goto(base + '/en/themes/dinosaur/home/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('link', { name: /Open test checkout/ }).waitFor();
+  await page.locator('.theme-preview-strip figure img').waitFor();
+  await page.getByRole('link', { name: /Open test checkout/ }).click();
   await page.getByLabel('Adult delivery email').fill('tester@example.com');
   await page.getByRole('button', { name: /Continue to Stripe test/ }).click();
   await page.waitForURL('**/en/orders/mock-ready/');
@@ -99,8 +99,8 @@ try {
   await page.locator('.live-downloads a').first().waitFor();
   check(await page.locator('.live-downloads a').count() === 4, 'Ready order does not show four private PDF downloads');
 
-  await page.goto(base + '/en/themes/halloween/?setting=classroom', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('link', { name: /Test classroom pack/ }).click();
+  await page.goto(base + '/en/themes/halloween/classroom/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('link', { name: /Open test checkout/ }).click();
   await page.getByLabel('Classroom story wording').selectOption('halloween');
   await page.getByLabel('Adult delivery email').fill('tester@example.com');
   await page.getByRole('button', { name: /Continue to Stripe test/ }).click();
@@ -148,10 +148,10 @@ try {
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ available: true, authenticated: false }),
   }));
-  await page.goto(base + '/en/themes/dinosaur/?setting=home', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('link', { name: /Test home pack/ }).waitFor();
-  await page.locator('.product-pdf-preview img').waitFor();
-  await page.getByRole('link', { name: /Test home pack/ }).click();
+  await page.goto(base + '/en/themes/dinosaur/home/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('link', { name: /Open test checkout/ }).waitFor();
+  await page.locator('.theme-preview-strip figure img').waitFor();
+  await page.getByRole('link', { name: /Open test checkout/ }).click();
   const signIn = page.getByRole('link', { name: 'Sign in with Google' });
   await signIn.waitFor();
   check((await signIn.getAttribute('href'))?.includes('returnTo='), 'Checkout sign-in did not preserve the return path');
