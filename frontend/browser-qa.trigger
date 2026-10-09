@@ -1,1 +1,1 @@
-2026-10-09 verify public sandbox catalogue, signed-out sign-in gate, and Google return path.
+2026-10-09 verify SEO Home catalogue desktop/mobile, canonical indexability, and private preview isolation.
