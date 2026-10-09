@@ -26,6 +26,7 @@ test('DeepSeek sends proposals, story, and audit to its Responses API', async ()
     assert.equal(options.headers.authorization, 'Bearer deepseek-test');
     const request = JSON.parse(options.body);
     assert.equal(request.model, 'deepseek-flash');
+    assert.deepEqual(request.reasoning, { effort: 'none' });
     assert.equal(request.text.format.type, 'json_schema');
     calls.push(request.text.format.name);
     const value = request.text.format.name === 'story_proposals'
