@@ -34,6 +34,7 @@ async function verifiedPdf(env, file) {
 
 const cloudflareEmailReady = env => env.EMAIL_PUBLIC_DESTINATIONS_READY === 'true' && typeof env.EMAIL?.send === 'function';
 const emailReady = env => Boolean(env.EMAIL_FROM && (cloudflareEmailReady(env) || env.RESEND_API_KEY));
+const accountReady = env => Boolean(env.ACCOUNT_ENABLED === 'true' && env.DB && env.SESSION_SECRET && emailReady(env) && env.PUBLIC_ORIGIN);
 
 function paymentReady(env) {
   return Boolean(env.DB && env.PRIVATE_FILES && emailReady(env) && env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET && env.SESSION_SECRET && env.PUBLIC_ORIGIN &&
@@ -226,6 +227,7 @@ async function requestAccessLink(request, env) {
   const body = await requestBody(request);
   const email = normalizeEmail(body.email);
   if (!email) throw new ApiError(400, 'INVALID_EMAIL', 'Enter an adult email address.');
+  if (!accountReady(env) && email !== env.ACCOUNT_TEST_EMAIL) throw new ApiError(503, 'EMAIL_NOT_READY', 'Email verification is not available yet.');
   const ip = request.headers.get('cf-connecting-ip');
   if (!ip) throw new ApiError(403, 'VISITOR_UNVERIFIED', 'Visitor verification is unavailable.');
   const hash = await emailHash(env, email);
@@ -455,7 +457,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);
       const catalog = await liveCatalog(env);
-      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), generation: generationReady(env), proposals: env.PROPOSALS_ENABLED === 'true' && Boolean(env.DB && env.SESSION_SECRET && aiProvider(env) && rangeReady(env)), account: Boolean(env.DB && env.SESSION_SECRET && emailReady(env) && env.PUBLIC_ORIGIN), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), generation: generationReady(env), proposals: env.PROPOSALS_ENABLED === 'true' && Boolean(env.DB && env.SESSION_SECRET && aiProvider(env) && rangeReady(env)), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
@@ -475,7 +477,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'POST' && path === '/api/v1/access-links') return await requestAccessLink(request, env);
     if (request.method === 'GET' && path === '/api/v1/auth/verify') return await verifyAccessLink(request, env);
     if (request.method === 'GET' && path === '/api/v1/auth/session') {
-      const available = Boolean(env.DB && env.SESSION_SECRET && emailReady(env) && env.PUBLIC_ORIGIN);
+      const available = accountReady(env);
       return json({ available, authenticated: available && Boolean(await authenticatedEmailHash(request, env)) });
     }
     if (request.method === 'GET' && path === '/api/v1/my-orders') return await myOrders(request, env);

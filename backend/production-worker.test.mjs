@@ -48,7 +48,7 @@ function seedReady(db) {
 
 const request = (path, method = 'GET', data, headers = {}) => new Request(`https://adventure.example${path}`, { method, headers: { ...(data ? { 'content-type': 'application/json' } : {}), ...headers }, body: data ? JSON.stringify(data) : undefined });
 const purchase = { sku: 'ready_home', themeId: 'dinosaur', packVersion: 'v1', email: 'Adult@example.com' };
-const config = binding => ({ DB: binding, PRIVATE_FILES: { get: async () => null }, RESEND_API_KEY: 're_test', EMAIL_FROM: 'hello@adventure.example', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', SESSION_SECRET: 'test-session-secret', PUBLIC_ORIGIN: 'https://adventure.example', CHECKOUT_ENABLED: 'true', LEGAL_RELEASED: 'true', TAX_CONFIGURED: 'true', CUSTOM_LICENCE_VERSION: 'custom-v1', SUPPORTED_AGE_MIN: '6', SUPPORTED_AGE_MAX: '12', HOME_PLAYER_MAX: '8', CLASSROOM_STUDENT_MAX: '40' });
+const config = binding => ({ DB: binding, PRIVATE_FILES: { get: async () => null }, RESEND_API_KEY: 're_test', EMAIL_FROM: 'hello@adventure.example', ACCOUNT_ENABLED: 'true', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', SESSION_SECRET: 'test-session-secret', PUBLIC_ORIGIN: 'https://adventure.example', CHECKOUT_ENABLED: 'true', LEGAL_RELEASED: 'true', TAX_CONFIGURED: 'true', CUSTOM_LICENCE_VERSION: 'custom-v1', SUPPORTED_AGE_MIN: '6', SUPPORTED_AGE_MAX: '12', HOME_PLAYER_MAX: '8', CLASSROOM_STUDENT_MAX: '40' });
 
 test('DeepSeek key enables generation capability without requiring an OpenAI key', async () => {
   const { binding } = database();
@@ -495,4 +495,21 @@ test('Cloudflare Email binding delivers a one-use sign-in link without a Resend 
   const link = sentMessages[0].text.match(/https:\/\/\S+/)[0];
   assert.equal((await handleProductionApi(new Request(link), env)).status, 303);
   assert.equal((await handleProductionApi(new Request(link), env)).status, 401);
+});
+
+test('stage account gate permits only the configured delivery-test inbox', async () => {
+  const { binding } = database();
+  const sentMessages = [];
+  const env = { ...config(binding), ACCOUNT_ENABLED: 'false', ACCOUNT_TEST_EMAIL: 'support@paperadventure.app', RESEND_API_KEY: undefined,
+    EMAIL_FROM: 'support@paperadventure.app', EMAIL_PUBLIC_DESTINATIONS_READY: 'true',
+    EMAIL: { send: async message => { sentMessages.push(message); return { messageId: 'stage-test-1' }; } } };
+  const state = await handleProductionApi(request('/api/v1/auth/session'), env).then(response => response.json());
+  assert.deepEqual(state, { available: false, authenticated: false });
+  const blocked = await handleProductionApi(request('/api/v1/access-links', 'POST', { email: 'adult@example.com' },
+    { origin: 'https://adventure.example', 'cf-connecting-ip': '203.0.113.10' }), env);
+  assert.equal(blocked.status, 503);
+  const allowed = await handleProductionApi(request('/api/v1/access-links', 'POST', { email: 'support@paperadventure.app' },
+    { origin: 'https://adventure.example', 'cf-connecting-ip': '203.0.113.10' }), env);
+  assert.equal(allowed.status, 200);
+  assert.equal(sentMessages.length, 1);
 });

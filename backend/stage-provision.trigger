@@ -1,1 +1,1 @@
-2026-10-09: deploy DeepSeek structural QA retry after private Home and Classroom PDF smoke passed.
+2026-10-09: bind Cloudflare Email to isolated stage and verify one restricted adult sign-in delivery.
