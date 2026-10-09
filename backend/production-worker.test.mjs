@@ -212,16 +212,22 @@ test('paid custom queue job generates private player and guide PDFs, then publis
   const stored = new Map();
   const queued = [];
   let failRevisionOnce = false;
+  let failGenerationOnce = true;
   const env = { ...config(binding), OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', GENERATION_QUEUE: { send: async message => { queued.push(message); } }, FETCH: async (url, init) => {
     assert.match(url, /api\.openai\.com/);
     const name = JSON.parse(init.body).text.format.name;
+    if (name === 'paper_adventure' && failGenerationOnce) { failGenerationOnce = false; return Response.json({ error: 'temporary provider failure' }, { status: 502 }); }
     if (name === 'revised_stage' && failRevisionOnce) { failRevisionOnce = false; return Response.json({ error: 'temporary provider failure' }, { status: 502 }); }
     const targetStage = name === 'revised_stage' ? JSON.parse(JSON.parse(init.body).input).stageNumber : null;
     const value = name === 'story_audit' ? { pass: true, issues: [] } : name === 'revised_stage' ? { ...stages[targetStage - 1], title: 'A gentler revised clue' } : output;
     return Response.json({ id: name === 'revised_stage' ? 'resp-2' : 'resp-1', output: [{ content: [{ type: 'output_text', text: JSON.stringify(value) }] }], usage: { input_tokens: 500, output_tokens: 800 } });
   }, PRIVATE_FILES: { put: async (key, bytes, options) => { stored.set(key, { bytes, options }); return { key }; }, get: async key => { const item = stored.get(key); return item && { body: item.bytes, customMetadata: item.options.customMetadata }; } } };
   let acknowledged = false;
-  await productionWorker.queue({ messages: [{ body: { orderId: 'order-1' }, ack: () => { acknowledged = true; }, retry: () => { throw new Error('Unexpected retry'); } }] }, env);
+  let generationRetried = false;
+  await productionWorker.queue({ messages: [{ body: { orderId: 'order-1' }, ack: () => { throw new Error('Failed generation must not be acknowledged'); }, retry: () => { generationRetried = true; } }] }, env);
+  assert.equal(generationRetried, true);
+  assert.equal(db.prepare("SELECT status FROM custom_activities WHERE id = 'activity-order-1'").get().status, 'generating');
+  await productionWorker.queue({ messages: [{ body: { orderId: 'order-1' }, ack: () => { acknowledged = true; }, retry: () => { throw new Error('The generation retry should succeed'); } }] }, env);
   assert.equal(acknowledged, true);
   assert.equal(db.prepare("SELECT status FROM orders WHERE id = 'order-1'").get().status, 'published');
   assert.equal(db.prepare("SELECT status FROM custom_activities WHERE id = 'activity-order-1'").get().status, 'published');
