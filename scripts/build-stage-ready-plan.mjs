@@ -50,6 +50,7 @@ export function buildStageReadyPlan(root, options = {}) {
   const basePaths = options.basePaths || BASE_MANIFESTS;
   const variantPaths = options.variantPaths || VARIANT_MANIFESTS;
   const packs = [];
+  const variants = [];
   const uploads = [];
   const worlds = new Set();
   for (const manifestPath of basePaths) {
@@ -83,6 +84,7 @@ export function buildStageReadyPlan(root, options = {}) {
     if (!worlds.has(manifest.themeWorldId) || manifest.items.length !== 4 ||
         !/^[a-z]+$/.test(manifest.variantId || '')) throw new Error('Invalid classroom variant: ' + manifestPath);
     const seen = new Set();
+    const files = [];
     for (const item of manifest.items) {
       const role = roleOf(item.role);
       if (item.setting !== 'classroom' || item.variant !== manifest.variantId ||
@@ -91,11 +93,15 @@ export function buildStageReadyPlan(root, options = {}) {
       if (seen.has(slot)) throw new Error('Duplicate variant slot');
       seen.add(slot);
       const source = safeFile(root, item);
-      uploads.push({ ...source, paper: item.paper, role,
+      const file = { ...source, paper: item.paper, role,
         r2Key: 'internal/draft-variants/' + manifest.themeWorldId + '/' + manifest.variantId + '/v' +
-          manifest.version + '/' + slot + '-' + source.sha256.slice(0, 16) + '.pdf' });
+          manifest.version + '/' + slot + '-' + source.sha256.slice(0, 16) + '.pdf' };
+      files.push(file);
+      uploads.push(file);
     }
     if (seen.size !== 4) throw new Error('Incomplete variant');
+    variants.push({ packId: 'stage-' + manifest.themeWorldId + '-classroom-v' + manifest.version,
+      variantId: manifest.variantId, files });
   }
   const statements = [];
   for (const pack of packs) {
@@ -109,7 +115,17 @@ export function buildStageReadyPlan(root, options = {}) {
         ' WHERE EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(pack.id) + " AND status = 'internal_test');");
     }
   }
-  return { privateOnly: true, packs, uploads, sql: statements.join('\n') + '\n' };
+  for (const variant of variants) {
+    statements.push('DELETE FROM ready_pack_variants WHERE ready_pack_id = ' + sql(variant.packId) +
+      ' AND variant_id = ' + sql(variant.variantId) +
+      ' AND EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(variant.packId) + " AND status = 'internal_test');");
+    for (const file of variant.files) {
+      statements.push('INSERT INTO ready_pack_variants (ready_pack_id,variant_id,paper,role,r2_key,sha256,bytes) SELECT ' +
+        [variant.packId, variant.variantId, file.paper, file.role, file.r2Key, file.sha256].map(sql).join(',') + ',' + file.bytes +
+        ' WHERE EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(variant.packId) + " AND status = 'internal_test');");
+    }
+  }
+  return { privateOnly: true, packs, variants, uploads, sql: statements.join('\n') + '\n' };
 }
 
 const current = fileURLToPath(import.meta.url);
@@ -119,7 +135,7 @@ if (process.argv[1] && resolve(process.argv[1]) === current) {
   const output = resolve(root, 'output');
   mkdirSync(output, { recursive: true });
   writeFileSync(resolve(output, 'stage-ready-plan.json'), JSON.stringify({
-    privateOnly: plan.privateOnly, packs: plan.packs, uploads: plan.uploads,
+    privateOnly: plan.privateOnly, packs: plan.packs, variants: plan.variants, uploads: plan.uploads,
   }, null, 2) + '\n');
   writeFileSync(resolve(output, 'stage-ready.sql'), plan.sql);
   console.log(JSON.stringify({ packs: plan.packs.length, uploads: plan.uploads.length, privateOnly: true }));
