@@ -4,7 +4,7 @@ import { ApiError, validateGeneratedStory } from './domain.mjs';
 export function aiProvider(env = {}) {
   const name = env.AI_PROVIDER || (env.DEEPSEEK_API_KEY ? 'deepseek' : 'openai');
   if (name === 'deepseek' && env.DEEPSEEK_API_KEY) return { name, key: env.DEEPSEEK_API_KEY, model: env.DEEPSEEK_MODEL || 'deepseek-flash', url: 'https://api.deepseek.com/responses' };
-  if (name === 'openai' && env.OPENAI_API_KEY && env.OPENAI_MODEL) return { name, key: env.OPENAI_API_KEY, model: provider.model, url: 'https://api.openai.com/v1/responses' };
+  if (name === 'openai' && env.OPENAI_API_KEY && env.OPENAI_MODEL) return { name, key: env.OPENAI_API_KEY, model: env.OPENAI_MODEL, url: 'https://api.openai.com/v1/responses' };
   return null;
 }
 
