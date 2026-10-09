@@ -18,3 +18,5 @@
 .product-story-grid article.selected{border:2px solid #a8cddd;background:#f3fbfe}
 .product-story-grid article.selected .product-story-caption{color:#4b6576}
 @media(max-width:650px){.audience-switch{gap:9px}.audience-switch a{padding:14px}.audience-switch span{font-size:1.15rem}.audience-switch small{font-size:.68rem}.catalog-count{align-self:flex-start}}
+
+.product-detail-art .product-pdf-preview{margin:0;padding:18px 20px 22px;border-top:1px solid #c9e0e8;background:#f4fbfd}.product-detail-art .product-pdf-preview img{width:min(100%,360px);height:auto;aspect-ratio:auto;object-fit:contain;margin:0 auto;border:1px solid #c9e0e8;box-shadow:0 8px 20px #123b5020}.product-detail-art .product-pdf-preview figcaption{margin-top:11px;color:#466273;font-size:.78rem;line-height:1.5}
