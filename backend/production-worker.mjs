@@ -102,6 +102,30 @@ async function requestBody(request) {
   try { return JSON.parse(raw); } catch { throw new ApiError(400, 'INVALID_JSON', 'Send a valid JSON request.'); }
 }
 
+async function testReadyCatalog(request, env) {
+  if (!testCheckoutReady(env)) throw new ApiError(404, 'NOT_FOUND', 'Test packs are not available.');
+  const buyer = normalizeEmail(env.STRIPE_TEST_BUYER_EMAIL);
+  const hash = await authenticatedEmailHash(request, env);
+  if (!hash || hash !== await emailHash(env, buyer)) throw new ApiError(403, 'TEST_BUYER_ONLY', 'Sign in with the authorised Google test account.');
+  const rows = await query(env.DB, `SELECT p.id,p.theme_world_id,p.setting,p.version FROM ready_packs p
+    JOIN theme_worlds w ON w.id = p.theme_world_id
+    WHERE p.status = 'internal_test' AND p.theme_world_id <> 'celebration' AND w.status = 'published'
+      AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
+    ORDER BY p.theme_world_id,p.setting,p.version DESC`).all();
+  const variants = await query(env.DB, `SELECT ready_pack_id,variant_id FROM ready_pack_variants
+    WHERE status = 'internal_test' GROUP BY ready_pack_id,variant_id HAVING COUNT(*) = 4`).all();
+  const seen = new Set();
+  const packs = [];
+  for (const row of rows.results || []) {
+    const slot = row.theme_world_id + '/' + row.setting;
+    if (seen.has(slot)) continue;
+    seen.add(slot);
+    packs.push({ themeId: row.theme_world_id, setting: row.setting, version: row.version,
+      variantIds: (variants.results || []).filter(item => item.ready_pack_id === row.id).map(item => item.variant_id) });
+  }
+  return json({ packs, mode: 'stripe_test' });
+}
+
 async function checkout(request, env) {
   if (!await checkoutReady(env)) throw new ApiError(503, 'CHECKOUT_NOT_READY', 'Purchases are not open. No payment was created.');
   requireSameOrigin(request, env);
@@ -115,7 +139,6 @@ async function checkout(request, env) {
       throw new ApiError(403, 'TEST_BUYER_ONLY', 'Sign in with the authorised Google test account and use its email.');
   }
   const { offer, spec } = validatePurchase(input);
-  if (testOnly && offer.kind !== 'custom') throw new ApiError(503, 'TEST_CUSTOM_ONLY', 'Only custom adventures are available in Stripe test mode.');
   if (offer.kind === 'custom' && !generationReady(env)) throw new ApiError(503, 'GENERATION_NOT_READY', 'Custom generation is not available.');
   if (offer.kind === 'custom') validateSupportedRange(spec, env);
   if (offer.kind === 'ready' && spec.themeId === 'celebration') throw new ApiError(409, 'SAMPLE_IS_FREE', 'Celebration is the free sample theme and is not sold as a ready-made pack.');
@@ -125,12 +148,12 @@ async function checkout(request, env) {
   if (!price || price.currency !== 'USD' || price.unit_amount !== offer.unitAmount || (!testOnly && !price.stripe_price_id) || price.tax_behavior === 'unknown') throw new ApiError(503, 'OFFER_NOT_READY', 'This product is not available for checkout.');
   let readyPack = null;
   if (offer.kind === 'ready') {
-    readyPack = await query(env.DB, "SELECT p.* FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id WHERE p.theme_world_id = ? AND p.setting = ? AND p.version = ? AND p.status = 'published' AND w.status = 'published'", spec.themeId, spec.setting, spec.packVersion).first();
+    readyPack = await query(env.DB, "SELECT p.* FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id WHERE p.theme_world_id = ? AND p.setting = ? AND p.version = ? AND p.status = ? AND w.status = 'published'", spec.themeId, spec.setting, spec.packVersion, testOnly ? 'internal_test' : 'published').first();
     if (!readyPack) throw new ApiError(503, 'PACK_NOT_PUBLISHED', 'This ready-made pack is not published.');
     const files = await query(env.DB, 'SELECT paper, role FROM ready_pack_files WHERE ready_pack_id = ?', readyPack.id).all();
     if (files.results?.length !== 4) throw new ApiError(503, 'PACK_FILES_INCOMPLETE', 'The printable pack is incomplete.');
     if (spec.variantId) {
-      const variantFiles = await query(env.DB, "SELECT paper, role FROM ready_pack_variants WHERE ready_pack_id = ? AND variant_id = ? AND status = 'published'", readyPack.id, spec.variantId).all();
+      const variantFiles = await query(env.DB, "SELECT paper, role FROM ready_pack_variants WHERE ready_pack_id = ? AND variant_id = ? AND status = ?", readyPack.id, spec.variantId, testOnly ? 'internal_test' : 'published').all();
       if (variantFiles.results?.length !== 4) throw new ApiError(503, 'PACK_VARIANT_NOT_READY', 'This classroom story wording is not available.');
     }
   }
@@ -152,7 +175,7 @@ async function checkout(request, env) {
   if (order.checkout_url && order.stripe_checkout_session_id) return json({ orderId: order.id, checkoutUrl: order.checkout_url, mode: 'stripe' });
   const origin = new URL(env.PUBLIC_ORIGIN).origin;
   const form = checkoutForm({ orderId: order.id, email, priceId: testOnly ? null : price.stripe_price_id,
-    inlinePrice: testOnly ? { name: `Paper Adventure ${offer.setting} custom test`, unitAmount: offer.unitAmount } : null, specHash,
+    inlinePrice: testOnly ? { name: `Paper Adventure ${spec.themeId || 'original'} ${offer.setting} ${offer.kind} test`, unitAmount: offer.unitAmount } : null, specHash,
     successUrl: `${origin}/en/orders/${order.id}/?checkout=returned`, cancelUrl: `${origin}/en/checkout/?cancelled=1`, automaticTax: !testOnly });
   const session = await stripeRequest(env, 'checkout/sessions', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'Idempotency-Key': `paw-${order.id}` }, body: form.toString() }, env.FETCH || fetch);
   if (!session.id || !session.url || session.client_reference_id !== order.id) throw new ApiError(502, 'PAYMENT_PROVIDER_ERROR', 'Payment session could not be verified.');
@@ -509,6 +532,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       return item ? json({ kind: item.kind, version: item.version, title: item.title, effectiveAt: item.effective_at, sections: JSON.parse(item.sections_json) }) : error(404, 'LEGAL_NOT_PUBLISHED', 'This policy is not published.');
     }
     if (request.method === 'GET' && path === '/api/v1/catalog') return json(await liveCatalog(env));
+    if (request.method === 'GET' && path === '/api/v1/test-packs') return await testReadyCatalog(request, env);
     if (request.method === 'GET' && path.startsWith('/api/v1/themes/')) {
       const id = path.slice('/api/v1/themes/'.length);
       const catalog = await liveCatalog(env);

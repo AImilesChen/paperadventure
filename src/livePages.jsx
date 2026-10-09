@@ -163,7 +163,7 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
   const [variantId, setVariantId] = useState('');
   const [email, setEmail] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const customDraftReady = Boolean((draft.custom ? draft.idea?.trim() : draft.theme) && Number(draft.players) >= 2 && draft.age?.trim() && ['A4','Letter'].includes(draft.paper) && ['mystery','mission'].includes(draft.direction) && (setting !== 'classroom' || Number(draft.groups) >= 1));
-  const eligible = Boolean(['home','classroom'].includes(setting) && offer?.saleEnabled && (ready ? theme?.[setting]?.readyStatus === 'published' : customDraftReady));
+  const eligible = Boolean(['home','classroom'].includes(setting) && offer?.saleEnabled && (ready ? ['published','test_ready'].includes(theme?.[setting]?.readyStatus) : customDraftReady));
   async function start(event) {
     event.preventDefault(); setBusy(true); setError('');
     const body = ready ? { sku, themeId, packVersion: theme[setting].packVersion, variantId: variantId || null, email } : { sku, themeId: draft.custom ? null : draft.theme, customIdea: draft.custom ? draft.idea : null, players: draft.players, groups: draft.groups, age: draft.age, paper: draft.paper, direction: draft.direction, place: draft.place, reading: draft.reading, materials: draft.materials, email };

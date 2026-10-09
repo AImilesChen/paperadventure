@@ -176,8 +176,8 @@ export function App() {
   const [runtimeCatalog, setRuntimeCatalog] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetch('/api/v1/health').then(response => response.json()), fetch('/api/v1/catalog').then(response => response.json())])
-      .then(([health, catalog]) => { if (!cancelled && health.status === 'configured_runtime') { setRuntime(health); setRuntimeCatalog(catalog); } })
+    Promise.all([fetch('/api/v1/health').then(response => response.json()), fetch('/api/v1/catalog').then(response => response.json()), fetch('/api/v1/test-packs').then(response => response.ok ? response.json() : null).catch(() => null)])
+      .then(([health, catalog, testPacks]) => { if (!cancelled && health.status === 'configured_runtime') { const packs = health.checkoutMode === 'test' ? testPacks?.packs || [] : []; const merged = packs.length ? { ...catalog, themes: catalog.themes.map(theme => ({ ...theme, home: { ...theme.home, ...(packs.find(pack => pack.themeId === theme.id && pack.setting === 'home') ? { readyStatus: 'test_ready', packVersion: packs.find(pack => pack.themeId === theme.id && pack.setting === 'home').version } : {}) }, classroom: { ...theme.classroom, ...(packs.find(pack => pack.themeId === theme.id && pack.setting === 'classroom') ? { readyStatus: 'test_ready', packVersion: packs.find(pack => pack.themeId === theme.id && pack.setting === 'classroom').version, variantIds: packs.find(pack => pack.themeId === theme.id && pack.setting === 'classroom').variantIds } : {}) } })), offers: catalog.offers.map(offer => offer.kind === 'ready' && packs.some(pack => pack.setting === offer.setting) ? { ...offer, saleEnabled: true } : offer) } : catalog; setRuntime(health); setRuntimeCatalog(merged); } })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
