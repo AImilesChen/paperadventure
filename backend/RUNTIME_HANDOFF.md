@@ -1,6 +1,8 @@
 # Production Worker handoff (production not deployed)
 
-**2026-10-08 deployment update:** GitHub Actions run 37787113031 deployed the current static frontend and `preview-deploy-worker.mjs` to `paper-adventure-preview-v2`. The apex and preview alias now serve that build, including the browser icon, while preserving noindex. The production Worker, D1/R2/Queue bindings, Stripe/OpenAI service integrations and published game files are still absent from the deployed runtime. This is not the completed PRD launch.
+**2026-10-09 isolated backend stage:** The same `production-worker.mjs` was deployed as `paper-adventure-api-stage` at `https://paper-adventure-api-stage.chenminjian08.workers.dev` without changing the apex site. Cloudflare D1 `paper-adventure-stage-db`, private R2 `paper-adventure-stage-private`, and Queue `paper-adventure-stage-generation` were created and bound; migrations `0001`–`0004` applied remotely. [Stage workflow run 37874557099](https://github.com/AImilesChen/paperadventure/actions/runs/37874557099) passed live `/api/v1/health`, `/api/v1/catalog`, and noindex-header checks. This stage has no Stripe, OpenAI or email secrets; its checkout, generation, proposals, account, sample and legal publication capabilities are false. It proves cloud resource wiring and the read-only API, **not** end-to-end user generation or a public sales launch.
+
+**2026-10-08 deployment update:** GitHub Actions run 37787113031 deployed the current static frontend and `preview-deploy-worker.mjs` to `paper-adventure-preview-v2`. The apex and preview alias now serve that build, including the browser icon, while preserving noindex. The apex preview still has no production API bindings, Stripe/OpenAI service integrations or published game files. The isolated stage described above now has D1/R2/Queue bindings, with release capabilities disabled. This is not the completed PRD launch.
 
 ## Cloudflare design preview deployed 2026-10-07
 
