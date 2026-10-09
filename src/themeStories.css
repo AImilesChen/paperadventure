@@ -1,7 +1,7 @@
 .product-card-copy .product-story-teaser{margin-top:12px;color:#36586b;font-size:.86rem;line-height:1.5}
 .theme-detail-page{color:#153a56}
 .theme-detail-page .product-shell{max-width:1280px}
-.theme-breadcrumb{display:flex;align-items:center;gap:9px;padding:25px 0 20px;color:#527183;font-size:.82rem;font-weight:800}
+.theme-breadcrumb{display:flex;align-items:center;gap:9px;padding:25px 0 20px;color:#3d6275;font-size:.82rem;font-weight:800}
 .theme-breadcrumb a{color:#9e3929}
 .theme-breadcrumb svg{transform:rotate(-45deg)}
 .theme-edition-switch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:22px}
