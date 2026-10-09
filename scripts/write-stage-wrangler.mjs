@@ -24,6 +24,8 @@ const config = {
     LIVE_PAYMENTS_ENABLED: 'false',
     FREE_SAMPLE_ENABLED: 'false',
     PROPOSALS_ENABLED: 'false',
+    AI_PROVIDER: 'deepseek',
+    DEEPSEEK_MODEL: 'deepseek-flash',
     SUPPORTED_AGE_MIN: '0',
     SUPPORTED_AGE_MAX: '0',
     HOME_PLAYER_MAX: '0',
