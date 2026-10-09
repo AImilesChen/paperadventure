@@ -36,7 +36,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
       if (routesToCapture.has(route)) {
         const scan = await new AxeBuilder({ page }).analyze();
         accessibility.push({ viewport: viewport.name, route, violations: scan.violations.map(item => ({
-          id: item.id, impact: item.impact, nodes: item.nodes.slice(0, 3).map(node => node.target),
+          id: item.id, impact: item.impact, nodes: item.nodes.slice(0, 20).map(node => ({ target: node.target, summary: node.failureSummary })),
         })) });
         for (const violation of scan.violations.filter(item => ['serious','critical'].includes(item.impact))) {
           problems.push(viewport.name + ' ' + route + ' accessibility ' + violation.id + ': ' + violation.nodes.length + ' affected elements');
@@ -61,4 +61,5 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
 await browser.close();
 writeFileSync(out + '/report.json', JSON.stringify({ snapshots, accessibility, problems }, null, 2) + '\n');
 console.log(JSON.stringify({ checked: snapshots.length, screenshots: routesToCapture.size * 2, problems }, null, 2));
+if (problems.length) console.log(JSON.stringify(accessibility.filter(item => item.viewport === 'desktop' && ['/en/','/en/themes/','/en/pricing/'].includes(item.route)), null, 2));
 if (problems.length) process.exitCode = 1;
