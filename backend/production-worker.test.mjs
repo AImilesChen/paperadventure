@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHmac } from 'node:crypto';
+import { createHmac, createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import productionWorker, { handleProductionApi } from './production-worker.mjs';
@@ -36,7 +36,8 @@ function seedReady(db) {
   db.prepare("INSERT OR IGNORE INTO theme_worlds (id,title_en,status) VALUES ('celebration','Celebration','published')").run();
   db.prepare("INSERT INTO ready_packs (id,theme_world_id,setting,version,status,licence_version) VALUES ('pack-h01','celebration','home','v1','published','licence-1')").run();
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('price-1','ready_home','USD',999,'price_test_1','exclusive',1)").run();
-  for (const paper of ['A4','Letter']) for (const role of ['player','guide']) db.prepare('INSERT INTO ready_pack_files (ready_pack_id,paper,role,r2_key,sha256,bytes) VALUES (?,?,?,?,?,?)').run('pack-h01',paper,role,`ready/h01/${paper}/${role}.pdf`,'test-hash',123);
+  const pdfHash = createHash('sha256').update(new Uint8Array([37,80,68,70])).digest('hex');
+  for (const paper of ['A4','Letter']) for (const role of ['player','guide']) db.prepare('INSERT INTO ready_pack_files (ready_pack_id,paper,role,r2_key,sha256,bytes) VALUES (?,?,?,?,?,?)').run('pack-h01',paper,role,`ready/h01/${paper}/${role}.pdf`,pdfHash,4);
   for (const kind of ['privacy','terms','cookies','refunds']) db.prepare("INSERT INTO legal_documents (kind,version,title,effective_at,sections_json,status) VALUES (?,?,?,'2026-10-07',?,'published')").run(kind,'reviewed-test-1',kind,JSON.stringify([{ heading: 'Test only', body: 'Mock test policy.' }]));
 }
 
@@ -76,6 +77,20 @@ test('pausing a world hides its fixed pack from catalog, sample and checkout', a
   assert.equal((await checkout.json()).error.code, 'PACK_NOT_PUBLISHED');
   const sample = await handleProductionApi(request('/api/v1/samples/home/A4/player'), { ...env, FREE_SAMPLE_ENABLED: 'true' });
   assert.equal(sample.status, 404);
+});
+
+test('free sample checks actual R2 bytes even when custom metadata is absent', async () => {
+  const { db, binding } = database();
+  seedReady(db);
+  const env = { ...config(binding), FREE_SAMPLE_ENABLED: 'true',
+    PRIVATE_FILES: { get: async () => ({ body: new Uint8Array([37,80,68,70]) }) } };
+  const good = await handleProductionApi(request('/api/v1/samples/home/A4/player'), env);
+  assert.equal(good.status, 200);
+  assert.deepEqual(new Uint8Array(await good.arrayBuffer()), new Uint8Array([37,80,68,70]));
+  const bad = await handleProductionApi(request('/api/v1/samples/home/A4/player'),
+    { ...env, PRIVATE_FILES: { get: async () => ({ body: new Uint8Array([37,80,68,71]) }) } });
+  assert.equal(bad.status, 503);
+  assert.equal((await bad.json()).error.code, 'FILE_INTEGRITY_FAILED');
 });
 
 test('purchase validation distinguishes ready packs from custom activity and rejects invalid groups', () => {
