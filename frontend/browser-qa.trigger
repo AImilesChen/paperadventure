@@ -1,1 +1,1 @@
-2026-10-09: re-run isolated browser verification after audience contrast and hydration fixes. Check 6+6 variants.
+2026-10-09: verify simplified primary navigation, Home/Classroom routes, and sample discovery on desktop and mobile.

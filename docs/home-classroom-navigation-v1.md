@@ -4,7 +4,7 @@ The six visual themes are shared worlds, but each setting has its own story titl
 
 ## Navigation and routes
 
-- Header and mobile menu: **Home adventures**, **Classroom adventures**, **All themes**.
+- Header and mobile menu: **For home**, **For classrooms**, **How it works**, **Pricing**. Sign in/My adventures and Create an adventure stay as account/action controls. The free Celebration printable and All themes remain discoverable in page content and the footer instead of occupying primary navigation.
 - `/en/for-home/`: six Home story cards and the Home Celebration download.
 - `/en/for-classroom/`: six Classroom story cards and the Classroom Celebration download.
 - `/en/themes/`: overview with an explicit Home/Classroom switch; Home is the initial view.
