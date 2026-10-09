@@ -516,7 +516,10 @@ test('public test catalogue and first-page previews allow any adult account to b
   assert.equal(preview.status, 200);
   assert.equal(preview.headers.get('content-type'), 'image/jpeg');
   assert.match(preview.headers.get('cache-control'), /public/);
-  assert.equal(previewKey, 'internal/draft-previews/dinosaur/home/v0.1.jpg');
+  assert.equal(previewKey, 'internal/draft-previews/dinosaur/home/v0.1-p1.jpg');
+  const openingPage = await handleProductionApi(request('/api/v1/test-pack-previews/dinosaur/home/2'), env);
+  assert.equal(openingPage.status, 200);
+  assert.equal(previewKey, 'internal/draft-previews/dinosaur/home/v0.1-p2.jpg');
 
   assert.deepEqual(privateCatalog.packs, [{ themeId: 'dinosaur', setting: 'home', version: 'v0.1', variantIds: [] }]);
   const input = { sku: 'ready_home', themeId: 'dinosaur', packVersion: 'v0.1', email: 'adult@example.com' };

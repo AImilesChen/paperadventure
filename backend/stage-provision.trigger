@@ -1,1 +1,1 @@
-2026-10-09 verify crawl restrictions and live opening-page preview with Stripe test checkout
+2026-10-09 validate real two-page pack preview and test-only backend after updated route tests
