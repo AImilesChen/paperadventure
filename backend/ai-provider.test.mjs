@@ -44,6 +44,28 @@ test('DeepSeek sends proposals, story, and audit to its Responses API', async ()
   assert.equal(result.usage.input_tokens, 24);
 });
 
+test('a failed independent audit repairs the whole story once without weakening the quality gate', async () => {
+  const env = { AI_PROVIDER: 'deepseek', DEEPSEEK_API_KEY: 'deepseek-test', DEEPSEEK_MODEL: 'deepseek-flash' };
+  let audits = 0;
+  const generationInputs = [];
+  const fetcher = async (_, options) => {
+    const request = JSON.parse(options.body);
+    if (request.text.format.name === 'paper_adventure') {
+      generationInputs.push(JSON.parse(request.input));
+      return Response.json({ id: 'story-' + generationInputs.length, output: [{ content: [{ type: 'output_text', text: JSON.stringify(story) }] }], usage: { input_tokens: 12, output_tokens: 8 } });
+    }
+    audits++;
+    return Response.json({ output: [{ content: [{ type: 'output_text', text: JSON.stringify(audits === 1
+      ? { pass: false, issues: ['Stage 2 has two plausible answers.'] }
+      : { pass: true, issues: [] }) }] }], usage: { input_tokens: 5, output_tokens: 2 } });
+  };
+  const result = await generateStory(spec, env, fetcher);
+  assert.equal(generationInputs.length, 2);
+  assert.equal(audits, 2);
+  assert.match(generationInputs[1].qaIssues[0], /two plausible answers/);
+  assert.equal(result.usage.input_tokens, 34);
+});
+
 test('provider choice is explicit and cannot silently send a DeepSeek job to OpenAI', () => {
   assert.equal(aiProvider({ DEEPSEEK_API_KEY: 'key' }).name, 'deepseek');
   assert.equal(aiProvider({ AI_PROVIDER: 'deepseek', OPENAI_API_KEY: 'openai-key', OPENAI_MODEL: 'model' }), null);
