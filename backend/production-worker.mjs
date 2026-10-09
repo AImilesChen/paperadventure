@@ -18,6 +18,20 @@ function accessMonths(spec) {
 const accessActive = entitlement => Boolean(entitlement?.status === 'active' && entitlement.access_expires_at &&
   Date.parse(`${entitlement.access_expires_at.replace(' ', 'T')}Z`) > Date.now());
 
+const MAX_PDF_BYTES = 20 * 1024 * 1024;
+async function verifiedPdf(env, file) {
+  const object = file?.r2_key && await env.PRIVATE_FILES.get(file.r2_key);
+  if (!object || !/^[a-f0-9]{64}$/i.test(file.sha256) || (object.size && object.size > MAX_PDF_BYTES)) {
+    throw new ApiError(503, 'FILE_INTEGRITY_FAILED', 'The file is temporarily unavailable.');
+  }
+  const bytes = new Uint8Array(await new Response(object.body).arrayBuffer());
+  if (!bytes.length || bytes.length > MAX_PDF_BYTES || (file.bytes && bytes.length !== file.bytes) ||
+      await sha256Bytes(bytes) !== file.sha256) {
+    throw new ApiError(503, 'FILE_INTEGRITY_FAILED', 'The file is temporarily unavailable.');
+  }
+  return bytes;
+}
+
 const cloudflareEmailReady = env => env.EMAIL_PUBLIC_DESTINATIONS_READY === 'true' && typeof env.EMAIL?.send === 'function';
 const emailReady = env => Boolean(env.EMAIL_FROM && (cloudflareEmailReady(env) || env.RESEND_API_KEY));
 
@@ -325,9 +339,8 @@ async function freeSample(request, env, setting, paper, role) {
   if (!pack) throw new ApiError(404, 'SAMPLE_NOT_PUBLISHED', 'The free sample is not published.');
   const file = await query(env.DB, 'SELECT * FROM ready_pack_files WHERE ready_pack_id = ? AND paper = ? AND role = ?', pack.id, paper, role).first();
   if (!file) throw new ApiError(404, 'FILE_NOT_FOUND', 'The sample file is unavailable.');
-  const object = await env.PRIVATE_FILES.get(file.r2_key);
-  if (!object || object.customMetadata?.sha256 !== file.sha256) throw new ApiError(503, 'FILE_INTEGRITY_FAILED', 'The sample file is temporarily unavailable.');
-  return new Response(object.body, { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="celebration-${setting}-${role}-${paper}.pdf"`, 'cache-control': 'public, max-age=300', 'x-content-type-options': 'nosniff' } });
+  const bytes = await verifiedPdf(env, file);
+  return new Response(bytes, { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="celebration-${setting}-${role}-${paper}.pdf"`, 'cache-control': 'public, max-age=300', 'x-content-type-options': 'nosniff' } });
 }
 
 async function orderView(request, env, orderId) {
@@ -365,9 +378,8 @@ async function fileDownload(request, env, orderId, role) {
     file = artifact && { r2_key: role === 'player' ? artifact.player_r2_key : artifact.guide_r2_key, sha256: role === 'player' ? artifact.player_sha256 : artifact.guide_sha256 };
   }
   if (!file?.r2_key) throw new ApiError(404, 'FILE_NOT_FOUND', 'The file is not ready.');
-  const object = await env.PRIVATE_FILES.get(file.r2_key);
-  if (!object || object.customMetadata?.sha256 !== file.sha256) throw new ApiError(503, 'FILE_INTEGRITY_FAILED', 'The file is temporarily unavailable.');
-  return new Response(object.body, { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="adventure-${role}-${paper}.pdf"`, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
+  const bytes = await verifiedPdf(env, file);
+  return new Response(bytes, { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="adventure-${role}-${paper}.pdf"`, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
 }
 
 async function requestRevision(request, env, orderId) {
