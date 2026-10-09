@@ -2,8 +2,8 @@
 -- A published world is editorially visible; it does not publish a downloadable pack.
 INSERT OR IGNORE INTO theme_worlds (id,title_en,status) VALUES
   ('celebration','Celebration','published'),
-  ('dinosaur','Dinosaur Discovery','published'),
-  ('space','Space Adventure','published'),
-  ('forest','Forest Adventure','published'),
-  ('halloween','Autumn Mystery','published'),
-  ('christmas','Winter Workshop','published');
+  ('dinosaur','Dinosaur','published'),
+  ('space','Space','published'),
+  ('forest','Forest','published'),
+  ('halloween','Halloween','published'),
+  ('christmas','Christmas','published');
