@@ -1,1 +1,1 @@
-2026-10-09: remove temporary checkout diagnostics, preserve Cloudflare bindings, redeploy and verify test readiness.
+2026-10-09 activate five ready theme packs in authorised Stripe sandbox
