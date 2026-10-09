@@ -1,1 +1,1 @@
-2026-10-09: verify live Celebration Home/Classroom v0.1 download UI and PDFs on desktop/mobile.
+2026-10-09: rerun live Celebration Home/Classroom v0.1 browser QA after feedback-link accessibility fix.
