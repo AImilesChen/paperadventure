@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { aiProvider, generateProposals, generateStory } from './openai.mjs';
 import { validatePurchase } from './domain.mjs';
 
-const input = { sku: 'custom_home', customIdea: 'A garden map', players: 4, age: '8-10', paper: 'A4', direction: 'mission' };
+const input = { sku: 'custom_home', customIdea: 'A garden map', players: 4, age: '8-10', paper: 'A4', direction: 'mission', proposalTitle: 'Garden route', proposalSummary: 'Follow clues around a paper garden.' };
 const { spec } = validatePurchase(input);
 const story = {
   title: 'Garden Compass', introduction: 'A team adventure begins.', ending: 'The team celebrates.',
@@ -28,6 +28,11 @@ test('DeepSeek sends proposals, story, and audit to its Responses API', async ()
     assert.equal(request.model, 'deepseek-flash');
     assert.deepEqual(request.reasoning, { effort: 'none' });
     assert.equal(request.text.format.type, 'json_schema');
+    if (request.text.format.name === 'paper_adventure') {
+      const selected = JSON.parse(request.input);
+      assert.equal(selected.proposalTitle, 'Garden route');
+      assert.equal(selected.proposalSummary, 'Follow clues around a paper garden.');
+    }
     calls.push(request.text.format.name);
     const value = request.text.format.name === 'story_proposals'
       ? { proposals: [{ id: 'mystery', title: 'Lost note', summary: 'Find it.' },
