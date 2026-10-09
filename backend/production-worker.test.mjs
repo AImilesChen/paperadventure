@@ -216,7 +216,8 @@ test('paid custom queue job generates private player and guide PDFs, then publis
     assert.match(url, /api\.openai\.com/);
     const name = JSON.parse(init.body).text.format.name;
     if (name === 'revised_stage' && failRevisionOnce) { failRevisionOnce = false; return Response.json({ error: 'temporary provider failure' }, { status: 502 }); }
-    const value = name === 'story_audit' ? { pass: true, issues: [] } : name === 'revised_stage' ? { ...stages[1], title: 'A gentler second clue' } : output;
+    const targetStage = name === 'revised_stage' ? JSON.parse(JSON.parse(init.body).input).stageNumber : null;
+    const value = name === 'story_audit' ? { pass: true, issues: [] } : name === 'revised_stage' ? { ...stages[targetStage - 1], title: 'A gentler revised clue' } : output;
     return Response.json({ id: name === 'revised_stage' ? 'resp-2' : 'resp-1', output: [{ content: [{ type: 'output_text', text: JSON.stringify(value) }] }], usage: { input_tokens: 500, output_tokens: 800 } });
   }, PRIVATE_FILES: { put: async (key, bytes, options) => { stored.set(key, { bytes, options }); return { key }; }, get: async key => { const item = stored.get(key); return item && { body: item.bytes, customMetadata: item.options.customMetadata }; } } };
   let acknowledged = false;
