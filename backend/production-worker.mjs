@@ -236,8 +236,12 @@ async function dispatchNotification(orderId, kind, env) {
       await query(env.DB, "UPDATE delivery_notifications SET status = 'blocked' WHERE order_id = ? AND kind = ?", orderId, kind).run();
       return;
     }
-    const subject = kind === 'payment' ? 'Your Paper Adventure order is being prepared' : 'Your Paper Adventure files are ready';
-    const intro = kind === 'payment' ? 'Payment is confirmed. Your custom adventure is being generated and checked. Verify your email to see order progress:' : 'Your adventure files are ready. Verify your email to open the order and download them:';
+    const messages = {
+      payment: { subject: 'Your Paper Adventure order is being prepared', intro: 'Payment is confirmed. Your custom adventure is being generated and checked. Verify your email to see order progress:' },
+      files_ready: { subject: 'Your Paper Adventure files are ready', intro: 'Your adventure files are ready. Verify your email to open the order and download them:' },
+      generation_failed: { subject: 'Your Paper Adventure order needs help', intro: 'We could not complete your custom adventure. Verify your email to see the order and report the problem for a correction or refund review:' },
+    };
+    const { subject, intro } = messages[kind];
     await sendAccessEmail(env, email, order.purchaser_email_hash, { subject, intro, idempotencyKey: `paw-notice-${orderId}-${kind}` });
     await query(env.DB, "UPDATE delivery_notifications SET status = 'sent', sent_at = CURRENT_TIMESTAMP, attempts = attempts + 1 WHERE order_id = ? AND kind = ?", orderId, kind).run();
   } catch (caught) {
@@ -487,7 +491,11 @@ async function publishCustomOrder(orderId, env) {
     ]);
   } catch (caught) {
     await query(env.DB, 'INSERT OR IGNORE INTO generation_usage (order_id,attempt,model,status) VALUES (?,?,?,?)', orderId, attempt, env.OPENAI_MODEL || 'unconfigured', 'failed').run();
-    if (attempt >= 2) await env.DB.batch([query(env.DB, "UPDATE custom_activities SET status = 'failed', lease_until = NULL WHERE id = ?", activity.id), query(env.DB, "UPDATE orders SET status = 'failed' WHERE id = ?", orderId)]);
+    if (attempt >= 2) await env.DB.batch([
+      query(env.DB, "UPDATE custom_activities SET status = 'failed', lease_until = NULL WHERE id = ?", activity.id),
+      query(env.DB, "UPDATE orders SET status = 'failed' WHERE id = ?", orderId),
+      query(env.DB, "INSERT OR IGNORE INTO delivery_notifications (order_id,kind,status) VALUES (?,'generation_failed','pending')", orderId),
+    ]);
     else await query(env.DB, 'UPDATE custom_activities SET lease_until = 0 WHERE id = ?', activity.id).run();
     throw caught;
   }
