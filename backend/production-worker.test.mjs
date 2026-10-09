@@ -48,7 +48,7 @@ function seedReady(db) {
 
 const request = (path, method = 'GET', data, headers = {}) => new Request(`https://adventure.example${path}`, { method, headers: { ...(data ? { 'content-type': 'application/json' } : {}), ...headers }, body: data ? JSON.stringify(data) : undefined });
 const purchase = { sku: 'ready_home', themeId: 'dinosaur', packVersion: 'v1', email: 'Adult@example.com' };
-const config = binding => ({ DB: binding, PRIVATE_FILES: { get: async () => null }, RESEND_API_KEY: 're_test', EMAIL_FROM: 'hello@adventure.example', ACCOUNT_ENABLED: 'true', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', SESSION_SECRET: 'test-session-secret', PUBLIC_ORIGIN: 'https://adventure.example', CHECKOUT_ENABLED: 'true', LEGAL_RELEASED: 'true', TAX_CONFIGURED: 'true', CUSTOM_LICENCE_VERSION: 'custom-v1', SUPPORTED_AGE_MIN: '6', SUPPORTED_AGE_MAX: '12', HOME_PLAYER_MAX: '8', CLASSROOM_STUDENT_MAX: '40' });
+const config = binding => ({ DB: binding, PRIVATE_FILES: { get: async () => null }, RESEND_API_KEY: 're_test', EMAIL_FROM: 'hello@adventure.example', ACCOUNT_ENABLED: 'true', EMAIL_LOGIN_ENABLED: 'true', GOOGLE_CLIENT_ID: 'test-google-client.apps.googleusercontent.com', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', SESSION_SECRET: 'test-session-secret', PUBLIC_ORIGIN: 'https://adventure.example', CHECKOUT_ENABLED: 'true', LEGAL_RELEASED: 'true', TAX_CONFIGURED: 'true', CUSTOM_LICENCE_VERSION: 'custom-v1', SUPPORTED_AGE_MIN: '6', SUPPORTED_AGE_MAX: '12', HOME_PLAYER_MAX: '8', CLASSROOM_STUDENT_MAX: '40' });
 
 test('DeepSeek key enables generation capability without requiring an OpenAI key', async () => {
   const { binding } = database();
@@ -482,8 +482,8 @@ test('Cloudflare Email binding delivers a one-use sign-in link without a Resend 
   const env = { ...config(binding), RESEND_API_KEY: undefined, EMAIL_FROM: 'support@paperadventure.app', EMAIL_PUBLIC_DESTINATIONS_READY: 'true',
     EMAIL: { send: async message => { sentMessages.push(message); return { messageId: 'cf-test-1' }; } },
     FETCH: async () => { throw new Error('Resend must not be called when Cloudflare Email is bound'); } };
-  const unapproved = await handleProductionApi(request('/api/v1/health'), { ...env, EMAIL_PUBLIC_DESTINATIONS_READY: 'false' });
-  assert.equal((await unapproved.json()).account, false);
+  const unconfigured = await handleProductionApi(request('/api/v1/health'), { ...env, GOOGLE_CLIENT_ID: undefined });
+  assert.equal((await unconfigured.json()).account, false);
   const health = await handleProductionApi(request('/api/v1/health'), env);
   assert.equal((await health.json()).account, true);
   const sent = await handleProductionApi(request('/api/v1/access-links', 'POST', { email: 'ADULT@example.com' },
@@ -512,4 +512,22 @@ test('stage account gate permits only the configured delivery-test inbox', async
     { origin: 'https://adventure.example', 'cf-connecting-ip': '203.0.113.10' }), env);
   assert.equal(allowed.status, 200);
   assert.equal(sentMessages.length, 1);
+});
+test('Google sign-in config creates a short-lived nonce and rejects missing or invalid credentials', async () => {
+  const { binding } = database();
+  const env = config(binding);
+  const disabled = await handleProductionApi(request('/api/v1/auth/google/config'), { ...env, ACCOUNT_ENABLED: 'false' });
+  assert.deepEqual(await disabled.json(), { available: false });
+  const configResponse = await handleProductionApi(request('/api/v1/auth/google/config'), env);
+  const google = await configResponse.json();
+  assert.equal(google.available, true);
+  assert.equal(google.clientId, env.GOOGLE_CLIENT_ID);
+  assert.match(google.nonce, /^[a-f0-9]{32}$/);
+  assert.match(configResponse.headers.get('set-cookie'), /HttpOnly.*SameSite=Lax/);
+  const missingNonce = await handleProductionApi(request('/api/v1/auth/google', 'POST', { credential: 'invalid' },
+    { origin: 'https://adventure.example' }), env);
+  assert.equal(missingNonce.status, 403);
+  const invalidCredential = await handleProductionApi(request('/api/v1/auth/google', 'POST', { credential: 'invalid' },
+    { origin: 'https://adventure.example', cookie: 'paw_google_nonce=' + google.nonce }), env);
+  assert.equal(invalidCredential.status, 401);
 });

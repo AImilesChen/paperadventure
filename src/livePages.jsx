@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ArrowRight, DownloadSimple, EnvelopeSimple, WarningCircle } from '@phosphor-icons/react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowRight, DownloadSimple, WarningCircle } from '@phosphor-icons/react';
 import { formatUsd, productRights } from '../shared/catalog.mjs';
 import './livePages.css';
 
@@ -14,13 +14,46 @@ function Intro({ eyebrow, title, children }) { return <section className="page-i
 function Alert({ children }) { return <p className="live-alert" role="alert"><WarningCircle size={18} /> {children}</p>; }
 
 export function LiveAccount({ Link }) {
-  const [email, setEmail] = useState(''); const [busy, setBusy] = useState(false); const [sent, setSent] = useState(false); const [error, setError] = useState('');
-  async function submit(event) {
-    event.preventDefault(); setBusy(true); setError('');
-    try { await api('/api/v1/access-links', { method: 'POST', body: JSON.stringify({ email }) }); setSent(true); }
-    catch (failure) { setError(failure.message); } finally { setBusy(false); }
-  }
-  return <main className="extended-page live-page"><Intro eyebrow="ADULT ACCOUNT" title="Access your adventures."><p>Use your adult email to sign in or recover your purchases. The link expires after 15 minutes.</p></Intro><section className="live-shell"><form className="live-panel" onSubmit={submit}><label>Email address<input type="email" required autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="adult@example.com" /></label><button className="button" disabled={busy}>{busy ? 'Sending…' : 'Email me a sign-in link'} <EnvelopeSimple size={18} /></button>{sent && <p role="status">If the address can receive mail, a sign-in link is on its way. Check your inbox.</p>}{error && <Alert>{error}</Alert>}</form><p className="live-note">No student account or child profile is needed. <Link to="/en/help/">Get help <ArrowRight size={16} /></Link></p></section></main>;
+  const button = useRef(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let cancelled = false;
+    async function prepare() {
+      try {
+        const config = await api('/api/v1/auth/google/config');
+        if (!config.available || !config.clientId || !config.nonce) throw new Error('Google sign-in is not available yet.');
+        if (!window.google?.accounts?.id) {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://accounts.google.com/gsi/client';
+            script.async = true;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Google sign-in could not load. Please try again.'));
+            document.head.appendChild(script);
+          });
+        }
+        if (cancelled || !button.current) return;
+        window.google.accounts.id.initialize({
+          client_id: config.clientId,
+          nonce: config.nonce,
+          callback: async result => {
+            if (cancelled || !result?.credential) return;
+            setBusy(true); setError('');
+            try {
+              await api('/api/v1/auth/google', { method: 'POST', body: JSON.stringify({ credential: result.credential }) });
+              window.location.assign('/en/my-adventures/');
+            } catch (failure) { if (!cancelled) { setError(failure.message); setBusy(false); } }
+          },
+        });
+        button.current.replaceChildren();
+        window.google.accounts.id.renderButton(button.current, { theme: 'outline', size: 'large', shape: 'rectangular', text: 'signin_with', width: 280 });
+      } catch (failure) { if (!cancelled) setError(failure.message); }
+    }
+    prepare();
+    return () => { cancelled = true; };
+  }, []);
+  return <main className="extended-page live-page"><Intro eyebrow="ADULT ACCOUNT" title="Access your adventures."><p>Sign in with your adult Google account to see your adventures and purchases. No child account is needed.</p></Intro><section className="live-shell"><div className="live-panel"><h2>Sign in with Google</h2><p>We use your verified Google email to find your adventures. We do not ask for your contacts or Google Drive.</p><div ref={button} aria-label="Sign in with Google" />{busy && <p role="status">Signing you in…</p>}{error && <Alert>{error}</Alert>}</div><p className="live-note">Need help accessing a purchase? <Link to="/en/help/">Contact support <ArrowRight size={16} /></Link></p></section></main>;
 }
 
 export function LiveShelf({ Link }) {

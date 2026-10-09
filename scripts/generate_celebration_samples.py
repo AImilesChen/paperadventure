@@ -1,7 +1,7 @@
-"""Build the Celebration H01/C01 printable content drafts in A4 and US Letter.
+"""Build the Celebration H01/C01 free trial v0.1 in A4 and US Letter.
 
-These files are content and layout drafts. They are deliberately not registered as
-published products or downloads in the application catalog.
+These complete printable trials are versioned for play and print feedback. They
+are distinct from reviewed paid products and are published only by release control.
 """
 
 from pathlib import Path
@@ -444,7 +444,7 @@ def on_page(canvas, doc):
     canvas.line(44, 42, w - 44, 42)
     canvas.setFillColor(INK)
     canvas.setFont("Arial", 7.8)
-    canvas.drawString(44, 28, f"{doc.product_code}  |  content draft v0.1  |  {doc.paper_label}")
+    canvas.drawString(44, 28, f"{doc.product_code}  |  free trial v0.1  |  {doc.paper_label}")
     canvas.drawRightString(w - 44, 28, f"Page {doc.page}")
     canvas.setFillColor(CORAL)
     canvas.setFont("ArialBold", 7)
@@ -456,8 +456,8 @@ def make_doc(filename, pagesize, code, paper_label, flow):
     path = OUT / filename
     doc = SimpleDocTemplate(
         str(path), pagesize=pagesize, leftMargin=44, rightMargin=44,
-        topMargin=63, bottomMargin=57, title=f"{code} Celebration content draft",
-        author="Paper Adventure Workshop - draft",
+        topMargin=63, bottomMargin=57, title=f"{code} Celebration free trial v0.1",
+        author="Paper Adventure Workshop",
     )
     doc.product_code = code
     doc.paper_label = paper_label
@@ -521,7 +521,7 @@ def home_player(width):
 
 def home_guide(width):
     flow = [p("HOME / H01 / HOST GUIDE", "eyebrow"), p("The Missing Birthday Chest", "title"),
-            box("<b>Content draft for adult review.</b> This is a complete paper puzzle sequence, but it has not been play-tested or approved for public download. The 'treasure' can be a simple note in an envelope; a purchased gift or locked box is never required.", width, CREAM),
+            box("<b>Free trial v0.1 for adult-led play.</b> This is a complete paper puzzle sequence offered for print-and-play feedback. It has not been play-tested with families. The 'treasure' can be a simple note in an envelope; a purchased gift or locked box is never required.", width, CREAM),
             gap(17), p("Prepare the activity", "h2"),
             p("Print one Player Pack for the group and one Host Guide for yourself, in the same paper size. Keep this guide and the answer table away from players. Give the cover/trail first, then one checkpoint page at a time. Provide pencils. The printable Fenn letter on the last guide page completes the story; you may add a personal celebration message if you wish."),
             p("At Checkpoint 4, use the chosen label's code mark to pick a dictionary row. At Checkpoint 5, hand over Fenn's paper letter or use a checked, accessible table. Do not send children into private or unsafe spaces."),
@@ -552,8 +552,8 @@ def home_guide(width):
              p("<b>Adult supervision:</b> This is a paper-based story game. Confirm the group's reading needs and real space. Do not place materials where reaching, climbing, running, or touching private belongings is required. The story's TABLE word may remain fictional; hand over the paper letter directly if preferred."),
              p("<b>Flexible occasion:</b> The source PRD uses a birthday chest, but this draft can be introduced as a general celebration. Do not assume a child's name, exact age, or personal occasion. Add such details only if the adult chooses them."),
              p("<b>When players struggle:</b> Offer the first hint, then the stronger hint. Keep the previous solved page visible. If a group guesses the final card, ask them to explain the flag, number, and place before the reveal."),
-             p("<b>Draft QA:</b> Check that each page prints within margins, that the stage order is preserved, and that the adult guide stays separate from player copies. At Checkpoint 5, the adult may cut the parcel cards or leave them on the page. Record any ambiguous instruction or wrong answer during a representative play session before publishing."),
-             box("<b>Publication status:</b> NOT PLAY-TESTED. Do not call this a finished free sample, sell it, or enable downloads from the site until content, printing, accessibility, and legal/product checks pass.", width, CREAM),
+             p("<b>Trial feedback:</b> Check that each page prints within margins, that the stage order is preserved, and that the adult guide stays separate from player copies. At Checkpoint 5, the adult may cut the parcel cards or leave them on the page. Please report ambiguous instructions or wrong answers so we can improve the next version."),
+             box("<b>Publication status:</b> NOT PLAY-TESTED. This is a complete free trial v0.1 for feedback, not a validated or paid product. The adult should check the materials and supervise the activity.", width, CREAM),
              gap(18), p("Printable finale letter", "h2"),
              p("Keep this guide private. An adult may cut along the card border or copy the words onto plain paper; an envelope is optional.", "small"),
              FinaleLetterCard(width)]
@@ -617,7 +617,7 @@ def class_player(width):
 
 def class_guide(width):
     flow = [p("CLASSROOM / C01 / TEACHER GUIDE", "eyebrow"), p("The Adventure Club's First Badge", "title"),
-            box("<b>Content draft for teacher review.</b> This is a complete independent-group paper sequence, not a tested classroom product. No student names, birthdays, login accounts or school records are needed.", width, CREAM),
+            box("<b>Free classroom trial v0.1.</b> This is a complete independent-group paper sequence for teacher-led print-and-play feedback, not a tested classroom product. No student names, birthdays, login accounts or school records are needed.", width, CREAM),
             gap(16), p("Set up each group", "h2"),
             p("Print one Player Pack per group and one Teacher Guide. Give one checkpoint page at a time. Provide pencils. At Checkpoint 2, bordered route strips may be cut or numbered in place. At Checkpoint 3, the teacher may cut the role and equipment cards or reveal them on the page. Groups copy the code from their chosen equipment card. No box, phone or online tool is required."),
             p("Roles: Reader reads directions; Spotter checks attributes; Recorder writes the group record; Checker asks whether every clue was used. Combine or rotate roles for different group sizes. If a group finishes early, ask where it used another person's clue rather than giving extra required work."),
@@ -649,8 +649,8 @@ def class_guide(width):
              p("<b>Starting demonstration:</b> Read the club introduction aloud and model one harmless attribute comparison without revealing the correct invitation. Explain that each group may ask for a hint and should keep its record sheet visible."),
              p("<b>Group independence:</b> Every required clue is in that group's own packet. Do not require a student to visit another group, use a phone, read a private class list, or wait for a unique shared prop. Give an oral read-aloud or larger print if needed."),
              p("<b>Ending:</b> Ask each group to explain one point where listening to another role changed its choice. Confirm Plan A, invite groups to fill the badge on the page, and close the story with a shared Adventure Club welcome. The teacher may cut around its outer border if a separate badge is wanted; children do not need scissors. No score or ranking is needed."),
-             p("<b>Draft QA:</b> Try the full packet with representative learners and a teacher. Record time, ambiguous wording, accessibility barriers, group-size issues, and print defects. Recheck the answer key and all pages after edits. Do not describe this draft as curriculum-aligned or classroom-tested."),
-             box("<b>Publication status:</b> NOT PLAY-TESTED. Do not call this a finished free sample, sell it, or enable site downloads until content, printing, accessibility, school/privacy and legal/product checks pass.", width, CREAM)]
+             p("<b>Trial feedback:</b> Try the full packet with representative learners and a teacher. Record time, ambiguous wording, accessibility barriers, group-size issues, and print defects. Recheck the answer key and all pages after edits. Do not describe this trial as curriculum-aligned or classroom-tested."),
+             box("<b>Publication status:</b> NOT PLAY-TESTED. This is a complete free classroom trial v0.1 for feedback, not a validated or paid product. The teacher should review the materials before class use.", width, CREAM)]
     return flow
 
 

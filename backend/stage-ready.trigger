@@ -1,1 +1,1 @@
-2026-10-09 private draft PDF stage pass 4 with classroom variant D1 records
+2026-10-09 regenerate Celebration free trial v0.1 copy, audit all PDFs, and restage private files.
