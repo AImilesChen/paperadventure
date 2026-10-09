@@ -45,6 +45,17 @@ const request = (path, method = 'GET', data, headers = {}) => new Request(`https
 const purchase = { sku: 'ready_home', themeId: 'celebration', packVersion: 'v1', email: 'Adult@example.com' };
 const config = binding => ({ DB: binding, PRIVATE_FILES: { get: async () => null }, RESEND_API_KEY: 're_test', EMAIL_FROM: 'hello@adventure.example', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', SESSION_SECRET: 'test-session-secret', PUBLIC_ORIGIN: 'https://adventure.example', CHECKOUT_ENABLED: 'true', LEGAL_RELEASED: 'true', TAX_CONFIGURED: 'true', CUSTOM_LICENCE_VERSION: 'custom-v1', SUPPORTED_AGE_MIN: '6', SUPPORTED_AGE_MAX: '12', HOME_PLAYER_MAX: '8', CLASSROOM_STUDENT_MAX: '40' });
 
+test('DeepSeek key enables generation capability without requiring an OpenAI key', async () => {
+  const { binding } = database();
+  const env = { ...config(binding), AI_PROVIDER: 'deepseek', DEEPSEEK_API_KEY: 'test-only',
+    GENERATION_QUEUE: { send: async () => {} }, PROPOSALS_ENABLED: 'true' };
+  const ready = await handleProductionApi(request('/api/v1/health'), env);
+  assert.equal((await ready.json()).generation, true);
+  const missing = await handleProductionApi(request('/api/v1/health'),
+    { ...env, DEEPSEEK_API_KEY: undefined, OPENAI_API_KEY: 'other-key', OPENAI_MODEL: 'gpt-test' });
+  assert.equal((await missing.json()).generation, false);
+});
+
 test('six public story worlds are seeded without publishing their packs', () => {
   const { db } = database();
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM theme_worlds WHERE status = 'published'").get().n, 6);
