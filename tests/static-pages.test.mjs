@@ -63,6 +63,8 @@ test('theme detail distinguishes both fixed-pack previews from unavailable payme
   }
   assert.match(html, /<button[^>]*disabled[^>]*>Home(?:<!-- -->)? pack not available<\/button>/);
   assert.match(html, /<button[^>]*disabled[^>]*>Classroom(?:<!-- -->)? pack not available<\/button>/);
+  assert.doesNotMatch(html, /Download free (?:home|classroom) sample/);
+  assert.match(html, /Planned prices: Home/);
 });
 
 test('each theme explains distinct Home and Classroom stories before a pack is published', async () => {
@@ -92,6 +94,8 @@ test('confirmed Home and Classroom rights appear consistently while checkout sta
     assert.ok(pricing.includes(scope), scope);
   }
   assert.match(pricing, /from confirmed payment/);
+  assert.match(pricing, /No ready-made packs are published yet/);
+  assert.doesNotMatch(pricing, /href="[^"]*\/api\/v1\/samples\//);
   assert.match(pricing, /from first qualified delivery/);
   assert.match(checkout, /Online re-download/);
   assert.match(checkout, /Checkout unavailable/);
