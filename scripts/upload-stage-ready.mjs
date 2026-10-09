@@ -25,7 +25,7 @@ if (plan.packs.some(pack => pack.status !== 'internal_test')) throw new Error('R
 for (const item of plan.uploads) {
   execFileSync('npx', ['--yes', 'wrangler@4.74.0', 'r2', 'object', 'put',
     bucket + '/' + item.r2Key, '--file', resolve(root, item.path),
-    '--content-type', 'application/pdf', '--remote', '--force'],
+    '--content-type', 'application/pdf', '--remote'],
   { stdio: 'inherit', env: process.env });
 }
 execFileSync('npx', ['--yes', 'wrangler@4.74.0', 'd1', 'execute', 'paper-adventure-stage-db',
