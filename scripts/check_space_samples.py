@@ -4,6 +4,7 @@ from pathlib import Path
 import hashlib
 import json
 import subprocess
+import shutil
 
 from PIL import Image, ImageOps
 from pypdf import PdfReader
@@ -13,7 +14,8 @@ from reportlab.lib.pagesizes import A4, letter
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "content" / "space-pdf-manifest.v0.1.json"
 QA = ROOT / "tmp" / "pdfs" / "space-qa"
-POPPLER = Path(r"C:\Users\NINGMEI\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\poppler\Library\bin\pdftoppm.exe")
+POPPLER = Path(shutil.which("pdftoppm") or "")
+assert POPPLER.is_file(), "pdftoppm is required for visual PDF QA"
 
 manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
 assert manifest["themeWorldId"] == "space" and manifest["published"] is False

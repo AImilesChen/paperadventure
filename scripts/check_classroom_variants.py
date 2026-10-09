@@ -4,6 +4,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import subprocess
+import shutil
 
 from PIL import Image, ImageOps
 from pypdf import PdfReader
@@ -12,7 +13,8 @@ from reportlab.lib.pagesizes import A4, letter
 
 ROOT = Path(__file__).resolve().parents[1]
 QA = ROOT / "tmp" / "pdfs" / "classroom-variants-qa"
-POPPLER = Path(r"C:\Users\NINGMEI\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\poppler\Library\bin\pdftoppm.exe")
+POPPLER = Path(shutil.which("pdftoppm") or "")
+assert POPPLER.is_file(), "pdftoppm is required for visual PDF QA"
 QA.mkdir(parents=True, exist_ok=True)
 
 

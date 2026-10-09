@@ -1,1 +1,1 @@
-2026-10-09 regenerate Celebration free trial v0.1 copy, audit all PDFs, and restage private files.
+2026-10-09 phase-1 full PDF and manifest audit

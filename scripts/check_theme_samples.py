@@ -4,6 +4,7 @@ from pathlib import Path
 import hashlib
 import json
 import subprocess
+import shutil
 import sys
 
 from PIL import Image, ImageOps
@@ -16,7 +17,8 @@ THEME = sys.argv[1] if len(sys.argv) == 2 else "space"
 assert THEME in {"space", "forest", "halloween", "christmas"}
 MANIFEST = ROOT / "content" / f"{THEME}-pdf-manifest.v0.1.json"
 QA = ROOT / "tmp" / "pdfs" / f"{THEME}-qa"
-POPPLER = Path(r"C:\Users\NINGMEI\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\poppler\Library\bin\pdftoppm.exe")
+POPPLER = Path(shutil.which("pdftoppm") or "")
+assert POPPLER.is_file(), "pdftoppm is required for visual PDF QA"
 
 manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
 assert manifest["themeWorldId"] == THEME and manifest["published"] is False
