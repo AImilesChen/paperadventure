@@ -11,7 +11,7 @@ import { productRights } from '../shared/catalog.mjs';
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -265,6 +265,35 @@ test('paid custom queue job generates private player and guide PDFs, then publis
   db.prepare("UPDATE entitlements SET access_expires_at = datetime('now','-1 day') WHERE order_id = 'order-1'").run();
   const expiredCustomFile = await handleProductionApi(request('/api/v1/files/order-1/player', 'GET', undefined, { cookie: `paw_session=${token}` }), env);
   assert.equal(expiredCustomFile.status, 403);
+});
+
+test('terminal custom generation failure is visible and notifies the purchaser', async () => {
+  const { db, binding } = database();
+  const sent = [];
+  const env = { ...config(binding), OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model',
+    FETCH: async (url, init) => {
+      if (url.includes('api.openai.com')) return Response.json({ error: 'provider unavailable' }, { status: 502 });
+      if (url.includes('api.stripe.com')) return Response.json({ id: 'cs_failed', customer_email: 'adult@example.com' });
+      if (url === 'https://api.resend.com/emails') { sent.push(JSON.parse(init.body)); return Response.json({ id: 'mail-failed' }); }
+      throw new Error('Unexpected upstream request');
+    },
+    PRIVATE_FILES: { put: async () => { throw new Error('No file should be published'); } },
+  };
+  const spec = validatePurchase({ sku: 'custom_home', customIdea: 'A garden map', players: 4, age: '8-10', paper: 'A4', direction: 'mission' }).spec;
+  const specJson = JSON.stringify({ ...spec, onlineRedownloadMonths: productRights.onlineRedownloadMonths, accessPolicyVersion: productRights.version });
+  const hash = await sha256(`${env.SESSION_SECRET}|adult@example.com`);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('custom-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,stripe_checkout_session_id) VALUES ('order-failed','custom','custom_home',?,?,?,?,1499,'USD','paid','cs_failed')").run(specJson,await sha256(specJson),hash,'custom-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('activity-failed','order-failed','queued',?)").run(specJson);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await productionWorker.queue({ messages: [{ body: { orderId: 'order-failed' }, ack: () => { throw new Error('Failed work must not be acknowledged'); }, retry: () => {} }] }, env);
+  }
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id = 'order-failed'").get().status, 'failed');
+  assert.equal(db.prepare("SELECT status FROM delivery_notifications WHERE order_id = 'order-failed' AND kind = 'generation_failed'").get().status, 'pending');
+  await productionWorker.scheduled(null, env);
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].subject, /needs help/);
+  assert.equal(db.prepare("SELECT status FROM delivery_notifications WHERE order_id = 'order-failed' AND kind = 'generation_failed'").get().status, 'sent');
 });
 
 test('free proposal endpoint returns two short directions and enforces an IP budget', async () => {
