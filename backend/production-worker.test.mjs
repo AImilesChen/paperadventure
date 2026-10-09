@@ -11,7 +11,7 @@ import { productRights } from '../shared/catalog.mjs';
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -211,9 +211,11 @@ test('paid custom queue job generates private player and guide PDFs, then publis
   const output = { title: 'Garden Trail', introduction: 'The group follows a friendly map.', ending: 'The group celebrates together.', groupInstructions: '', stages };
   const stored = new Map();
   const queued = [];
+  let failRevisionOnce = false;
   const env = { ...config(binding), OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', GENERATION_QUEUE: { send: async message => { queued.push(message); } }, FETCH: async (url, init) => {
     assert.match(url, /api\.openai\.com/);
     const name = JSON.parse(init.body).text.format.name;
+    if (name === 'revised_stage' && failRevisionOnce) { failRevisionOnce = false; return Response.json({ error: 'temporary provider failure' }, { status: 502 }); }
     const value = name === 'story_audit' ? { pass: true, issues: [] } : name === 'revised_stage' ? { ...stages[1], title: 'A gentler second clue' } : output;
     return Response.json({ id: name === 'revised_stage' ? 'resp-2' : 'resp-1', output: [{ content: [{ type: 'output_text', text: JSON.stringify(value) }] }], usage: { input_tokens: 500, output_tokens: 800 } });
   }, PRIVATE_FILES: { put: async (key, bytes, options) => { stored.set(key, { bytes, options }); return { key }; }, get: async key => { const item = stored.get(key); return item && { body: item.bytes, customMetadata: item.options.customMetadata }; } } };
@@ -239,6 +241,19 @@ test('paid custom queue job generates private player and guide PDFs, then publis
   assert.equal(db.prepare("SELECT revision_success_used FROM entitlements WHERE order_id = 'order-1'").get().revision_success_used, 1);
   assert.equal(db.prepare("SELECT version_number FROM revision_requests WHERE order_id = 'order-1'").get().version_number, 2);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM artifact_versions WHERE custom_activity_id = 'activity-order-1'").get().n, 2);
+  const secondRevision = await handleProductionApi(request('/api/v1/orders/order-1/revisions', 'POST', { stageNumber: 3, instruction: 'Please make the third clue easier to read aloud.' }, { cookie: `paw_session=${token}`, origin: 'https://adventure.example' }), env);
+  assert.equal(secondRevision.status, 202);
+  failRevisionOnce = true;
+  let retried = false;
+  await productionWorker.queue({ messages: [{ body: queued[1], ack: () => { throw new Error('Failed attempt must not be acknowledged'); }, retry: () => { retried = true; } }] }, env);
+  assert.equal(retried, true);
+  assert.equal(db.prepare("SELECT status,attempts FROM revision_requests WHERE id = ?").get(queued[1].revisionId).status, 'generating');
+  assert.equal(db.prepare("SELECT attempts FROM revision_requests WHERE id = ?").get(queued[1].revisionId).attempts, 1);
+  await productionWorker.queue({ messages: [{ body: queued[1], ack: () => {}, retry: () => { throw new Error('The retry should succeed'); } }] }, env);
+  assert.equal(db.prepare("SELECT status,attempts FROM revision_requests WHERE id = ?").get(queued[1].revisionId).status, 'published');
+  assert.equal(db.prepare("SELECT attempts FROM revision_requests WHERE id = ?").get(queued[1].revisionId).attempts, 2);
+  assert.equal(db.prepare("SELECT revision_success_used FROM entitlements WHERE order_id = 'order-1'").get().revision_success_used, 2);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM artifact_versions WHERE custom_activity_id = 'activity-order-1'").get().n, 3);
   db.prepare("UPDATE entitlements SET access_expires_at = datetime('now','-1 day') WHERE order_id = 'order-1'").run();
   const expiredCustomFile = await handleProductionApi(request('/api/v1/files/order-1/player', 'GET', undefined, { cookie: `paw_session=${token}` }), env);
   assert.equal(expiredCustomFile.status, 403);
