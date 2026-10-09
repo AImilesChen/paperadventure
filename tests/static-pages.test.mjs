@@ -34,7 +34,7 @@ test('public robots and sitemap expose content pages while private routes stay o
   }
   const headers = await read('_headers');
   assert.match(headers, /\/en\/account\/\*\n  X-Robots-Tag: noindex/);
-  assert.doesNotMatch(headers, /\/\*\n  X-Robots-Tag: noindex/);
+  assert.doesNotMatch(headers, /^\/\*\n  X-Robots-Tag: noindex/m);
 });
 
 test('root fallback retains a local redirect without exposing stale preview claims', async () => {
