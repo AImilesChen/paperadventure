@@ -8,7 +8,7 @@
 
 ## 当前交付
 
-**2026-10-09 更新：**主站 Worker 已通过 Cloudflare Service binding 把 `/api/*` 同域转发给独立后端 `paper-adventure-api-stage`；[Actions run 37875316603](https://github.com/AImilesChen/paperadventure/actions/runs/37875316603) 在 `paperadventure.app` 上核验了 `/api/v1/health` 与六主题 `/api/v1/catalog`。页面现可读取真实 D1 后端目录状态。该环境仍没有 OpenAI Key、账户发信或 Stripe，因此 AI 生成、账户登录、付款和正式下载尚未上线；不能把 API 连通误报为完整 PRD 上线。Cloudflare Email 适配代码已测试，但收件人限制尚未确认，不在全球用户登录上启用。
+**2026-10-09 更新：**主站 Worker 已通过 Cloudflare Service binding 把 `/api/*` 同域转发给独立后端 `paper-adventure-api-stage`；[Actions run 37875316603](https://github.com/AImilesChen/paperadventure/actions/runs/37875316603) 在 `paperadventure.app` 上核验了 `/api/v1/health` 与六主题 `/api/v1/catalog`。页面现可读取真实 D1 后端目录状态。该环境仍没有 DeepSeek Key、账户发信或 Stripe，因此 AI 生成、账户登录、付款和正式下载尚未上线；不能把 API 连通误报为完整 PRD 上线。Cloudflare Email 适配代码已测试，但收件人限制尚未确认，不在全球用户登录上启用。
 
 
 - `paperadventure.app` 的 Cloudflare Worker 运行的是**禁止搜索引擎收录的技术预览**。`/` 转到 `/en/`；本地 `npm run build` 生成 31 个英文预渲染页面，包含首页、六主题故事、Home/Classroom 创建、价格、帮助、订单演示和四类法律说明。预览可浏览，不能收款、生成正式游戏或下载内部 PDF。
