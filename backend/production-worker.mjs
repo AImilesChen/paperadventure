@@ -126,6 +126,30 @@ async function testReadyCatalog(request, env) {
   return json({ packs, mode: 'stripe_test' });
 }
 
+async function testPackPreview(request, env, themeId, setting) {
+  if (!testCheckoutReady(env) || !['home','classroom'].includes(setting) ||
+      !['dinosaur','space','forest','halloween','christmas'].includes(themeId)) {
+    throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
+  }
+  const hash = await authenticatedEmailHash(request, env);
+  if (!hash || hash !== await emailHash(env, normalizeEmail(env.STRIPE_TEST_BUYER_EMAIL))) {
+    throw new ApiError(403, 'TEST_BUYER_ONLY', 'Sign in with the authorised Google test account.');
+  }
+  const pack = await query(env.DB, `SELECT p.version FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id
+    WHERE p.theme_world_id = ? AND p.setting = ? AND p.status = 'internal_test' AND w.status = 'published'
+      AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
+    ORDER BY p.version DESC LIMIT 1`, themeId, setting).first();
+  if (!pack || !/^v0\\.1$/.test(pack.version)) throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
+  const key = `internal/draft-previews/${themeId}/${setting}/${pack.version}.jpg`;
+  const object = await env.PRIVATE_FILES.get(key);
+  if (!object || object.size > 3 * 1024 * 1024) throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
+  const bytes = new Uint8Array(await new Response(object.body).arrayBuffer());
+  if (bytes.length < 10000 || bytes.length > 3 * 1024 * 1024 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+    throw new ApiError(503, 'PREVIEW_INVALID', 'The preview is temporarily unavailable.');
+  }
+  return new Response(bytes, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
+}
+
 async function checkout(request, env) {
   if (!await checkoutReady(env)) throw new ApiError(503, 'CHECKOUT_NOT_READY', 'Purchases are not open. No payment was created.');
   requireSameOrigin(request, env);
@@ -537,6 +561,8 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     }
     if (request.method === 'GET' && path === '/api/v1/catalog') return json(await liveCatalog(env));
     if (request.method === 'GET' && path === '/api/v1/test-packs') return await testReadyCatalog(request, env);
+    const testPreview = path.match(/^\/api\/v1\/test-pack-previews\/([a-z]+)\/(home|classroom)$/);
+    if (request.method === 'GET' && testPreview) return await testPackPreview(request, env, testPreview[1], testPreview[2]);
     if (request.method === 'GET' && path.startsWith('/api/v1/themes/')) {
       const id = path.slice('/api/v1/themes/'.length);
       const catalog = await liveCatalog(env);

@@ -499,6 +499,15 @@ test('private ready packs are visible and purchasable only by the authorised Str
   const token = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: await sha256(`${env.SESSION_SECRET}|adult@example.com`), exp: Math.floor(Date.now()/1000)+3600 });
   const cookie = { cookie: `paw_session=${token}` };
   const privateCatalog = await handleProductionApi(request('/api/v1/test-packs', 'GET', undefined, cookie), env).then(response => response.json());
+  const anonymousPreview = await handleProductionApi(request('/api/v1/test-pack-previews/dinosaur/home'), env);
+  assert.equal(anonymousPreview.status, 403);
+  let previewKey;
+  env.PRIVATE_FILES = { get: async key => { previewKey = key; return { body: new Uint8Array([0xff,0xd8,...new Uint8Array(10000)]) }; } };
+  const preview = await handleProductionApi(request('/api/v1/test-pack-previews/dinosaur/home', 'GET', undefined, cookie), env);
+  assert.equal(preview.status, 200);
+  assert.equal(preview.headers.get('content-type'), 'image/jpeg');
+  assert.equal(previewKey, 'internal/draft-previews/dinosaur/home/v0.1.jpg');
+
   assert.deepEqual(privateCatalog.packs, [{ themeId: 'dinosaur', setting: 'home', version: 'v0.1', variantIds: [] }]);
   const input = { sku: 'ready_home', themeId: 'dinosaur', packVersion: 'v0.1', email: 'adult@example.com' };
   const wrongVersion = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', { ...input, packVersion: 'v9' }, { ...cookie, origin: 'https://adventure.example', 'Idempotency-Key': 'sandbox-ready-wrong' }), env);
