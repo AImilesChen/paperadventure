@@ -89,7 +89,7 @@ function ThemeGallery({ full = false, sampleReady = false }) {
     else element.scrollBy({ left: direction * step, behavior });
   };
   useEffect(() => {
-    if (full || !playing || paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (full || !playing || paused) return;
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') scroll(1, true);
     }, 4800);

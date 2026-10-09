@@ -60,9 +60,10 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     await page.getByRole('button', { name: 'Scroll themes right' }).first().click();
     await page.waitForTimeout(650);
     if (await rail.evaluate(element => element.scrollLeft) <= beforeScroll + 20) problems.push('Desktop theme carousel did not advance from the right arrow');
-    const pauseThemes = page.getByRole('button', { name: 'Pause automatic theme scrolling' });
-    await pauseThemes.click();
-    if (!await page.getByRole('button', { name: 'Resume automatic theme scrolling' }).isVisible()) problems.push('Theme carousel cannot be paused');
+    const playToggle = page.locator('.gallery-play-toggle').first();
+    const previousState = await playToggle.getAttribute('aria-pressed');
+    await playToggle.click();
+    if (await playToggle.getAttribute('aria-pressed') === previousState) problems.push('Theme carousel play/pause control did not change state');
   }
   if (viewport.name === 'mobile') {
     await page.goto(base + '/en/', { waitUntil: 'domcontentloaded' });
@@ -81,6 +82,16 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
   }
   await context.close();
 }
+const autoContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' });
+const autoPage = await autoContext.newPage();
+await autoPage.goto(base + '/en/', { waitUntil: 'domcontentloaded' });
+await autoPage.locator('.theme-track').first().waitFor({ state: 'visible' });
+await autoPage.mouse.move(1, 1);
+const autoStart = await autoPage.locator('.theme-track').first().evaluate(element => element.scrollLeft);
+await autoPage.waitForTimeout(5500);
+const autoEnd = await autoPage.locator('.theme-track').first().evaluate(element => element.scrollLeft);
+if (autoEnd <= autoStart + 20) problems.push('Theme carousel did not advance automatically');
+await autoContext.close();
 await browser.close();
 writeFileSync(out + '/report.json', JSON.stringify({ snapshots, accessibility, problems }, null, 2) + '\n');
 console.log(JSON.stringify({ checked: snapshots.length, screenshots: routesToCapture.size * 2, problems }, null, 2));

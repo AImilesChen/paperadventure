@@ -1,1 +1,1 @@
-2026-10-09: verify bounded automatic theme carousel, pause/play, arrows, mobile swipe, and live free downloads.
+2026-10-09: verify carousel autoplay, manual scrolling and play/pause with normal and reduced motion.
