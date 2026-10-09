@@ -1,1 +1,1 @@
-2026-10-09 add ten private first-page preview images
+2026-10-09 private previews upload syntax fix

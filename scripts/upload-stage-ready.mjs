@@ -22,8 +22,8 @@ for (const item of plan.uploads) {
   }
 }
 for (const item of plan.previews) {
-  if (!/^internal\\/draft-previews\\/(?:dinosaur|space|forest|halloween|christmas)\\/(?:home|classroom)\\/v0\\.1\\.jpg$/.test(item.r2Key) ||
-      !/^output\\/previews\\/(?:dinosaur|space|forest|halloween|christmas)-(?:home|classroom)-v0\\.1\\.jpg$/.test(item.path)) throw new Error('Invalid preview path');
+  if (!/^internal\/draft-previews\/(?:dinosaur|space|forest|halloween|christmas)\/(?:home|classroom)\/v0\.1\.jpg$/.test(item.r2Key) ||
+      !/^output\/previews\/(?:dinosaur|space|forest|halloween|christmas)-(?:home|classroom)-v0\.1\.jpg$/.test(item.path)) throw new Error('Invalid preview path');
   const bytes = readFileSync(resolve(root, item.path));
   if (bytes.length !== item.bytes || createHash('sha256').update(bytes).digest('hex') !== item.sha256) throw new Error('Preview changed since stage plan was built');
 }
