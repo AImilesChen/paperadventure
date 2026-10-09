@@ -4,6 +4,9 @@
 
 ## 当前交付
 
+**2026-10-09 更新：**主站 Worker 已通过 Cloudflare Service binding 把 `/api/*` 同域转发给独立后端 `paper-adventure-api-stage`；[Actions run 37875316603](https://github.com/AImilesChen/paperadventure/actions/runs/37875316603) 在 `paperadventure.app` 上核验了 `/api/v1/health` 与六主题 `/api/v1/catalog`。页面现可读取真实 D1 后端目录状态。该环境仍没有 OpenAI Key、账户发信或 Stripe，因此 AI 生成、账户登录、付款和正式下载尚未上线；不能把 API 连通误报为完整 PRD 上线。Cloudflare Email 适配代码已测试，但收件人限制尚未确认，不在全球用户登录上启用。
+
+
 - `paperadventure.app` 的 Cloudflare Worker 运行的是**禁止搜索引擎收录的技术预览**。`/` 转到 `/en/`；本地 `npm run build` 生成 31 个英文预渲染页面，包含首页、六主题故事、Home/Classroom 创建、价格、帮助、订单演示和四类法律说明。预览可浏览，不能收款、生成正式游戏或下载内部 PDF。
 - 首页沿用已选第 3 纸艺方向，Hero 下接水平主题长廊。六个世界均在详情页说明不同的 Home/Classroom 故事和五步流程；目录按 Home/Classroom 筛选时显示对应的故事概念图，包括 H01 狐狸送信和 C01 探险俱乐部、C05 秋日与 C06 冬日课堂图。
 - `shared/catalog.mjs` 是价格和产品权益的实现真源：现成 Home US$9.99、Classroom US$14.99；定制 Home US$14.99、Classroom US$19.99；Celebration 仅是免费固定样例候选。用户确认的家庭/教师使用范围、12 个月在线重新下载与已下载文件继续按许可使用，都在界面及后端开发模型中体现。全部销售与公开下载开关仍关闭。
