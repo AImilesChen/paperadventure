@@ -1,1 +1,1 @@
-2026-10-09: verify Home and Classroom catalogs, contrast, and query-route hydration after fixes.
+2026-10-09: re-run isolated browser verification after audience contrast and hydration fixes. Check 6+6 variants.
