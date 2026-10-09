@@ -117,7 +117,17 @@ try {
   await page.getByRole('button', { name: /Mission through the canopy/ }).click();
   await page.getByRole('button', { name: /Review choices/ }).click();
   await page.getByRole('link', { name: /Continue to Stripe test checkout/ }).click();
-  await page.getByLabel('Adult delivery email').fill('tester@example.com');
+  await page.waitForURL('**/en/checkout/**');
+  const customEmail = page.getByLabel('Adult delivery email');
+  if (!await customEmail.count()) {
+    const debug = await page.evaluate(() => ({
+      url: location.href,
+      draft: localStorage.getItem('paw-draft'),
+      main: document.querySelector('main')?.innerText.slice(0, 1200),
+    }));
+    throw new Error('Custom checkout form missing: ' + JSON.stringify(debug));
+  }
+  await customEmail.fill('tester@example.com');
   await page.getByRole('button', { name: /Continue to Stripe test/ }).click();
   await page.waitForURL('**/en/orders/mock-custom/');
   check(checkoutPayloads[2]?.sku === 'custom_classroom' &&
