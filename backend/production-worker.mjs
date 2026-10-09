@@ -41,6 +41,8 @@ async function checkoutReady(env) { return paymentReady(env) && (await published
 async function liveCatalog(env) {
   const base = publicCatalog();
   if (!env.DB) return base;
+  const visibleWorlds = await query(env.DB, "SELECT id FROM theme_worlds WHERE status = 'published'").all();
+  const visibleIds = new Set((visibleWorlds.results || []).map(world => world.id));
   const result = await query(env.DB, `SELECT p.id,p.theme_world_id,p.setting,p.version FROM ready_packs p
     WHERE p.status = 'published' AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
     ORDER BY p.published_at DESC, p.version DESC`).all();
@@ -52,7 +54,7 @@ async function liveCatalog(env) {
   const canCheckout = await checkoutReady(env);
   return { ...base, publicationState: canCheckout || free ? 'partially_configured' : base.publicationState,
     freeSampleThemeId: free ? 'celebration' : null,
-    themes: themes.map(theme => ({ ...theme, home: { readyStatus: ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'home') ? 'published' : 'not_published', freeSample: free && theme.id === 'celebration' && ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'home'), packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
+    themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'home') ? 'published' : 'not_published', freeSample: free && theme.id === 'celebration' && ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'home'), packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
       classroom: { readyStatus: ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom') ? 'published' : 'not_published', freeSample: free && theme.id === 'celebration' && ready.some(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom'), packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null } })),
     offers: offers.map(offer => ({ ...offer, saleEnabled: canCheckout && liveSkus.has(offer.sku) && (offer.kind === 'custom' ? generationReady(env) : availablePaidPack(offer.setting)) })) };
 }
