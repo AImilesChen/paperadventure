@@ -1,1 +1,1 @@
-2026-10-09: diagnose sandbox readiness booleans without exposing Stripe key or buyer email values.
+2026-10-09: owner replaced Stripe test secret key on Cloudflare; redeploy sandbox and verify live readiness.
