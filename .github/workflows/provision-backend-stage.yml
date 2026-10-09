@@ -75,7 +75,15 @@ jobs:
       - name: Verify cloud API and disabled release flags
         run: |
           curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.status!=='configured_runtime'||v.checkout||v.generation||v.proposals||v.account||!v.sample||v.legal)throw Error('Stage capability mismatch: '+s);console.log('Stage API healthy; only free sample released')})"
-          curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.offers?.some(x=>x.saleEnabled)||v.freeSampleThemeId!=='celebration'||!v.themes?.find(t=>t.id==='celebration')?.home?.freeSample||!v.themes?.find(t=>t.id==='celebration')?.classroom?.freeSample)throw Error('Free trial catalog mismatch');console.log('Only Celebration Home and Classroom released as free trials')})"
+          verified=false
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);const c=v.themes?.find(t=>t.id==='celebration');if(v.offers?.some(x=>x.saleEnabled)||v.freeSampleThemeId!=='celebration'||!c?.home?.freeSample||!c?.classroom?.freeSample)throw Error('Free trial catalog mismatch: '+JSON.stringify({freeSampleThemeId:v.freeSampleThemeId,home:c?.home?.freeSample,classroom:c?.classroom?.freeSample,paid:v.offers?.some(x=>x.saleEnabled)}));console.log('Only Celebration Home and Classroom released as free trials')})"; then
+              verified=true
+              break
+            fi
+            sleep 2
+          done
+          test "$verified" = true
           curl --fail --silent --show-error --head https://paper-adventure-api-stage.chenminjian08.workers.dev/en/ | grep -iq 'x-robots-tag: noindex, nofollow'
           node scripts/verify-celebration-release.mjs
       - name: Check restricted adult sign-in delivery to project support inbox

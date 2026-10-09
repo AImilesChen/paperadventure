@@ -20,7 +20,9 @@ for (let attempt = 0; attempt < 12; attempt++) {
 }
 if (catalog.freeSampleThemeId !== 'celebration' || !celebration?.home?.freeSample ||
     !celebration?.classroom?.freeSample || catalog.offers?.some(offer => offer.saleEnabled)) {
-  throw new Error('Public catalog does not expose only the two free Celebration trials');
+  throw new Error('Public catalog mismatch: ' + JSON.stringify({ freeSampleThemeId: catalog.freeSampleThemeId,
+    home: celebration?.home?.freeSample, classroom: celebration?.classroom?.freeSample,
+    paid: catalog.offers?.some(offer => offer.saleEnabled) }));
 }
 for (const setting of ['home', 'classroom']) {
   if (celebration[setting].packVersion !== 'v0.1') throw new Error('Unexpected trial version');
