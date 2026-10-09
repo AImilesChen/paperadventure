@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import AxeBuilder from '@axe-core/playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { publicPages } from '../shared/page-manifest.mjs';
 
@@ -8,6 +9,7 @@ mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const problems = [];
 const snapshots = [];
+const accessibility = [];
 const routesToCapture = new Set(['/en/', '/en/themes/', '/en/themes/celebration/', '/en/create/', '/en/pricing/', '/en/privacy/']);
 
 for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 390, height: 844 }]) {
@@ -31,6 +33,13 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
       if (!state.noindex) problems.push(viewport.name + ' ' + route + ' missing preview noindex');
       snapshots.push({ viewport: viewport.name, route, ...state });
       if (routesToCapture.has(route)) {
+        const scan = await new AxeBuilder({ page }).analyze();
+        accessibility.push({ viewport: viewport.name, route, violations: scan.violations.map(item => ({
+          id: item.id, impact: item.impact, nodes: item.nodes.slice(0, 3).map(node => node.target),
+        })) });
+        for (const violation of scan.violations.filter(item => ['serious','critical'].includes(item.impact))) {
+          problems.push(viewport.name + ' ' + route + ' accessibility ' + violation.id + ': ' + violation.nodes.length + ' affected elements');
+        }
         const slug = route === '/en/' ? 'home' : route.replace(/^\/en\//, '').replace(/\/$/, '').replaceAll('/', '-');
         await page.screenshot({ path: out + '/' + viewport.name + '-' + slug + '.png', fullPage: true, animations: 'disabled' });
       }
@@ -49,6 +58,6 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
   await page.close();
 }
 await browser.close();
-writeFileSync(out + '/report.json', JSON.stringify({ snapshots, problems }, null, 2) + '\n');
+writeFileSync(out + '/report.json', JSON.stringify({ snapshots, accessibility, problems }, null, 2) + '\n');
 console.log(JSON.stringify({ checked: snapshots.length, screenshots: routesToCapture.size * 2, problems }, null, 2));
 if (problems.length) process.exitCode = 1;
