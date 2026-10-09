@@ -11,7 +11,7 @@ import { productRights } from '../shared/catalog.mjs';
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -33,7 +33,7 @@ function database() {
 }
 
 function seedReady(db) {
-  db.prepare("INSERT INTO theme_worlds (id,title_en,status) VALUES ('celebration','Celebration','published')").run();
+  db.prepare("INSERT OR IGNORE INTO theme_worlds (id,title_en,status) VALUES ('celebration','Celebration','published')").run();
   db.prepare("INSERT INTO ready_packs (id,theme_world_id,setting,version,status,licence_version) VALUES ('pack-h01','celebration','home','v1','published','licence-1')").run();
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('price-1','ready_home','USD',999,'price_test_1','exclusive',1)").run();
   for (const paper of ['A4','Letter']) for (const role of ['player','guide']) db.prepare('INSERT INTO ready_pack_files (ready_pack_id,paper,role,r2_key,sha256,bytes) VALUES (?,?,?,?,?,?)').run('pack-h01',paper,role,`ready/h01/${paper}/${role}.pdf`,'test-hash',123);
@@ -43,6 +43,12 @@ function seedReady(db) {
 const request = (path, method = 'GET', data, headers = {}) => new Request(`https://adventure.example${path}`, { method, headers: { ...(data ? { 'content-type': 'application/json' } : {}), ...headers }, body: data ? JSON.stringify(data) : undefined });
 const purchase = { sku: 'ready_home', themeId: 'celebration', packVersion: 'v1', email: 'Adult@example.com' };
 const config = binding => ({ DB: binding, PRIVATE_FILES: { get: async () => null }, RESEND_API_KEY: 're_test', EMAIL_FROM: 'hello@adventure.example', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', SESSION_SECRET: 'test-session-secret', PUBLIC_ORIGIN: 'https://adventure.example', CHECKOUT_ENABLED: 'true', LEGAL_RELEASED: 'true', TAX_CONFIGURED: 'true', CUSTOM_LICENCE_VERSION: 'custom-v1', SUPPORTED_AGE_MIN: '6', SUPPORTED_AGE_MAX: '12', HOME_PLAYER_MAX: '8', CLASSROOM_STUDENT_MAX: '40' });
+
+test('six public story worlds are seeded without publishing their packs', () => {
+  const { db } = database();
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM theme_worlds WHERE status = 'published'").get().n, 6);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ready_packs WHERE status = 'published'").get().n, 0);
+});
 
 test('purchase validation distinguishes ready packs from custom activity and rejects invalid groups', () => {
   assert.equal(validatePurchase(purchase).spec.kind, 'ready');
