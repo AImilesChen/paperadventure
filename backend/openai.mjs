@@ -69,7 +69,8 @@ export async function generateProposals(spec, env, fetcher = fetch) {
 }
 
 export async function reviseStage(story, spec, stageNumber, instruction, env, fetcher = fetch) {
-  if (!env.OPENAI_API_KEY || !env.OPENAI_MODEL) throw new ApiError(503, 'GENERATION_NOT_CONFIGURED', 'Story revision is not configured.');
+  const provider = aiProvider(env);
+  if (!provider) throw new ApiError(503, 'GENERATION_NOT_CONFIGURED', 'Story revision is not configured.');
   const original = story.stages[stageNumber - 1];
   if (!original) throw new ApiError(400, 'INVALID_STAGE', 'Choose a stage from 1 to 5.');
   const response = await fetcher(provider.url, { method: 'POST', headers: { authorization: `Bearer ${provider.key}`, 'content-type': 'application/json' }, body: JSON.stringify({ model: provider.model,
