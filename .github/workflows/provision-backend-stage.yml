@@ -84,9 +84,11 @@ jobs:
             sleep 2
           done
           test "$verified" = true
-          curl --fail --silent --show-error --head https://paper-adventure-api-stage.chenminjian08.workers.dev/en/ | grep -iq 'x-robots-tag: noindex, nofollow'
+          curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/robots.txt | grep -Fq 'Disallow: /'
           node scripts/verify-celebration-release.mjs
           node scripts/verify-google-signin-ready.mjs
+          curl --fail --silent --show-error --output "$RUNNER_TEMP/paw-dinosaur-p2.jpg" https://paperadventure.app/api/v1/test-pack-previews/dinosaur/home/2
+          node -e "const b=require('node:fs').readFileSync(process.env.RUNNER_TEMP+'/paw-dinosaur-p2.jpg');if(b.length<10000||b[0]!==255||b[1]!==216)throw Error('Opening player activity preview is missing or invalid');console.log('Actual opening Player Pack page is publicly previewable')"
       - name: Check restricted adult sign-in delivery to project support inbox
         run: |
           curl --fail --silent --show-error --request POST \

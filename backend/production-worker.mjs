@@ -138,7 +138,7 @@ async function testPackPreview(request, env, themeId, setting, previewPage = nul
       AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
     ORDER BY p.version DESC LIMIT 1`, themeId, setting).first();
   if (!pack || !/^v[0-9]+(?:[.][0-9]+){1,2}$/.test(pack.version)) throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
-  const key = `internal/draft-previews/${themeId}/${setting}/${pack.version}${previewPage ? `-p${previewPage}` : ''}.jpg`;
+  const key = `internal/draft-previews/${themeId}/${setting}/${pack.version}-p${previewPage ?? 1}.jpg`;
   const object = await env.PRIVATE_FILES.get(key);
   if (!object || object.size > 3 * 1024 * 1024) throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
   const bytes = new Uint8Array(await new Response(object.body).arrayBuffer());

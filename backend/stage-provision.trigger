@@ -1,1 +1,1 @@
-2026-10-09 verify test-only catalog and numbered Player Pack previews after deployment
+2026-10-09 verify crawl restrictions and live opening-page preview with Stripe test checkout
