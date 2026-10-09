@@ -1,1 +1,1 @@
-2026-10-09 verify SEO Home catalogue desktop/mobile, canonical indexability, and private preview isolation.
+2026-10-09 rerun desktop/mobile and live sample QA after canonical indexability change.

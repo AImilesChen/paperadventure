@@ -17,7 +17,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     const route = '/en/samples/' + setting + '/';
     try {
       const response = await page.goto(origin + route, { waitUntil: 'domcontentloaded', timeout: 20000 });
-      if (!response?.ok() || !response.headers()['x-robots-tag']?.includes('noindex')) problems.push(viewport.name + ' ' + route + ' HTTP/noindex mismatch');
+      if (!response?.ok() || response.headers()['x-robots-tag']?.includes('noindex') || await page.locator('meta[name="robots"][content*="noindex"]').count()) problems.push(viewport.name + ' ' + route + ' HTTP/indexability mismatch');
       const player = page.getByRole('button', { name: 'Download ' + setting + ' A4 Player Pack' });
       await player.waitFor({ state: 'visible', timeout: 15000 });
       if (await page.getByText('Trial v0.1').count() === 0) problems.push(viewport.name + ' ' + route + ' lacks trial version');
