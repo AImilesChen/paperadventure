@@ -6,7 +6,7 @@ Updated: 2026-10-08. This package describes the **noindex design preview**, not 
 
 ## Product and chosen direction
 
-- Product baseline: [`../../故事冒险网站_整合PRD_v1.3_商品定价文案合规.md`](../../故事冒险网站_整合PRD_v1.3_商品定价文案合规.md).
+- Product baseline for implementation: [PRD supplement v1.4](../content/PRD补充_v1.4_产品功能与交付边界.md). The earlier integrated PRD v1.3 is retained locally outside this repository as historical source material.
 - Audience: English-first parents, party organisers and teachers in the US and Europe, with global reach planned.
 - Three explored directions: [`01 Story Atlas`](concepts/01-story-atlas.jpg), [`02 Storybook Theatre`](concepts/02-storybook-theatre.jpg), and [`03 Paper Adventure Workshop`](concepts/03-paper-adventure-workshop-selected.jpg). The owner selected direction 03 on 2026-10-07.
 - Selected composition: split hero, light-blue papercraft art, vermilion primary action, then a horizontal story-world gallery with four full cards and part of the next visible at desktop width. The site uses live text and interactive controls over generated raster art.
