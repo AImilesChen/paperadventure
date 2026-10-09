@@ -1,1 +1,1 @@
-2026-10-09: deploy paired trial and adult session API changes after v1.4 frontend/backend CI.
+2026-10-09: deploy DeepSeek structural QA retry after private Home and Classroom PDF smoke passed.
