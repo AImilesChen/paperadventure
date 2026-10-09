@@ -104,6 +104,40 @@ test('purchase validation distinguishes ready packs from custom activity and rej
   assert.throws(() => validateSupportedRange({ ...spec, age: '3-5' }, { SUPPORTED_AGE_MIN: '6', SUPPORTED_AGE_MAX: '12', HOME_PLAYER_MAX: '8', CLASSROOM_STUDENT_MAX: '40' }), /supported age range/);
 });
 
+test('classroom wording choice is snapshotted and serves only its selected private files', async () => {
+  const { db, binding } = database();
+  seedReady(db);
+  db.prepare("INSERT INTO ready_packs (id,theme_world_id,setting,version,status,licence_version) VALUES ('pack-c05','halloween','classroom','v1','published','licence-1')").run();
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('price-class','ready_classroom','USD',1499,'price_test_class','exclusive',1)").run();
+  const bytes = new Uint8Array([37,80,68,70]);
+  const digest = createHash('sha256').update(bytes).digest('hex');
+  for (const paper of ['A4','Letter']) for (const role of ['player','guide']) {
+    db.prepare('INSERT INTO ready_pack_files (ready_pack_id,paper,role,r2_key,sha256,bytes) VALUES (?,?,?,?,?,?)').run('pack-c05',paper,role,`base/c05/${paper}/${role}.pdf`,digest,4);
+    db.prepare('INSERT INTO ready_pack_variants (ready_pack_id,variant_id,paper,role,r2_key,sha256,bytes) VALUES (?,?,?,?,?,?,?)').run('pack-c05','halloween',paper,role,`variant/c05/${paper}/${role}.pdf`,digest,4);
+  }
+  let requestedKey;
+  const env = { ...config(binding),
+    FETCH: async () => Response.json({ id: 'cs_variant', url: 'https://checkout.stripe.com/test' }),
+    PRIVATE_FILES: { get: async key => { requestedKey = key; return { body: bytes }; } } };
+  const catalog = await handleProductionApi(request('/api/v1/catalog'), env).then(response => response.json());
+  assert.deepEqual(catalog.themes.find(theme => theme.id === 'halloween').classroom.variantIds, ['halloween']);
+  const purchaseSpec = { sku: 'ready_classroom', themeId: 'halloween', packVersion: 'v1', variantId: 'halloween', email: 'adult@example.com' };
+  const checkout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', purchaseSpec,
+    { 'Idempotency-Key': 'classroom-variant-001', origin: 'https://adventure.example' }), env);
+  assert.equal(checkout.status, 201);
+  const { orderId } = await checkout.json();
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  assert.equal(JSON.parse(order.purchase_spec_json).variantId, 'halloween');
+  db.prepare("UPDATE orders SET status = 'published' WHERE id = ?").run(orderId);
+  db.prepare("INSERT INTO entitlements (id,order_id,ready_pack_id,status,access_expires_at) VALUES ('ent-variant',?,?,'active',datetime('now','+12 months'))").run(orderId,'pack-c05');
+  const emailHash = await sha256(`${env.SESSION_SECRET}|adult@example.com`);
+  const token = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash, exp: Math.floor(Date.now()/1000)+3600 });
+  const file = await handleProductionApi(request(`/api/v1/files/${orderId}/player?paper=Letter`, 'GET', undefined,
+    { cookie: `paw_session=${token}` }), env);
+  assert.equal(file.status, 200);
+  assert.equal(requestedKey, 'variant/c05/Letter/player.pdf');
+});
+
 test('signed email access tokens expire and reject tampering', async () => {
   const token = await signAccessToken('secret', { scope: 'session', emailHash: 'abc', exp: Math.floor(Date.now()/1000) + 10 });
   assert.equal((await verifyAccessToken('secret', token)).emailHash, 'abc');
