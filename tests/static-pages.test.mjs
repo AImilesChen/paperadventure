@@ -56,15 +56,19 @@ test('brand icons and social card are built and linked from every preview route'
   }
 });
 
-test('theme detail distinguishes both fixed-pack previews from unavailable payment', async () => {
+test('Celebration remains free while other fixed-pack checkout previews stay separate', async () => {
   const html = await read('en/themes/celebration/index.html');
   for (const setting of ['home', 'classroom']) {
-    assert.ok(html.includes(`/en/checkout/demo/?kind=ready&amp;theme=celebration&amp;setting=${setting}`));
+    assert.ok(!html.includes(`/en/checkout/demo/?kind=ready&amp;theme=celebration&amp;setting=${setting}`));
   }
   assert.match(html, /<button[^>]*disabled[^>]*>Home(?:<!-- -->)? pack not available<\/button>/);
   assert.match(html, /<button[^>]*disabled[^>]*>Classroom(?:<!-- -->)? pack not available<\/button>/);
   assert.doesNotMatch(html, /Download free (?:home|classroom) sample/);
-  assert.match(html, /Planned prices: Home/);
+  assert.match(html, /Celebration Home and Classroom are both free trial editions/);
+  const paid = await read('en/themes/dinosaur/index.html');
+  for (const setting of ['home', 'classroom']) {
+    assert.ok(paid.includes(`/en/checkout/demo/?kind=ready&amp;theme=dinosaur&amp;setting=${setting}`));
+  }
 });
 
 test('each theme explains distinct Home and Classroom stories before a pack is published', async () => {
