@@ -18,7 +18,7 @@ PDF 方面，分别运行 `scripts/check_celebration_samples.py`、`scripts/chec
 
 设计真源与待补图见 [UI 交接](design-handoff/HANDOFF.md)、[路由/状态矩阵](design-handoff/ROUTE_STATE_MATRIX.md)、[素材来源表](design-handoff/ASSET_PROVENANCE.md)、[六主题体验说明](content/theme-design/六主题体验与制品差距_v0.1.md)及[14 套表达的试玩执行索引](content/theme-design/PILOT_EXECUTION_INDEX.md)。旧的设计截图不能证明新增课堂图及所有状态已在浏览器验收。
 
-前 3 阶段按要求、现有证据和未完成验收逐项对照，见[交付与验收矩阵](content/前三阶段_交付验收矩阵_v0.1.md)。
+前 3 阶段按要求、现有证据和未完成验收逐项对照，见[交付与验收矩阵](content/前三阶段_交付验收矩阵_v0.1.md)。预览阶段的商品英文用语见[文案基准](content/英文商品文案基准_v0.1.md)，已运行与计划中的个人数据处理分开记录于[数据流与隐私审阅清单](content/数据流与隐私审阅清单_v0.1.md)；两者均不放行正式销售。
 
 ## 尚未放行
 
