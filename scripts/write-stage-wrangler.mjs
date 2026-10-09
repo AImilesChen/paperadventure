@@ -23,7 +23,7 @@ const config = {
     LEGAL_RELEASED: 'false',
     TAX_CONFIGURED: 'false',
     LIVE_PAYMENTS_ENABLED: 'false',
-    FREE_SAMPLE_ENABLED: 'false',
+    FREE_SAMPLE_ENABLED: 'true',
     PROPOSALS_ENABLED: 'false',
     ACCOUNT_ENABLED: 'false',
     ACCOUNT_TEST_EMAIL: 'support@paperadventure.app',

@@ -1,1 +1,1 @@
-2026-10-09: bind Cloudflare Email to isolated stage and verify one restricted adult sign-in delivery.
+2026-10-09: release Celebration Home and Classroom v0.1 as anonymous free trials after private PDF QA.
