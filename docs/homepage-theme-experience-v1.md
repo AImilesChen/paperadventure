@@ -29,5 +29,5 @@ An English-speaking visitor should immediately understand that Paper Adventure o
 
 - At 1440px and 390px, the theme entry and free path are discoverable without searching the footer.
 - Mobile menu exposes both themed activities and custom creation, is keyboard operable, and closes on Escape.
-- Gallery is horizontally scrollable with visible controls, accessible names and no horizontal page overflow.
+- Gallery shows three focused desktop cards, two on a tablet and one plus a peek on mobile. It advances one card automatically every 4.8 seconds, wraps to the beginning, and provides arrow and pause/play controls. It pauses while hovered, keyboard-focused or being swiped; reduced-motion users start with autoplay off. Controls have accessible names, and the page has no horizontal overflow.
 - Both Celebration spotlight links reach the appropriate sample route. Existing page, link, broken-image, accessibility and free-download checks remain green.

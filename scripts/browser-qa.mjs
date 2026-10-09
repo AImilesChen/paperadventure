@@ -55,6 +55,14 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     const themesEntry = page.locator('#primary-navigation .nav-theme-link');
     if (!await themesEntry.isVisible() || await themesEntry.getAttribute('href') !== '/en/themes/') problems.push('Desktop themed activities are not discoverable in the header');
     if (await page.locator('.sample-spotlight-card a[href^="/en/samples/"]').count() !== 2) problems.push('Home does not link to both Celebration editions');
+    const rail = page.locator('.theme-track').first();
+    const beforeScroll = await rail.evaluate(element => element.scrollLeft);
+    await page.getByRole('button', { name: 'Scroll themes right' }).first().click();
+    await page.waitForTimeout(650);
+    if (await rail.evaluate(element => element.scrollLeft) <= beforeScroll + 20) problems.push('Desktop theme carousel did not advance from the right arrow');
+    const pauseThemes = page.getByRole('button', { name: 'Pause automatic theme scrolling' });
+    await pauseThemes.click();
+    if (!await page.getByRole('button', { name: 'Resume automatic theme scrolling' }).isVisible()) problems.push('Theme carousel cannot be paused');
   }
   if (viewport.name === 'mobile') {
     await page.goto(base + '/en/', { waitUntil: 'domcontentloaded' });

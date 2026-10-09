@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, ArrowLeft, ArrowUpRight, CaretDown, Check, Compass, DownloadSimple, List, Minus, PencilSimple, Plus, Printer, Sparkle, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowRight, ArrowLeft, ArrowUpRight, CaretDown, Check, Compass, DownloadSimple, List, Minus, PencilSimple, Plus, Printer, Sparkle, UsersThree, Pause, Play, X } from '@phosphor-icons/react';
 import { AccountPreview, AdventuresShelf, CheckoutPreview, HelpExperience, LegalExperience, OrderExperience, PricingExperience, SamplesExperience, ThemesExplorer } from './extended.jsx';
 import { themes } from '../shared/catalog.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
@@ -54,7 +54,10 @@ function Footer({ runtime }) { return <footer className="site-footer"><div class
 
 function ThemeGallery({ full = false, sampleReady = false }) {
   const track = useRef(null);
+  const resumeTimer = useRef(null);
   const [bounds, setBounds] = useState({ left: false, right: true });
+  const [playing, setPlaying] = useState(true);
+  const [paused, setPaused] = useState(false);
   useEffect(() => {
     const update = () => {
       const element = track.current;
@@ -67,10 +70,36 @@ function ThemeGallery({ full = false, sampleReady = false }) {
     window.addEventListener('resize', update);
     return () => { element?.removeEventListener('scroll', update); window.removeEventListener('resize', update); };
   }, []);
-  const scroll = direction => track.current?.scrollBy({ left: direction * Math.max(320, track.current.clientWidth * .68), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-  return <section className={full ? 'themes-section themes-full' : 'themes-section'} id="themes" aria-labelledby="theme-gallery-heading">
-    <div className="section-heading"><div><span className="eyebrow"><Sparkle size={17} weight="fill" /> PICK A THEME</span><h2 id="theme-gallery-heading">Themes & activities<span className="dot">.</span></h2><p>Six illustrated settings, each with a different mission for home and classroom.</p></div><div className="gallery-controls"><button type="button" aria-label="Scroll themes left" disabled={!bounds.left} onClick={() => scroll(-1)}><ArrowLeft size={22} /></button><button type="button" aria-label="Scroll themes right" disabled={!bounds.right} onClick={() => scroll(1)}><ArrowRight size={22} /></button></div></div>
-    <div className="theme-track" ref={track}>{themes.map((theme, i) => <Link key={theme.id} className="theme-card" to={`/en/themes/${theme.id}/`}><div className="theme-image-wrap"><img src={theme.image} alt={`${theme.title} paper-art story world`} width="800" height="600" decoding="async" loading={i < 3 ? 'eager' : 'lazy'} /><span className="theme-tag">{theme.id === 'celebration' ? sampleReady ? 'Two free printables' : 'Free trial theme' : 'Custom theme idea'}</span></div><div className="theme-card-copy"><div><h3>{theme.title}</h3><p>{theme.story.home.title}</p></div><span className="theme-arrow"><ArrowUpRight size={20} /></span></div><p className="theme-mission">{theme.story.home.goal}</p><span className="theme-use">{theme.id === 'celebration' && sampleReady ? 'See free Home & Classroom games' : 'Explore this theme'} <ArrowRight size={17} /></span></Link>)}</div>
+  useEffect(() => () => window.clearTimeout(resumeTimer.current), []);
+  useEffect(() => {
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (motion.matches) setPlaying(false);
+    const update = event => { if (event.matches) setPlaying(false); };
+    motion.addEventListener('change', update);
+    return () => motion.removeEventListener('change', update);
+  }, []);
+  const scroll = (direction, wrap = false) => {
+    const element = track.current;
+    if (!element) return;
+    const firstCard = element.querySelector('.theme-card');
+    const gap = parseFloat(window.getComputedStyle(element).gap) || 0;
+    const step = (firstCard?.getBoundingClientRect().width || element.clientWidth) + gap;
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    if (wrap && element.scrollLeft >= element.scrollWidth - element.clientWidth - 4) element.scrollTo({ left: 0, behavior });
+    else element.scrollBy({ left: direction * step, behavior });
+  };
+  useEffect(() => {
+    if (full || !playing || paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') scroll(1, true);
+    }, 4800);
+    return () => window.clearInterval(timer);
+  }, [full, playing, paused]);
+  const pauseForTouch = () => { window.clearTimeout(resumeTimer.current); setPaused(true); };
+  const resumeAfterTouch = () => { window.clearTimeout(resumeTimer.current); resumeTimer.current = window.setTimeout(() => setPaused(false), 8000); };
+  return <section className={full ? 'themes-section themes-full' : 'themes-section'} id="themes" aria-labelledby="theme-gallery-heading" aria-roledescription="carousel" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false); }}>
+    <div className="section-heading"><div><span className="eyebrow"><Sparkle size={17} weight="fill" /> PICK A THEME</span><h2 id="theme-gallery-heading">Themes & activities<span className="dot">.</span></h2><p>Six illustrated settings, each with a different mission for home and classroom.</p></div><div className="gallery-controls">{!full && <button type="button" className="gallery-play-toggle" aria-label={playing ? 'Pause automatic theme scrolling' : 'Resume automatic theme scrolling'} aria-pressed={!playing} onClick={() => setPlaying(value => !value)}>{playing ? <Pause size={17} weight="bold" /> : <Play size={17} weight="bold" />}<span>{playing ? 'Pause' : 'Play'}</span></button>}<button type="button" aria-label="Scroll themes left" disabled={!bounds.left} onClick={() => scroll(-1)}><ArrowLeft size={22} /></button><button type="button" aria-label="Scroll themes right" disabled={!bounds.right} onClick={() => scroll(1)}><ArrowRight size={22} /></button></div></div>
+    <div className="theme-track" ref={track} role="group" aria-label="Theme cards" onTouchStart={pauseForTouch} onTouchEnd={resumeAfterTouch} onTouchCancel={resumeAfterTouch}>{themes.map((theme, i) => <Link key={theme.id} className="theme-card" to={`/en/themes/${theme.id}/`}><div className="theme-image-wrap"><img src={theme.image} alt={`${theme.title} paper-art story world`} width="800" height="600" decoding="async" loading={i < 3 ? 'eager' : 'lazy'} /><span className="theme-tag">{theme.id === 'celebration' ? sampleReady ? 'Two free printables' : 'Free trial theme' : 'Custom theme idea'}</span></div><div className="theme-card-copy"><div><h3>{theme.title}</h3><p>{theme.story.home.title}</p></div><span className="theme-arrow"><ArrowUpRight size={20} /></span></div><p className="theme-mission">{theme.story.home.goal}</p><span className="theme-use">{theme.id === 'celebration' && sampleReady ? 'See free Home & Classroom games' : 'Explore this theme'} <ArrowRight size={17} /></span></Link>)}</div>
     <div className="gallery-bottom"><Link className="text-link" to="/en/themes/">See all six themes <ArrowRight size={18} /></Link><Link className="custom-link" to="/en/create/?custom=1"><PencilSimple size={18} /> Have another idea? Start your own story <ArrowRight size={17} /></Link></div>
   </section>;
 }

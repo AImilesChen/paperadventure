@@ -107,3 +107,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:800px){.nav-theme-link svg{display:inline}.nav-create-mobile{display:flex!important;align-items:center;justify-content:space-between}.hero{padding-top:32px;padding-bottom:28px}.hero-visual>img{height:390px}.themes-section{padding-top:45px}.sample-spotlight{padding:65px 5%}.sample-spotlight-card>div{padding:22px}}
 @media(max-width:600px){.hero h1{font-size:clamp(2.9rem,10.5vw,4rem)}.hero-facts{margin-top:20px}.hero-facts span{font-size:.69rem}.hero-visual>img{height:auto}.themes-section{padding-top:38px}.theme-mission{min-height:0}.sample-spotlight{padding:58px 5%}.sample-spotlight-intro{align-items:flex-start}.sample-spotlight-intro h2{font-size:2.15rem}.sample-price{width:75px;height:75px;font-size:1.2rem}.sample-price small{font-size:.48rem}.sample-spotlight-grid{grid-template-columns:1fr;gap:18px}.sample-spotlight-card{grid-template-columns:37% 63%}.sample-spotlight-card img{height:100%;min-height:250px}.sample-spotlight-card>div{min-height:0;padding:18px}.sample-spotlight-card h3{font-size:1.3rem}.sample-spotlight-card p{font-size:.78rem}.sample-spotlight-card .text-link{font-size:.78rem}.steps-section{padding-top:67px}}
 @media(max-width:390px){.sample-spotlight-card{grid-template-columns:1fr}.sample-spotlight-card img{height:210px;min-height:0}}
+
+/* Theme carousel: three focused cards, automatic advance, manual arrows and swipe. */
+.themes-section .theme-track{width:89%;max-width:1318px;margin:0 auto;padding:24px 0 26px;scroll-padding-inline:0;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain}
+.themes-section:not(.themes-full) .theme-card{flex:0 0 calc((100% - 40px)/3)}
+.gallery-controls{align-items:center}
+.gallery-controls .gallery-play-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:auto;min-width:92px;padding:0 14px;border-radius:999px;color:#173b58;font-size:.78rem;font-weight:900}
+.gallery-controls .gallery-play-toggle:hover{background:#fff6e8}
+@media(max-width:1100px){.themes-section:not(.themes-full) .theme-card{flex-basis:calc((100% - 20px)/2)}}
+@media(max-width:600px){.themes-section .theme-track{width:90%;padding-top:20px}.themes-section:not(.themes-full) .theme-card{flex-basis:86%}.gallery-controls .gallery-play-toggle{width:36px;min-width:36px;padding:0}.gallery-play-toggle span{display:none}}
