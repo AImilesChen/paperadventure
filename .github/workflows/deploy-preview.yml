@@ -34,6 +34,8 @@ jobs:
       - run: npm run test:static
       - run: npm run test:sites
       - run: npm run test:backend
+      - name: Bundle production API without publishing
+        run: npx --yes wrangler@4.74.0 deploy --config backend/wrangler.production-smoke.jsonc --dry-run
       - name: Validate preview Worker bundle without publishing
         run: npx --yes wrangler@4.74.0 deploy --config backend/wrangler.preview.jsonc --dry-run
       - name: Deploy verified preview when Cloudflare token is configured
