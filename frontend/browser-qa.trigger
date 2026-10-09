@@ -1,1 +1,1 @@
-2026-10-09: verify carousel autoplay, manual scrolling and play/pause with normal and reduced motion.
+2026-10-09: verify six Home and six Classroom themes, header links, audience switch and selected detail story.
