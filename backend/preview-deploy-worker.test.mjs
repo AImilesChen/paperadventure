@@ -15,3 +15,16 @@ test('hosted preview serves SPA routes without enabling checkout and blocks inde
   const robots = await worker.fetch(new Request('https://preview.paperadventure.app/robots.txt'), env);
   assert.match(await robots.text(), /User-agent: AhrefsSiteAudit\nAllow: \//);
 });
+
+
+test('hosted API forwards same-origin requests to the deployed backend binding', async () => {
+  let forwarded;
+  const linked = { ...env, BACKEND_STAGE: { fetch: async request => {
+    forwarded = request;
+    return Response.json({ status: 'configured_runtime', checkout: false });
+  } } };
+  const incoming = new Request('https://paperadventure.app/api/v1/health');
+  const response = await worker.fetch(incoming, linked);
+  assert.equal(forwarded, incoming);
+  assert.equal((await response.json()).status, 'configured_runtime');
+});
