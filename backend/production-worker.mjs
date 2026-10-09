@@ -43,8 +43,8 @@ async function liveCatalog(env) {
   if (!env.DB) return base;
   const visibleWorlds = await query(env.DB, "SELECT id FROM theme_worlds WHERE status = 'published'").all();
   const visibleIds = new Set((visibleWorlds.results || []).map(world => world.id));
-  const result = await query(env.DB, `SELECT p.id,p.theme_world_id,p.setting,p.version FROM ready_packs p
-    WHERE p.status = 'published' AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
+  const result = await query(env.DB, `SELECT p.id,p.theme_world_id,p.setting,p.version FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id
+    WHERE p.status = 'published' AND w.status = 'published' AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
     ORDER BY p.published_at DESC, p.version DESC`).all();
   const ready = result.results || [];
   const free = env.FREE_SAMPLE_ENABLED === 'true' && ready.some(pack => pack.theme_world_id === 'celebration');
@@ -87,7 +87,7 @@ async function checkout(request, env) {
   if (!price || price.currency !== 'USD' || price.unit_amount !== offer.unitAmount || !price.stripe_price_id || price.tax_behavior === 'unknown') throw new ApiError(503, 'OFFER_NOT_READY', 'This product is not available for checkout.');
   let readyPack = null;
   if (offer.kind === 'ready') {
-    readyPack = await query(env.DB, "SELECT * FROM ready_packs WHERE theme_world_id = ? AND setting = ? AND version = ? AND status = 'published'", spec.themeId, spec.setting, spec.packVersion).first();
+    readyPack = await query(env.DB, "SELECT p.* FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id WHERE p.theme_world_id = ? AND p.setting = ? AND p.version = ? AND p.status = 'published' AND w.status = 'published'", spec.themeId, spec.setting, spec.packVersion).first();
     if (!readyPack) throw new ApiError(503, 'PACK_NOT_PUBLISHED', 'This ready-made pack is not published.');
     const files = await query(env.DB, 'SELECT paper, role FROM ready_pack_files WHERE ready_pack_id = ?', readyPack.id).all();
     if (files.results?.length !== 4) throw new ApiError(503, 'PACK_FILES_INCOMPLETE', 'The printable pack is incomplete.');
@@ -321,7 +321,7 @@ async function savedDraft(request, env) {
 
 async function freeSample(request, env, setting, paper, role) {
   if (!env.DB || !env.PRIVATE_FILES || env.FREE_SAMPLE_ENABLED !== 'true') throw new ApiError(404, 'SAMPLE_NOT_PUBLISHED', 'The free sample is not published.');
-  const pack = await query(env.DB, "SELECT * FROM ready_packs WHERE theme_world_id = 'celebration' AND setting = ? AND status = 'published' ORDER BY published_at DESC LIMIT 1", setting).first();
+  const pack = await query(env.DB, "SELECT p.* FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id WHERE p.theme_world_id = 'celebration' AND p.setting = ? AND p.status = 'published' AND w.status = 'published' ORDER BY p.published_at DESC LIMIT 1", setting).first();
   if (!pack) throw new ApiError(404, 'SAMPLE_NOT_PUBLISHED', 'The free sample is not published.');
   const file = await query(env.DB, 'SELECT * FROM ready_pack_files WHERE ready_pack_id = ? AND paper = ? AND role = ?', pack.id, paper, role).first();
   if (!file) throw new ApiError(404, 'FILE_NOT_FOUND', 'The sample file is unavailable.');
