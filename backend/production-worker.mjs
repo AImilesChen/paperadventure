@@ -139,7 +139,7 @@ async function testPackPreview(request, env, themeId, setting) {
     WHERE p.theme_world_id = ? AND p.setting = ? AND p.status = 'internal_test' AND w.status = 'published'
       AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
     ORDER BY p.version DESC LIMIT 1`, themeId, setting).first();
-  if (!pack || !/^v0\\.1$/.test(pack.version)) throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
+  if (!pack || !/^v0\.1$/.test(pack.version)) throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
   const key = `internal/draft-previews/${themeId}/${setting}/${pack.version}.jpg`;
   const object = await env.PRIVATE_FILES.get(key);
   if (!object || object.size > 3 * 1024 * 1024) throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
