@@ -62,6 +62,22 @@ test('catalog follows D1 world publication without implying a pack is available'
   assert.equal(catalog.offers.every(offer => offer.saleEnabled === false), true);
 });
 
+test('pausing a world hides its fixed pack from catalog, sample and checkout', async () => {
+  const { db, binding } = database();
+  seedReady(db);
+  db.prepare("UPDATE theme_worlds SET status = 'paused' WHERE id = 'celebration'").run();
+  const env = { ...config(binding), FREE_SAMPLE_ENABLED: 'false' };
+  const catalog = await handleProductionApi(request('/api/v1/catalog'), env).then(response => response.json());
+  assert.equal(catalog.themes.some(theme => theme.id === 'celebration'), false);
+  assert.equal(catalog.offers.find(offer => offer.sku === 'ready_home').saleEnabled, false);
+  const checkout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', purchase,
+    { 'Idempotency-Key': 'paused-world-order-001', origin: 'https://adventure.example' }), env);
+  assert.equal(checkout.status, 503);
+  assert.equal((await checkout.json()).error.code, 'PACK_NOT_PUBLISHED');
+  const sample = await handleProductionApi(request('/api/v1/samples/home/A4/player'), { ...env, FREE_SAMPLE_ENABLED: 'true' });
+  assert.equal(sample.status, 404);
+});
+
 test('purchase validation distinguishes ready packs from custom activity and rejects invalid groups', () => {
   assert.equal(validatePurchase(purchase).spec.kind, 'ready');
   assert.equal(validatePurchase({ sku: 'custom_classroom', customIdea: 'A moon library', players: 20, groups: 4, age: '8-10', paper: 'A4', direction: 'mission' }).spec.kind, 'custom');
