@@ -66,7 +66,7 @@ test('isolated backend stage serves noindex pages and blocks robots', async () =
   const page = await productionWorker.fetch(request('/en/'), env);
   assert.equal(page.headers.get('x-robots-tag'), 'noindex, nofollow');
   const robots = await productionWorker.fetch(request('/robots.txt'), env);
-  assert.match(await robots.text(), /User-agent: \\*\\nDisallow: \\//);
+  assert.equal(await robots.text(), 'User-agent: *\nDisallow: /\n');
 });
 
 test('closed checkout fails before touching Stripe', async () => {
