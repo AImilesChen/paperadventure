@@ -1,1 +1,1 @@
-2026-10-09: check redesigned home, themed activities navigation, mobile menu, live free PDFs, and accessibility.
+2026-10-09: verify bounded automatic theme carousel, pause/play, arrows, mobile swipe, and live free downloads.
