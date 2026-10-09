@@ -61,6 +61,14 @@ test('signed email access tokens expire and reject tampering', async () => {
   assert.equal(await verifyAccessToken('secret', token, Date.now() + 20000), null);
 });
 
+test('isolated backend stage serves noindex pages and blocks robots', async () => {
+  const env = { STAGE_PREVIEW: 'true', ASSETS: { fetch: async () => new Response('<h1>Stage</h1>', { headers: { 'content-type': 'text/html' } }) } };
+  const page = await productionWorker.fetch(request('/en/'), env);
+  assert.equal(page.headers.get('x-robots-tag'), 'noindex, nofollow');
+  const robots = await productionWorker.fetch(request('/robots.txt'), env);
+  assert.match(await robots.text(), /User-agent: \\*\\nDisallow: \\//);
+});
+
 test('closed checkout fails before touching Stripe', async () => {
   const { binding } = database();
   const response = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', purchase, { 'Idempotency-Key': 'purchase-attempt-001' }), { ...config(binding), LEGAL_RELEASED: 'false' });
