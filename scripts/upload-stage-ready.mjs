@@ -12,7 +12,7 @@ if (!plan.privateOnly || plan.packs.length !== 12 || plan.uploads.length !== 56 
 const bucket = 'paper-adventure-stage-private';
 const keys = new Set();
 for (const item of plan.uploads) {
-  if (!/^internal\/draft-(?:ready|variants)\/[a-z0-9/.-]+\.pdf$/.test(item.r2Key) ||
+  if (!/^internal\/draft-(?:ready|variants)\/[A-Za-z0-9/.-]+\.pdf$/.test(item.r2Key) ||
       !/^output\/pdf\/(?:variants\/)?[A-Za-z0-9.-]+\.pdf$/.test(item.path) ||
       keys.has(item.r2Key)) throw new Error('Invalid private object path');
   keys.add(item.r2Key);
