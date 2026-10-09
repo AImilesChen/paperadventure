@@ -66,6 +66,28 @@ test('a failed independent audit repairs the whole story once without weakening 
   assert.equal(result.usage.input_tokens, 34);
 });
 
+test('an overlong generated explanation is regenerated before audit and PDF delivery', async () => {
+  const env = { AI_PROVIDER: 'deepseek', DEEPSEEK_API_KEY: 'deepseek-test', DEEPSEEK_MODEL: 'deepseek-flash' };
+  const overlong = { ...story, stages: story.stages.map((stage, index) => index === 0 ? { ...stage, explanation: 'x'.repeat(601) } : stage) };
+  const inputs = [];
+  let audits = 0;
+  const fetcher = async (_, options) => {
+    const request = JSON.parse(options.body);
+    if (request.text.format.name === 'paper_adventure') {
+      inputs.push(JSON.parse(request.input));
+      const value = inputs.length === 1 ? overlong : story;
+      return Response.json({ output: [{ content: [{ type: 'output_text', text: JSON.stringify(value) }] }], usage: { input_tokens: 10, output_tokens: 10 } });
+    }
+    audits++;
+    return Response.json({ output: [{ content: [{ type: 'output_text', text: JSON.stringify({ pass: true, issues: [] }) }] }], usage: { input_tokens: 5, output_tokens: 5 } });
+  };
+  const result = await generateStory(spec, env, fetcher);
+  assert.equal(inputs.length, 2);
+  assert.equal(audits, 1);
+  assert.match(inputs[1].qaIssues[0], /Answer explanation/);
+  assert.equal(result.usage.input_tokens, 25);
+});
+
 test('provider choice is explicit and cannot silently send a DeepSeek job to OpenAI', () => {
   assert.equal(aiProvider({ DEEPSEEK_API_KEY: 'key' }).name, 'deepseek');
   assert.equal(aiProvider({ AI_PROVIDER: 'deepseek', OPENAI_API_KEY: 'openai-key', OPENAI_MODEL: 'model' }), null);
