@@ -39,6 +39,7 @@ jobs:
             sleep 1
           done
           node scripts/browser-qa.mjs
+          node scripts/commerce-browser-qa.mjs
       - name: Check live Celebration download UI on desktop and mobile
         run: node scripts/live-trial-browser-qa.mjs
       - name: Check live privacy notice on desktop and mobile
