@@ -1,5 +1,7 @@
 # Paper Adventure｜当前前端交接
 
+**2026-10-09 现况补充：**Celebration Home 与 Classroom 两版 v0.1 试玩 PDF 已经上线，A4/US Letter 各有玩家包与成人指南；[线上发布与八文件校验](https://github.com/AImilesChen/paperadventure/actions/runs/37898428905)通过。Google 登录界面与后端令牌验证代码已实现，但因尚无本网站 Google Web Client ID，正式账户入口未开启。付费、公开定制生成、统计与 SEO 仍保持关闭。后文早期“免费文件未上线/邮箱登录”叙述仅为历史记录。
+
 **最新实测状态（2026-10-09）：**页头及手机菜单已有 Sign in，Celebration Home/Classroom 的 A4/Letter 双文件下载界面和后端完整性校验已实现。[浏览器 QA](https://github.com/AImilesChen/paperadventure/actions/runs/37895214325)、[预览部署](https://github.com/AImilesChen/paperadventure/actions/runs/37895448269)与[私有 DeepSeek 生成 PDF 实测](https://github.com/AImilesChen/paperadventure/actions/runs/37895214301)通过。邮箱登录和免费 PDF 公开下载尚未启用，Stripe 未接入；以下较早的“密钥缺失/生成未实测”记录已被本段及对应工作流结果取代。
 
 **2026-10-09 交付口径更新：**PRD/定价/英文文案/合规/UI 的 v1.4 补充包见 [前端开发前交付包](content/前端开发前交付包_索引与阶段门_v1.4.md)。Celebration Home 与 Classroom 两版均为免费样例；完整 v0.1 可先作为标明版本的试玩稿开放下载，不以真人试玩为下载前提。下文较早的“候选/不得下载”口径仅说明当时实际部署状态，不能代替 v1.4 产品决定。DeepSeek Key 后续已配置，但私有生成在语义 QA 未通过；公开开关仍关闭。

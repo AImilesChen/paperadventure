@@ -1,5 +1,7 @@
 # Backend API contract v0.1
 
+> **Current deployed state (2026-10-09):** The separate production Worker serves two versioned Celebration free-trial packs (Home and Classroom, A4 and US Letter Player Pack + adult guide). Its guest PDF endpoint checks stored hashes. Paid checkout, public generation and adult accounts remain release-gated. Google sign-in code is implemented but requires a Google Web Client ID before it can be enabled. Historical scaffold notes below describe the original preview Worker, not the live free-trial state.
+
 > This file describes the original fail-closed preview worker (`worker.mjs`). A separate implementation-stage Cloudflare runtime now exists in `production-worker.mjs`; see [`RUNTIME_HANDOFF.md`](RUNTIME_HANDOFF.md) for its routes, bindings and release gates. The preview worker remains unchanged so the local Sites prototype cannot accidentally sell or expose files.
 
 Status: local scaffold only. `GET /api/v1/catalog` and `GET /api/v1/themes/:id` are read-only and return the shared product manifest. Payment, generation, order access and downloads are deliberately unavailable; the server returns HTTP 503 with a stable error code rather than creating a fake entitlement.
@@ -25,6 +27,6 @@ Error envelope: `{ "error": { "code": "STABLE_CODE", "message": "Human-readable 
 
 ## v1.4 implementation-stage additions
 
-The separate `production-worker.mjs` exposes `GET /api/v1/auth/session` as a no-store, public-safe boolean status (`available`, `authenticated`); it never returns an email. `POST /api/v1/auth/logout` clears the HttpOnly session cookie after same-origin validation. The page header uses those endpoints to show `Sign in` to guests and `My adventures` / `Sign out` after verification. Transactional email must be configured before `account` is enabled.
+The separate `production-worker.mjs` exposes `GET /api/v1/auth/session` as a no-store, public-safe boolean status (`available`, `authenticated`); it never returns an email. `POST /api/v1/auth/logout` clears the HttpOnly session cookie after same-origin validation. The page header uses those endpoints to show `Sign in` to guests and `My adventures` / `Sign out` after verification. Google Web Client ID, session secret, D1 and a verified public origin must be configured before `account` is enabled. `GET /api/v1/auth/google/config` issues a nonce cookie and the public client ID; `POST /api/v1/auth/google` verifies the ID token signature, issuer, audience, expiry, email verification and nonce before setting an HttpOnly session. Legacy email-link sign-in is restricted to a single stage test recipient unless explicitly enabled; the intended public login is Google.
 
 Celebration is never a paid ready-made SKU. Its Home and Classroom packs may be exposed as `downloadable_trial` when **both** have four versioned files each, are marked `release_ready` or `published`, and `FREE_SAMPLE_ENABLED=true`. The guest download endpoint verifies R2 bytes against their D1 hash. This trial status is distinct from `published` paid packs; it requires content and asset rights review before public activation, but not completed human play-testing.

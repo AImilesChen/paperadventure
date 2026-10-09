@@ -2,7 +2,7 @@
 
 **Current product/design source of truth:** [Pre-frontend handoff v1.4](content/前端开发前交付包_索引与阶段门_v1.4.md). It records the agreed free Celebration Home and Classroom sample, separate ready-made and custom prices, page copy, legal review conditions, and UI flow. Earlier prototype behavior and documents may differ.
 
-English-first printable story adventure website prototype. The current public preview is https://paperadventure.app/en/ and deliberately blocks search indexing. Prices, checkout, accounts, PDFs, emails, analytics and generation remain behind release gates until the corresponding product, legal and service checks pass.
+English-first printable story adventure website prototype. The current public preview is https://paperadventure.app/en/ and deliberately blocks search indexing. The Celebration Home and Classroom v0.1 trial PDFs are free to download in A4 and US Letter, with separate Player Pack and adult guide files. Paid checkout, Google accounts, public custom generation and analytics remain behind release gates until their service and publication checks pass.
 
 ## Local development
 

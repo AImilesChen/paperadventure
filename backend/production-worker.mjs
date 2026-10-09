@@ -352,7 +352,7 @@ async function googleLogin(request, env) {
 async function myOrders(request, env) {
   if (!env.DB || !env.SESSION_SECRET) throw new ApiError(503, 'ACCOUNT_NOT_READY', 'Account storage is not configured.');
   const hash = await authenticatedEmailHash(request, env);
-  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Verify your email first.');
+  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google first.');
   const rows = await query(env.DB, 'SELECT id,sku,product_kind,status,currency,amount_total,created_at FROM orders WHERE purchaser_email_hash = ? ORDER BY created_at DESC LIMIT 50', hash).all();
   return json({ orders: rows.results || [] });
 }
@@ -360,7 +360,7 @@ async function myOrders(request, env) {
 async function savedDraft(request, env) {
   if (!env.DB || !env.SESSION_SECRET) throw new ApiError(503, 'ACCOUNT_NOT_READY', 'Account storage is not configured.');
   const hash = await authenticatedEmailHash(request, env);
-  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Verify your email first.');
+  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google first.');
   if (request.method === 'GET') {
     const row = await query(env.DB, 'SELECT draft_json FROM adult_drafts WHERE email_hash = ?', hash).first();
     return json({ draft: row ? JSON.parse(row.draft_json) : null });
@@ -391,7 +391,7 @@ async function freeSample(request, env, setting, paper, role) {
 async function orderView(request, env, orderId) {
   if (!env.DB || !env.SESSION_SECRET) throw new ApiError(503, 'ORDER_ACCESS_NOT_READY', 'Verified order access is not configured.');
   const hash = await authenticatedEmailHash(request, env);
-  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Verify the purchase email first.');
+  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google using your purchase email first.');
   const order = await query(env.DB, 'SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ?', orderId, hash).first();
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified order was found.');
   const entitlement = await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first();
@@ -409,7 +409,7 @@ async function fileDownload(request, env, orderId, role) {
   if (!env.DB || !env.PRIVATE_FILES) throw new ApiError(503, 'FILES_NOT_READY', 'Private files are not configured.');
   if (!['player','guide'].includes(role)) throw new ApiError(404, 'FILE_NOT_FOUND', 'File not found.');
   const hash = await authenticatedEmailHash(request, env);
-  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Verify the purchase email first.');
+  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google using your purchase email first.');
   const order = await query(env.DB, 'SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ?', orderId, hash).first();
   if (!order || order.status !== 'published') throw new ApiError(404, 'FILE_NOT_FOUND', 'File not found.');
   const entitlement = await query(env.DB, "SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'", order.id).first();
@@ -434,7 +434,7 @@ async function requestRevision(request, env, orderId) {
   if (!env.DB || !env.GENERATION_QUEUE || !env.PRIVATE_FILES || !aiProvider(env)) throw new ApiError(503, 'REVISION_NOT_READY', 'Story revisions are not configured.');
   requireSameOrigin(request, env);
   const hash = await authenticatedEmailHash(request, env);
-  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Verify the purchase email first.');
+  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google using your purchase email first.');
   const order = await query(env.DB, "SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ? AND product_kind = 'custom' AND status = 'published'", orderId, hash).first();
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No eligible custom order was found.');
   const entitlement = await query(env.DB, "SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'", orderId).first();
@@ -458,7 +458,7 @@ async function requestRevision(request, env, orderId) {
 async function supportCases(request, env, orderId) {
   if (!env.DB || !env.SESSION_SECRET) throw new ApiError(503, 'SUPPORT_NOT_READY', 'Support reporting is not configured.');
   const hash = await authenticatedEmailHash(request, env);
-  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Verify the purchase email first.');
+  if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google using your purchase email first.');
   const order = await query(env.DB, 'SELECT id FROM orders WHERE id = ? AND purchaser_email_hash = ?', orderId, hash).first();
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified order was found.');
   if (request.method === 'GET') {
