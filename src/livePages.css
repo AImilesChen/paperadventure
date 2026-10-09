@@ -15,3 +15,5 @@
 .nav-signout:hover{color:#eb4c34}
 @media(max-width:1100px){.nav-login{display:inline-flex}}
 @media(max-width:800px){.nav-login,.nav-actions>.nav-signout{display:none}.site-nav .nav-account-mobile{display:block}.site-nav .nav-signout{width:100%;padding:13px 0;border-bottom:1px solid #e4edf0;text-align:left}}
+
+.privacy-document{max-width:900px}.privacy-document .live-panel{padding:36px 42px}.privacy-document h2{margin:30px 0 10px}.privacy-document h2:first-child{margin-top:0}.privacy-document li{color:#365b6d;line-height:1.65;margin:10px 0}.privacy-document a,.live-panel p>a{color:#a83327;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}.privacy-document code{font-size:.95em;color:#213f54}@media(max-width:600px){.privacy-document .live-panel{padding:22px}}

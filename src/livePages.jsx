@@ -53,7 +53,7 @@ export function LiveAccount({ Link }) {
     prepare();
     return () => { cancelled = true; };
   }, []);
-  return <main className="extended-page live-page"><Intro eyebrow="ADULT ACCOUNT" title="Access your adventures."><p>Sign in with your adult Google account to see your adventures and purchases. No child account is needed.</p></Intro><section className="live-shell"><div className="live-panel"><h2>Sign in with Google</h2><p>We use your verified Google email to find your adventures. We do not ask for your contacts or Google Drive.</p><div ref={button} aria-label="Sign in with Google" />{busy && <p role="status">Signing you in…</p>}{error && <Alert>{error}</Alert>}</div><p className="live-note">Need help accessing a purchase? <Link to="/en/help/">Contact support <ArrowRight size={16} /></Link></p></section></main>;
+  return <main className="extended-page live-page"><Intro eyebrow="ADULT ACCOUNT" title="Access your adventures."><p>Sign in with your adult Google account to see your adventures and purchases. No child account is needed.</p></Intro><section className="live-shell"><div className="live-panel"><h2>Sign in with Google</h2><p>We use your verified Google email to find your adventures. We do not ask for your contacts or Google Drive. <Link to="/en/privacy/">Read our Privacy Notice</Link>.</p><div ref={button} aria-label="Sign in with Google" />{busy && <p role="status">Signing you in…</p>}{error && <Alert>{error}</Alert>}</div><p className="live-note">Need help accessing a purchase? <Link to="/en/help/">Contact support <ArrowRight size={16} /></Link></p></section></main>;
 }
 
 export function LiveShelf({ Link }) {
