@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 
 const root = resolve(process.cwd());
 const plan = JSON.parse(readFileSync(resolve(root, 'output/stage-ready-plan.json'), 'utf8'));
-if (!plan.privateOnly || plan.packs.length !== 12 || plan.uploads.length !== 56 ||
+if (!plan.privateOnly || plan.packs.length !== 12 || plan.variants?.length !== 2 || plan.uploads.length !== 56 ||
     !process.env.CLOUDFLARE_API_TOKEN || !process.env.CLOUDFLARE_ACCOUNT_ID) {
   throw new Error('Private stage upload preflight failed');
 }
