@@ -1,1 +1,1 @@
-2026-10-09: verify live Google sign-in after publishing privacy notice and opening accounts.
+2026-10-09: check redesigned home, themed activities navigation, mobile menu, live free PDFs, and accessibility.
