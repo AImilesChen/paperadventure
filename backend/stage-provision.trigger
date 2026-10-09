@@ -1,1 +1,1 @@
-2026-10-09: migrate private classroom wording variants and deploy selection logic.
+2026-10-09: apply classroom variant publication gate migration 0007.
