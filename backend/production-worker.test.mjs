@@ -461,12 +461,12 @@ test('free proposal endpoint returns two short directions and enforces an IP bud
   assert.equal((await limited.json()).error.code, 'PROPOSAL_LIMIT');
 });
 
-test('Stripe sandbox checkout stays account-limited and uses inline test prices without legal release', async () => {
+test('Stripe sandbox checkout accepts any matching Google account and uses inline test prices without legal release', async () => {
   const { db, binding } = database();
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('sandbox-home','custom_home','USD',1499,NULL,'exclusive',1)").run();
   let form;
   const env = { ...config(binding), STAGE_PREVIEW: 'true', TEST_CHECKOUT_ENABLED: 'true', CHECKOUT_ENABLED: 'false',
-    LEGAL_RELEASED: 'false', TAX_CONFIGURED: 'false', STRIPE_TEST_BUYER_EMAIL: 'adult@example.com',
+    LEGAL_RELEASED: 'false', TAX_CONFIGURED: 'false',
     OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', GENERATION_QUEUE: { send: async () => {} },
     FETCH: async (_url, init) => { form = new URLSearchParams(init.body); return Response.json({ id: 'cs_test_sandbox', url: 'https://checkout.stripe.com/test', client_reference_id: form.get('client_reference_id') }); } };
   const health = await handleProductionApi(request('/api/v1/health'), env);
@@ -482,33 +482,40 @@ test('Stripe sandbox checkout stays account-limited and uses inline test prices 
   assert.equal(form.get('line_items[0][price_data][unit_amount]'), '1499');
   assert.equal(form.get('line_items[0][price]'), null);
   assert.equal(form.get('automatic_tax[enabled]'), 'false');
+  const otherToken = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: await sha256(`${env.SESSION_SECRET}|other@example.com`), exp: Math.floor(Date.now()/1000)+3600 });
+  const mismatched = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', input,
+    { ...headers, 'Idempotency-Key': 'sandbox-attempt-mismatch', cookie: `paw_session=${otherToken}` }), env);
+  assert.equal(mismatched.status, 403);
+  assert.equal((await mismatched.json()).error.code, 'ACCOUNT_EMAIL_MISMATCH');
 });
 
-test('private ready packs are visible and purchasable only by the authorised Stripe sandbox buyer', async () => {
+test('public test catalogue and first-page previews allow any adult account to buy fixed packs', async () => {
   const { db, binding } = database();
   db.prepare("INSERT INTO ready_packs (id,theme_world_id,setting,version,status,licence_version) VALUES ('stage-d02','dinosaur','home','v0.1','internal_test','draft-not-approved')").run();
   for (const paper of ['A4','Letter']) for (const role of ['player','guide'])
     db.prepare('INSERT INTO ready_pack_files (ready_pack_id,paper,role,r2_key,sha256,bytes) VALUES (?,?,?,?,?,?)').run('stage-d02',paper,role,`internal/draft-ready/dinosaur/home/${paper}/${role}.pdf`,'0'.repeat(64),4);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('sandbox-ready-home','ready_home','USD',999,NULL,'exclusive',1)").run();
-  let form;
+  let form; let sessionCount = 0;
   const env = { ...config(binding), STAGE_PREVIEW: 'true', TEST_CHECKOUT_ENABLED: 'true', CHECKOUT_ENABLED: 'false',
-    LEGAL_RELEASED: 'false', TAX_CONFIGURED: 'false', STRIPE_TEST_BUYER_EMAIL: 'adult@example.com',
+    LEGAL_RELEASED: 'false', TAX_CONFIGURED: 'false',
     OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', GENERATION_QUEUE: { send: async () => {} },
-    FETCH: async (_url, init) => { form = new URLSearchParams(init.body); return Response.json({ id: 'cs_ready_sandbox', url: 'https://checkout.stripe.com/test-ready', client_reference_id: form.get('client_reference_id') }); } };
+    FETCH: async (_url, init) => { form = new URLSearchParams(init.body); return Response.json({ id: 'cs_ready_sandbox_' + (++sessionCount), url: 'https://checkout.stripe.com/test-ready', client_reference_id: form.get('client_reference_id') }); } };
   const publicCatalog = await handleProductionApi(request('/api/v1/catalog'), env).then(response => response.json());
-  assert.equal(publicCatalog.themes.find(theme => theme.id === 'dinosaur').home.readyStatus, 'not_published');
-  assert.equal(publicCatalog.offers.find(offer => offer.sku === 'ready_home').saleEnabled, false);
-  assert.equal((await handleProductionApi(request('/api/v1/test-packs'), env)).status, 403);
+  assert.equal(publicCatalog.themes.find(theme => theme.id === 'dinosaur').home.readyStatus, 'test_ready');
+  assert.equal(publicCatalog.offers.find(offer => offer.sku === 'ready_home').saleEnabled, true);
+  assert.equal(publicCatalog.offers.find(offer => offer.sku === 'custom_home').saleEnabled, false);
+  assert.equal((await handleProductionApi(request('/api/v1/test-packs'), env)).status, 200);
   const token = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: await sha256(`${env.SESSION_SECRET}|adult@example.com`), exp: Math.floor(Date.now()/1000)+3600 });
   const cookie = { cookie: `paw_session=${token}` };
   const privateCatalog = await handleProductionApi(request('/api/v1/test-packs', 'GET', undefined, cookie), env).then(response => response.json());
   const anonymousPreview = await handleProductionApi(request('/api/v1/test-pack-previews/dinosaur/home'), env);
-  assert.equal(anonymousPreview.status, 403);
+  assert.equal(anonymousPreview.status, 404);
   let previewKey;
   env.PRIVATE_FILES = { get: async key => { previewKey = key; return { body: new Uint8Array([0xff,0xd8,...new Uint8Array(10000)]) }; } };
-  const preview = await handleProductionApi(request('/api/v1/test-pack-previews/dinosaur/home', 'GET', undefined, cookie), env);
+  const preview = await handleProductionApi(request('/api/v1/test-pack-previews/dinosaur/home'), env);
   assert.equal(preview.status, 200);
   assert.equal(preview.headers.get('content-type'), 'image/jpeg');
+  assert.match(preview.headers.get('cache-control'), /public/);
   assert.equal(previewKey, 'internal/draft-previews/dinosaur/home/v0.1.jpg');
 
   assert.deepEqual(privateCatalog.packs, [{ themeId: 'dinosaur', setting: 'home', version: 'v0.1', variantIds: [] }]);
@@ -520,6 +527,13 @@ test('private ready packs are visible and purchasable only by the authorised Str
   assert.equal((await checkout.json()).mode, 'stripe_test');
   assert.equal(form.get('line_items[0][price_data][unit_amount]'), '999');
   assert.equal(form.get('automatic_tax[enabled]'), 'false');
+  const otherEmail = 'another.adult@example.com';
+  const otherToken = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: await sha256(`${env.SESSION_SECRET}|${otherEmail}`), exp: Math.floor(Date.now()/1000)+3600 });
+  const otherCheckout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST',
+    { ...input, email: otherEmail },
+    { origin: 'https://adventure.example', 'Idempotency-Key': 'sandbox-ready-other-adult', cookie: `paw_session=${otherToken}` }), env);
+  assert.equal(otherCheckout.status, 201);
+  assert.equal((await otherCheckout.json()).mode, 'stripe_test');
 });
 
 test('adult email link can be used once and creates a private order session', async () => {

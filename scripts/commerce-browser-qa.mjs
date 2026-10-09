@@ -19,10 +19,14 @@ catalog.freeSampleThemeId = 'celebration';
 catalog.themes = catalog.themes.map(theme => ({
   ...theme,
   home: { ...theme.home, freeSample: theme.id === 'celebration',
-    readyStatus: theme.id === 'celebration' ? 'downloadable_trial' : 'not_published' },
+    readyStatus: theme.id === 'celebration' ? 'downloadable_trial' : 'test_ready',
+    packVersion: theme.id === 'celebration' ? 'v0.1' : 'v1.0' },
   classroom: { ...theme.classroom, freeSample: theme.id === 'celebration',
-    readyStatus: theme.id === 'celebration' ? 'downloadable_trial' : 'not_published' },
+    readyStatus: theme.id === 'celebration' ? 'downloadable_trial' : 'test_ready',
+    packVersion: theme.id === 'celebration' ? 'v0.1' : 'v1.0',
+    variantIds: ['halloween', 'christmas'].includes(theme.id) ? [theme.id] : [] },
 }));
+catalog.offers = catalog.offers.map(offer => ({ ...offer, saleEnabled: true }));
 const proposalResponse = {
   proposals: [
     { id: 'mystery', title: 'The hidden forest letter', summary: 'Find the missing letter through five woodland clues.' },
@@ -60,6 +64,7 @@ await page.route('**/api/v1/**', async route => {
   if (path === '/api/v1/health') return reply(health);
   if (path === '/api/v1/catalog') return reply(catalog);
   if (path === '/api/v1/test-packs') return reply({ packs, mode: 'stripe_test' });
+  if (path === '/api/v1/auth/session') return reply({ available: true, authenticated: true });
   if (path.startsWith('/api/v1/test-pack-previews/')) return route.fulfill({
     status: 200, contentType: 'image/jpeg',
     body: Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABQb/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdAB//2Q==', 'base64'),
@@ -139,13 +144,27 @@ try {
   await page.getByText('Your full game is queued.').waitFor();
   check(errors.length === 0, 'Browser JavaScript errors: ' + errors.join('; '));
   await page.screenshot({ path: out + '/mock-custom-order.png', fullPage: true, animations: 'disabled' });
+  await page.route('**/api/v1/auth/session', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ available: true, authenticated: false }),
+  }));
+  await page.goto(base + '/en/themes/dinosaur/?setting=home', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('link', { name: /Test home pack/ }).waitFor();
+  await page.locator('.product-pdf-preview img').waitFor();
+  await page.getByRole('link', { name: /Test home pack/ }).click();
+  const signIn = page.getByRole('link', { name: 'Sign in with Google' });
+  await signIn.waitFor();
+  check((await signIn.getAttribute('href'))?.includes('returnTo='), 'Checkout sign-in did not preserve the return path');
+  check(await page.getByLabel('Adult delivery email').count() === 0, 'Signed-out visitor can submit test checkout');
   writeFileSync(out + '/commerce-flow-report.json', JSON.stringify({
     fixedPacksVisible: packs.length, readyHomeOrderLinks: 4, readyClassroomOrderLinks: 4,
     seasonalVariant: checkoutPayloads[1].variantId,
     customDirection: checkoutPayloads[2].proposalTitle,
+    publicCatalogueVisibleBeforeSignIn: true,
+    checkoutRequiresGoogleSignIn: true,
     note: 'Mocked API and checkout redirect only; no Stripe charge or authenticated production purchase.',
   }, null, 2) + '\n');
-  console.log('Commerce UI mock passed: 10 fixed packs, two ready order paths, seasonal wording, custom proposal snapshot and queued order.');
+  console.log('Commerce UI mock passed: 10 public fixed packs, signed-out checkout gate, two ready order paths, seasonal wording, custom proposal snapshot and queued order.');
 } finally {
   await browser.close();
 }

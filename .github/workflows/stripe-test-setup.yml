@@ -38,19 +38,7 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN"
           npx --yes wrangler@4.74.0 secret list --name paper-adventure-api-stage --format json > "$RUNNER_TEMP/paw-stage-secrets.json"
-          node -e "const fs=require('node:fs');const rows=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-stage-secrets.json','utf8'));const names=new Set(rows.map(item=>item.name));const needed=['STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET'];const missing=needed.filter(name=>!names.has(name));if(missing.length)throw Error('Missing Cloudflare Worker secrets: '+missing.join(', '));console.log('Stripe API and webhook Worker secret names are present; buyer email may be a text variable')"
-      - name: Inspect Stripe binding names and buyer email format without logging values
-        run: |
-          for worker in paper-adventure-api-stage paper-adventure-preview-v2; do
-            if curl --fail --silent --show-error \
-              --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$worker/settings" \
-              > "$RUNNER_TEMP/$worker-settings.json"; then
-              WORKER="$worker" node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+process.env.WORKER+'-settings.json','utf8'));const a=d.result?.bindings||[];for(const n of ['STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','STRIPE_TEST_BUYER_EMAIL']){const b=a.find(x=>x.name===n);console.log(process.env.WORKER+' '+n+': '+(b?.type||'missing'));if(n==='STRIPE_TEST_BUYER_EMAIL'&&b&&typeof b.text==='string')console.log('Buyer email format valid: '+(b.text.includes('@')&&b.text.includes('.')&&!b.text.includes(' ')))}"
-            else
-              echo "$worker settings inspection unavailable"
-            fi
-          done
+          node -e "const fs=require('node:fs');const rows=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-stage-secrets.json','utf8'));const names=new Set(rows.map(item=>item.name));const needed=['STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET'];const missing=needed.filter(name=>!names.has(name));if(missing.length)throw Error('Missing Cloudflare Worker secrets: '+missing.join(', '));console.log('Stripe API and webhook Worker secret names are present')"
       - name: Read existing stage database ID
         run: |
           npx --yes wrangler@4.74.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/paw-d1.json"
@@ -68,10 +56,17 @@ jobs:
           done
           echo "::error::Stripe sandbox capability did not propagate"
           exit 1
-      - name: Keep private test packs hidden from anonymous visitors
+      - name: Verify public test catalogue and private order boundary
         run: |
-          code=$(curl --silent --output /dev/null --write-out '%{http_code}' https://paperadventure.app/api/v1/test-packs)
-          test "$code" = 403
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/test-packs | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.packs?.length!==10||v.mode!=='stripe_test')throw Error('Expected ten public sandbox packs');console.log('Ten fixed sandbox packs are publicly listed')})"
           preview_code=$(curl --silent --output /dev/null --write-out '%{http_code}' https://paperadventure.app/api/v1/test-pack-previews/dinosaur/home)
-          test "$preview_code" = 403
-          curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.offers?.some(x=>x.kind==='ready'&&x.saleEnabled)||v.themes?.some(t=>t.id!=='celebration'&&['home','classroom'].some(k=>t[k]?.readyStatus==='published')))throw Error('Test pack leaked into public catalog');console.log('Anonymous catalog keeps paid ready packs closed')})"
+          test "$preview_code" = 200
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);const n=v.themes?.flatMap(t=>t.id==='celebration'?[]:['home','classroom'].map(k=>t[k]?.readyStatus)).filter(x=>x==='test_ready').length;if(n!==10||v.offers?.filter(x=>x.saleEnabled).length!==4)throw Error('Public sandbox catalogue incomplete: '+JSON.stringify({packs:n,offers:v.offers?.filter(x=>x.saleEnabled).length}));console.log('Public catalogue exposes ten test packs and four test offers')})"
+          anonymous_checkout=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --header 'Origin: https://paperadventure.app' \
+            --header 'Content-Type: application/json' \
+            --header 'Idempotency-Key: public-sandbox-anonymous-check' \
+            --data '{"sku":"ready_home","themeId":"dinosaur","packVersion":"v0.1","email":"adult@example.com"}' \
+            https://paperadventure.app/api/v1/checkout-intents)
+          test "$anonymous_checkout" = 403
+          echo "Public browsing works; a Google session is still required to create an order"

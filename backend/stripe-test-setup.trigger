@@ -1,1 +1,1 @@
-2026-10-09 deploy private ready preview endpoint and selected proposal
+2026-10-09 deploy public Stripe sandbox for all Google-signed-in adults and public first-page previews.

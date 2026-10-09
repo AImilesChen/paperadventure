@@ -55,7 +55,7 @@ async function publishedLegal(env) {
 const testCheckoutReady = env => Boolean(env.TEST_CHECKOUT_ENABLED === 'true' && env.STAGE_PREVIEW === 'true' &&
   env.DB && env.PRIVATE_FILES && emailReady(env) && accountReady(env) &&
   env.STRIPE_SECRET_KEY?.startsWith('sk_test_') && env.STRIPE_WEBHOOK_SECRET?.startsWith('whsec_') &&
-  normalizeEmail(env.STRIPE_TEST_BUYER_EMAIL) && generationReady(env));
+  generationReady(env));
 async function checkoutReady(env) { return testCheckoutReady(env) || (paymentReady(env) && (await publishedLegal(env))?.size === 4); }
 
 async function liveCatalog(env) {
@@ -63,31 +63,35 @@ async function liveCatalog(env) {
   if (!env.DB) return base;
   const visibleWorlds = await query(env.DB, "SELECT id FROM theme_worlds WHERE status = 'published'").all();
   const visibleIds = new Set((visibleWorlds.results || []).map(world => world.id));
+  const testOnly = testCheckoutReady(env);
   const result = await query(env.DB, `SELECT p.id,p.theme_world_id,p.setting,p.version,p.status FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id
     WHERE ((p.status = 'published' AND p.theme_world_id <> 'celebration') OR
+      (? = 1 AND p.status = 'internal_test' AND p.theme_world_id <> 'celebration') OR
       (p.status IN ('release_ready','published') AND p.theme_world_id = 'celebration'))
       AND w.status = 'published' AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
-    ORDER BY p.published_at DESC, p.version DESC`).all();
+    ORDER BY p.published_at DESC, p.version DESC`, testOnly ? 1 : 0).all();
   const ready = result.results || [];
-  const variantRows = await query(env.DB, `SELECT ready_pack_id,variant_id FROM ready_pack_variants WHERE status = 'published' GROUP BY ready_pack_id,variant_id HAVING COUNT(*) = 4`).all();
+  const variantRows = await query(env.DB, `SELECT ready_pack_id,variant_id FROM ready_pack_variants
+    WHERE status = 'published' OR (? = 1 AND status = 'internal_test')
+    GROUP BY ready_pack_id,variant_id HAVING COUNT(*) = 4`, testOnly ? 1 : 0).all();
   const variantsFor = pack => (variantRows.results || []).filter(row => row.ready_pack_id === pack?.id).map(row => row.variant_id);
   const trialPacks = ready.filter(pack => pack.theme_world_id === 'celebration');
   const free = env.FREE_SAMPLE_ENABLED === 'true' &&
     ['home','classroom'].every(setting => trialPacks.some(pack => pack.setting === setting));
   const prices = await query(env.DB, 'SELECT sku,unit_amount,currency FROM price_versions WHERE sale_enabled = 1').all();
   const liveSkus = new Set((prices.results || []).filter(price => offers.some(offer => offer.sku === price.sku && offer.unitAmount === price.unit_amount && price.currency === 'USD')).map(price => price.sku));
-  const availablePaidPack = setting => ready.some(pack => pack.setting === setting && pack.theme_world_id !== 'celebration' && pack.status === 'published');
+  const availablePaidPack = setting => ready.some(pack => pack.setting === setting && pack.theme_world_id !== 'celebration' && pack.status === (testOnly ? 'internal_test' : 'published'));
   const readyStatus = (themeId, setting) => themeId === 'celebration'
     ? (free ? 'downloadable_trial' : 'not_published')
-    : (ready.some(pack => pack.theme_world_id === themeId && pack.setting === setting && pack.status === 'published') ? 'published' : 'not_published');
+    : (ready.some(pack => pack.theme_world_id === themeId && pack.setting === setting && pack.status === 'published') ? 'published'
+      : testOnly && ready.some(pack => pack.theme_world_id === themeId && pack.setting === setting && pack.status === 'internal_test') ? 'test_ready' : 'not_published');
   const canCheckout = await checkoutReady(env);
-  const testOnly = testCheckoutReady(env);
   return { ...base, publicationState: canCheckout || free ? 'partially_configured' : base.publicationState,
     freeSampleThemeId: free ? 'celebration' : null,
     themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: readyStatus(theme.id, 'home'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
       classroom: { readyStatus: readyStatus(theme.id, 'classroom'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null,
         variantIds: variantsFor(ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')) } })),
-    offers: offers.map(offer => ({ ...offer, saleEnabled: canCheckout && liveSkus.has(offer.sku) && (offer.kind === 'custom' ? generationReady(env) : !testOnly && availablePaidPack(offer.setting)) })) };
+    offers: offers.map(offer => ({ ...offer, saleEnabled: canCheckout && liveSkus.has(offer.sku) && (offer.kind === 'custom' ? generationReady(env) : availablePaidPack(offer.setting)) })) };
 }
 
 function requireSameOrigin(request, env) {
@@ -104,9 +108,6 @@ async function requestBody(request) {
 
 async function testReadyCatalog(request, env) {
   if (!testCheckoutReady(env)) throw new ApiError(404, 'NOT_FOUND', 'Test packs are not available.');
-  const buyer = normalizeEmail(env.STRIPE_TEST_BUYER_EMAIL);
-  const hash = await authenticatedEmailHash(request, env);
-  if (!hash || hash !== await emailHash(env, buyer)) throw new ApiError(403, 'TEST_BUYER_ONLY', 'Sign in with the authorised Google test account.');
   const rows = await query(env.DB, `SELECT p.id,p.theme_world_id,p.setting,p.version FROM ready_packs p
     JOIN theme_worlds w ON w.id = p.theme_world_id
     WHERE p.status = 'internal_test' AND p.theme_world_id <> 'celebration' AND w.status = 'published'
@@ -131,10 +132,6 @@ async function testPackPreview(request, env, themeId, setting) {
       !['dinosaur','space','forest','halloween','christmas'].includes(themeId)) {
     throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
   }
-  const hash = await authenticatedEmailHash(request, env);
-  if (!hash || hash !== await emailHash(env, normalizeEmail(env.STRIPE_TEST_BUYER_EMAIL))) {
-    throw new ApiError(403, 'TEST_BUYER_ONLY', 'Sign in with the authorised Google test account.');
-  }
   const pack = await query(env.DB, `SELECT p.version FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id
     WHERE p.theme_world_id = ? AND p.setting = ? AND p.status = 'internal_test' AND w.status = 'published'
       AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4
@@ -147,7 +144,7 @@ async function testPackPreview(request, env, themeId, setting) {
   if (bytes.length < 10000 || bytes.length > 3 * 1024 * 1024 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
     throw new ApiError(503, 'PREVIEW_INVALID', 'The preview is temporarily unavailable.');
   }
-  return new Response(bytes, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
+  return new Response(bytes, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=300', 'x-content-type-options': 'nosniff' } });
 }
 
 async function checkout(request, env) {
@@ -159,8 +156,8 @@ async function checkout(request, env) {
   const testOnly = testCheckoutReady(env);
   if (testOnly) {
     const accountHash = await authenticatedEmailHash(request, env);
-    if (!accountHash || accountHash !== await emailHash(env, email) || email !== normalizeEmail(env.STRIPE_TEST_BUYER_EMAIL))
-      throw new ApiError(403, 'TEST_BUYER_ONLY', 'Sign in with the authorised Google test account and use its email.');
+    if (!accountHash || accountHash !== await emailHash(env, email))
+      throw new ApiError(403, 'ACCOUNT_EMAIL_MISMATCH', 'Sign in with Google and use the same email at checkout.');
   }
   const { offer, spec } = validatePurchase(input);
   if (offer.kind === 'custom' && !generationReady(env)) throw new ApiError(503, 'GENERATION_NOT_READY', 'Custom generation is not available.');

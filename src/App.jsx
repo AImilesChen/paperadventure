@@ -15,7 +15,7 @@ const faq = [
   ['What can I download today?', 'The Celebration trial has separate Home and Classroom printable Player Packs and adult guides in A4 and US Letter. Both editions are free.'],
   ['Can I use my own story idea?', 'Yes. Start from any featured theme or describe an idea of your own. Signed-in adults can preview short story directions before continuing.'],
   ['Is there a classroom version?', 'Yes. The free Celebration trial has a distinct classroom game, and custom adventure planning supports classroom groups.'],
-  ['When would I pay?', 'The free Celebration trial never needs payment. Custom checkout is currently in Stripe test mode for the designated tester; other ready-made packs are not yet published.'],
+  ['When would I pay?', 'The free Celebration trial never needs payment. Fixed packs and custom adventures are available in Stripe test mode after adult Google sign-in. Test transactions do not collect real money.'],
 ];
 
 function path() { return window.location.pathname; }
@@ -176,8 +176,8 @@ export function App() {
   const [runtimeCatalog, setRuntimeCatalog] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetch('/api/v1/health').then(response => response.json()), fetch('/api/v1/catalog').then(response => response.json()), fetch('/api/v1/test-packs').then(response => response.ok ? response.json() : null).catch(() => null)])
-      .then(([health, catalog, testPacks]) => { if (!cancelled && health.status === 'configured_runtime') { const authorisedTester = health.checkoutMode === 'test' && testPacks?.mode === 'stripe_test'; const packs = authorisedTester ? testPacks?.packs || [] : []; const merged = authorisedTester ? { ...catalog, themes: catalog.themes.map(theme => ({ ...theme, home: { ...theme.home, ...(packs.find(pack => pack.themeId === theme.id && pack.setting === 'home') ? { readyStatus: 'test_ready', packVersion: packs.find(pack => pack.themeId === theme.id && pack.setting === 'home').version } : {}) }, classroom: { ...theme.classroom, ...(packs.find(pack => pack.themeId === theme.id && pack.setting === 'classroom') ? { readyStatus: 'test_ready', packVersion: packs.find(pack => pack.themeId === theme.id && pack.setting === 'classroom').version, variantIds: packs.find(pack => pack.themeId === theme.id && pack.setting === 'classroom').variantIds } : {}) } })), offers: catalog.offers.map(offer => (offer.kind === 'custom' || (offer.kind === 'ready' && packs.some(pack => pack.setting === offer.setting))) ? { ...offer, saleEnabled: true } : offer) } : catalog; setRuntime(health); setRuntimeCatalog(merged); } })
+    Promise.all([fetch('/api/v1/health').then(response => response.json()), fetch('/api/v1/catalog').then(response => response.json())])
+      .then(([health, catalog]) => { if (!cancelled && health.status === 'configured_runtime') { setRuntime(health); setRuntimeCatalog(catalog); } })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
