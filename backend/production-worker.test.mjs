@@ -447,7 +447,10 @@ test('free proposal endpoint returns two short directions and enforces an IP bud
   const { binding } = database();
   const env = { ...config(binding), PROPOSALS_ENABLED: 'true', OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', FETCH: async () => Response.json({ output: [{ content: [{ type: 'output_text', text: JSON.stringify({ proposals: [{ id: 'mystery', title: 'Lost note', summary: 'Follow a missing note.' }, { id: 'mission', title: 'Shared map', summary: 'Rebuild a map together.' }] }) }] }], usage: { input_tokens: 90, output_tokens: 60 } }) };
   const input = { themeId: 'celebration', setting: 'home', players: 4, age: '8-10', paper: 'A4' };
-  const call = () => handleProductionApi(request('/api/v1/proposals', 'POST', input, { 'cf-connecting-ip': '203.0.113.7', origin: 'https://adventure.example' }), env);
+  const anonymous = await handleProductionApi(request('/api/v1/proposals', 'POST', input, { 'cf-connecting-ip': '203.0.113.7', origin: 'https://adventure.example' }), env);
+  assert.equal(anonymous.status, 401);
+  const session = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: await sha256(`${env.SESSION_SECRET}|adult@example.com`), exp: Math.floor(Date.now()/1000)+3600 });
+  const call = () => handleProductionApi(request('/api/v1/proposals', 'POST', input, { 'cf-connecting-ip': '203.0.113.7', origin: 'https://adventure.example', cookie: `paw_session=${session}` }), env);
   assert.equal((await call()).status, 200);
   assert.equal((await call()).status, 200);
   const limited = await call();

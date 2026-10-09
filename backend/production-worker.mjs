@@ -295,13 +295,15 @@ async function dispatchNotification(orderId, kind, env) {
 async function proposals(request, env) {
   if (!env.DB || !env.SESSION_SECRET || env.PROPOSALS_ENABLED !== 'true' || !aiProvider(env)) throw new ApiError(503, 'GENERATION_NOT_READY', 'Free story proposals are not available.');
   requireSameOrigin(request, env);
+  const accountHash = await authenticatedEmailHash(request, env);
+  if (!accountHash) throw new ApiError(401, 'SIGN_IN_REQUIRED', 'Sign in with Google to preview story ideas.');
   const ip = request.headers.get('cf-connecting-ip');
   if (!ip) throw new ApiError(403, 'VISITOR_UNVERIFIED', 'Visitor verification is unavailable.');
   const input = await requestBody(request);
   const { spec } = validatePurchase({ ...input, sku: input.setting === 'classroom' ? 'custom_classroom' : 'custom_home', direction: 'mystery', paper: input.paper || 'A4' });
   validateSupportedRange(spec, env);
-  const visitorHash = await sha256(`${env.SESSION_SECRET}|${ip}`);
-  const bucket = await sha256(`${visitorHash}|proposals|${Math.floor(nowSeconds() / 86400)}`);
+  const visitorHash = await sha256(`${env.SESSION_SECRET}|${ip}|${accountHash}`);
+  const bucket = await sha256(`${accountHash}|proposals|${Math.floor(nowSeconds() / 86400)}`);
   await query(env.DB, `INSERT INTO access_rate_limits (bucket,hits,expires_at) VALUES (?,1,?) ON CONFLICT(bucket) DO UPDATE SET hits = hits + 1`, bucket, nowSeconds() + 86400).run();
   const count = await query(env.DB, 'SELECT hits FROM access_rate_limits WHERE bucket = ?', bucket).first();
   if (count.hits > 2) throw new ApiError(429, 'PROPOSAL_LIMIT', 'The free idea limit has been reached for today.');
@@ -484,7 +486,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);
       const catalog = await liveCatalog(env);
-      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), generation: generationReady(env), proposals: env.PROPOSALS_ENABLED === 'true' && Boolean(env.DB && env.SESSION_SECRET && aiProvider(env) && rangeReady(env)), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), generation: generationReady(env), proposals: env.PROPOSALS_ENABLED === 'true' && accountReady(env) && Boolean(aiProvider(env) && rangeReady(env)), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {

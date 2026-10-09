@@ -25,7 +25,7 @@ const config = {
     TAX_CONFIGURED: 'false',
     LIVE_PAYMENTS_ENABLED: 'false',
     FREE_SAMPLE_ENABLED: 'true',
-    PROPOSALS_ENABLED: 'false',
+    PROPOSALS_ENABLED: 'true',
     ACCOUNT_ENABLED: 'true',
     GOOGLE_CLIENT_ID: googleClientId,
     ACCOUNT_TEST_EMAIL: 'support@paperadventure.app',
@@ -34,10 +34,10 @@ const config = {
     PUBLIC_ORIGIN: 'https://paperadventure.app',
     AI_PROVIDER: 'deepseek',
     DEEPSEEK_MODEL: 'deepseek-flash',
-    SUPPORTED_AGE_MIN: '0',
-    SUPPORTED_AGE_MAX: '0',
-    HOME_PLAYER_MAX: '0',
-    CLASSROOM_STUDENT_MAX: '0',
+    SUPPORTED_AGE_MIN: '6',
+    SUPPORTED_AGE_MAX: '12',
+    HOME_PLAYER_MAX: '12',
+    CLASSROOM_STUDENT_MAX: '35',
   },
 };
 writeFileSync(new URL('../backend/wrangler.stage.generated.jsonc', import.meta.url), `${JSON.stringify(config, null, 2)}\n`);
