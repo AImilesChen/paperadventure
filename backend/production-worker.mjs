@@ -2,7 +2,7 @@ import { publicCatalog, offers, productRights, themes } from '../shared/catalog.
 import { ApiError, validatePurchase, validateSupportedRange } from './domain.mjs';
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
-import { generateStory, generateProposals, reviseStage } from './openai.mjs';
+import { aiProvider, generateStory, generateProposals, reviseStage } from './openai.mjs';
 import { buildGamePdf } from './pdf.mjs';
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
@@ -41,7 +41,7 @@ function paymentReady(env) {
     (env.STRIPE_SECRET_KEY.startsWith('sk_test_') || (env.LIVE_PAYMENTS_ENABLED === 'true' && env.STRIPE_SECRET_KEY.startsWith('sk_live_'))));
 }
 const rangeReady = env => [env.SUPPORTED_AGE_MIN,env.SUPPORTED_AGE_MAX,env.HOME_PLAYER_MAX,env.CLASSROOM_STUDENT_MAX].every(value => Number.isInteger(Number(value)) && Number(value) > 0) && Number(env.SUPPORTED_AGE_MAX) >= Number(env.SUPPORTED_AGE_MIN) && Number(env.HOME_PLAYER_MAX) >= 2 && Number(env.CLASSROOM_STUDENT_MAX) >= 2;
-const generationReady = env => Boolean(env.OPENAI_API_KEY && env.OPENAI_MODEL && env.GENERATION_QUEUE && env.PRIVATE_FILES && rangeReady(env));
+const generationReady = env => Boolean(aiProvider(env) && env.GENERATION_QUEUE && env.PRIVATE_FILES && rangeReady(env));
 
 async function publishedLegal(env) {
   if (!env.DB) return null;
@@ -283,7 +283,7 @@ async function dispatchNotification(orderId, kind, env) {
 }
 
 async function proposals(request, env) {
-  if (!env.DB || !env.SESSION_SECRET || env.PROPOSALS_ENABLED !== 'true' || !env.OPENAI_API_KEY || !env.OPENAI_MODEL) throw new ApiError(503, 'GENERATION_NOT_READY', 'Free story proposals are not available.');
+  if (!env.DB || !env.SESSION_SECRET || env.PROPOSALS_ENABLED !== 'true' || !aiProvider(env)) throw new ApiError(503, 'GENERATION_NOT_READY', 'Free story proposals are not available.');
   requireSameOrigin(request, env);
   const ip = request.headers.get('cf-connecting-ip');
   if (!ip) throw new ApiError(403, 'VISITOR_UNVERIFIED', 'Visitor verification is unavailable.');
@@ -296,7 +296,7 @@ async function proposals(request, env) {
   const count = await query(env.DB, 'SELECT hits FROM access_rate_limits WHERE bucket = ?', bucket).first();
   if (count.hits > 2) throw new ApiError(429, 'PROPOSAL_LIMIT', 'The free idea limit has been reached for today.');
   const result = await generateProposals(spec, env, env.FETCH || fetch);
-  await query(env.DB, 'INSERT INTO proposal_usage (id,visitor_hash,model,input_tokens,output_tokens) VALUES (?,?,?,?,?)', crypto.randomUUID(), visitorHash, env.OPENAI_MODEL, result.usage?.input_tokens || null, result.usage?.output_tokens || null).run();
+  await query(env.DB, 'INSERT INTO proposal_usage (id,visitor_hash,model,input_tokens,output_tokens) VALUES (?,?,?,?,?)', crypto.randomUUID(), visitorHash, aiProvider(env)?.model, result.usage?.input_tokens || null, result.usage?.output_tokens || null).run();
   return json({ proposals: result.proposals });
 }
 
@@ -393,7 +393,7 @@ async function fileDownload(request, env, orderId, role) {
 }
 
 async function requestRevision(request, env, orderId) {
-  if (!env.DB || !env.GENERATION_QUEUE || !env.PRIVATE_FILES || !env.OPENAI_API_KEY) throw new ApiError(503, 'REVISION_NOT_READY', 'Story revisions are not configured.');
+  if (!env.DB || !env.GENERATION_QUEUE || !env.PRIVATE_FILES || !aiProvider(env)) throw new ApiError(503, 'REVISION_NOT_READY', 'Story revisions are not configured.');
   requireSameOrigin(request, env);
   const hash = await authenticatedEmailHash(request, env);
   if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Verify the purchase email first.');
@@ -446,7 +446,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);
       const catalog = await liveCatalog(env);
-      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), generation: generationReady(env), proposals: env.PROPOSALS_ENABLED === 'true' && Boolean(env.DB && env.SESSION_SECRET && env.OPENAI_API_KEY && env.OPENAI_MODEL && rangeReady(env)), account: Boolean(env.DB && env.SESSION_SECRET && emailReady(env) && env.PUBLIC_ORIGIN), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), generation: generationReady(env), proposals: env.PROPOSALS_ENABLED === 'true' && Boolean(env.DB && env.SESSION_SECRET && aiProvider(env) && rangeReady(env)), account: Boolean(env.DB && env.SESSION_SECRET && emailReady(env) && env.PUBLIC_ORIGIN), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
@@ -487,7 +487,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
 }
 
 async function publishCustomOrder(orderId, env) {
-  if (!env.DB || !env.PRIVATE_FILES || !env.OPENAI_API_KEY) throw new Error('Generation bindings are missing');
+  if (!env.DB || !env.PRIVATE_FILES || !aiProvider(env)) throw new Error('Generation bindings are missing');
   const order = await query(env.DB, "SELECT * FROM orders WHERE id = ? AND product_kind = 'custom' AND status IN ('paid','fulfilling')", orderId).first();
   if (!order) return;
   const activity = await query(env.DB, 'SELECT * FROM custom_activities WHERE order_id = ?', orderId).first();
@@ -520,10 +520,10 @@ async function publishCustomOrder(orderId, env) {
       query(env.DB, `UPDATE entitlements SET revision_expires_at = datetime('now','+30 days'), access_expires_at = datetime('now', ?) WHERE order_id = ?`,
         `+${accessMonths(spec)} months`, orderId),
       query(env.DB, "INSERT OR IGNORE INTO delivery_notifications (order_id,kind,status) VALUES (?,'files_ready','pending')", orderId),
-      query(env.DB, 'INSERT OR IGNORE INTO generation_usage (order_id,attempt,response_id,model,input_tokens,output_tokens,status) VALUES (?,?,?,?,?,?,?)', orderId, attempt, result.responseId, env.OPENAI_MODEL, result.usage?.input_tokens || null, result.usage?.output_tokens || null, 'published'),
+      query(env.DB, 'INSERT OR IGNORE INTO generation_usage (order_id,attempt,response_id,model,input_tokens,output_tokens,status) VALUES (?,?,?,?,?,?,?)', orderId, attempt, result.responseId, aiProvider(env)?.model, result.usage?.input_tokens || null, result.usage?.output_tokens || null, 'published'),
     ]);
   } catch (caught) {
-    await query(env.DB, 'INSERT OR IGNORE INTO generation_usage (order_id,attempt,model,status) VALUES (?,?,?,?)', orderId, attempt, env.OPENAI_MODEL || 'unconfigured', 'failed').run();
+    await query(env.DB, 'INSERT OR IGNORE INTO generation_usage (order_id,attempt,model,status) VALUES (?,?,?,?)', orderId, attempt, aiProvider(env)?.model || 'unconfigured', 'failed').run();
     if (attempt >= 2) await env.DB.batch([
       query(env.DB, "UPDATE custom_activities SET status = 'failed', lease_until = NULL WHERE id = ?", activity.id),
       query(env.DB, "UPDATE orders SET status = 'failed' WHERE id = ?", orderId),
@@ -535,7 +535,7 @@ async function publishCustomOrder(orderId, env) {
 }
 
 async function publishRevision(revisionId, env) {
-  if (!env.DB || !env.PRIVATE_FILES || !env.OPENAI_API_KEY) throw new Error('Revision bindings are missing');
+  if (!env.DB || !env.PRIVATE_FILES || !aiProvider(env)) throw new Error('Revision bindings are missing');
   const revision = await query(env.DB, "SELECT * FROM revision_requests WHERE id = ? AND status IN ('queued','generating')", revisionId).first();
   if (!revision) return;
   const order = await query(env.DB, "SELECT * FROM orders WHERE id = ? AND status = 'published'", revision.order_id).first();
@@ -568,10 +568,10 @@ async function publishRevision(revisionId, env) {
       query(env.DB, `INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,guide_r2_key,player_sha256,guide_sha256,story_r2_key,story_sha256) VALUES (?, ?, ?, 'published', ?, ?, ?, ?, ?, ?)`, `artifact-${order.id}-${version}`, activity.id, version, `${prefix}/player.pdf`, `${prefix}/guide.pdf`, playerHash, guideHash, `${prefix}/story.json`, storyHash),
       query(env.DB, `UPDATE entitlements SET revision_success_used = revision_success_used + 1 WHERE order_id = ? AND revision_success_used < revision_success_limit`, order.id),
       query(env.DB, "UPDATE revision_requests SET status = 'published', lease_until = NULL, version_number = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?", version, revision.id),
-      query(env.DB, 'INSERT INTO generation_usage (order_id,attempt,response_id,model,input_tokens,output_tokens,status) VALUES (?,?,?,?,?,?,?)', order.id, attempt, result.responseId, env.OPENAI_MODEL, result.usage?.input_tokens || null, result.usage?.output_tokens || null, 'revision-published'),
+      query(env.DB, 'INSERT INTO generation_usage (order_id,attempt,response_id,model,input_tokens,output_tokens,status) VALUES (?,?,?,?,?,?,?)', order.id, attempt, result.responseId, aiProvider(env)?.model, result.usage?.input_tokens || null, result.usage?.output_tokens || null, 'revision-published'),
     ]);
   } catch (caught) {
-    await query(env.DB, 'INSERT OR IGNORE INTO generation_usage (order_id,attempt,model,status) VALUES (?,?,?,?)', order.id, attempt, env.OPENAI_MODEL || 'unconfigured', 'revision-failed').run();
+    await query(env.DB, 'INSERT OR IGNORE INTO generation_usage (order_id,attempt,model,status) VALUES (?,?,?,?)', order.id, attempt, aiProvider(env)?.model || 'unconfigured', 'revision-failed').run();
     if (revisionAttempt >= 3) await query(env.DB, "UPDATE revision_requests SET status = 'failed', lease_until = NULL, completed_at = CURRENT_TIMESTAMP WHERE id = ?", revision.id).run();
     else await query(env.DB, 'UPDATE revision_requests SET lease_until = 0 WHERE id = ?', revision.id).run();
     throw caught;
