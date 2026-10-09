@@ -4,7 +4,7 @@ import { handleApi } from './worker.mjs';
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith('/api/')) return handleApi(request);
+    if (url.pathname.startsWith('/api/')) return env.BACKEND_STAGE?.fetch ? env.BACKEND_STAGE.fetch(request) : handleApi(request);
     if (url.pathname === '/robots.txt') return new Response('User-agent: AhrefsSiteAudit\nAllow: /\n\nUser-agent: AhrefsBot\nAllow: /\n\nUser-agent: *\nDisallow: /\n', { headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex, nofollow' } });
 
     let response = await env.ASSETS.fetch(request);
