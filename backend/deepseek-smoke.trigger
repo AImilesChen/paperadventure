@@ -1,1 +1,1 @@
-2026-10-09 retry private DeepSeek Home and Classroom story-to-PDF smoke after audit-feedback repair
+2026-10-09 rerun private Home and Classroom PDFs after bounded structure and QA repair

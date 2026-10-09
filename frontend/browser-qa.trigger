@@ -1,1 +1,1 @@
-2026-10-09: verify v1.4 sign-in navigation and Celebration trial UI in isolated browser QA.
+2026-10-09: assert visible Sign in on desktop and mobile after v1.4 navigation update.

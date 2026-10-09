@@ -48,12 +48,19 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
       problems.push(viewport.name + ' ' + route + ' ' + error.message);
     }
   }
+  if (viewport.name === 'desktop') {
+    await page.goto(base + '/en/', { waitUntil: 'domcontentloaded' });
+    const signIn = page.locator('.nav-actions .nav-login');
+    if (!await signIn.isVisible() || await signIn.getAttribute('href') !== '/en/account/') problems.push('Desktop Sign in is not discoverable in the header');
+  }
   if (viewport.name === 'mobile') {
     await page.goto(base + '/en/', { waitUntil: 'domcontentloaded' });
     const menu = page.getByRole('button', { name: 'Open menu' });
     await menu.focus();
     await page.keyboard.press('Enter');
     if (await page.getByRole('button', { name: 'Close menu' }).getAttribute('aria-expanded') !== 'true') problems.push('Mobile menu failed to open from keyboard');
+    const signIn = page.locator('#primary-navigation .nav-account-mobile').first();
+    if (!await signIn.isVisible() || await signIn.getAttribute('href') !== '/en/account/') problems.push('Mobile Sign in is not discoverable in the menu');
     await page.keyboard.press('Escape');
     if (await page.getByRole('button', { name: 'Open menu' }).getAttribute('aria-expanded') !== 'false') problems.push('Mobile menu failed to close on Escape');
   }
