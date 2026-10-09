@@ -56,6 +56,7 @@ jobs:
           python scripts/check_classroom_variants.py
           python scripts/check_role_cards.py
           python scripts/audit_pdf_layout.py
+          python scripts/build_ready_previews.py
           node scripts/build-stage-ready-plan.mjs
       - uses: actions/upload-artifact@v4
         with:
@@ -68,6 +69,7 @@ jobs:
             output/stage-ready-plan.json
             output/stage-ready.sql
             output/pdf/layout-audit-v0.1.json
+            output/previews/*.jpg
             content/*-pdf-manifest.v0.1.json
             tmp/pdfs/**/*-contact.jpg
 

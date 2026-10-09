@@ -51,6 +51,7 @@ export function buildStageReadyPlan(root, options = {}) {
   const variantPaths = options.variantPaths || VARIANT_MANIFESTS;
   const packs = [];
   const variants = [];
+  const previews = [];
   const uploads = [];
   const worlds = new Set();
   for (const manifestPath of basePaths) {
@@ -103,6 +104,15 @@ export function buildStageReadyPlan(root, options = {}) {
     variants.push({ packId: 'stage-' + manifest.themeWorldId + '-classroom-v' + manifest.version,
       variantId: manifest.variantId, files });
   }
+  for (const pack of packs.filter(item => item.world !== 'celebration')) {
+    const path = 'output/previews/' + pack.world + '-' + pack.setting + '-' + pack.version + '.jpg';
+    const bytes = readFileSync(resolve(root, path));
+    if (bytes.length < 10000 || bytes.length > 3 * 1024 * 1024 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+      throw new Error('Invalid paid-pack preview: ' + path);
+    }
+    previews.push({ path, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'),
+      r2Key: 'internal/draft-previews/' + pack.world + '/' + pack.setting + '/' + pack.version + '.jpg' });
+  }
   const statements = [];
   for (const pack of packs) {
     statements.push('INSERT OR IGNORE INTO ready_packs (id,theme_world_id,setting,version,status,licence_version) VALUES (' +
@@ -125,7 +135,7 @@ export function buildStageReadyPlan(root, options = {}) {
         ' WHERE EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(variant.packId) + " AND status = 'internal_test');");
     }
   }
-  return { privateOnly: true, packs, variants, uploads, sql: statements.join('\n') + '\n' };
+  return { privateOnly: true, packs, variants, previews, uploads, sql: statements.join('\n') + '\n' };
 }
 
 const current = fileURLToPath(import.meta.url);
@@ -135,7 +145,7 @@ if (process.argv[1] && resolve(process.argv[1]) === current) {
   const output = resolve(root, 'output');
   mkdirSync(output, { recursive: true });
   writeFileSync(resolve(output, 'stage-ready-plan.json'), JSON.stringify({
-    privateOnly: plan.privateOnly, packs: plan.packs, variants: plan.variants, uploads: plan.uploads,
+    privateOnly: plan.privateOnly, packs: plan.packs, variants: plan.variants, previews: plan.previews, uploads: plan.uploads,
   }, null, 2) + '\n');
   writeFileSync(resolve(output, 'stage-ready.sql'), plan.sql);
   console.log(JSON.stringify({ packs: plan.packs.length, uploads: plan.uploads.length, privateOnly: true }));
