@@ -21,6 +21,7 @@ const config = {
   vars: {
     STAGE_PREVIEW: 'true',
     CHECKOUT_ENABLED: 'false',
+    TEST_CHECKOUT_ENABLED: 'true',
     LEGAL_RELEASED: 'false',
     TAX_CONFIGURED: 'false',
     LIVE_PAYMENTS_ENABLED: 'false',

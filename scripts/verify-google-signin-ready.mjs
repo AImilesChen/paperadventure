@@ -7,7 +7,7 @@ for (let attempt = 0; attempt < 12; attempt += 1) {
   const response = await fetch(origin + '/api/v1/health', { cache: 'no-store' });
   const data = await response.json().catch(() => ({}));
   if (response.ok && data.status === 'configured_runtime' && data.account === true && data.sample === true &&
-      data.checkout === false && data.generation === true && data.proposals === true && data.legal === false) {
+      (data.checkout === false || data.checkoutMode === 'test') && data.generation === true && data.proposals === true && data.legal === false) {
     healthy = true;
     break;
   }

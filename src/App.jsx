@@ -179,13 +179,13 @@ export function App() {
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/occasions/halloween')) page = <ThemesExplorer Link={Link} themes={themes} initialCategory="Seasonal" />;
   else if (route.startsWith('/en/how-it-works')) page = <HowPage />;
-  else if (route.startsWith('/en/create')) page = runtime?.proposals ? <LiveCreate key={window.location.search} Link={Link} checkoutReady={runtime.checkout} /> : <CreatePage key={window.location.search} />;
+  else if (route.startsWith('/en/create')) page = runtime?.proposals ? <LiveCreate key={window.location.search} Link={Link} checkoutReady={runtime.checkout} checkoutMode={runtime.checkoutMode} /> : <CreatePage key={window.location.search} />;
   else if (route.startsWith('/en/samples/classroom')) page = runtimeCatalog?.themes.find(theme => theme.id === 'celebration')?.classroom.freeSample ? <LiveSamples Link={Link} classroom catalog={runtimeCatalog} /> : <SamplesExperience Link={Link} classroom />;
   else if (route.startsWith('/en/samples')) page = runtimeCatalog?.themes.find(theme => theme.id === 'celebration')?.home.freeSample ? <LiveSamples Link={Link} catalog={runtimeCatalog} /> : <SamplesExperience Link={Link} />;
-  else if (route.startsWith('/en/pricing')) page = runtime?.checkout && runtimeCatalog ? <LivePricing Link={Link} catalog={runtimeCatalog} /> : <PricingPageV13 Link={Link} catalog={runtimeCatalog} runtime={runtime} />;
+  else if (route.startsWith('/en/pricing')) page = runtime?.checkout && runtimeCatalog ? <LivePricing Link={Link} catalog={runtimeCatalog} checkoutMode={runtime.checkoutMode} /> : <PricingPageV13 Link={Link} catalog={runtimeCatalog} runtime={runtime} />;
   else if (route.startsWith('/en/help')) page = <HelpExperience Link={Link} topic={route.split('/')[3] || ''} />;
   else if (route.startsWith('/en/my-adventures')) page = runtime?.account ? <LiveShelf Link={Link} /> : <AdventuresShelf Link={Link} />;
-  else if (route.startsWith('/en/checkout')) page = runtime?.checkout ? <LiveCheckout Link={Link} catalog={runtimeCatalog} /> : <CheckoutPreview key={routeLocation} Link={Link} />;
+  else if (route.startsWith('/en/checkout')) page = runtime?.checkout ? <LiveCheckout Link={Link} catalog={runtimeCatalog} checkoutMode={runtime.checkoutMode} /> : <CheckoutPreview key={routeLocation} Link={Link} />;
   else if (route.startsWith('/en/orders')) page = runtime?.account && route.split('/')[3] && route.split('/')[3] !== 'demo' ? <LiveOrder Link={Link} orderId={route.split('/')[3]} /> : <OrderExperience Link={Link} />;
   else if (route.startsWith('/en/account')) page = runtime?.account ? <LiveAccount Link={Link} /> : <AccountPreview Link={Link} />;
   else if (route === '/en/privacy/') page = <CurrentPrivacyNotice />;

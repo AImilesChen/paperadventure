@@ -7,16 +7,21 @@ export async function stripeRequest(env, path, options = {}, fetcher = fetch) {
   return response.json();
 }
 
-export function checkoutForm({ orderId, email, priceId, specHash, successUrl, cancelUrl, automaticTax }) {
+export function checkoutForm({ orderId, email, priceId, inlinePrice, specHash, successUrl, cancelUrl, automaticTax }) {
   const form = new URLSearchParams();
   const fields = {
     mode: 'payment', client_reference_id: orderId, customer_email: email,
-    'line_items[0][price]': priceId, 'line_items[0][quantity]': '1',
+    'line_items[0][quantity]': '1',
     'metadata[order_id]': orderId, 'metadata[spec_hash]': specHash,
     success_url: successUrl, cancel_url: cancelUrl,
     'billing_address_collection': 'required',
     'automatic_tax[enabled]': automaticTax ? 'true' : 'false',
   };
+  if (inlinePrice) {
+    form.set('line_items[0][price_data][currency]', 'usd');
+    form.set('line_items[0][price_data][unit_amount]', String(inlinePrice.unitAmount));
+    form.set('line_items[0][price_data][product_data][name]', inlinePrice.name);
+  } else form.set('line_items[0][price]', priceId);
   for (const [key, value] of Object.entries(fields)) form.set(key, value);
   return form;
 }

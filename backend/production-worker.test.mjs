@@ -458,6 +458,29 @@ test('free proposal endpoint returns two short directions and enforces an IP bud
   assert.equal((await limited.json()).error.code, 'PROPOSAL_LIMIT');
 });
 
+test('Stripe sandbox checkout stays account-limited and uses inline test prices without legal release', async () => {
+  const { db, binding } = database();
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('sandbox-home','custom_home','USD',1499,NULL,'exclusive',1)").run();
+  let form;
+  const env = { ...config(binding), STAGE_PREVIEW: 'true', TEST_CHECKOUT_ENABLED: 'true', CHECKOUT_ENABLED: 'false',
+    LEGAL_RELEASED: 'false', TAX_CONFIGURED: 'false', STRIPE_TEST_BUYER_EMAIL: 'adult@example.com',
+    OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', GENERATION_QUEUE: { send: async () => {} },
+    FETCH: async (_url, init) => { form = new URLSearchParams(init.body); return Response.json({ id: 'cs_test_sandbox', url: 'https://checkout.stripe.com/test', client_reference_id: form.get('client_reference_id') }); } };
+  const health = await handleProductionApi(request('/api/v1/health'), env);
+  assert.equal((await health.json()).checkoutMode, 'test');
+  const input = { sku: 'custom_home', customIdea: 'A moon library', players: 4, age: '8-10', paper: 'A4', direction: 'mission', email: 'adult@example.com' };
+  const headers = { 'Idempotency-Key': 'sandbox-attempt-001', origin: 'https://adventure.example' };
+  const anonymous = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', input, headers), env);
+  assert.equal(anonymous.status, 403);
+  const token = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: await sha256(`${env.SESSION_SECRET}|adult@example.com`), exp: Math.floor(Date.now()/1000)+3600 });
+  const checkout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', input, { ...headers, cookie: `paw_session=${token}` }), env);
+  assert.equal(checkout.status, 201);
+  assert.equal((await checkout.json()).mode, 'stripe_test');
+  assert.equal(form.get('line_items[0][price_data][unit_amount]'), '1499');
+  assert.equal(form.get('line_items[0][price]'), null);
+  assert.equal(form.get('automatic_tax[enabled]'), 'false');
+});
+
 test('adult email link can be used once and creates a private order session', async () => {
   const { binding } = database();
   let link;
