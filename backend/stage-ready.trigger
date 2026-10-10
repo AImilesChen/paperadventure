@@ -1,1 +1,1 @@
-2026-10-09 rerun private pack staging after updating test-only release check
+2026-10-10 independent Classroom worlds: stage C07-C11 private draft PDFs and previews
