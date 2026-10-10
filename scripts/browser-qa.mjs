@@ -35,6 +35,14 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
       const indexable = publicPages.find(item => item.path === route)?.indexable;
       if (state.noindex === indexable) problems.push(viewport.name + ' ' + route + ' has the wrong robots metadata');
       snapshots.push({ viewport: viewport.name, route, ...state });
+      if (route === '/en/create/') {
+        if (await page.locator('main h1').count() !== 1) problems.push(viewport.name + ' creator page must have one main heading');
+        if (!await page.getByRole('heading', { name: 'One idea can become your own paper adventure.' }).isVisible()) problems.push(viewport.name + ' creator page lacks the example journey');
+        if (!await page.getByRole('heading', { name: 'A story to print, and a guide to run it.' }).isVisible()) problems.push(viewport.name + ' creator page lacks output details');
+        if (await page.locator('.custom-create-page-previews img').count() !== 2) problems.push(viewport.name + ' creator page lacks real printable page previews');
+        if (!await page.getByRole('heading', { name: 'Questions before you begin.' }).isVisible()) problems.push(viewport.name + ' creator page lacks FAQs');
+      }
+
       if (routesToCapture.has(route)) {
         const scan = await new AxeBuilder({ page }).analyze();
         accessibility.push({ viewport: viewport.name, route, violations: scan.violations.map(item => ({

@@ -1,1 +1,1 @@
-2026-10-09 verify AI navigation, theme filters, print plans and two-page player previews
+2026-10-10 verify custom create SEO, previews, journey, pricing and responsive layout

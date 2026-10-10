@@ -115,6 +115,11 @@ try {
     'Classroom order does not show four private PDF downloads');
 
   await page.goto(base + '/en/create/?theme=forest&setting=classroom', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('heading', { level: 1, name: /Make a printable story adventure that starts with your idea/ }).waitFor();
+  check(await page.locator('.custom-create-page-previews img').count() === 2, 'Creator does not show the real sample-format pages');
+  await page.getByText(/Custom Home US\$14\.99/).waitFor();
+  await page.getByText(/Custom Classroom US\$19\.99/).waitFor();
+
   await page.getByRole('button', { name: /Continue/ }).click();
   await page.getByLabel('Players or students').fill('20');
   await page.getByLabel('Groups').fill('4');
