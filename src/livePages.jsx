@@ -155,7 +155,7 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
   const eligible = Boolean(['home','classroom'].includes(setting) && offer?.saleEnabled && (ready ? ['published','test_ready'].includes(theme?.[setting]?.readyStatus) : customDraftReady));
   async function start(event) {
     event.preventDefault(); setBusy(true); setError('');
-    const body = ready ? { sku, themeId, packVersion: theme[setting].packVersion, variantId: variantId || null, email } : { sku, themeId: draft.custom ? null : draft.theme, customIdea: draft.custom ? draft.idea : null, players: draft.players, groups: draft.groups, age: draft.age, paper: draft.paper, direction: draft.direction, proposalTitle: draft.proposalTitle, proposalSummary: draft.proposalSummary, place: draft.place, reading: draft.reading, materials: draft.materials, email };
+    const body = ready ? { sku, themeId, packVersion: theme[setting].packVersion, variantId: variantId || null, email } : { sku, themeId: draft.custom ? null : draft.theme, customIdea: draft.custom ? draft.idea : null, players: draft.players, groups: draft.groups, age: draft.age, paper: draft.paper, direction: draft.direction, proposalTitle: draft.proposalTitle, proposalSummary: draft.proposalSummary, place: draft.place, reading: draft.reading, materials: draft.materials, preferences: draft.preferences, email };
     try {
       const payload = JSON.stringify(body);
       const key = sessionStorage.getItem('paw-checkout-payload') === payload ? sessionStorage.getItem('paw-checkout-key') : crypto.randomUUID();

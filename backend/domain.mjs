@@ -41,6 +41,7 @@ export function validatePurchase(input) {
   const proposalSummary = input.proposalSummary ? requireText(input.proposalSummary, 'Proposal summary', 400) : null;
   if (Boolean(proposalTitle) !== Boolean(proposalSummary)) throw new ApiError(400, 'INVALID_SPEC', 'The selected proposal is incomplete.');
   return { offer, spec: { sku: offer.sku, kind: 'custom', setting: offer.setting, themeId, customIdea: idea, players, groups, age, paper, direction, proposalTitle, proposalSummary,
+    preferences: Object.fromEntries(['characters','goal','include','avoid'].map(key => [key, input.preferences?.[key] ? requireText(input.preferences[key], `Preference ${key}`, 180) : ''])),
     place: String(input.place || '').trim().slice(0, 180), reading: String(input.reading || '').trim().slice(0, 40), materials: String(input.materials || '').trim().slice(0, 180) } };
 }
 
@@ -81,5 +82,4 @@ export function validateGeneratedStory(story, spec) {
   if (spec.setting === 'classroom' && !story.groupInstructions) throw new ApiError(422, 'GENERATION_INVALID', 'Classroom group instructions are required.');
   return { title, introduction, ending, stages, groupInstructions: story.groupInstructions ? requireText(story.groupInstructions, 'Group instructions', 700) : null };
 }
-
 

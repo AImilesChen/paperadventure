@@ -1,1 +1,1 @@
-Free complete bundle and paper-size download QA 2026-10-10
+Five-step creator workspace and preference checkout QA 2026-10-10
