@@ -1,1 +1,1 @@
-ZIP and compact expanded feedback QA 2026-10-10
+Explicit accessible paper selector ZIP QA 2026-10-10
