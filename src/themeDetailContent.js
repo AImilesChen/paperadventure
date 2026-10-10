@@ -8,7 +8,7 @@ export const themeDetailContent = {
     home: {
       hook: 'A cooperative delivery mystery with four explorer jobs throughout the five checkpoints.',
       reasons: ['Four rotating jobs make each checkpoint a shared task.', 'One team for 2–6 players or two balanced teams for 7–12, plus an adult host.', 'Separate clue cards, a split code key and a scripted host guide support the full adventure.'],
-      materials: ['Four full-game job cards and a team trail', 'Letter choices with separate animal, ear and dot clues', 'Cut-out route strips and an intact six-place map', 'Label board and separate conditions; coded message and split keys', 'Parcel cards, evidence check, finale letter and optional keepsake'],
+      materials: ['Four full-game job cards, a team trail and letter choices with separate clues', 'Cut-out route strips and an intact six-place map', 'Label board and separate conditions; coded message and split keys', 'Parcel cards, evidence check, finale letter and optional keepsake'],
       stages: [
         ['Find the letter', 'Compare character and stamp clues to identify Fenn’s message.', 'A starting place for the map'],
         ['Draw the route', 'Join the shuffled route strips on the unconnected map.', 'A flag clue for the next decision'],
