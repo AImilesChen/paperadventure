@@ -1,1 +1,1 @@
-Five-step creator workspace and preference checkout QA 2026-10-10
+Check custom creator guidance, own ideas and product explanation 2026-10-10

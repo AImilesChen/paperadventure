@@ -113,13 +113,19 @@ try {
     'Classroom order does not show four private PDF downloads');
 
   await page.goto(base + '/en/create/?theme=ocean&setting=classroom', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('heading', { level: 1, name: /Create your paper adventure/ }).waitFor();
+  await page.getByRole('heading', { level: 1, name: /Create a custom printable adventure/ }).waitFor();
   check(await page.locator('.creator-form').isVisible(), 'Creator does not open directly on the form');
   check(await page.locator('.creator-form').evaluate(node => node.getBoundingClientRect().top < 650), 'Creator form is pushed below a marketing landing page');
   await page.getByText(/Custom Home US\$14\.99/).waitFor();
   await page.getByText(/Custom Classroom US\$19\.99/).waitFor();
 
-  await page.getByRole('button', { name: /Continue/ }).click();
+  check(await page.getByRole('button', { name: 'Use a world for inspiration' }).count() === 0, 'Creator still repeats fixed packs');
+  await page.getByRole('button', { name: 'Help me find an idea' }).click();
+  await page.getByLabel('What interests your group?').fill('Ocean libraries');
+  await page.getByRole('button', { name: 'Use this starting idea' }).click();
+  check((await page.getByLabel('Your story idea').inputValue()).includes('Ocean libraries'), 'Guided idea did not populate editable input');
+  check(await page.locator('#custom-files img').count() === 2, 'Missing real format previews');
+  await page.getByRole('button', { name: /Continue/, exact: false }).click();
   await page.getByLabel('Players or students').fill('20');
   await page.getByLabel('Groups').fill('4');
   await page.getByLabel('Age range (6–12)').fill('8–10');
@@ -137,7 +143,8 @@ try {
   await page.getByRole('button', { name: /Continue to Stripe test/ }).click();
   await page.waitForURL('**/en/orders/mock-custom/');
   check(checkoutPayloads[2]?.sku === 'custom_classroom' &&
-    checkoutPayloads[2]?.themeId === 'ocean' &&
+    !checkoutPayloads[2]?.themeId &&
+    checkoutPayloads[2]?.customIdea?.includes('Ocean') &&
     checkoutPayloads[2]?.preferences?.characters === 'A friendly robot' &&
     checkoutPayloads[2]?.preferences?.avoid === 'Scary scenes' &&
     checkoutPayloads[2]?.direction === 'mission' &&
