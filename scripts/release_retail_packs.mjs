@@ -21,12 +21,16 @@ for(const group of new Set(manifest.items.map(f=>f.world+'/'+f.setting))){
  if(world!=='celebration')for(const page of [1,2])run(['r2','object','put',bucket+`/internal/draft-previews/${world}/${setting}/v1.0-p${page}.jpg`,'--file',`output/previews/${world}-${setting}-v1.0-p${page}.jpg`,'--content-type','image/jpeg','--remote']);
 }
 writeFileSync('output/pdf/release-retail.sql',sql.join('\n'));
-run(['d1','execute','paper-adventure-stage-db','--remote','--file','output/pdf/release-retail.sql','--yes']);
+let applied=false;
+for(let attempt=0;attempt<3&&!applied;attempt++){
+ try { run(['d1','execute','paper-adventure-stage-db','--remote','--command',sql.join('\n'),'--yes']); applied=true; }
+ catch(error){if(attempt===2)throw error; await new Promise(resolve=>setTimeout(resolve,5000));}
+}
 // Fail the release if a story has no matching record, or any old entitlement slot
 // points to a different PDF than the one just uploaded.
 const checks=manifest.items.map(f=>`SELECT COUNT(*) AS matched FROM ready_packs p JOIN ready_pack_files f ON f.ready_pack_id=p.id WHERE p.theme_world_id=${q(f.world)} AND p.setting=${q(f.setting)} AND f.paper=${q(f.paper)} AND f.role=${q(f.role)} AND f.sha256=${q(f.sha256)} AND f.bytes=${f.bytes};`).join('\n');
 writeFileSync('output/pdf/verify-retail.sql',checks);
-const raw=execFileSync('npx',['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--file','output/pdf/verify-retail.sql','--json'],{encoding:'utf8'});
+const raw=execFileSync('npx',['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--command',checks,'--json'],{encoding:'utf8'});
 const results=JSON.parse(raw);
 if(results.length!==48||results.some(r=>!r.success||r.results?.[0]?.matched<1))throw Error('An upgraded pack slot is missing');
 for(const f of manifest.items.filter(f=>f.world==='celebration')){

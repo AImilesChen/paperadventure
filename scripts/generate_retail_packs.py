@@ -18,7 +18,10 @@ def text(s,style='body'): return g.p(s,style)
 def page(title,sub=''): return [text(sub,'eyebrow'),text(title,'title'),g.gap(10)]
 def numbered(items): return [text(f'<b>{i+1}.</b> '+s) for i,s in enumerate(items)]
 def table(heads,rows,w): return g.grid(heads,rows,[w/len(heads)]*len(heads))
-def cards(items,w,height=95): return cutgrid(items,w,2,height)
+def cards(items,w,height=95):
+ t=cutgrid(items,w,2,height)
+ if len(items)%2: t._cellvalues[-1][-1]=g.p('SPARE SPACE / not a game card','small')
+ return t
 
 class ResultBoard(Flowable):
  def __init__(self,w): super().__init__();self.width=w;self.height=290
@@ -28,21 +31,21 @@ class ResultBoard(Flowable):
    y=245-i*49;c.roundRect(0,y,self.width,42,5,stroke=1,fill=0);c.setFont('ArialBold',10);c.drawString(12,y+25,f'{i+1} / Discovery');c.setFont('Arial',9);c.drawString(12,y+9,'Result: __________________  Evidence: __________________________')
 
 class WorkSpace(Flowable):
- def __init__(self,w,st): super().__init__();self.width=w;self.height=110;self.st=st
+ def __init__(self,w,st): super().__init__();self.width=w;self.height=80;self.st=st
  def draw(self):
   c=self.canv;c.setStrokeColor(g.LINE);c.setFillColor(g.NAVY);c.setFont('ArialBold',10)
-  c.drawString(0,98,'TEAM WORK SPACE / point, draw or write')
+  c.drawString(0,70,'TEAM WORK SPACE / point, draw or write')
   route='From' in self.st['heads'] and 'To' in self.st['heads']
   if route:
    bw=(self.width-36)/4
    for i in range(4):
-    x=i*(bw+12);c.roundRect(x,42,bw,36,4,stroke=1,fill=0)
-    if i<3:c.drawString(x+bw+2,56,'>')
-   c.setFont('Arial',9);c.drawString(0,18,'Rejected branch / why it stops: ______________________________________')
+    x=i*(bw+12);c.roundRect(x,22,bw,30,4,stroke=1,fill=0)
+    if i<3:c.drawString(x+bw+2,36,'>')
+   c.setFont('Arial',9);c.drawString(0,5,'Rejected branch / why it stops: ______________________________________')
   else:
    c.setFont('Arial',9)
    for i,label in enumerate(['A fact we checked','A choice we rejected','Why it failed']):
-    y=75-i*26;c.drawString(0,y,label+':');c.line(140,y-2,self.width,y-2)
+    y=48-i*20;c.drawString(0,y,label+':');c.line(140,y-2,self.width,y-2)
 
 class DinosaurProps(Flowable):
  def __init__(self,w,st,checkpoint): super().__init__();self.width=w;self.height=350;self.st=st;self.checkpoint=checkpoint
@@ -77,6 +80,7 @@ def normalise(s):
  return s
 
 def actions(st,i):
+ if st.get('actions'): return st['actions']
  heads=' '.join(st['heads']).lower(); story=st['story'].lower()
  if 'from' in heads and 'to' in heads:
   act=['Place the previous start result above the cards. Investigator finds every strip beginning there.','Join an end place to the same start place on another strip. Lay the chain left to right; try each branch.','Keep only the chain reaching the destination required in the mission. Checker explains why the other branch stops.','Recorder copies the strip letters in order and the final place; everybody traces the chain aloud.']
@@ -95,7 +99,7 @@ def player(s,w):
  pages.append(page('Keep your discoveries','PLAYER PAGE 3 / KEEP WHOLE')+[text('Recorder keeps this sheet in the middle. Write each result and one reason before asking for the next checkpoint. Use spoken answers if writing is difficult; your adult can record your words.'),g.gap(10),ResultBoard(w),g.gap(10),text('Team rule: listen, try, check. If you disagree, point to the printed clue. Ask for hint 1 before hint 2. You can correct your answer; there is no elimination or race.'),g.box('Do not write children\'s real names. An invented team name is optional: __________________',w)])
  for i,st in enumerate(s['stages']):
   taskno=len(pages)+1; propno=taskno+1
-  flow=page(st['title'],f'CHECKPOINT {i+1} / TASK PAGE {taskno} / KEEP WHOLE')+[g.box(st['story'],w),g.gap(10),text('What to put on the table','h2'),text(f'Team record (page 3), your four job cards and prop page(s) {propno}{'-'+str(propno+1) if st['role_cards'] else ''}. Keep solved cards in the evidence area. Only this checkpoint is active.'),text('Do this together','h2')]+numbered(actions(st,i))
+  flow=page(st['title'],f'CHECKPOINT {i+1} / TASK PAGE {taskno} / KEEP WHOLE')+[g.box(st['story'],w),g.gap(10),text('What to put on the table','h2'),text(f'Team record (page 3), your four job cards and prop page(s) {propno}{'-'+str(propno+bool(st['role_cards'])+bool(st.get('extra_props'))) if st['role_cards'] or st.get('extra_props') else ''}. Keep solved cards in the evidence area. Only this checkpoint is active.'),text('Do this together','h2')]+numbered(actions(st,i))
   if st['extra']:flow+=[g.gap(7),g.box(st['extra'],w)]
   flow+=[g.gap(8),WorkSpace(w,st),g.gap(10),text('Record and show your evidence','h2')]+[text(escape(p)+': __________________________________') for p in st['prompts']]+[text('Which printed fact proves your choice? __________________________'),g.gap(10),g.box('Checker shows your result to the adult. Keep the record; leave the props in your evidence area. '+('Ask for checkpoint '+str(i+2)+'.' if i<4 else 'Ask the adult for the ending.'),w)]
   pages.append(flow)
@@ -109,6 +113,8 @@ def player(s,w):
    pages.append(page('Share the clues',f'CHECKPOINT {i+1} / PROP PAGE {propno}')+[text('Adult cuts these clue cards and gives them in order to Reader, Investigator and Checker. Recorder listens and writes. Hold your own card, read it aloud, then show it when the team is ready to check. Do not hide useful information.'),g.gap(12),cards(rc,w,150),g.gap(10),text('Put the candidate page beside these clues. Each clue must be satisfied by the SAME candidate. With two players, Reader also shares the first clue; Investigator shares the second; Checker shares the third.')])
   if st['role_cards']: propno+=1
   pages.append(page('Your paper props',f'CHECKPOINT {i+1} / PROP PAGE {propno}')+[text(f'Adult: cut the {len(items)} outer rectangles below; keep each printed label inside its card. Give all these candidates to the team. No-cut option: leave this page whole and let players point or number choices. Do not cut task page {taskno}.'),g.gap(12),(DinosaurProps(w,st,i+1) if s['id']=='dinosaur' and i in [0,2] else cards(items,w,145 if len(items)>4 else 170)),g.gap(12),text('Keep discarded choices visible until your answer is checked. Put every piece back in this checkpoint pile afterwards. You never need a real-world object named on a story card.')])
+  if st.get('extra_props'):
+   pages.append(page('Prepare the matching pieces',f'CHECKPOINT {i+1} / EXTRA PROPS PAGE {len(pages)+1}')+[text(f"Adult: cut these {len(st['extra_props'])} labelled rectangles and give them with the checkpoint candidates. These pieces are part of this mission, not a later reward. Follow the task page to place or fill them."),g.gap(12),cards([(f'{i+1} / TEAM / '+a,escape(b)) for a,b in st['extra_props']],w,170),g.gap(12),text('Keep all labels on the pieces. Without cutting, point to destinations or write seal values on this whole page.')])
  pages.append(page('Our adventure is complete','PLAYER / TEAM KEEPSAKE / KEEP WHOLE')+[text(s['ending']),g.gap(20),g.box('We helped by: ______________________________________<br/><br/>Our strongest evidence: ______________________________<br/><br/>A clue we changed our minds about: _____________________',w),g.gap(16),text('Each player shares one action they contributed. Draw your favourite part below. Your adult can write the ending message here; no prize or extra purchase is required.'),g.gap(150),text('To play again, erase pencil marks, sort the same five piles and change jobs. The solution stays the same; do not promise a new mystery from the same cards.')])
  return pages
 
@@ -117,13 +123,13 @@ def guide(s,w,layout):
  pages=[]
  pages.append(page(s['title'],'HOST GUIDE / '+s['setting'].upper())+[text('Start here: this guide gives you the printing, grouping, handouts, words to read, answers and hints. Keep it on screen; players must not see the answer pages.'),text('Quick start','h2')]+numbered([f'Choose {"one team for 2-6 players, or two balanced teams for 7-12 players" if home else "groups of 2-6 students, up to 35 students total"}. You are the host, outside the player count.',f'Print all {sheets} Player Pack pages once per team, in ONE size: A4 or US Letter. Print single-sided at 100% / Actual size. Read this guide on screen; printing it is optional.','Cut job and prop rectangles only. Use the inventory next page; separate five numbered piles for each team. Keep every label attached.','Set the team record in the centre. Give the cover, jobs and record first; keep all checkpoint pages behind you.','Read the opening on page 4. Give only checkpoint 1 task and props. Follow the five checkpoint guide pages in order.'])+[g.gap(10),g.box('Required: ordinary paper, a printer, two pencils and an eraser per team, plus one clear table per team. Optional: adult-handled scissors and five envelopes or folded-paper piles per team. No glue, costumes, toys, devices or purchased prize are required.',w),text('No-cut play: use whole prop pages. Players point, circle or number candidates. Use the same sharing turns and answers.')])
  rows=[['Cover + jobs + record','1-3','One set per team; give before opening']]
- for i,st in enumerate(stages): rows.append([f'Checkpoint {i+1}',str(layout['stages'][i]),f"{len(st['rows'])} candidate cards"+(f" + {len(st['role_cards'])} clue cards" if st['role_cards'] else '')+'; give only when reached'])
+ for i,st in enumerate(stages): rows.append([f'Checkpoint {i+1}',str(layout['stages'][i]),f"{len(st['rows'])} candidate cards"+(f" + {len(st['role_cards'])} clue cards" if st['role_cards'] else '')+(f" + {len(st['extra_props'])} matching pieces" if st.get('extra_props') else '')+'; give only when reached'])
  pages.append(page('Print, cut and sort','HOST / PREPARATION')+[text(f'One team: {sheets} player sheets. Two teams: {sheets*2} sheets. '+('For a class, multiply '+str(sheets)+' by your group count. ' if not home else '')+'The final keepsake is included; no guide page is required as a prop.'),g.gap(8),table(['Component','Actual player pages','Contents / handout'],rows,w),g.gap(10),text('Assembly: do these checks','h2')]+numbered(['Check that page labels, borders and symbols are not cropped. Colour is optional; every colour clue is written as a word.','Cut the four job rectangles on page 2. Keep page 3 intact.','For each checkpoint, cut only the bordered candidate/clue rectangles. Do not cut instructions or result lines. Put the task sheet with its matching pieces.','Count pieces using the table. Label each pile with team and checkpoint numbers. Place clue cards on top of their pile.','If a card is lost, reprint that prop page; do not invent its wording. Keep one complete set per team.']))
  pages.append(page('Make every player useful','HOST / GROUPING AND JOBS')+[table(['Players per team','Exact assignment'],TEAM,w),g.gap(10),text('Larger groups','h2'),text('Home: 7 = 3+4; 8 = 4+4; 9 = 4+5; 10 = 5+5; 11 = 5+6; 12 = 6+6. Each team gets a complete pack and solves independently. One adult visits both tables; a second helper is optional.' if home else 'Classroom: divide students into balanced groups of 2-6. For 35 students use five groups of 6 and one of 5. For 7 use 3+4. Each group gets the full set; no group depends on another group\'s speed or answer.'),text('After checkpoints 1-4, pass job cards or combined bundles clockwise. Five/six-player pairs keep their job but swap reader/operator and evidence checker. Do not leave the extra person watching.'),text('Adult rule: invite the quietest player to point to a fact before accepting the answer. Read aloud when needed, but let players choose. Older children may read for younger players; they may not answer on their behalf.')])
  pages.append(page('Set the table and begin','HOST / OPENING SCRIPT')+[Diagram(w,'table'),g.gap(10),text('Place only record, jobs and two pencils in the active area. Put later piles and this guide in HOST ONLY. Solved cards go into EVIDENCE PARKING; keep the record throughout.'),text('Read this aloud','h2'),g.box(escape(s['opening'])+'<br/><br/>"You will make five discoveries. Read one clue at a time. Everyone shares before we choose. Show me your answer and the evidence. If you get stuck, ask for a small hint. This is a team adventure, not a race."',w),text('Show job assignments; ask each player to say their action. Give the first task page and its candidate cards. Ask Reader to read the mission. Never hand out later piles early.')])
  for i,st in enumerate(stages):
   pp=layout['stages'][i]
-  flow=page(st['title'],f'HOST / CHECKPOINT {i+1} / PLAYER PAGES {pp}')+[text('Prepare and distribute','h2'),text(f"Hand out ONLY player pages {pp}. Put {len(st['rows'])} candidate cards in the centre. "+('Give the three separate clue cards to Reader, Investigator and Checker; Recorder writes the combined evidence.' if st['role_cards'] else 'Reader reads the printed mission; Investigator spreads the choices; Checker compares the facts; Recorder keeps page 3.')),text('Say','h2'),g.box(escape(st['story']),w),text('Lead the actions','h2')]+numbered(actions(st,i))+[g.gap(7),text('Accept only after checking','h2'),g.box('<b>Answer:</b> '+escape(st['answer'])+'<br/><b>Record for the next step:</b> '+escape(st['handoff'])+'<br/><b>Evidence:</b> '+escape(st['why']),w),text('If wrong: ask which printed condition the choice fails. Let players correct it; do not remove a player or erase their whole record.'),text('Handover','h2'),text(('Keep the result on page 3, park the props and pass jobs. Give checkpoint '+str(i+2)+'. '+escape(st.get('next','')) if i<4 else 'Ask for two supporting earlier clues, then read the ending on the last guide page. Give the keepsake only now.'))]
+  flow=page(st['title'],f'HOST / CHECKPOINT {i+1} / PLAYER PAGES {pp}')+[text('Prepare and distribute','h2'),text(f"Hand out ONLY player pages {pp}. Put {len(st['rows'])} candidate cards in the centre. {('Also give '+str(len(st['extra_props']))+' extra matching pieces. ') if st.get('extra_props') else ''}"+('Give the three separate clue cards to Reader, Investigator and Checker; Recorder writes the combined evidence.' if st['role_cards'] else 'Reader reads the printed mission; Investigator spreads the choices; Checker compares the facts; Recorder keeps page 3.')),text('Say','h2'),g.box(escape(st['story']),w),text('Lead the actions','h2')]+numbered(actions(st,i))+[g.gap(7),text('Accept only after checking','h2'),g.box('<b>Answer:</b> '+escape(st['answer'])+'<br/><b>Record for the next step:</b> '+escape(st['handoff'])+'<br/><b>Evidence:</b> '+escape(st['why']),w),text('If wrong: ask which printed condition the choice fails. Let players correct it; do not remove a player or erase their whole record.'),text('Handover','h2'),text(('Keep the result on page 3, park the props and pass jobs. Give checkpoint '+str(i+2)+'. '+escape(st.get('next','')) if i<4 else 'Ask for two supporting earlier clues, then read the ending on the last guide page. Give the keepsake only now.'))]
   pages.append(flow)
  pages.append(page('Hints without taking over','HOST / WHEN A TEAM IS STUCK')+[text('Offer one hint at a time. Allow a fresh attempt before the next. Hint 3 may name the answer. If frustration persists, give the outgoing result and continue; completion does not require every clue unaided.'),g.gap(10),table(['Step','Hint 1 / observation','Hint 2 / reasoning','Hint 3 / answer'],[[str(i+1)]+st['hints'] for i,st in enumerate(stages)],w),g.gap(10),text('If an earlier result is wrong, return to its checkpoint with that pile, correct only that record line and retry the current page. If stopping early, keep each team\'s piles and record together; restart from the next unchecked checkpoint.')])
  pages.append(page('Support different players','HOST / READINESS AND TROUBLESHOOTING')+[text('For early readers: read one sentence at a time, accept pointing and spoken evidence, and write their dictated result. Use the same clues and solution. Give younger players a piece to move before asking older players to explain.'),text('For confident readers: ask them to explain why every discarded candidate fails, or to show the rejected route. These are optional reasoning tasks; do not add a new answer or punish a slow team.'),text('For pairs: Reader partner points to the mentioned field; Investigator partner checks a second condition or a rejected candidate. In lookup tasks, partners each verify a different input. Swap tasks next checkpoint.'),text('Two teams / class: check each group independently. Ask waiting groups to draw their evidence or explain a rejected choice, without looking at the other group\'s answer. When another group finishes early, let it make its keepsake quietly.'),text('Missing or damaged prop: reprint its labelled page. No printer/scissors during play: use whole pages. Unreadable copy: reprint at Actual size, not several pages per sheet.'),text('Story objects are paper props. Stay at the table; no real animal handling, travel, fire, electrical assembly or personal information is part of these missions.')])
@@ -149,7 +155,7 @@ def build(s,paper,size):
   r=PdfReader(path);assert len(r.pages)==len(pages),(path,len(r.pages),len(pages))
   content=' '.join(p.extract_text() or '' for p in r.pages)
   assert not re.search(r'internal|draft|not play.tested|do not sell|unpublished',content,re.I),path
-  manifest.append(dict(world=s['id'],setting=s['setting'],paper=paper,role=role,path=path.relative_to(ROOT).as_posix(),pages=len(r.pages),bytes=path.stat().st_size,sha256=hashlib.sha256(path.read_bytes()).hexdigest(),r2Key=f"retail/{s['id']}/{s['setting']}/1.0/{paper}/{role}.pdf"))
+  manifest.append(dict(world=s['id'],setting=s['setting'],paper=paper,role=role,path=path.relative_to(ROOT).as_posix(),pages=len(r.pages),bytes=path.stat().st_size,sha256=hashlib.sha256(path.read_bytes()).hexdigest(),r2Key=f"retail/{s['id']}/{s['setting']}/1.0/{paper}/{role}-{hashlib.sha256(path.read_bytes()).hexdigest()[:16]}.pdf"))
  return manifest
 
 def celebration_home():
@@ -175,7 +181,7 @@ def celebration_home():
    d.build(flow,onFirstPage=footer,onLaterPages=footer)
    r=PdfReader(path);assert len(r.pages)==len(pages),(path,len(r.pages))
    t=' '.join(p.extract_text() or '' for p in r.pages);assert not re.search(r'internal|draft|not play.tested|unpublished',t,re.I)
-   items.append(dict(world='celebration',setting='home',paper=paper,role=role,path=path.relative_to(ROOT).as_posix(),pages=len(r.pages),bytes=path.stat().st_size,sha256=hashlib.sha256(path.read_bytes()).hexdigest(),r2Key=f'retail/celebration/home/1.0/{paper}/{role}.pdf'))
+   items.append(dict(world='celebration',setting='home',paper=paper,role=role,path=path.relative_to(ROOT).as_posix(),pages=len(r.pages),bytes=path.stat().st_size,sha256=hashlib.sha256(path.read_bytes()).hexdigest(),r2Key=f'retail/celebration/home/1.0/{paper}/{role}-{hashlib.sha256(path.read_bytes()).hexdigest()[:16]}.pdf'))
  return items
 
 def main():

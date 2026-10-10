@@ -536,7 +536,13 @@
           "Keep the printed order when replacing symbols.",
           "COMET; give the word to players."
         ],
-        "why": "Compare the stated conditions with COMET. Each required field must match; a candidate with one wrong field is rejected."
+        "why": "Compare the stated conditions with COMET. Each required field must match; a candidate with one wrong field is rejected.",
+        "actions": [
+          "Read the device code on your checkpoint 3 record. Find the dictionary card with that SAME code.",
+          "Reader calls the printed message symbols one at a time: SUN, MOON, STAR, PATH, RING.",
+          "Investigator points to each symbol's letter on that single dictionary card. Recorder writes five letters left to right.",
+          "Checker rechecks the code and each lookup. Join the letters into a word and record it; do not take a letter from another code row."
+        ]
       },
       {
         "title": "Send the pretend reply",
@@ -721,7 +727,13 @@
           "A-B-C; give BLUE TREE."
         ],
         "strip_cards": true,
-        "why": "Compare the stated conditions with A-B-C; BLUE TREE. Each required field must match; a candidate with one wrong field is rejected."
+        "why": "Compare the stated conditions with A-B-C; BLUE TREE. Each required field must match; a candidate with one wrong field is rejected.",
+        "actions": [
+          "Read your batch mark from checkpoint 1. Investigator separates strips with that SAME batch; park every other batch.",
+          "Start at POST OFFICE. Join FROM/TO names on the remaining strips; lay the chain left to right.",
+          "Checker verifies each join and that the chain ends at a named tree. Do not use an excluded batch to extend the trail.",
+          "Recorder writes the strip letters and the complete district name, including colour; everyone traces the route."
+        ]
       },
       {
         "title": "Share the parcel clues",
@@ -1153,7 +1165,13 @@
           "Row B; STAR=3, order SUN-MOON-HAT-STAR."
         ],
         "extra": "Encoded reply: KITE / TREE / ACORN / FLAG",
-        "why": "Compare the stated conditions with Parcel B row; SUN-MOON-HAT-STAR; STAR=3. Each required field must match; a candidate with one wrong field is rejected."
+        "why": "Compare the stated conditions with Parcel B row; SUN-MOON-HAT-STAR; STAR=3. Each required field must match; a candidate with one wrong field is rejected.",
+        "actions": [
+          "Read the chosen parcel LETTER from checkpoint 3. Select the dictionary card with the SAME row letter.",
+          "Reader reads KITE, TREE, ACORN, FLAG in that order. Investigator points to each corresponding seal name on the selected row.",
+          "Recorder writes those four seal names in order. Checker repeats the lookups on the same row.",
+          "Read the STAR value from that row and add it to your record. Keep the ordered seal names for checkpoint 5."
+        ]
       },
       {
         "title": "Complete the paper lantern",
@@ -1193,7 +1211,31 @@
           "Use SUN=5, MOON=7, HAT=2 and STAR=3 in the decoded order.",
           "5723; read the paper ending."
         ],
-        "why": "Compare the stated conditions with Card A; 5723. Each required field must match; a candidate with one wrong field is rejected."
+        "why": "Compare the stated conditions with Card A; 5723. Each required field must match; a candidate with one wrong field is rejected.",
+        "actions": [
+          "Retrieve your record: copy the SUN value from checkpoint 1, MOON from 2, HAT from 3 and STAR from 4 onto the FOUR named blank seal cards.",
+          "Investigator arranges the seals in the exact seal-name order decoded at checkpoint 4. All four names must be used once.",
+          "Reader reads the four numbers left to right; Recorder joins them into one four-digit code without rearranging them.",
+          "Checker finds that code among the final candidates and asks each player to trace one number to its original clue. Show the code and evidence to your adult."
+        ],
+        "extra_props": [
+          [
+            "SUN SEAL",
+            "Write the discovered value: ______"
+          ],
+          [
+            "MOON SEAL",
+            "Write the discovered value: ______"
+          ],
+          [
+            "HAT SEAL",
+            "Write the discovered value: ______"
+          ],
+          [
+            "STAR SEAL",
+            "Write the discovered value: ______"
+          ]
+        ]
       }
     ]
   },
@@ -1319,7 +1361,27 @@
             "Triangle"
           ]
         ],
-        "why": "Compare the stated conditions with A-Owl, B-Fox, C-Rabbit. Each required field must match; a candidate with one wrong field is rejected."
+        "why": "Compare the stated conditions with A-Owl, B-Fox, C-Rabbit. Each required field must match; a candidate with one wrong field is rejected.",
+        "actions": [
+          "Read the batch from checkpoint 1. Remove gift cards belonging to a different batch.",
+          "Put the three destination cards across the table. Read each character's requested picture shape aloud.",
+          "Investigator places each remaining gift under the destination with its matching shape. Checker makes sure each gift and destination are used once.",
+          "Recorder writes all THREE gift-letter/character/place pairs. Keep the matched gifts accessible for the next route task."
+        ],
+        "extra_props": [
+          [
+            "DESTINATION / OWL WINDOW",
+            "Requested shape: Round"
+          ],
+          [
+            "DESTINATION / FOX DEN",
+            "Requested shape: Square"
+          ],
+          [
+            "DESTINATION / RABBIT GATE",
+            "Requested shape: Triangle"
+          ]
+        ]
       },
       {
         "title": "Share the route conditions",
@@ -1384,7 +1446,13 @@
           ]
         ],
         "card_note": "The picture and printed labels show the same order. An adult may cut the four cards, or players can compare them on this page; read all role clues before choosing.",
-        "why": "Compare the stated conditions with Route B; FOX-OWL-RABBIT. Each required field must match; a candidate with one wrong field is rejected."
+        "why": "Compare the stated conditions with Route B; FOX-OWL-RABBIT. Each required field must match; a candidate with one wrong field is rejected.",
+        "actions": [
+          "Retrieve the three matched gift cards from your checkpoint 2 evidence pile. Read the three route clue cards aloud.",
+          "Investigator lays the gifts in a route satisfying BEFORE and LAST. Use each destination exactly once.",
+          "Checker compares that order with the printed route candidates and explains why another route fails.",
+          "Recorder writes gift LETTERS in route order and the last destination. Leave the matching pairs in the evidence area."
+        ]
       },
       {
         "title": "Read the final paper note",
@@ -1425,7 +1493,13 @@
           "RABBIT GATE; give GO!."
         ],
         "extra": "Dictionary: TREE = G / STAR = O / MOON = !",
-        "why": "Compare the stated conditions with RABBIT GATE; GO!. Each required field must match; a candidate with one wrong field is rejected."
+        "why": "Compare the stated conditions with RABBIT GATE; GO!. Each required field must match; a candidate with one wrong field is rejected.",
+        "actions": [
+          "Read the LAST destination from the route you solved at checkpoint 3. Find the envelope addressed to that place.",
+          "Reader reads its code symbols from left to right. Investigator points to each symbol in the printed TREE/STAR/MOON dictionary.",
+          "Recorder writes one character for each symbol, keeping punctuation. Join the characters into the pretend message.",
+          "Checker verifies both the envelope destination and every dictionary lookup. Record the last place and the whole message."
+        ]
       },
       {
         "title": "Check the final delivery",
