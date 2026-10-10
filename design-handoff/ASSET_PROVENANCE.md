@@ -12,6 +12,7 @@
 | `../public/brand-wordmark.svg`, `brand-horizontal.svg`, `brand-stacked.svg` | 项目内 SVG，与图标同一几何形 | 交接用组合 Logo；网页导航仍用真实文本加图标，避免标题烘焙。 |
 | `../public/og-image.jpg` | 项目内脚本将现有 Hero 图、品牌图标和文字排成 1200×630 | 分享预览；正式发布前检查社交平台抓取和缓存。 |
 | `../public/assets/hero-workshop.png` | 前期 Codex 原型阶段生成的纸艺 Hero 图；原始生成提示词未保存 | 情绪/品牌图，不代表实际 PDF 成品。商业发布前复核生成来源、角色原创性和图中细节。 |
+| `../public/assets/custom-adventure-workshop-v1.jpg` | 2026-10-10 使用 Codex 内置 imagegen 新生成，并将 1448×1086 PNG 确定性压缩为 394242-byte JPEG（SHA-256 `7F0BD4DA8A2EF9B5A42317AE5A3A6E3D585A96F5981EB3B769639B56ACB90A41`）。提示词：俯视纸艺创作桌，三张抽象故事世界卡、正在绘制的分支路线、待打印线索页；水彩与剪纸质感，浅蓝/奶油色/深蓝/陶土色；无标志、可读文字、屏幕、信封、角色或礼物。 | AI 定制页专属 Hero 概念插画，说明“从想法到纸面故事”；不是 AI 实际交付件或可售 PDF 截图。与首页 Hero 使用不同构图。 |
 | `../public/assets/{celebration,dinosaur,space,forest,halloween,christmas}.png` | 前期 Codex 原型阶段生成的六张世界封面；原始提示词未保存 | 世界灵感图；不是已售内容截图。六图仍需统一裁切、尺寸/加载性能和使用权复核。 |
 | `../public/assets/halloween-friendly-v0.1.jpg` | 2026-10-08 使用 Codex 内置 imagegen 以原 `halloween.png` 为编辑目标生成，项目本地保留高分辨率 PNG；提示与边界见 `THEME_VISUAL_VARIANTS.md` | 新的友好纸艺世界封面候选，网页使用压缩 JPEG；仍非可售 PDF 预览，正式发布前复核权利及儿童感受。 |
 | `../public/assets/winter-classroom-v0.1.jpg` | 2026-10-08 使用 Codex 内置 imagegen 以原 `christmas.png` 为编辑目标生成，项目本地保留高分辨率 PNG；提示与边界见 `THEME_VISUAL_VARIANTS.md` | C06 非特定节庆 Winter 视觉候选；网页课堂故事卡展示压缩 JPEG，对应资料包已有未验收的内部 PDF 草稿。 |

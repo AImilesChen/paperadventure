@@ -7,12 +7,12 @@ export function CustomCreateIntro({ Link }) {
       <div className="custom-create-shell custom-create-hero-grid">
         <div className="custom-create-hero-copy">
           <span className="eyebrow"><Sparkle size={17} /> AI CUSTOM ADVENTURE</span>
-          <h1 id="custom-create-title">Make a printable story adventure that starts with your idea<span className="dot">.</span></h1>
+          <h1 id="custom-create-title">Create a printable adventure from your idea<span className="dot">.</span></h1>
           <p>Choose a story world or describe a new one. Set up a Home or Classroom game for your group, preview two short story directions, then decide whether to create the full paper adventure.</p>
           <div className="custom-create-hero-actions"><a className="button" href="#start">Start with your idea <ArrowRight size={19} /></a><a className="custom-create-secondary-link" href="#example">See an example <ArrowRight size={17} /></a></div>
           <ul className="custom-create-hero-facts"><li><UsersThree size={18} /> Ages 6–12</li><li><PencilSimple size={18} /> Home or Classroom</li><li><Printer size={18} /> Player pages + adult guide</li></ul>
         </div>
-        <figure className="custom-create-hero-art"><img src="/assets/hero-workshop.png" alt="Illustration of paper story materials, envelopes and a friendly animal character" width="1320" height="1195" /><figcaption>Story-world illustration · your finished files are printable PDFs.</figcaption></figure>
+        <figure className="custom-create-hero-art"><img src="/assets/custom-adventure-workshop-v1.jpg" alt="Illustrated story-world cards beside a branching paper adventure being drawn" width="1448" height="1086" fetchPriority="high" decoding="async" /><figcaption>Illustration of choosing a story path · finished custom pages vary.</figcaption></figure>
       </div>
     </section>
 

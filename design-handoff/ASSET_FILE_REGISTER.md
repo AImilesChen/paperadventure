@@ -15,6 +15,7 @@ Generated from current local file bytes by `scripts/audit_design_assets.py`. Use
 | `public/assets/celebration-home-v0.png` | public build | 800×600 | 276,371 | `53ea2146c4e4a6f2e90a590ae64a3bd82c4e69b3ed07368bd156c714a7bc13f9` |
 | `public/assets/celebration.png` | public build | 800×600 | 1,447,357 | `64e9a922ea8a99cc8de9f5b715ce3251a807219c737f475b88638e733a9c1cda` |
 | `public/assets/christmas.png` | public build | 800×600 | 1,430,326 | `bc1b1e850a61973f728bff59b6104d9540cbe28bc98062d9840865c7c0d387e0` |
+| `public/assets/custom-adventure-workshop-v1.jpg` | public build | 1448×1086 | 394,242 | `7f0bd4da8a2ef9b5a42317ae5a3a6e3d585a96f5981eb3b769639b56acb90a41` |
 | `public/assets/dinosaur.png` | public build | 1448×1086 | 3,408,114 | `9e30e3829873a42d62a7fc8ff502496d4ca3a839af79fb98d4d3b725afbeff04` |
 | `public/assets/forest.png` | public build | 1448×1086 | 3,262,722 | `c630c4f1214bc5e0e2dd354ce2e344623bb24e47d627e45826356bf8217e86c9` |
 | `public/assets/halloween-friendly-v0.1.jpg` | public build | 711×533 | 98,829 | `c24251b1d3cac8b538c0cd8fdfe5d054b071ae6d6f9c293a9c46117c5fdf771a` |

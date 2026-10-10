@@ -40,6 +40,11 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
         if (!await page.getByRole('heading', { name: 'One idea can become your own paper adventure.' }).isVisible()) problems.push(viewport.name + ' creator page lacks the example journey');
         if (!await page.getByRole('heading', { name: 'A story to print, and a guide to run it.' }).isVisible()) problems.push(viewport.name + ' creator page lacks output details');
         if (await page.locator('.custom-create-page-previews img').count() !== 2) problems.push(viewport.name + ' creator page lacks real printable page previews');
+        const heroImage = page.locator('.custom-create-hero-art img');
+        if (await heroImage.getAttribute('src') !== '/assets/custom-adventure-workshop-v1.jpg') problems.push(viewport.name + ' creator hero still reuses the home artwork');
+        const headingSize = await page.locator('#custom-create-title').evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+        if (headingSize > (viewport.name === 'desktop' ? 70 : 49)) problems.push(viewport.name + ' creator title is oversized: ' + headingSize + 'px');
+
         if (!await page.getByRole('heading', { name: 'Questions before you begin.' }).isVisible()) problems.push(viewport.name + ' creator page lacks FAQs');
       }
 
