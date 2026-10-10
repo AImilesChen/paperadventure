@@ -1,1 +1,1 @@
-Account session compatibility fix 2026-10-10
+Automatic billing address collection for digital packs 2026-10-10

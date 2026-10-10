@@ -14,7 +14,7 @@ export function checkoutForm({ orderId, email, priceId, inlinePrice, specHash, s
     'line_items[0][quantity]': '1',
     'metadata[order_id]': orderId, 'metadata[spec_hash]': specHash,
     success_url: successUrl, cancel_url: cancelUrl,
-    'billing_address_collection': 'required',
+    'billing_address_collection': 'auto',
     'automatic_tax[enabled]': automaticTax ? 'true' : 'false',
   };
   if (inlinePrice) {
