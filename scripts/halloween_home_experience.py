@@ -3,8 +3,8 @@ import math,re
 from reportlab.platypus import Paragraph,Spacer,Table,TableStyle,Image,Flowable
 from reportlab.lib.styles import ParagraphStyle
 import generate_celebration_samples as g
-BODY=ParagraphStyle('halloween-reader',fontName='Arial',fontSize=14,leading=20,textColor=g.NAVY,spaceAfter=10)
-HOST=ParagraphStyle('halloween-host',parent=BODY,fontSize=12,leading=17,spaceAfter=8)
+BODY=ParagraphStyle('halloween-reader',fontName='Arial',fontSize=15,leading=21,textColor=g.NAVY,spaceAfter=10)
+HOST=ParagraphStyle('halloween-host',parent=BODY,fontSize=13.5,leading=19,spaceAfter=9)
 BOLD=ParagraphStyle('halloween-label',parent=BODY,fontName='ArialBold')
 def p(t,host=False):return Paragraph(t.replace('<b>','<font name="ArialBold">').replace('</b>','</font>'),HOST if host else BODY)
 def head(t,tag):return [p(tag),Paragraph(t,g.STYLES['title']),Spacer(1,8)]
@@ -40,16 +40,16 @@ SCENES=[
   'Kite, tree, acorn and flag each stand for a seal name. The team translates them from left to right. The chosen decoder also carries the STAR number.',
   '<b>Pip:</b> "Keep the order exactly as written. Four correct seals in the wrong order will not finish our paper picture."'], 'What earlier discovery tells you which decoder to use?'),
  ('One final check before the celebration',[
-  'All four seals are back. Pip unfolds the dark pumpkin board. Four spaces wait along its base, but the bright face is still held by the adult.',
+  'Pip lays out the dark pumpkin board. Its four spaces are empty; the adult still holds the bright face.',
   '<b>Pip:</b> "Write the numbers we found on their matching seals. Put them in the order from our picture message."',
-  'Every teammate checks one part of the work. The numbers must come from the recorded discoveries, and the seal names must follow the decoded order.',
+  'Match each seal to a recorded number, then follow the decoded order. Every teammate checks one result.',
   '<b>Pip:</b> "Show the adult your completed board and two earlier clues. When the checks agree, we can unfold the bright pumpkin together!"'], 'Which discovery will you use to prove your seal is correct?')]
 ACTIONS=[
  ['Reader reads FOX, TWO stars, MOON postmark one at a time. Investigator spreads letters A-D, picture side up.', 'Checker compares all three features on every letter. Move a letter aside if any feature fails; explain which one.', 'Recorder writes the chosen letter, its SUN number and its start place in record row 1.', 'Show the adult the letter and all three matches. After acceptance, write the SUN number on its seal and keep it on the record.'],
  ['Read the start place in record row 1. Put the marker at that place on the whole trail board.', 'Find each route strip beginning there. Join a TO place to the same FROM place on another strip, left to right.', 'Try both branches. Park the branch ending at END. Keep the chain that reaches PARCEL TABLE.', 'Move the marker along the kept chain. Record strip letters, MOON number and batch in row 2.', 'Show every join to the adult. After acceptance, fill the MOON seal and keep it with SUN.'],
  ['Give one helper clue to Reader, Investigator and Checker. With two players, share two clues with one player and one with the other.', 'Each holder reads their own clue aloud, then places it where everyone can see it. Recorder reads the batch from row 2.', 'Compare every parcel against all three clues. Choose one parcel satisfying every condition, not just one.', 'Record its letter and HAT number in row 3. Each clue holder points to their matching feature.', 'Show the parcel and all three clues to the adult. After acceptance, fill the HAT seal.'],
  ['Read the parcel letter in row 3. Choose the decoder card with that same letter.', 'Place the picture message beside it. Read KITE, TREE, ACORN, FLAG from left to right.', 'Look up each picture on that decoder. Write the four translated seal names into the order strip.', 'Read the STAR number on that same card. Record the order and number in row 4.', 'Checker repeats all four lookups. Show the adult the decoder and order; after acceptance, fill STAR.'],
- ['Lay the whole pumpkin board flat. Retrieve all four seals and the order strip.', 'Recorder reads each recorded number. Checker traces it to its earlier letter, route, parcel or decoder.', 'Investigator places each seal in the next numbered slot, using the decoded name order. Everyone checks a slot.', 'Read the four digits left to right. Write them in record row 5 and find the matching check card.', 'Show the board and two earlier evidence cards to the adult. Correct mismatches before receiving the bright face.', 'After acceptance, take seals off the board, unfold the bright face over the dark face, replace the seals and hear the ending.']]
+ ['Lay the board flat. Bring the four seals, record and decoded order.', 'Recorder reads each number; Checker points to its source letter, route, parcel or decoder.', 'Investigator lays seals in the four slots in decoded order. Everyone checks one.', 'Read the four digits left to right. Write them in row 5 and choose the matching check card.', 'Show the board and two earlier evidence cards to the adult. Correct any mismatch.', 'After acceptance, lift the seals, unfold the bright face over the dark face, replace the seals and hear the ending.']]
 FEEDBACK=[
  'Pip checks letter C: fox, two stars, moon. "All three agree! Here is SUN. Write 5 on it. Our trail begins at GATE." Pip points to the scattered route strips. The next seal waits where the parcels are sorted.',
  'Pip traces A-B-C from GATE through BANNER and PUMPKIN STAND to PARCEL TABLE. "You avoided the closed shed! Write 7 on MOON and keep batch P3." Three helpers step forward beside the waiting parcels.',
@@ -57,7 +57,7 @@ FEEDBACK=[
  'Pip reads the translation: SUN, MOON, HAT, STAR. "You used decoder B for every picture! Write 3 on STAR. Now we have every number and the installation order." The dark pumpkin board is ready for the final check.',
  'Pip smiles as the adult unfolds the bright pumpkin face. "Every seal has its place, and every clue helped us get here. The paper festival can begin!" Each teammate shows one action they contributed. The pumpkin stays on the table as your finished team creation.']
 class Art(Flowable):
- def __init__(self,w,kind):self.width=w;self.kind=kind;self.height=380 if kind in ['letters','parcels'] else 450 if kind=='pumpkin' else 450 if kind=='bright' else 350
+ def __init__(self,w,kind):self.width=w;self.kind=kind;self.height=340 if kind=='letters' else 440 if kind=='parcels' else 450 if kind in ['pumpkin','bright'] else 410 if kind=='message' else 350
  def label(self,x,y,s,size=14,bold=False):
   self.canv.setFillColor(g.NAVY);self.canv.setFont('ArialBold' if bold else 'Arial',size);self.canv.drawString(x,y,s)
  def star(self,x,y,r=10):
@@ -91,14 +91,14 @@ class Art(Flowable):
     if self.kind=='letters':
      self.icon(x+42,y+ch-65,row[1]);self.label(x+70,y+ch-67,row[1],13)
      for j in range(row[2]):self.star(x+35+j*28,y+ch-99)
-     self.label(x+95,y+ch-103,str(row[2])+' stars',13);self.icon(x+35,y+ch-135,row[3]);self.label(x+65,y+ch-139,row[3]+' postmark',12)
-     self.label(x+15,y+15,'SUN / Start: '+row[4],12,True)
+     self.label(x+95,y+ch-103,str(row[2])+(' star' if row[2]==1 else ' stars'),13);self.icon(x+35,y+ch-128,row[3]);self.label(x+65,y+ch-132,row[3]+' postmark',12)
+     self.label(x+15,y+10,'SUN / Start: '+row[4],12,True)
     else:
      cx=x+cw/2;cy=y+ch/2
      if row[3]=='Round':c.roundRect(cx-65,cy-40,130,70,24)
      else:c.rect(cx-65,cy-40,130,70)
      for j in range(row[2]):c.line(cx-20+j*40,cy-39,cx-20+j*40,cy+29)
-     self.label(x+15,y+ch-46,'Batch: '+row[1],14);self.label(x+15,y+32,f'{row[2]} stripes / {row[3]}',13);self.label(x+15,y+12,'HAT number: '+row[4],13,True)
+     self.label(x+15,y+ch-46,'Batch: '+row[1],14);self.label(x+15,y+32,f'{row[2]} '+('stripe' if row[2]==1 else 'stripes')+' / '+row[3],13);self.label(x+15,y+12,'HAT number: '+row[4],13,True)
   elif self.kind=='trail':
    names=['GATE','BANNER','PUMPKIN STAND','PARCEL TABLE','SHED','END']
    for i,n in enumerate(names):
@@ -113,12 +113,13 @@ class Art(Flowable):
     sw=(w-20)/4
     for i in range(4):c.rect(10+i*sw,12,sw,85);self.label(18+i*sw,78,str(i+1),14,True)
    else:
+    for sx,sy,rad in [(58,350,13),(w-56,345,13),(79,165,10),(w-79,160,10),(w/2,375,12),(w/2,133,9)]:self.star(sx,sy,rad)
     c.setDash(4,3);c.line(0,105,w,105);c.setDash();self.label(10,85,'FOLD HERE / ADULT HOLDS THIS FACE',12,True);self.label(10,60,'Our team helped by: __________________________',12);self.label(10,30,'A clue we checked: ___________________________',12)
   elif self.kind=='message':
    for i,n in enumerate(['KITE','TREE','ACORN','FLAG']):
-    x=15+i*w/4;c.rect(x,170,w/4-20,130);self.icon(x+40,250,n);self.label(x+8,195,n,13,True);self.label(x+8,145,str(i+1)+' ______',13)
-   self.label(10,100,'Translate the pictures on ONE matching decoder.',14)
-   self.label(10,50,'STAR number: ______',14,True)
+    x=15+i*w/4;c.rect(x,90,w/4-20,250);self.icon(x+40,285,n);self.label(x+8,245,n,14,True);self.label(x+8,170,'Seal '+str(i+1)+':',13);self.label(x+8,137,'________',15)
+   self.label(10,55,'Translate the pictures on ONE matching decoder.',14)
+   self.label(10,25,'STAR number: ______',14,True)
 
 class Marker(Art):
  def __init__(self,w):self.width=w;self.height=100;self.kind='marker'
@@ -134,25 +135,41 @@ class SealSheet(Art):
    x=14+i*sw;c.setStrokeColor(g.NAVY);c.setDash(4,3);c.rect(x,70,sw-8,75);c.setDash();self.icon(x+26,116,name);self.label(x+48,111,name,11,True);self.label(x+8,83,'Number: ____',12)
   self.label(10,20,'Four seals: each fits inside one pumpkin slot.',13)
 
-def story(i,w):
+class RecordBoard(Flowable):
+ def __init__(self,w):self.width=w;self.height=470
+ def draw(self):
+  c=self.canv;c.setStrokeColor(g.LINE);c.setFillColor(g.NAVY)
+  rows=[('1 / LETTER','Choice: ______   SUN: ______   Start: ______________'),
+        ('2 / ROUTE','Strips: __________   MOON: ______   Batch: ______'),
+        ('3 / PARCEL','Choice: ______   HAT: ______'),
+        ('4 / MESSAGE','Decoder: ______   STAR: ______   Order: ______________'),
+        ('5 / PUMPKIN','Four digits: ______   Adult checked: YES / RETRY')]
+  for i,(title,fields) in enumerate(rows):
+   y=376-i*94;c.roundRect(0,y,self.width,88,7,stroke=1,fill=0)
+   c.setFont('ArialBold',14);c.drawString(14,y+64,title)
+   c.setFont('Arial',12);c.drawString(14,y+39,fields)
+   c.setFont('Arial',11);c.drawString(14,y+15,'Our evidence: _________________________________________________')
+
+def mission(i,w):
  title,paras,q=SCENES[i]
- return head(title,f'CHECKPOINT {i+1} / STORY / READ TOGETHER')+[p(t) for t in paras]+[Spacer(1,16),p('<b>Talk together</b>'),p(q),p('Turn to the next action page. Your adult gives you only the current materials.')]
+ return head(title,f'CHECKPOINT {i+1} / READ THE STORY, THEN PLAY')+[p(t) for t in paras]+[p('<b>Talk together:</b> '+q),p('<b>Put on the table:</b> '+MATERIALS[i])]+lines(ACTIONS[i])
 GROUPS=[('2','Reader + Recorder; Investigator + Checker. Swap both bundles each mission.'),('3','Reader; Investigator; Recorder + Checker. Pass the three bundles clockwise.'),('4','One job each. Pass all four cards clockwise after each mission.'),('5','Reader pair; one Investigator, Recorder and Checker. Partners swap reader/pointer.'),('6','Reader pair; Investigator pair; Recorder; Checker. Partners swap operator/verifier.')]
-MAP=[(4,7),(8,12),(13,16),(17,20),(21,24)]
-MATERIALS=['Letters A-D, record, jobs. Adult holds SUN until accepted.','Whole trail board, five strips, marker, record, SUN.','Three helper clues, four parcels, record, earlier seals.','Picture message, four decoder cards, order strip, record.','Dark pumpkin board, four completed seals, order strip, check cards, record. Adult holds page 25.']
+MAP=[(4,5),(6,8),(9,11),(12,14),(15,17)]
+MATERIALS=['Letters A-D (page 5), record and jobs. Adult holds the blank seals.','Trail board and marker (page 7), five strips (page 8), record and SUN.','Three helper clues (page 10), four parcels (page 11), record and earned seals.','Picture message (page 13), four decoder cards (page 14), record.','Pumpkin board (page 16), four completed seals, check cards (page 17), record. Adult holds page 18.']
 def player(s,w):
- pages=[head(s['title'],'PLAYER / HALLOWEEN HOME')+[p('Help Pip find four seals and restore the festival pumpkin.'),Image(str(g.ROOT/s['cover']),width=360,height=270,kind='proportional'),Spacer(1,14),p('A friendly five-mission paper adventure. Everyone shares clues, follows the trail and completes one team pumpkin picture.'),p('Ages 6-12. One team for 2-6 players; two complete sets for 7-12. An adult hosts and reads when needed.')]]
- pages.append(head('Your festival team','PAGE 2 / CUT FOUR JOB CARDS')+[grid([('Reader','Read one sentence. Invite every teammate to share. Partner points to the clue.'),('Investigator','Move and compare pieces. Explain one match. Partner checks a rejected choice.'),('Recorder','Write agreed discoveries. Ask the adult to write your spoken answers if needed.'),('Checker','Check every condition. Show evidence to the adult. Request the next mission.')],w),p('Pass jobs after missions 1-4. Paired players swap actions. Everyone may discuss; you do not need to act a character.')])
- pages.append(head('Our festival discoveries','PAGE 3 / KEEP WHOLE')+[p('Keep in the middle. Fill one row after each mission; spoken answers are welcome.')]+[p(t) for t in ['1. Letter ___ / SUN ___ / Start __________','Evidence: __________________________________','2. Route __________ / MOON ___ / Batch ____','Evidence: __________________________________','3. Parcel ___ / HAT ___','Evidence: __________________________________','4. Decoder ___ / STAR ___','Seal order: ______ / ______ / ______ / ______','5. Final number ______ / Adult checked: YES / RETRY']]+[p('Keep earned seals beside this record. Look back at evidence whenever a number seems wrong.')])
+ pages=[head(s['title'],'PLAYER / HALLOWEEN HOME')+[p('Help Pip find four seals and restore the festival pumpkin.'),Image(str(g.ROOT/s['cover']),width=400,height=300,kind='proportional'),Spacer(1,14),p('<b>A letter from Pip</b>'),p('A gust of wind has blown four paper seals off the festival pumpkin. Follow Pip through five connected discoveries, then put the seals back in the order hidden in the picture message.'),p('The adult gives one mission at a time. Read the story at the top of each mission page, then follow the steps beneath it. Your choices change what you can use next.'),p('Ages 6-12. One team for 2-6 players; two complete sets for 7-12. An adult hosts and reads when needed.')]]
+ pages.append(head('Your festival team','PAGE 2 / CUT FOUR JOB CARDS')+[p('The adult assigns jobs before the first story. Share decisions; pass jobs after missions 1-4.'),grid([('Reader','Read one sentence. Invite every teammate to share. Partner points to the clue.'),('Investigator','Move and compare pieces. Explain one match. Partner checks a rejected choice.'),('Recorder','Write agreed discoveries. Ask the adult to write your spoken answers if needed.'),('Checker','Check every condition. Show evidence to the adult. Request the next mission.')],w,215),p('With two or three players, one person can hold two jobs. Paired players swap actions. Nobody needs to act a story character.')])
+ pages.append(head('Our festival discoveries','PAGE 3 / KEEP WHOLE')+[p('Keep this board in the middle of the table. After each mission, write the result and one fact that proves it. Spoken answers are welcome; an adult can write for you.'),RecordBoard(w),p('Keep earned seals beside this board. If something does not match later, return to the printed clue and correct that row.')])
  props=[
- [head('Letters at the gate','CHECKPOINT 1 / PAGE 6 / CUT FOUR LETTERS')+[Art(w,'letters'),p('Compare the pictures and their labels. Dashed borders: cut. Keep the letter details attached.')],head('Pip opens the checked letter','CHECKPOINT 1 / PAGE 7 / ADULT RELEASES AFTER CHECK')+[p('Pip: "You found my letter! Fill SUN using the checked letter. Keep it safe. Begin the trail at the start place on that letter."'),SealSheet(w),p('Adult cuts four seals now; give SUN only. Hold the other three until their missions are accepted. Use these same pieces at the finale.')]],
- [head('The festival trail board','CHECKPOINT 2 / PAGE 10 / KEEP WHOLE')+[Art(w,'trail'),p('Join strips beside this board. No real walking or outdoor search is needed.')],head('Wind-scattered route strips','CHECKPOINT 2 / PAGE 11 / CUT FIVE STRIPS')+[grid([('D','GATE > SHED'),('B','BANNER > PUMPKIN STAND'),('E','SHED > END'),('C','PUMPKIN STAND > PARCEL TABLE<br/>MOON: 7 / Batch: P3'),('A','GATE > BANNER')],w,145)],head('Your moving team marker','CHECKPOINT 2 / PAGE 12 / CUT ONE MARKER')+[Marker(w),Spacer(1,12),p('<b>Practise a join before the mission</b>'),p('Example only: START > FLOWER joins FLOWER > TENT because the repeated place is FLOWER. Put the two strips end to end. These example words are not part of your festival answer.'),p('During play, point to the TO name, find the same FROM name and move the marker to the joined place. Never jump across a missing join.'),p('For no-cut play, point to each place on the whole board. Keep the marker for your finished festival display.')]],
- [head('Three helpers share clues','CHECKPOINT 3 / PAGE 15 / CUT THREE CLUES')+[grid([('Courier','Use the batch recorded at the parcel table.'),('Decorator','Our parcel has TWO stripes.'),('Keeper','Our parcel has a ROUND outline.')],w,160),p('Give each clue to a different holder where possible. Read aloud, then put it in the centre. Do not hide clues after sharing.')],head('The waiting parcels','CHECKPOINT 3 / PAGE 16 / CUT FOUR PARCELS')+[Art(w,'parcels'),p('All three helper clues must match the SAME parcel.')]],
- [head('The picture message','CHECKPOINT 4 / PAGE 19 / KEEP WHOLE')+[Art(w,'message'),p('Copy the translated seal names in order. Keep this sheet for the pumpkin board.')],head('Festival decoder cards','CHECKPOINT 4 / PAGE 20 / CUT FOUR DECODERS')+[grid([('Decoder A','KITE: MOON<br/>TREE: SUN<br/>ACORN: HAT<br/>FLAG: STAR<br/>STAR number: 4'),('Decoder B','KITE: SUN<br/>TREE: MOON<br/>ACORN: HAT<br/>FLAG: STAR<br/>STAR number: 3'),('Decoder C','KITE: STAR<br/>TREE: HAT<br/>ACORN: SUN<br/>FLAG: MOON<br/>STAR number: 6'),('Decoder D','KITE: HAT<br/>TREE: SUN<br/>ACORN: STAR<br/>FLAG: MOON<br/>STAR number: 8')],w,240)]],
- [head('Restore the paper pumpkin','CHECKPOINT 5 / PAGE 23 / KEEP WHOLE')+[Art(w,'pumpkin'),p('Place one seal in each numbered slot. Use the decoded order. Show the adult before unfolding the bright face.')],head('Final number check','CHECKPOINT 5 / PAGE 24 / CUT FOUR CHECK CARDS')+[grid([('A','5723'),('B','5732'),('C','7523'),('D','5724')],w,120),p('Select the number made by your ordered seals. Explain two earlier clues. This card checks your work; your finished pumpkin is the team result.')]]]
+  [head('Four letters and the seal pieces','CHECKPOINT 1 / PAGE 5 / CUT CARDS AND SEALS')+[p('Cut four letters on their dashed borders. Compare all three clues. Adult: cut the four blank seals too; keep them until each mission is accepted.'),Art(w,'letters'),SealSheet(w)]],
+  [head('The festival trail board','CHECKPOINT 2 / PAGE 7 / KEEP BOARD WHOLE, CUT MARKER')+[p('Join strips beside this board. The whole game stays at the table.'),Art(w,'trail'),Marker(w),p('To join strips, match the place after > on one strip with the place before > on the next. Move the marker one joined place at a time.')],head('Wind-scattered route strips','CHECKPOINT 2 / PAGE 8 / CUT FIVE STRIPS')+[grid([('D','GATE > SHED'),('B','BANNER > PUMPKIN STAND'),('E','SHED > END'),('C','PUMPKIN STAND > PARCEL TABLE<br/>MOON: 7 / Batch: P3'),('A','GATE > BANNER')],w,165),p('Dashed borders: cut. Lay strips left to right and keep the branch reaching PARCEL TABLE.')]],
+  [head('Three helpers share clues','CHECKPOINT 3 / PAGE 10 / CUT THREE CLUES')+[p('Each helper knows only one part. Give cards to different players where possible. Read aloud, then place them together.'),grid([('Courier','Use the batch recorded at the parcel table.'),('Decorator','Our parcel has TWO stripes.'),('Keeper','Our parcel has a ROUND outline.')],w,230),p('All three clues must describe the SAME parcel. With two players, one reads two cards; both discuss the answer.')],head('The waiting parcels','CHECKPOINT 3 / PAGE 11 / CUT FOUR PARCELS')+[p('Compare the parcel drawings and printed words with all three helper clues.'),Art(w,'parcels')]],
+  [head('The picture message','CHECKPOINT 4 / PAGE 13 / KEEP WHOLE')+[p('Choose one decoder using your parcel letter. Read the four pictures left to right and write each seal name in its numbered space.'),Art(w,'message')],head('Festival decoder cards','CHECKPOINT 4 / PAGE 14 / CUT FOUR DECODERS')+[p('Cut four decoders. Only the card matching your parcel letter gives the order to use.'),grid([('Decoder A','KITE: MOON<br/>TREE: SUN<br/>ACORN: HAT<br/>FLAG: STAR<br/>STAR number: 4'),('Decoder B','KITE: SUN<br/>TREE: MOON<br/>ACORN: HAT<br/>FLAG: STAR<br/>STAR number: 3'),('Decoder C','KITE: STAR<br/>TREE: HAT<br/>ACORN: SUN<br/>FLAG: MOON<br/>STAR number: 6'),('Decoder D','KITE: HAT<br/>TREE: SUN<br/>ACORN: STAR<br/>FLAG: MOON<br/>STAR number: 8')],w,265)]],
+  [head('Restore the paper pumpkin','CHECKPOINT 5 / PAGE 16 / KEEP WHOLE')+[p('Put the completed seals in the four numbered slots. Use the order from the picture message and explain where every number came from.'),Art(w,'pumpkin')],head('Final number check','CHECKPOINT 5 / PAGE 17 / CUT FOUR CHECK CARDS')+[p('Read your four seals left to right, then choose the matching check card. Tell the adult two earlier clues.'),grid([('A','5723'),('B','5732'),('C','7523'),('D','5724')],w,220),p('The matching card verifies your work. The pumpkin reveal is the team result.')]]]
  for i in range(5):
-  pages.append(story(i,w));pages.append(head(['Find the true letter','Connect the festival trail','Combine the helpers\' clues','Translate the picture message','Check and restore the pumpkin'][i],f'CHECKPOINT {i+1} / ACTIONS / KEEP WHOLE')+[p('<b>Put on the table</b>'),p(MATERIALS[i])]+lines(ACTIONS[i])+[p('<b>STOP: show your result and evidence to the adult.</b>')]);pages.extend(props[i])
- pages.append(head('The bright pumpkin reveal','PAGE 25 / ADULT HOLDS UNTIL FINAL ACCEPTANCE')+[p('Fold the lower panel behind along the dashed line. After the final check, unfold and lay the illustrated panel over the dark pumpkin face. Leave the four seal slots visible.'),Art(w,'bright')])
+  pages.append(mission(i,w))
+  pages.extend(props[i])
+ pages.append(head('The bright pumpkin reveal','PAGE 18 / ADULT HOLDS UNTIL FINAL ACCEPTANCE')+[p('Fold the lower panel behind along the dashed line. After the final check, unfold and lay the illustrated panel over the dark pumpkin face. Leave the four seal slots visible.'),Art(w,'bright')])
  return pages
 
 def guide(s,w,counts,base):
@@ -171,3 +188,55 @@ def guide(s,w,counts,base):
  pages.append(head('Hints without taking over','HOST / SUPPORT')+[hp('Give hint 1, allow a new attempt, then hint 2. Use the answer only after another attempt or when frustration prevents progress.')]+[hp('<b>Mission '+str(i+1)+'</b><br/>1: '+a+'<br/>2: '+b+'<br/>3: '+answers[i]) for i,(a,b) in enumerate([('Check all three letter features.','A moon postmark alone is not enough.'),('Begin at the recorded start.','Compare the destination of both branches.'),('Listen to all three helper cards.','The same parcel must match P3, two stripes and round.'),('Find the parcel letter first.','Use one decoder for all four pictures, left to right.'),('Match seal names before reading numbers.','Trace every number back to its original evidence.')])])
  pages.append(head('Finish, keep and reset','HOST / FINALE')+[hp('Check: all four names used once; each number agrees with its source; order agrees with decoder B; final code agrees with A. Ask two different children to show two supporting discoveries.'),hp('Take seals off the dark board. Give the folded bright face. Let the children unfold it and align the pumpkin outline on its upper panel with the dark pumpkin outline, keeping the numbered slots uncovered. Return the seals. Read the final checked-result story.'),hp('Invite each child to show one contribution. Use the lower keepsake area for a drawing or dictated sentence. No extra prize is necessary.'),hp('Reset: collect all 33 pieces, keep five mission piles, erase pencil values and fold the bright face back. The solution stays the same; change jobs for another play.'),hp('Lost piece: reprint its labelled prop page. If an earlier result is wrong, return to that pile and correct the discovery before proceeding. Pause by keeping each team\'s record and piles together.')])
  return pages
+
+# One operational page per mission keeps the story, handout, validation and
+# checked-result transition together in the adult's reading order.
+_legacy_guide=guide
+def guide(s,w,counts,base):
+ hp=lambda text:p(text,True)
+ old=_legacy_guide(s,w,counts,base)
+ out=[head(s['title'],'HOST / QUICK START')+[hp('Read this guide on screen. The adult host is outside the 2-12 player count.')]+[
+  hp('<b>1.</b> Use one team for 2-6, or two complete teams for 7-12.'),
+  hp('<b>2.</b> Print all 18 Player Pack pages per team, single-sided at 100% / Actual size. Print 17 only if you show the cover on screen. Choose A4 or US Letter, not both.'),
+  hp('<b>3.</b> Provide ordinary paper, two pencils and an eraser per team. Adult-handled scissors are useful. No candle, lamp, toy, glue or prize is needed.'),
+  hp('<b>4.</b> Cut and sort as listed on the next page. Keep the four blank seals and final reveal yourself.'),
+  hp('<b>5.</b> Give jobs and record first. Read the opening, then release one numbered mission at a time. Check each result before the next story.')]]
+ out.append(head('Print, cut and sort','HOST / PREPARATION')+[
+  hp('Pages 2-3: cut four jobs; keep the team record whole.'),
+  hp('Mission 1 / pages 4-5: story and actions on 4, four letters and four seals on 5. Cut the seals; adult holds all four until earned.'),
+  hp('Mission 2 / pages 6-8: story and actions on 6, whole route board and small cut marker on 7, five cut strips on 8.'),
+  hp('Mission 3 / pages 9-11: story and actions on 9, three separate helper clues on 10, four parcels on 11.'),
+  hp('Mission 4 / pages 12-14: story and actions on 12, whole picture message on 13, four cut decoders on 14.'),
+  hp('Mission 5 / pages 15-17: story and actions on 15, whole pumpkin board on 16, four cut check cards on 17.'),
+  hp('Page 18: adult-held folding pumpkin face and keepsake. Give only after the final check.'),
+  hp('<b>33 cut pieces per team:</b> 4 jobs + 4 letters + 4 seals + 5 route strips + 1 marker + 3 helper clues + 4 parcels + 4 decoders + 4 check cards.'),
+  hp('Cut dashed borders only; keep solid boards whole. Ignore empty card-grid cells. For no-cut play, point to printed pieces and record seal names and values on page 3.')])
+ out.append(old[2])
+ out.append(head('Set the table and begin','HOST / OPENING')+[
+  hp('CURRENT MISSION goes in the middle; RECORD + earned seals stay beside it; SOLVED EVIDENCE goes to one side. Keep later piles, this guide, blank seals and page 18 with you.'),
+  hp('<b>Read:</b> "Pip is preparing a friendly paper festival. The wind scattered four seals from the pumpkin picture. Your team will find them, discover their order and restore the picture."'),
+  hp('"Every mission begins with the next part of the story. Read it before touching new props. Share a clue, then show your answer and evidence. You may ask for help or correct a mistake."'),
+  hp('Give pages 2 and 3. Assign jobs and ask each child to show what their job does. Read the story at the top of page 4, then give the four letters from page 5. Keep the blank seals with you.')])
+ for i in range(5):
+  lo,hi=MAP[i]
+  flow=head(SCENES[i][0],f'HOST / CHECKPOINT {i+1} / READ, PLAY, VERIFY')+[
+   hp(f'<b>Prepare and distribute:</b> Player pages {lo}-{hi}. Read the story on page {lo} aloud or let the Reader read it. Give only this mission\'s props.'),
+   hp('<b>Ask before play:</b> '+SCENES[i][2])]
+  operation=old[5+i*2][3:]
+  for el in operation:
+   if hasattr(el,'text'):
+    value=el.text.replace('page 25','page 18').replace('Give checkpoint','Give mission')
+    if 'Release page 18' in value and i==4:value='After accepting, ask two children for two earlier facts. Then give folded page 18 and use the finale instructions on page 11.'
+    if 'Handover' in value and i<4:value=value.replace('after reading the checked-result story','after you read the checked-result story below')
+    flow.append(hp(value))
+   else:flow.append(el)
+  if i<4:flow.append(hp('<b>After acceptance, read before the next mission:</b> '+FEEDBACK[i]))
+  out.append(flow)
+ out.append(old[-2])
+ out.append(head('Unfold the ending','HOST / FINALE')+[
+  hp('Check that all four seal names appear once. Trace every number to an earlier clue. Decoder B gives SUN-MOON-HAT-STAR; the completed number is 5723 and matches card A. Two players should show two different supporting clues.'),
+  hp('Give folded page 18 only now. Lift the four seals from page 16. Let children unfold the bright face, align its pumpkin outline over the dark one, and leave the four numbered slots visible. Return the seals in order.'),
+  hp('<b>Read:</b> '+FEEDBACK[4]),
+  hp('Invite each child to show one thing they contributed. Use the lower panel to record a team memory. Nothing beyond the printed pack is needed to finish.'),
+  hp('Reset: count all 33 pieces, keep the five piles, erase pencil marks and fold page 18 again. The solution stays the same; change jobs if playing again.')])
+ return out

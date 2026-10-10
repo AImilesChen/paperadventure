@@ -7,13 +7,19 @@ import halloween_home_experience as h
 root=Path(__file__).resolve().parents[1]
 for size,pagesize in [('A4',r.g.A4),('Letter',r.g.letter)]:
  player=PdfReader(root/f'output/pdf/halloween-home-player-1.0-{size}.pdf');guide=PdfReader(root/f'output/pdf/halloween-home-guide-1.0-{size}.pdf')
- assert len(player.pages)==25 and len(guide.pages)==16
+ assert len(player.pages)==18 and len(guide.pages)==11
  texts=[p.extract_text() for p in player.pages]
- for i,n in enumerate([4,8,13,17,21]):assert f'CHECKPOINT {i+1} / STORY' in texts[n-1]
- for n in [4,5,8,9,13,14,17,18,21,22,25]:assert '5723' not in texts[n-1]
- assert 'TWO stripes' not in texts[13] and 'ROUND outline' not in texts[13]
- assert 'ADULT HOLDS UNTIL FINAL ACCEPTANCE' in texts[24]
- assert '33 pieces' in guide.pages[1].extract_text()
+ for i,n in enumerate([4,6,9,12,15]):
+  assert f'CHECKPOINT {i+1} / READ THE STORY, THEN PLAY' in texts[n-1]
+  assert 'Pip:' in texts[n-1] and 'Talk together:' in texts[n-1] and 'Put on the table:' in texts[n-1]
+  assert '1.' in texts[n-1] and '4.' in texts[n-1]
+ assert all('5723' not in page for page in texts[:16])
+ assert 'TWO stripes' not in texts[8] and 'ROUND outline' not in texts[8]
+ assert 'ADULT HOLDS UNTIL FINAL ACCEPTANCE' in texts[17]
+ assert '1 star' in texts[4] and '1 stripe' in texts[10]
+ assert '33 cut pieces per team' in guide.pages[1].extract_text()
+ assert all('After acceptance, read before the next mission:' in guide.pages[i].extract_text() for i in range(4,8))
+ assert 'Page 18' in guide.pages[1].extract_text()
  w=pagesize[0]-88;slot=(w-20)/4
  assert slot-8 < slot and 75 < 85
  assert 65 < w/2-10 and 55 < 72
@@ -26,4 +32,4 @@ letters=s['stages'][0]['rows'];matches=[x for x in letters if x[1:4]==['Fox','2'
 assert len(matches)==1 and matches[0][0]=='C'
 routes={x[0]:x for x in s['stages'][1]['rows']};assert routes['A'][2]==routes['B'][1] and routes['B'][2]==routes['C'][1] and routes['C'][2]=='PARCEL TABLE'
 parcels=[x for x in s['stages'][2]['rows'] if x[1:4]==['P3','2','Round']];assert len(parcels)==1 and parcels[0][0]=='B'
-print('Halloween: 25/16 pages in both sizes, causal chain, no early finale leak, private clue sharing and seal fit passed.')
+print('Halloween: 18/11 pages in both sizes, story-plus-action missions, causal chain, prop inventory, no early finale leak and seal fit passed.')

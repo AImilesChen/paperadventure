@@ -111,14 +111,14 @@ export const themeDetailContent = {
   halloween: {
     home: {
       hook: 'Recover four paper seals for a friendly pumpkin-festival story.',
-      reasons: ['A bright, gentle mystery avoids scares and dark-room activities.', 'Players draw a route and decode a paper reply to collect the seals.', 'The finale uses four numbered paper seals, with no candle or real lock.'],
-      materials: ['Messenger and invitation choices', 'Route strips and a six-place festival map', 'Shared parcel clues and a reply dictionary', 'Four fillable paper seals and order scroll'],
+      reasons: ['A gentle mystery begins every mission with Pip’s story and a team discussion.', 'Players join route pieces, share separate parcel clues and translate a picture message.', 'Four earned seals restore a printed pumpkin picture, with no candle or real lock.'],
+      materials: ['Four job cards, team record and illustrated letter choices', 'Five route strips, six-place festival board and Pip marker', 'Three helper clues, four illustrated parcels, picture message and decoder cards', 'Four fillable seals, pumpkin board, number check cards and a folding bright-face reveal'],
       stages: [
-        ['Meet the messenger', 'Compare the illustrated paper messages.', 'A map entrance and first seal'],
-        ['Repair the festival route', 'Draw connections from shuffled route strips.', 'A parcel batch and second seal'],
-        ['Find the parcel', 'Combine separate clues about the paper package.', 'A reply key and third seal'],
-        ['Read the reply', 'Use the supplied dictionary to decode the message.', 'A fourth seal and order rule'],
-        ['Arrange the seals', 'Put the four paper seals in the stated order.', 'A friendly festival ending'],
+        ['Find Pip’s letter', 'Match the animal, stars and postmark on one illustrated letter.', 'A starting place and SUN seal'],
+        ['Repair the festival route', 'Join shuffled strips, test both branches and move Pip to the parcel table.', 'A parcel batch and MOON seal'],
+        ['Find the parcel', 'Share three helper clues and match all of them to one parcel.', 'A decoder letter and HAT seal'],
+        ['Translate the picture message', 'Use the matching decoder for all four pictures, from left to right.', 'A STAR seal and the installation order'],
+        ['Restore the paper pumpkin', 'Arrange all four seals, check their numbers and show two earlier clues.', 'An adult-held bright pumpkin reveal and team keepsake'],
       ],
     },
     classroom: {

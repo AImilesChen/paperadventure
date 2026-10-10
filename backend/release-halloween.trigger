@@ -1,1 +1,1 @@
-Halloween Home illustrated festival release: 25 player / 16 host pages; 33 pieces; story and pumpkin reveal.
+Halloween Home playable festival release: 18 player / 11 host pages; 33 pieces; five story-led missions and pumpkin reveal.
