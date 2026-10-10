@@ -38,6 +38,18 @@ test('public robots and sitemap expose content pages while private routes stay o
   assert.doesNotMatch(headers, /^\/\*\n  X-Robots-Tag: noindex/m);
 });
 
+test('homepage explains the printable product and links to both ways to play', async () => {
+  const html = await read('en/index.html');
+  assert.match(html, /Printable adventure games for kids/);
+  assert.match(html, /What you actually play/i);
+  assert.match(html, /Print the Player Pack/);
+  assert.match(html, /Keep the adult guide/);
+  assert.match(html, /A4 and US Letter/);
+  assert.match(html, /href="\/en\/for-home\/"/);
+  assert.match(html, /href="\/en\/for-classroom\/"/);
+  assert.doesNotMatch(html, /Custom theme idea/);
+});
+
 test('root fallback retains a local redirect without exposing stale preview claims', async () => {
   const html = await read('index.html');
   assert.match(html, /location\.pathname === '\/'\) location\.replace\('\/en\/'/);

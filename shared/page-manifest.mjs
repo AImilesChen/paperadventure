@@ -3,7 +3,7 @@ import { themes } from './catalog.mjs';
 const page = (path, title, description, indexable = true) => ({ path, title, description, indexable });
 
 export const publicPages = Object.freeze([
-  page('/en/', 'Printable Story Adventures for Home & Classroom', 'Explore printable story adventures for kids. Choose distinct Home and Classroom games, try a free Celebration pack, or create a custom story.'),
+  page('/en/', 'Printable Adventure Games for Kids | Home & Classroom', 'Explore printable adventure games for ages 6–12. Choose a Home or Classroom story, see the Player Pack and adult guide, try Celebration free, or create your own.'),
   page('/en/themes/', 'Home and Classroom Printable Adventure Worlds', 'Compare six Home adventures with six Classroom adventures. Celebration is the shared free world; the five other story worlds in each collection are different.'),
   page('/en/for-home/', 'Printable Adventure Games for Kids at Home', 'Explore print-at-home story adventures for ages 6–12. Try the free Celebration game, browse themed Home packs, or create a custom story.'),
   ...themes.flatMap(theme => [

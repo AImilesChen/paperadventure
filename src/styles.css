@@ -112,8 +112,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .gallery-controls{align-items:center}
 .gallery-controls .gallery-play-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:auto;min-width:92px;padding:0 14px;border-radius:999px;color:#173b58;font-size:.78rem;font-weight:900}
 .gallery-controls .gallery-play-toggle:hover{background:#fff6e8}
+.gallery-status{max-width:138px;color:#44677b;font-size:.68rem;font-weight:800;line-height:1.25;text-align:right}
 @media(max-width:1100px){.themes-section:not(.themes-full) .theme-card{flex-basis:calc((100% - 20px)/2)}}
-@media(max-width:600px){.themes-section .theme-track{width:90%;padding-top:20px}.themes-section:not(.themes-full) .theme-card{flex-basis:86%}.gallery-controls .gallery-play-toggle{width:36px;min-width:36px;padding:0}.gallery-play-toggle span{display:none}}
+@media(max-width:600px){.themes-section .theme-track{width:90%;padding-top:20px}.themes-section:not(.themes-full) .theme-card{flex-basis:86%}.gallery-controls .gallery-play-toggle{width:36px;min-width:36px;padding:0}.gallery-play-toggle span{display:none}.gallery-status{display:none}}
 
 /* Separate Home and Classroom discovery in navigation and the carousel. */
 .site-nav{gap:clamp(18px,2vw,32px)}
