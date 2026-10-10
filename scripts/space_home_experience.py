@@ -1,10 +1,13 @@
 """Complete paper control-centre experience for Space Home."""
 import math
-from reportlab.platypus import Flowable, Image, Spacer
+from reportlab.platypus import Flowable, Image, Spacer, Paragraph, Table, TableStyle
 import generate_celebration_samples as g
+from reportlab.lib.styles import ParagraphStyle
 from dinosaur_home_experience import p, head, steps, cardgrid
 
 JOBS=['Commander','Navigator','Communicator','Verifier']
+SYMBOLS=['SUN','MOON','STAR','PATH','RING']
+LOOKUP_ORDER=[3,0,4,1,2]
 LABELS=['4, 5','6, 7','8, 9, 10','11, 12','13, 14, 15']
 
 def symbol(c,x,y,name,r=12):
@@ -38,7 +41,7 @@ class SpaceBoard(Flowable):
   c=self.canv;w=self.width;h=self.height;c.setStrokeColor(g.LINE)
   def label(x,y,t,size=12):c.setFillColor(g.NAVY);c.setFont('ArialBold',size);c.drawString(x,y,t)
   def box(x,y,bw,bh,t=''):
-   c.setStrokeColor(g.LINE);c.roundRect(x,y,bw,bh,4,stroke=1,fill=0)
+   c.setStrokeColor(g.NAVY);c.roundRect(x,y,bw,bh,4,stroke=1,fill=0)
    if t:label(x+9,y+bh-22,t)
   if self.kind=='record':
    for i,t in enumerate(['1 / Signal: ____   SECTOR: __________','2 / Route: ______   STATION: ______','3 / Device: ____   CODE: ______','4 / Five-letter MESSAGE: __________','5 / PROBE: ____   Reply checked: ____']):
@@ -64,6 +67,12 @@ class SpaceBoard(Flowable):
    for i,t in enumerate(['TO PROBE:','SECTOR:','STATION:','DEVICE CODE:','DECODED MESSAGE:','Evidence 1 / checkpoint:','Evidence 2 / checkpoint:']):
     y=h-60-i*35;label(12,y,t,12);c.line(w*.5,y-2,w-12,y-2)
    label(12,20,'We checked every field. Ready to restore contact!',12)
+  elif self.kind=='setup':
+   label(0,h-18,'SET UP BEFORE THE CREW ARRIVES',12)
+   box(0,h-90,w,60,'ADULT ONLY / five mission piles + guide + page 16')
+   box(0,15,w*.47,95,'ACTIVE MISSION');label(10,45,'Current task + released props',11)
+   box(w*.51,15,w*.49,95,'TEAM CENTRE');label(w*.51+10,65,'Record + two pencils',11)
+   label(w*.51+10,42,'Solved evidence stays here',11)
   elif self.kind=='drawing':box(0,0,w,h,'DRAW PIP AT THE STATION / optional')
   elif self.kind in ['signal-check','device-check']:
    label(0,h-20,'CHECK ALL THREE CONDITIONS',12)
@@ -81,23 +90,32 @@ class SpaceBoard(Flowable):
     if self.kind=='signal':
      border,waves,gap,sector=row[1:];label(x+12,y+ch-45,'SECTOR: '+sector)
      cx=x+cw/2;cy=y+ch*.4;r=48;c.setStrokeColor(g.NAVY)
-     if border=='Round':c.circle(cx,cy,r,stroke=1,fill=0)
+     if gap=='Square':
+      # Trace a continuous border with a rectangular indentation at lower right.
+      q=c.beginPath()
+      if border=='Round':
+       q.moveTo(cx+r,cy);q.arc(cx-r,cy-r,cx+r,cy+r,0,270)
+       q.lineTo(cx,cy-r+23);q.lineTo(cx+34,cy-r+23);q.lineTo(cx+34,cy-34)
+       q.arc(cx-r,cy-r,cx+r,cy+r,315,45)
+      else:
+       q.moveTo(cx+r,cy+r);q.lineTo(cx-r,cy+r);q.lineTo(cx-r,cy-r)
+       q.lineTo(cx+r-23,cy-r);q.lineTo(cx+r-23,cy-r+23)
+       q.lineTo(cx+r,cy-r+23);q.lineTo(cx+r,cy+r)
+      c.drawPath(q)
+     elif border=='Round':c.circle(cx,cy,r,stroke=1,fill=0)
      else:c.rect(cx-r,cy-r,r*2,r*2,stroke=1,fill=0)
      for j in range(int(waves)):
       yy=cy+18-j*16;q=c.beginPath();q.moveTo(cx-28,yy);q.curveTo(cx-14,yy+10,cx-2,yy-10,cx+10,yy);q.curveTo(cx+18,yy+7,cx+25,yy+5,cx+30,yy);c.drawPath(q)
-     if gap=='Square':
-      gx=cx+r*.70;gy=cy-r*.70 if border=='Round' else cy-r
-      c.setFillColor(g.CREAM);c.rect(gx-9,gy-10,20,20,fill=1,stroke=0);c.setStrokeColor(g.NAVY);c.line(gx-9,gy+9,gx-9,gy-9);c.line(gx-9,gy-9,gx+10,gy-9)
-     label(x+12,y+10,'Look at the drawing, not a written answer.',9)
+     label(x+12,y+10,'Keep upright; inspect the lower-right edge.',10)
     elif self.kind=='device':
      station,rings,badge,code=row[1:];label(x+12,y+ch-47,'STATION: '+station);label(x+12,y+ch-68,'CODE: '+code)
-     cx=x+cw/2;cy=y+ch*.35;box(cx-64,cy-45,128,85)
+     cx=x+cw/2;cy=y+ch*.35;box(cx-80,cy-50,160,105);label(cx-70,cy+37,'RINGS',11)
      c.setStrokeColor(g.NAVY)
      for j in range(int(rings)):c.circle(cx-28+j*40,cy+17,12,stroke=1,fill=0)
-     symbol(c,cx,cy-17,badge,13);label(x+12,y+12,'Count rings; inspect the badge.',10)
+     c.line(cx-80,cy-4,cx+80,cy-4);label(cx-70,cy-30,'BADGE',11);symbol(c,cx+43,cy-28,badge,13);label(x+12,y+12,'Count only the shapes in RINGS.',11)
     elif self.kind=='dictionary':
      bw=cw/5
-     for j,(name,letter) in enumerate(zip(['SUN','MOON','STAR','PATH','RING'],row[1])):
+     for j,(name,letter) in enumerate([(SYMBOLS[k],row[1][k]) for k in LOOKUP_ORDER]):
       cx=x+bw*(j+.5);symbol(c,cx,y+ch-66,name,10);label(cx-4,y+ch-103,letter,17)
     elif self.kind=='probe':
      for j,(name,v) in enumerate(zip(['SECTOR','STATION','CODE','MESSAGE'],row[1:])):label(x+12,y+ch-45-j*21,name+': '+v,12)
@@ -132,7 +150,7 @@ TASKS=[
   'Communicator reads SECTOR, STATION, CODE and MESSAGE from rows 1-4. Commander checks sector, Navigator station, Communicator code, Verifier message.',
   'Check each probe card against all four facts. Tick matching fields below; mark X for a mismatch. Only a probe with FOUR ticks is accepted.',
   'Write that probe letter in row 5. Fill all five reply fields on page 15 using the record. Two players each point to a different earlier source and fill the two evidence lines.',
-  'Verifier rechecks the reply against the chosen probe. Submit the WHOLE reply page to the adult as your pretend transmission. After acceptance, receive Pip\'s confirmation on page 16.'
+  'Verifier rechecks the reply against the chosen probe. Submit the WHOLE reply page to the adult as your pretend transmission. After acceptance, hear Pip\'s confirmation from page 16 (printed or read aloud from the adult screen).'
  ],'The game ends when your reply is accepted and Pip\'s confirmation is read.')]
 
 def task(i,w,board=None):
@@ -143,7 +161,7 @@ def task(i,w,board=None):
 
 def player(s,w):
  pages=[head(s['title'],'PLAYER / SPACE HOME')+[p('Pip the robot probe has lost contact with the control centre. Your crew must find the real signal, repair a route and decode a message. Finally, send a paper reply to bring Pip back online.'),Image(str(g.ROOT/s['cover']),width=320,height=240,kind='proportional'),p('FIVE MISSIONS',True),p('Signal observation > flight route > device calibration > password decoding > reply transmission.'),p('All equipment is printed in this pack. Your adult releases one mission at a time. No phone, electrical equipment or space knowledge is needed.')]]
- pages.append(head('Your control-centre crew','PAGE 2 / CUT FOUR JOBS')+[p('Jobs describe real actions, not acting voices. Pass job cards after checkpoints 1-4. With two players pass two-card bundles; with three pass three bundles. Five/six-player pairs swap speaking/moving and checking tasks.'),cardgrid(list(zip(['ALL / '+x for x in JOBS],[
+ pages.append(head('Your control-centre crew','PAGE 2 / CUT FOUR JOBS')+[p('Jobs describe real actions, not acting voices. With 2-4 players pass your cards or bundles clockwise after missions 1-4. With 5-6 players keep jobs for this game; paired players swap reader/mover and checker after every mission. Singles keep their job. Everyone contributes evidence.'),cardgrid(list(zip(['ALL / '+x for x in JOBS],[
  'Read one instruction at a time. Invite every teammate to share before deciding. Pair: one reads, one points to evidence.',
  'Spread, connect and move the paper pieces. Explain one connection or feature. Pair: one moves, one checks a rejected option.',
  'Keep the expedition record in the centre. Write the team\'s agreed result and complete its reply. Ask an adult to write spoken answers if needed.',
@@ -156,10 +174,10 @@ def player(s,w):
  pages.append(head('Flight route pieces','CHECKPOINT 2 / CUT SIX PIECES')+[p('Example only: FROM EARTH / TO MARS joins FROM MARS / TO BASE. Those example places are not game cards. Move the probe along the printed FROM > TO connections.'),cardgrid([(f'2 / ROUTE {r[0]}',f'<b>FROM:</b> {r[1]}<br/><b>TO:</b> {r[2]}') for r in s['stages'][1]['rows']]+[('2 / PROBE MARKER','PIP<br/>Use this card to trace your route. It is not a route strip.')],w,125)])
  pages.append(task(2,w,SpaceBoard(w,'device-check',h=200)))
  pages.append(head('Share three calibration clues','CHECKPOINT 3 / CUT THREE CARDS')+[p('Adult hands the three cards to their named jobs. Read your own clue aloud, then show it. Guide, Pip and Scout are story messengers, not extra player roles.'),cardgrid([
- ('3 / Commander / Guide','Use the numbered STATION from your flight route.'),('3 / Navigator / Pip','The device has exactly TWO drawn rings.'),('3 / Verifier / Scout','The device has a TRIANGLE badge.')],w,170),p('Communicator repeats the combined requirements after hearing everyone. All clues describe the SAME device. Spare area is not a fourth card.')])
+ ('3 / Commander / Guide','Use the numbered STATION from your flight route.'),('3 / Navigator / Pip','The device has exactly TWO drawn rings.'),('3 / Verifier / Scout','The device has a TRIANGLE badge.')],w,130),p('Communicator repeats the combined requirements after hearing everyone. All clues describe the SAME device. Spare area is not a fourth card.')])
  pages.append(head('Communication devices','CHECKPOINT 3 / CUT FOUR CARDS')+[p('Station and code are printed labels. Rings and badges are drawn features: inspect them before choosing.'),SpaceBoard(w,'device',s['stages'][2]['rows'],h=460)])
  pages.append(task(3,w,SpaceBoard(w,'decode',h=150)))
- pages.append(head('Password dictionaries','CHECKPOINT 4 / CUT THREE CARDS')+[p('Choose only your device code. Example only: if a sample dictionary shows a HEART above Q, a HEART in its message becomes Q. This example is not part of Pip\'s message.'),SpaceBoard(w,'dictionary',[(r[0],''.join(r[1:])) for r in s['stages'][3]['rows']],h=340),p('The drawings are SUN, MOON, STAR, PATH arrow and RING. Use their left-to-right order on page 11. Do not mix dictionaries.')])
+ pages.append(head('Password dictionaries','CHECKPOINT 4 / CUT THREE CARDS')+[p('Choose only your device code. Example only: if a sample dictionary shows a HEART above Q, a HEART in its message becomes Q. This example is not part of Pip\'s message.'),SpaceBoard(w,'dictionary',[(r[0],''.join(r[1:])) for r in s['stages'][3]['rows']],h=340),p('The drawings are SUN, MOON, STAR, PATH arrow and RING. The dictionary is deliberately out of message order. Find each matching drawing; do not copy the letters straight across. Use the message order on page 11.')])
  pages.append(task(4,w,SpaceBoard(w,'check',h=205)))
  pages.append(head('Probe identity records','CHECKPOINT 5 / CUT FIVE CARDS')+[p('A card needs all four matching facts. Circle or keep the accepted probe; keep rejected records visible until checked.'),SpaceBoard(w,'probe',s['stages'][4]['rows'],h=465)])
  pages.append(head('Transmit your reply','CHECKPOINT 5 / PAGE 15 / KEEP WHOLE')+[p('Fill every field. Evidence example format: "Checkpoint 2 route ends at our station." Use your own solved sources. Do not write real names.'),SpaceBoard(w,'reply',h=350),p('Two players show two different earlier sources. Verifier submits this page to the adult. If one field is wrong, correct it and resubmit. Paper submission is the transmission; nothing is sent online.')])
@@ -195,6 +213,32 @@ def guide(s,w,counts,base):
  pages[1][4]=g.p('Count 29 cut pieces per team: 4 jobs + 4 signals + 5 routes + 1 probe marker + 3 clues + 4 devices + 3 dictionaries + 5 probe records.')
  for i in range(5):
   title,materials,actions,done=TASKS[i]
-  pages[4+i]=head(title,f'HOST / CHECKPOINT {i+1} / PLAYER PAGES {LABELS[i]}')+[g.p('Prepare and distribute','h2'),g.p(materials+' Hold later missions and page 16.'),g.p('Say','h2'),g.box(['"Our incoming signals look similar. Inspect the drawings to find Pip\'s true signal."','"Follow the sector we discovered. Test both routes and trace every join."','"Each of you knows part of the device settings. Listen to everyone before choosing."','"Choose the dictionary by its code, then translate one symbol at a time."','"Check the probe\'s identity, complete a reply and submit it to me. I will check it before restoring contact."'][i],w),g.p('Lead the actions','h2')]+[g.p(f'<b>{j+1}.</b> '+a) for j,a in enumerate(actions)]+[g.p('Accept only after checking','h2'),g.box(EVIDENCE[i],w),g.p('If wrong: show the first failed feature or lookup; allow a correction. Progressive hints are on guide page 10. Accept pointing and dictated writing.'),g.p('Handover','h2'),g.p(done+' '+('Keep evidence, rotate jobs and release pages '+LABELS[i+1]+'.' if i<4 else 'Mark reply accepted, return it to the crew and hand over player page 16. Read Pip\'s confirmation and invite each contribution.'))]
- pages[11]=head('Restore contact and reset','HOST / FINALE')+[g.p('Before reading the confirmation, accept only a reply showing Probe A, ORION, station 7, code 6 and COMET. Ask two players to point to two different solved sources. Let them correct a field without replaying every checkpoint.'),g.p('Mark the reply accepted and return it to the crew. Give player page 16 only now. Read Pip\'s confirmation aloud:'),g.box('"Control crew, your reply reached Probe A in ORION, at Station 7. Device code 6 and message COMET match my records. Contact restored! Thank you for checking every clue."',w),g.p('Go round the crew once: each player names or points to one action they contributed. Complete the optional drawing on page 16. A purchased prize is not necessary.'),g.p('Reset: erase pencil marks on whole sheets. Count the 29 cut pieces and sort the five mission piles. Store the reply and confirmation separately. The cards have the same solution on replay; rotate jobs rather than promising a different mystery.')]
+  pages[4+i]=head(title,f'HOST / CHECKPOINT {i+1} / PLAYER PAGES {LABELS[i]}')+[g.p('Prepare and distribute','h2'),g.p(materials+' Hold later missions and page 16.'),g.p('Say','h2'),g.box(['"Our incoming signals look similar. Inspect the drawings to find Pip\'s true signal."','"Follow the sector we discovered. Test both routes and trace every join."','"Each of you knows part of the device settings. Listen to everyone before choosing."','"Choose the dictionary by its code, then translate one symbol at a time."','"Check the probe\'s identity, complete a reply and submit it to me. I will check it before restoring contact."'][i],w),g.p('Lead the actions','h2')]+[g.p(f'<b>{j+1}.</b> '+a) for j,a in enumerate(actions)]+[g.p('Accept only after checking','h2'),g.box(EVIDENCE[i],w),g.p('If wrong: show the first failed feature or lookup; allow a correction. Progressive hints are on guide page 10. Accept pointing and dictated writing.'),g.p('Handover','h2'),g.p(done+' '+('Keep evidence. For 2-4 players pass job bundles; for 5-6 swap partner tasks only. Release pages '+LABELS[i+1]+'.' if i<4 else 'Mark reply accepted and return it to the crew. Show printed page 16 or read it from your screen. Read Pip\'s confirmation and invite each contribution.'))]
+ pages[2][3]=g.grid(['Players per team','Exact assignment'],rows,[w*.18,w*.82])
+ for flow in pages:
+  for el in flow:
+   if hasattr(el,'text'):
+    t=el.text.replace('Five/six-player pairs keep their job but swap reader/operator and evidence checker.', 'For 5-6 players, all jobs stay fixed for this game. Paired players swap reader/mover and checker after each mission; singles keep their job.')
+    t=t.replace('No printer/scissors during play: use whole pages.', 'If scissors are unavailable, use the already printed whole prop pages. A printed pack is required; this is not an on-screen game.')
+    t=t.replace('let it make its keepsake quietly.', 'keep its completed reply and page 16 out of the other team\'s view; offer a quiet drawing activity.')
+    flow[flow.index(el)]=g.p(t,el.style.name if el.style.name in g.STYLES else 'body')
+ pages[3]=head('Set up your control centre','HOST / TABLE AND OPENING')+[SpaceBoard(w,'setup',h=225),g.p('Before players arrive: stack piles 1-5 in order behind you. Put the record and pencils in the centre. Release only the current mission. Move solved materials beside the record, never back into an unsolved pile.'),g.p('Read aloud','h2'),g.box('"Pip has lost contact. You are the control crew. Five paper missions will reveal where Pip is and how to send a reply. Read each instruction together; check the evidence before asking me for the next mission."',w),g.p('Demonstrate with unused words: EARTH > MARS joins MARS > BASE. Point at the repeated word, then move a pencil along both strips. These words are not game answers.'),g.p('For younger readers, read the task aloud and write dictated answers. The crew may point instead of filling every check-table box. Complete the main record and final reply; no child needs to do all the writing.')]
+ pages[0][4]=g.p('Print standard pages 1-16, or minimum pages 2-15 and read pages 1 and 16 from your screen. Choose ONE paper size; use single-sided Actual size. The next page lists every prop.')
+ pages[1]+=[g.p('Printing options: standard = player pages 1-16 (16 sheets/team). Minimum = pages 2-15 (14 sheets/team); read the cover and final confirmation aloud from your screen. Page 16 drawing is optional. With two teams print 28 minimum or 32 standard sheets. Print props at Actual size, one page per sheet.')]
+ # Replace the inherited finale hint, which must never skip the outgoing reply.
+ hints=[list(st['hints']) for st in s['stages']]
+ hints[4][2]='Probe A. Help fill and check the whole reply, then release confirmation page 16.'
+ pages[9]=head('Hints without taking over','HOST / ONE HINT AT A TIME')+[g.p('Give Hint 1, allow another attempt, then offer Hint 2. Hint 3 may reveal the answer but never skips recording or the final reply. Read these privately.'),g.grid(['Mission / hint','What to say'],[[str(i+1),'<br/>'.join('<b>Hint '+str(j+1)+':</b> '+t for j,t in enumerate(hs))] for i,hs in enumerate(hints)],[w*.18,w*.82]),g.p('If an earlier result is wrong, bring back that evidence pile and correct its record row. Do not restart the entire game.')]
+ pages[11]=head('Restore contact and reset','HOST / FINALE')+[g.p('Before reading the confirmation, accept only a reply showing Probe A, ORION, station 7, code 6 and COMET. Ask two players to point to two different solved sources. Let them correct a field without replaying every checkpoint.'),g.p('Mark the reply accepted and return it to the crew. Only now show printed page 16, or read it from your screen in minimum-print mode. Read Pip\'s confirmation aloud:'),g.box('"Control crew, your reply reached Probe A in ORION, at Station 7. Device code 6 and message COMET match my records. Contact restored! Thank you for checking every clue."',w),g.p('Go round the crew once: each player names or points to one action they contributed. Complete the optional drawing on page 16. A purchased prize is not necessary.'),g.p('Reset: erase pencil marks on whole sheets. Count the 29 cut pieces and sort the five mission piles. Store the reply and confirmation separately. The cards have the same solution on replay; rotate jobs rather than promising a different mystery.')]
+ def enlarge(el, table=False):
+  if isinstance(el,Paragraph) and el.style.fontSize<=11:
+   style=ParagraphStyle(el.style.name+'-space-readable',parent=el.style,fontSize=max(10.5 if table else 11.5,el.style.fontSize),leading=max(14 if table else 15.5,el.style.leading))
+   return Paragraph(el.text,style)
+  if isinstance(el,Table):
+   for row in el._cellvalues:
+    for j,cell in enumerate(row):
+     if isinstance(cell,Paragraph):row[j]=enlarge(cell,True)
+     elif isinstance(cell,(list,tuple)):row[j]=[enlarge(x,True) for x in cell]
+  return el
+ pages=[[enlarge(el) for el in flow] for flow in pages]
  return pages
