@@ -1,1 +1,1 @@
-Verify revised creator content and guided original ideas 2026-10-10 v2
+Compact creator hero illustration and form visibility QA 2026-10-10

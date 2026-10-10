@@ -116,6 +116,7 @@ try {
   await page.getByRole('heading', { level: 1, name: /Create a custom printable adventure/ }).waitFor();
   check(await page.locator('.creator-form').isVisible(), 'Creator does not open directly on the form');
   check(await page.locator('.creator-form').evaluate(node => node.getBoundingClientRect().top < 650), 'Creator form is pushed below a marketing landing page');
+  check(await page.locator('.creator-hero-art img').evaluate(img => img.complete && img.naturalWidth > 0), 'Creator hero illustration did not load');
   await page.getByText(/Custom Home US\$14\.99/).waitFor();
   await page.getByText(/Custom Classroom US\$19\.99/).waitFor();
 
