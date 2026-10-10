@@ -1,1 +1,1 @@
-Verify actual cooperative home v0.2 PDF and ZIP downloads, preserve classroom v0.1
+Celebration Home v0.3 PDF and complete ZIP verification after release.
