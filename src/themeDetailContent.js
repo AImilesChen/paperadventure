@@ -84,15 +84,15 @@ export const themeDetailContent = {
   },
   forest: {
     home: {
-      hook: 'Help a forest post carrier deliver a mislabelled story parcel.',
-      reasons: ['Postal stamps, record strips and parcel cards make a tactile paper mystery.', 'An unconnected route map lets players repair the mail path.', 'The final address is fictional and requires several earlier clues.'],
-      materials: ['Mail-batch and postmark cards', 'Delivery strips and a six-place paper route map', 'Role clues, parcel choices and address fragments', 'Recipient choices and paper address check'],
+      hook: 'Repair a rain-blurred parcel label and complete Nori’s forest delivery.',
+      reasons: ['Five story openings lead into different hands-on postal tasks.', 'Share private clues, sort batches and connect route strips before repairing the address.', 'Complete a checked label and paper delivery to receive Nori’s receipt.'],
+      materials: ['Illustrated postmarks, route strips and Nori marker', 'Named private clues and illustrated parcel records', 'Whole forest address map and replacement label', 'Dispatch records, delivery board, four home cards and receipt'],
       stages: [
-        ['Identify the batch', 'Compare the printed marks and labels on mail cards.', 'The batch to follow'],
-        ['Order the records', 'Put the matching delivery strips on the route map.', 'A possible delivery area'],
-        ['Find the parcel', 'Combine separate role clues to choose one parcel card.', 'An address fragment'],
-        ['Repair the address', 'Match the fragment to the fictional map and symbols.', 'A recipient marker'],
-        ['Deliver the parcel', 'Check the batch, address and marker together.', 'A story character’s reply'],
+        ['Identify the batch', 'Inspect a drawn border, count stars and match the weekday.', 'The mail batch'],
+        ['Rebuild the route', 'Filter strips by batch, connect place names and move Nori.', 'The delivery district'],
+        ['Find the parcel', 'Share three private clues and inspect parcel drawings.', 'The surviving address fragment'],
+        ['Repair the address', 'Look up district and fragment on the map, then fill the label.', 'A complete repaired address'],
+        ['Check and deliver', 'Verify four fields and slide the labelled parcel to the matching home.', 'An accepted delivery and receipt'],
       ],
     },
     classroom: {
@@ -161,5 +161,4 @@ export const themeDetailContent = {
     },
   },
 };
-
 
