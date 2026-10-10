@@ -178,7 +178,8 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
   const [variantId, setVariantId] = useState('');
   const [email, setEmail] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const [authenticated, setAuthenticated] = useState(null);
-  useEffect(() => { let active = true; api('/api/v1/auth/session').then(session => { if (active) setAuthenticated(Boolean(session.authenticated)); }).catch(() => { if (active) setAuthenticated(false); }); return () => { active = false; }; }, []);
+  const [accountEmail, setAccountEmail] = useState('');
+  useEffect(() => { let active = true; api('/api/v1/auth/session').then(session => { if (active) { setAuthenticated(Boolean(session.authenticated)); if (session.email) { setEmail(session.email); setAccountEmail(session.email); } } }).catch(() => { if (active) setAuthenticated(false); }); return () => { active = false; }; }, []);
   const customDraftReady = Boolean((draft.custom ? draft.idea?.trim() : draft.theme) && Number(draft.players) >= 2 && draft.age?.trim() && ['A4','Letter'].includes(draft.paper) && ['mystery','mission'].includes(draft.direction) && (setting !== 'classroom' || Number(draft.groups) >= 1));
   const eligible = Boolean(['home','classroom'].includes(setting) && offer?.saleEnabled && (ready ? ['published','test_ready'].includes(theme?.[setting]?.readyStatus) : customDraftReady));
   async function start(event) {

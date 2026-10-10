@@ -1,1 +1,1 @@
-Library and renamed account-email checkout regression QA 2026-10-10
+Checkout account state and library regression QA 2026-10-10
