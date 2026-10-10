@@ -1,1 +1,1 @@
-Release Forest Home first-use refinements: correct page references, completed finale, action strips, forest route example, consistent cutting, smaller marker and label clearance. Preserve existing orders.
+Release Forest Home story-first edition: 23 Player and 17 Guide pages, larger reading type, five separate story scenes and short action pages, dialogue, checked-result transitions, print inventory and remapped references. Preserve existing orders and prop geometry.

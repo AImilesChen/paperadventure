@@ -1,7 +1,7 @@
 """An illustrated, hosted forest-post-office adventure with physical delivery."""
 import math
 import re
-from reportlab.platypus import Flowable, Image, Paragraph, Table, TableStyle
+from reportlab.platypus import Flowable, Image, Paragraph, Table, TableStyle, Spacer
 from reportlab.lib.styles import ParagraphStyle
 import generate_celebration_samples as g
 from dinosaur_home_experience import p, head, steps, cardgrid as base_cardgrid
@@ -247,3 +247,8 @@ def guide(s,w,counts,base):
  pages.append(head('Support, printing and troubleshooting','HOST / FIRST-USE HELP')+[gp('Early readers: read one numbered action at a time. Let the child point, sort or move. Adult writes dictated results. Check-table ticks are optional; the main record and repaired label must be complete.'),gp('Confident readers: before acceptance ask why each rejected option fails. In mission 2 explain why other-batch strips cannot extend the route; in mission 4 demonstrate why using W4 alone gives several homes. Ask every player to justify one rejected candidate. At the finale, explain which single changed field would make each wrong dispatch match. No extra printing or new solution is needed.'),gp('Two teams: keep receipts and completed delivery boards out of the other team\'s view. Give a finished team a quiet drawing task while checking the second team.'),gp('Black-and-white copies: use the printed district words. Shapes and counts are drawn, not colour-dependent. If lines are faint or cropped, reprint at Actual size; never several pages per sheet.'),gp('No-cut play: number or point to candidates; trace route joins on the whole page. Hold the whole label page next to the delivery board and move both to the chosen home. Share private clues by covering other messages until read.'),gp('The label has about 3 mm clearance on each side. If it still will not fit, check trimming and page scaling: reprint label and delivery board in the same paper size at 100%. Until then, place the label beside the board; do not change its facts.'),gp('Replay: clues keep the same answer. Change jobs; do not promise a new mystery. Completion needs no real names, real addresses, outdoor walk or purchased reward.')])
  pages.append(head('Sign, thank and reset','HOST / FINALE')+[gp('Accept only Dispatch A, label M2 / BLUE TREE / W4 / OWL HOUSE, and the delivery board beside OWL HOUSE. Ask two different players for two earlier sources, such as postmark B and the map location.'),gp('If one field or location is wrong, ask the team to check that source and resubmit. Do not make them replay all five missions.'),gp('Ask Registrar to mark YES in record row 5: Delivery checked. Mark the adult check line on receipt page 18. Give the receipt to the team and read:',True),gp('"Your repaired label brought the parcel to Owl House in Blue Tree. The rain could not stop your team: the parcel has reached its home safely. Thank you for listening, sorting and checking together!"'),gp('Invite each player to name or point to one contribution. The receipt is the game reward; no gift is required.'),gp('Reset: erase pencil answers, count 31 cut pieces and put them in their numbered piles. Keep the label with mission 4 until mission 5 needs it; store receipt 18 with adult material. A damaged label can be reprinted from player page 13.')])
  return pages
+
+# Install the story-first layout without changing puzzle geometry or solution.
+import sys
+from forest_story_layout import install
+install(sys.modules[__name__])

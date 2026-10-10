@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from pypdf import PdfReader
 from forest_home_experience import JOBS, STORIES, ACTIONS
+from forest_story_layout import PAGE_MAP, STORY_PAGES, TASK_PAGES
 ROOT=Path(__file__).resolve().parents[1]
 s=next(x for x in json.loads((ROOT/'content/theme-design/retail-games-v1.json').read_text()) if x['id']=='forest' and x['setting']=='home')
 marks=[r for r in s['stages'][0]['rows'] if r[1:4]==['Leaf','2','TUE']]
@@ -24,23 +25,26 @@ assert len(STORIES)==len(ACTIONS)==5
 for paper in ['A4','Letter']:
  player=PdfReader(ROOT/f'output/pdf/forest-home-player-1.0-{paper}.pdf')
  guide=PdfReader(ROOT/f'output/pdf/forest-home-guide-1.0-{paper}.pdf')
- assert len(player.pages)==18 and len(guide.pages)==12
+ assert len(player.pages)==23 and len(guide.pages)==17
  pt=[' '.join(p.extract_text().split()) for p in player.pages]
  gt=[' '.join(p.extract_text().split()) for p in guide.pages]
  assert all(j in pt[1] for j in JOBS)
- assert 'TWO drawn leaf' not in pt[7] and 'ROUND outline' not in pt[7]
- assert 'KEEP WHOLE' in pt[11] and all(x in pt[11] for x in ['BLUE TREE','W2','W4','OWL HOUSE'])
- assert all(x in pt[12] for x in ['BATCH','DISTRICT','FRAGMENT','RECIPIENT'])
- assert 'DISPATCH CHECK' in pt[15] and 'PLACE THE REPAIRED LABEL HERE' in pt[15]
- assert 'ADULT HOLDS UNTIL DELIVERY ACCEPTED' in pt[17]
- assert '31' in gt[1] and '17 sheets' in gt[0]
- assert 'before giving the receipt' in gt[9]
- assert 'task/check table (14)' not in pt[13]+gt[8]
- assert 'delivery board/check table (16)' in pt[13] and 'delivery board/check table (16)' in gt[8]
- assert 'next mission' not in pt[13]
- assert 'Delivery checked: YES' in pt[13] and 'record row 5: Delivery checked' in gt[11]
- assert 'ticks are optional' in pt[13]
- assert 'ACORN > NEST' in pt[6]
- assert '3 mm clearance' in gt[10]
- for i in range(5):assert 'Handover' in gt[4+i] and 'Accept only after checking' in gt[4+i]
+ assert 'TWO drawn leaf' not in pt[10] and 'ROUND outline' not in pt[10]
+ assert 'KEEP WHOLE' in pt[15] and all(x in pt[15] for x in ['BLUE TREE','W2','W4','OWL HOUSE'])
+ assert all(x in pt[16] for x in ['BATCH','DISTRICT','FRAGMENT','RECIPIENT'])
+ assert 'DISPATCH CHECK' in pt[20] and 'PLACE THE REPAIRED LABEL HERE' in pt[20]
+ assert 'ADULT HOLDS UNTIL DELIVERY ACCEPTED' in pt[22]
+ assert '31' in gt[1] and '22 sheets' in gt[0]
+ assert 'before giving the receipt' in gt[14]
+ assert 'delivery board/check table (21)' in pt[18] and 'delivery board/check table (21)' in gt[13]
+ assert 'Delivery checked: YES' in pt[18] and 'record row 5: Delivery checked' in gt[16]
+ assert 'ticks are optional' in pt[18]
+ assert 'ACORN > NEST' in pt[8]
+ assert '3 mm clearance' in gt[15]
+ for i in range(5):
+  assert 'THE STORY SO FAR' in pt[STORY_PAGES[i]-1] and 'PAUSE AND TALK' in pt[STORY_PAGES[i]-1]
+  assert f'page {TASK_PAGES[i]}' in pt[STORY_PAGES[i]-1]
+  assert 'READ ONLY AFTER ACCEPTANCE' in gt[4+2*i]
+  assert 'ACCEPT ONLY AFTER CHECKING' in gt[5+2*i]
+  assert f'PAGE {PAGE_MAP[[5,7,9,12,18][i]]}' in pt[PAGE_MAP[[5,7,9,12,18][i]]-1]
 print('Forest: unique five-stage postal chain, hidden clues, jobs, whole map, label, delivery and receipt verified in A4 and Letter.')
