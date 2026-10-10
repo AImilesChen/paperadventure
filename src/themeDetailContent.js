@@ -6,9 +6,9 @@ export const themeDetailContent = {
   ...independentClassroomDetails,
   celebration: {
     home: {
-      hook: 'A friendly paper mystery for a celebration at home.',
-      reasons: ['A gentle invitation from Fenn the fox starts the story.', 'Children connect route strips on a paper map and compare parcel labels.', 'The ending is a printable letter, with no real gift or hidden chest required.'],
-      materials: ['Illustrated letter and invitation choices', 'Route strips and a six-place drawing map', 'Role clues, parcel labels and a symbol dictionary', 'Parcel choices and final matching check'],
+      hook: 'A cooperative delivery mystery with four explorer jobs throughout the five checkpoints.',
+      reasons: ['Four rotating jobs make each checkpoint a shared task.', 'One team for 2–6 players or two balanced teams for 7–12, plus an adult host.', 'Separate clue cards, a split code key and a scripted host guide support the full adventure.'],
+      materials: ['Four full-game job cards and a team trail', 'Letter choices with separate animal, ear and dot clues', 'Cut-out route strips and an intact six-place map', 'Label board and separate conditions; coded message and split keys', 'Parcel cards, evidence check, finale letter and optional keepsake'],
       stages: [
         ['Find the letter', 'Compare character and stamp clues to identify Fenn’s message.', 'A starting place for the map'],
         ['Draw the route', 'Join the shuffled route strips on the unconnected map.', 'A flag clue for the next decision'],

@@ -27,7 +27,7 @@ export const offers = Object.freeze([
 // evidence of a finished, tested or downloadable game pack.
 export const themeStories = Object.freeze({
   celebration: {
-    home: { code: 'H01', title: 'The Missing Birthday Chest', goal: 'Follow Fenn the fox\'s clues to a celebration envelope.', image: '/assets/celebration-home-v0.1.jpg', imageCaption: 'Fenn the fox Home story concept; the printable materials remain internal drafts.', beats: ['Choose the right letter', 'Repair the route', 'Share label clues', 'Decode a message', 'Find the matching parcel'] },
+    home: { code: 'H01', title: 'The Missing Birthday Chest', goal: 'Restore Fenn the fox\'s missing delivery label through a cooperative paper adventure.', image: '/assets/celebration-home-v0.1.jpg', imageCaption: 'Fenn the fox Home story concept; the printable materials remain internal drafts.', beats: ['Choose the right letter', 'Repair the route', 'Share label clues', 'Decode a message', 'Find the matching parcel'] },
     classroom: { code: 'C01', title: 'The Adventure Club\'s First Badge', goal: 'Each group earns a paper badge by solving an invitation and sharing role clues.', image: '/assets/celebration-classroom-v0.1.jpg', imageCaption: 'Adventure Club classroom concept; the printable materials remain internal drafts.', beats: ['Find the invitation', 'Trace the team route', 'Share equipment clues', 'Arrange badge pieces', 'Complete the badge'] },
   },
   dinosaur: {

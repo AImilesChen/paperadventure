@@ -1,1 +1,1 @@
-Compact creator hero illustration and form visibility QA 2026-10-10
+Verify cooperative home download metadata 2026-10-10
