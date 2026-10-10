@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 
 const origin = 'https://paperadventure.app';
 const out = 'output/browser-qa';
@@ -32,6 +32,20 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
       const [download] = await Promise.all([page.waitForEvent('download', { timeout: 15000 }), player.click()]);
       if (download.suggestedFilename() !== 'celebration-' + setting + '-player-A4.pdf') problems.push(viewport.name + ' ' + route + ' incorrect download name');
       await download.delete();
+      const [bundle] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.getByRole('button', { name: 'Download complete game · ZIP' }).click()]);
+      if (bundle.suggestedFilename() !== 'celebration-' + setting + '-complete-A4.zip') problems.push(viewport.name + ' ' + route + ' incorrect ZIP name');
+      const zip = readFileSync(await bundle.path());
+      let position = 0, names = [];
+      while (zip.readUInt32LE(position) === 0x04034b50) {
+        const size = zip.readUInt32LE(position + 18);
+        const nameSize = zip.readUInt16LE(position + 26), extraSize = zip.readUInt16LE(position + 28);
+        names.push(zip.subarray(position + 30, position + 30 + nameSize).toString());
+        const dataStart = position + 30 + nameSize + extraSize;
+        if (zip.subarray(dataStart, dataStart + 5).toString() !== '%PDF-') problems.push('Complete ZIP contains a non-PDF file');
+        position = dataStart + size;
+      }
+      if (names.join(',') !== ['player','guide'].map(role => 'celebration-' + setting + '-' + role + '-A4.pdf').join(',')) problems.push('Complete ZIP does not contain both selected PDFs');
+      await bundle.delete();
       await page.getByRole('button', { name: 'US Letter' }).click();
       const guide = page.getByRole('button', { name: new RegExp('Download ' + setting + ' Letter (?:Host|Teacher) Guide') });
       const [guideDownload] = await Promise.all([page.waitForEvent('download', { timeout: 15000 }), guide.click()]);

@@ -1,1 +1,1 @@
-Theme hero download and checkout CTA QA 2026-10-10
+Free complete bundle and paper-size download QA 2026-10-10
