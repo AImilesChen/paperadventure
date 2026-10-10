@@ -5,11 +5,10 @@ import { publicCatalog } from '../shared/catalog.mjs';
 const base = 'http://127.0.0.1:4173';
 const out = 'output/browser-qa';
 mkdirSync(out, { recursive: true });
-const packIds = ['dinosaur', 'space', 'forest', 'halloween', 'christmas'];
-const packs = packIds.flatMap(themeId => ['home', 'classroom'].map(setting => ({
-  themeId, setting, version: 'v1.0',
-  variantIds: setting === 'classroom' && ['halloween', 'christmas'].includes(themeId) ? [themeId] : [],
-})));
+const homeIds = ['dinosaur', 'space', 'forest', 'halloween', 'christmas'];
+const classroomIds = ['ocean', 'museum', 'library', 'weather', 'workshop'];
+const packs = [...homeIds.map(themeId => ({ themeId, setting: 'home', version: 'v1.0', variantIds: [] })),
+  ...classroomIds.map(themeId => ({ themeId, setting: 'classroom', version: 'v0.1', variantIds: [] }))];
 const health = {
   status: 'configured_runtime', checkout: true, checkoutMode: 'test',
   generation: true, proposals: true, account: true, sample: true, legal: false,
@@ -19,18 +18,18 @@ catalog.freeSampleThemeId = 'celebration';
 catalog.themes = catalog.themes.map(theme => ({
   ...theme,
   home: { ...theme.home, freeSample: theme.id === 'celebration',
-    readyStatus: theme.id === 'celebration' ? 'downloadable_trial' : 'test_ready',
+    readyStatus: theme.id === 'celebration' ? 'downloadable_trial' : homeIds.includes(theme.id) ? 'test_ready' : 'not_offered',
     packVersion: theme.id === 'celebration' ? 'v0.1' : 'v1.0' },
   classroom: { ...theme.classroom, freeSample: theme.id === 'celebration',
-    readyStatus: theme.id === 'celebration' ? 'downloadable_trial' : 'test_ready',
-    packVersion: theme.id === 'celebration' ? 'v0.1' : 'v1.0',
-    variantIds: ['halloween', 'christmas'].includes(theme.id) ? [theme.id] : [] },
+    readyStatus: theme.id === 'celebration' ? 'downloadable_trial' : classroomIds.includes(theme.id) ? 'test_ready' : 'not_offered',
+    packVersion: theme.id === 'celebration' ? 'v0.1' : classroomIds.includes(theme.id) ? 'v0.1' : 'v1.0',
+    variantIds: [] },
 }));
 catalog.offers = catalog.offers.map(offer => ({ ...offer, saleEnabled: true }));
 const proposalResponse = {
   proposals: [
-    { id: 'mystery', title: 'The hidden forest letter', summary: 'Find the missing letter through five woodland clues.' },
-    { id: 'mission', title: 'Mission through the canopy', summary: 'Deliver a paper signal to the forest lookout.' },
+    { id: 'mystery', title: 'The coral clue', summary: 'Follow five paper clues aboard a fictional research ship.' },
+    { id: 'mission', title: "The captain's paper route", summary: 'Rebuild the chart and send a checked paper report.' },
   ],
 };
 const orders = {
@@ -100,21 +99,20 @@ try {
   await page.locator('.live-downloads a').first().waitFor();
   check(await page.locator('.live-downloads a').count() === 4, 'Ready order does not show four private PDF downloads');
 
-  await page.goto(base + '/en/themes/halloween/classroom/', { waitUntil: 'domcontentloaded' });
+  await page.goto(base + '/en/themes/ocean/classroom/', { waitUntil: 'domcontentloaded' });
   await page.getByRole('link', { name: /Open test checkout/ }).click();
-  await page.getByLabel('Classroom story wording').selectOption('halloween');
   await page.getByLabel('Adult delivery email').fill('tester@example.com');
   await page.getByRole('button', { name: /Continue to Stripe test/ }).click();
   await page.waitForURL('**/en/orders/mock-classroom/');
   check(checkoutPayloads[1]?.sku === 'ready_classroom' &&
-    checkoutPayloads[1]?.themeId === 'halloween' &&
-    checkoutPayloads[1]?.variantId === 'halloween',
-    'Seasonal classroom wording was not carried into checkout');
+    checkoutPayloads[1]?.themeId === 'ocean' &&
+    !checkoutPayloads[1]?.variantId,
+    'Independent Classroom world was not carried into checkout');
   await page.locator('.live-downloads a').first().waitFor();
   check(await page.locator('.live-downloads a').count() === 4,
     'Classroom order does not show four private PDF downloads');
 
-  await page.goto(base + '/en/create/?theme=forest&setting=classroom', { waitUntil: 'domcontentloaded' });
+  await page.goto(base + '/en/create/?theme=ocean&setting=classroom', { waitUntil: 'domcontentloaded' });
   await page.getByRole('heading', { level: 1, name: /Create a printable adventure from your idea/ }).waitFor();
   check(await page.locator('.custom-create-page-previews img').count() === 2, 'Creator does not show the real sample-format pages');
   await page.getByText(/Custom Home US\$14\.99/).waitFor();
@@ -125,7 +123,7 @@ try {
   await page.getByLabel('Groups').fill('4');
   await page.getByLabel('Age range (6–12)').fill('8–10');
   await page.getByRole('button', { name: /Preview two story ideas/ }).click();
-  await page.getByRole('button', { name: /Mission through the canopy/ }).click();
+  await page.getByRole('button', { name: /The captain's paper route/ }).click();
   await page.getByRole('button', { name: /Review choices/ }).click();
   await page.getByRole('link', { name: /Continue to Stripe test checkout/ }).click();
   await page.waitForURL('**/en/checkout/**');
@@ -135,9 +133,9 @@ try {
   await page.getByRole('button', { name: /Continue to Stripe test/ }).click();
   await page.waitForURL('**/en/orders/mock-custom/');
   check(checkoutPayloads[2]?.sku === 'custom_classroom' &&
-    checkoutPayloads[2]?.themeId === 'forest' &&
+    checkoutPayloads[2]?.themeId === 'ocean' &&
     checkoutPayloads[2]?.direction === 'mission' &&
-    checkoutPayloads[2]?.proposalTitle === 'Mission through the canopy' &&
+    checkoutPayloads[2]?.proposalTitle === "The captain's paper route" &&
     checkoutPayloads[2]?.proposalSummary === proposalResponse.proposals[1].summary,
     'Selected AI direction did not survive review and checkout');
   await page.getByText('Your full game is queued.').waitFor();
@@ -158,13 +156,15 @@ try {
   check(await page.getByLabel('Adult delivery email').count() === 0, 'Signed-out visitor can submit test checkout');
   writeFileSync(out + '/commerce-flow-report.json', JSON.stringify({
     fixedPacksVisible: packs.length, readyHomeOrderLinks: 4, readyClassroomOrderLinks: 4,
-    seasonalVariant: checkoutPayloads[1].variantId,
+    classroomWorld: checkoutPayloads[1].themeId,
     customDirection: checkoutPayloads[2].proposalTitle,
     publicCatalogueVisibleBeforeSignIn: true,
     checkoutRequiresGoogleSignIn: true,
     note: 'Mocked API and checkout redirect only; no Stripe charge or authenticated production purchase.',
   }, null, 2) + '\n');
-  console.log('Commerce UI mock passed: 10 public fixed packs, signed-out checkout gate, two ready order paths, seasonal wording, custom proposal snapshot and queued order.');
+  console.log('Commerce UI mock passed: 10 public fixed packs, signed-out checkout gate, two ready order paths, independent classroom world, custom proposal snapshot and queued order.');
 } finally {
   await browser.close();
 }
+
+

@@ -1,1 +1,1 @@
-2026-10-10 check distinct Home/Classroom worlds after deployment
+2026-10-10 recheck distinct Classroom checkout and custom flow
