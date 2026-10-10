@@ -140,12 +140,18 @@ def footer(c,d):
  w,h=d.pagesize;c.setFillColor(g.BLUE);c.rect(0,h-37,w,37,fill=1,stroke=0);c.setFillColor(g.NAVY);c.setFont('ArialBold',8);c.drawString(44,h-23,'PAPER ADVENTURE / '+d.game_id.upper()+' / '+d.setting.upper());c.setFont('Arial',8);c.drawString(44,28,f'{d.role.upper()} / Edition 1.0 / {d.paper}');c.drawRightString(w-44,28,f'Page {d.page}');c.setStrokeColor(g.LINE);c.line(44,42,w-44,42)
 
 def build(s,paper,size):
- w=size[0]-88;pp=player(s,w); labels=[]
+ w=size[0]-88
+ if s['id']=='dinosaur' and s['setting']=='home':
+  import dinosaur_home_experience as dino
+  pp=dino.player(s,w)
+ else: pp=player(s,w)
+ labels=[]
  for i in range(5):
   hits=[j+1 for j,p in enumerate(pp) if any(f'CHECKPOINT {i+1} /' in getattr(el,'text','') for el in p)]
   labels.append(', '.join(map(str,hits)))
  manifest=[]
- for role,pages in [('player',pp),('guide',guide(s,w,dict(player=len(pp),stages=labels)))]:
+ gp=dino.guide(s,w,dict(player=len(pp),stages=labels),guide) if s['id']=='dinosaur' and s['setting']=='home' else guide(s,w,dict(player=len(pp),stages=labels))
+ for role,pages in [('player',pp),('guide',gp)]:
   path=OUT/f"{s['id']}-{s['setting']}-{role}-1.0-{paper}.pdf";doc=SimpleDocTemplate(str(path),pagesize=size,leftMargin=44,rightMargin=44,topMargin=60,bottomMargin=55,title=s['title']+' / '+role,author='Paper Adventure Workshop');doc.game_id=s['id'];doc.setting=s['setting'];doc.role=role;doc.paper=paper
   flow=[]
   for i,p in enumerate(pages):

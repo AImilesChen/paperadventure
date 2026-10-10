@@ -3,6 +3,10 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 const manifest=JSON.parse(readFileSync('output/pdf/retail-packs-1.0-manifest.json','utf8'));
 if(manifest.items.length!==48) throw Error('Expected 12 complete four-file packs');
+if(process.env.RETAIL_SCOPE){
+ manifest.items=manifest.items.filter(f=>f.world+'/'+f.setting===process.env.RETAIL_SCOPE);
+ if(manifest.items.length!==4) throw Error('Scoped release must contain exactly four PDF slots');
+}
 const q=s=>"'"+String(s).replaceAll("'","''")+"'";
 const bucket='paper-adventure-stage-private';
 const run=(args)=>execFileSync('npx',['--yes','wrangler@4.74.0',...args],{stdio:'inherit'});
@@ -33,10 +37,10 @@ const checks=manifest.items.map(f=>`SELECT COUNT(*) AS matched FROM ready_packs 
 writeFileSync('output/pdf/verify-retail.sql',checks);
 const raw=execFileSync('npx',['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--command',checks,'--json'],{encoding:'utf8'});
 const results=JSON.parse(raw);
-if(results.length!==48||results.some(r=>!r.success||r.results?.[0]?.matched<1))throw Error('An upgraded pack slot is missing');
+if(results.length!==manifest.items.length||results.some(r=>!r.success||r.results?.[0]?.matched<1))throw Error('An upgraded pack slot is missing');
 for(const f of manifest.items.filter(f=>f.world==='celebration')){
  const response=await fetch(`https://paperadventure.app/api/v1/samples/${f.setting}/${f.paper}/${f.role}?edition=1-${Date.now()}`);
  const bytes=Buffer.from(await response.arrayBuffer());
  if(!response.ok||createHash('sha256').update(bytes).digest('hex')!==f.sha256)throw Error('Public free download does not match release');
 }
-console.log('48 live file records verified; all eight free downloads match released hashes. Existing order access preserved.');
+console.log(`${manifest.items.length} live file records verified; ${manifest.items.filter(f=>f.world==='celebration').length} free downloads checked. Existing order access preserved.`);
