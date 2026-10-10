@@ -60,6 +60,9 @@ function Footer({ runtime }) { return <footer className="site-footer"><div class
 
 function ThemeGallery({ full = false, sampleReady = false }) {
   const track = useRef(null);
+  const section = useRef(null);
+  const [onScreen, setOnScreen] = useState(false);
+  const [entered, setEntered] = useState(false);
   const worldsFor = audience => themes.filter(theme => theme.availableSettings?.includes(audience));
   const resumeTimer = useRef(null);
   const [bounds, setBounds] = useState({ left: false, right: true });
@@ -70,6 +73,12 @@ function ThemeGallery({ full = false, sampleReady = false }) {
   const [setting, setSetting] = useState('home');
   const paused = hovering || focusWithin || touchPaused;
   const galleryThemes = worldsFor(setting);
+  useEffect(() => {
+    if (full) return;
+    const observer = new IntersectionObserver(([entry]) => { setOnScreen(entry.isIntersecting); if (entry.isIntersecting) setEntered(true); }, { threshold: 0.05 });
+    if (section.current) observer.observe(section.current);
+    return () => observer.disconnect();
+  }, [full]);
   useEffect(() => {
     const update = () => {
       const element = track.current;
@@ -101,18 +110,30 @@ function ThemeGallery({ full = false, sampleReady = false }) {
     else element.scrollBy({ left: direction * step, behavior });
   };
   useEffect(() => {
-    if (full || !playing || paused) return;
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') scroll(1, true);
-    }, 4800);
-    return () => window.clearInterval(timer);
-  }, [full, playing, paused]);
+    if (full || !playing || paused || !onScreen) return;
+    const element = track.current;
+    let frame, previous = 0, position = element.scrollLeft;
+    const animate = time => {
+      if (document.visibilityState !== 'visible') { previous = 0; frame = requestAnimationFrame(animate); return; }
+      const cards = element.querySelectorAll('.theme-card');
+      const cycle = cards[galleryThemes.length]?.offsetLeft - cards[0]?.offsetLeft;
+      if (previous && cycle > 0) {
+        position += Math.min(time - previous, 50) * 0.024;
+        if (position >= cycle) position -= cycle;
+        element.scrollLeft = position;
+      }
+      previous = time;
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [full, playing, paused, onScreen, setting]);
   const pauseForTouch = () => { window.clearTimeout(resumeTimer.current); setTouchPaused(true); };
   const resumeAfterTouch = () => { window.clearTimeout(resumeTimer.current); resumeTimer.current = window.setTimeout(() => setTouchPaused(false), 8000); };
-  return <section className={full ? 'themes-section themes-full' : 'themes-section'} id="themes" aria-labelledby="theme-gallery-heading" aria-roledescription="carousel">
-    <div className="section-heading"><div><span className="eyebrow"><Sparkle size={17} weight="fill" /> PICK A THEME</span><h2 id="theme-gallery-heading">Themes & activities<span className="dot">.</span></h2><p>Browse distinct Home and Classroom story worlds. Celebration has a free game in each collection.</p></div><div className="gallery-controls">{!full && <><span className="gallery-status">{!playing ? 'Auto-scroll off' : paused ? 'Paused while viewing cards' : 'Auto-scroll on'}</span><button type="button" className="gallery-play-toggle" aria-label={playing ? 'Pause automatic theme scrolling' : 'Resume automatic theme scrolling'} aria-pressed={!playing} onClick={() => setPlaying(value => !value)}>{playing ? <Pause size={17} weight="bold" /> : <Play size={17} weight="bold" />}<span>{playing ? 'Pause' : 'Play'}</span></button></>}<button type="button" aria-label="Scroll themes left" disabled={!bounds.left} onClick={() => scroll(-1)}><ArrowLeft size={22} /></button><button type="button" aria-label="Scroll themes right" disabled={!bounds.right} onClick={() => scroll(1)}><ArrowRight size={22} /></button></div></div>
+  return <section ref={section} className={full ? 'themes-section themes-full' : `themes-section theme-marquee ${entered ? 'is-entered' : ''}`} id="themes" aria-labelledby="theme-gallery-heading" aria-roledescription="carousel">
+    <div className="section-heading"><div><span className="eyebrow"><Sparkle size={17} weight="fill" /> PICK A THEME</span><h2 id="theme-gallery-heading">Themes & activities<span className="dot">.</span></h2><p>Browse distinct Home and Classroom story worlds. Celebration has a free game in each collection.</p></div><div className="gallery-controls">{!full && <><span className="gallery-status">{!playing ? 'Auto-scroll off' : paused ? 'Paused while viewing cards' : 'Auto-scroll on'}</span><button type="button" className="gallery-play-toggle" aria-label={playing ? 'Pause automatic theme scrolling' : 'Resume automatic theme scrolling'} aria-pressed={!playing} onClick={() => setPlaying(value => !value)}>{playing ? <Pause size={17} weight="bold" /> : <Play size={17} weight="bold" />}<span>{playing ? 'Pause' : 'Play'}</span></button></>}<button type="button" aria-label="Scroll themes left" disabled={!bounds.left} onClick={() => { pauseForTouch(); resumeAfterTouch(); scroll(-1); }}><ArrowLeft size={22} /></button><button type="button" aria-label="Scroll themes right" disabled={!bounds.right} onClick={() => { pauseForTouch(); resumeAfterTouch(); scroll(1); }}><ArrowRight size={22} /></button></div></div>
     <div className="theme-audience-switch" role="group" aria-label="Choose where to play"><button type="button" aria-pressed={setting === "home"} className={setting === "home" ? "active" : ""} onClick={() => { setSetting("home"); track.current?.scrollTo({ left: 0, behavior: "auto" }); }}>Home adventures <span>{worldsFor('home').length} games</span></button><button type="button" aria-pressed={setting === "classroom"} className={setting === "classroom" ? "active" : ""} onClick={() => { setSetting("classroom"); track.current?.scrollTo({ left: 0, behavior: "auto" }); }}>Classroom adventures <span>{worldsFor('classroom').length} games</span></button></div>
-    <div className="theme-track" ref={track} role="group" aria-label="Theme cards" onTouchStart={pauseForTouch} onTouchEnd={resumeAfterTouch} onTouchCancel={resumeAfterTouch} onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)} onFocusCapture={() => setFocusWithin(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocusWithin(false); }}>{galleryThemes.map((theme, i) => <Link key={theme.id} className="theme-card" to={`/en/themes/${theme.id}/${setting}/`}><div className="theme-image-wrap"><img src={theme.story[setting].image || theme.image} alt={`${theme.title} ${setting} story artwork`} width="800" height="600" decoding="async" loading={i < 3 ? 'eager' : 'lazy'} /><span className="theme-tag">{theme.id === 'celebration' ? sampleReady ? setting === 'home' ? 'Free Home printable' : 'Free Classroom printable' : 'Free trial theme' : (setting === 'home' ? 'Home story pack' : 'Classroom story pack')}</span></div><div className="theme-card-copy"><div><h3>{theme.story[setting].title}</h3><p>{theme.title} world</p></div><span className="theme-arrow"><ArrowUpRight size={20} /></span></div><p className="theme-mission">{theme.story[setting].goal}</p><span className="theme-use">{theme.id === 'celebration' && sampleReady ? `Explore free ${setting} game` : 'Explore this theme'} <ArrowRight size={17} /></span></Link>)}</div>
+    <div className="theme-track" ref={track} role="group" aria-label="Theme cards" onTouchStart={pauseForTouch} onTouchEnd={resumeAfterTouch} onTouchCancel={resumeAfterTouch} onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)} onFocusCapture={() => setFocusWithin(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocusWithin(false); }}>{(full ? galleryThemes : [...galleryThemes, ...galleryThemes]).map((theme, i) => <Link key={`${theme.id}-${i}`} aria-hidden={i >= galleryThemes.length ? true : undefined} tabIndex={i >= galleryThemes.length ? -1 : undefined} data-loop-copy={i >= galleryThemes.length ? "true" : undefined} className="theme-card" to={`/en/themes/${theme.id}/${setting}/`}><div className="theme-image-wrap"><img src={theme.story[setting].image || theme.image} alt={`${theme.title} ${setting} story artwork`} width="800" height="600" decoding="async" loading={i < 3 ? 'eager' : 'lazy'} /><span className="theme-tag">{theme.id === 'celebration' ? sampleReady ? setting === 'home' ? 'Free Home printable' : 'Free Classroom printable' : 'Free trial theme' : (setting === 'home' ? 'Home story pack' : 'Classroom story pack')}</span></div><div className="theme-card-copy"><div><h3>{theme.story[setting].title}</h3><p>{theme.title} world</p></div><span className="theme-arrow"><ArrowUpRight size={20} /></span></div><p className="theme-mission">{theme.story[setting].goal}</p><span className="theme-use">{theme.id === 'celebration' && sampleReady ? `Explore free ${setting} game` : 'Explore this theme'} <ArrowRight size={17} /></span></Link>)}</div>
     <div className="gallery-bottom"><Link className="text-link" to={setting === "home" ? "/en/for-home/" : "/en/for-classroom/"}>See all {galleryThemes.length} {setting} adventures <ArrowRight size={18} /></Link><Link className="custom-link" to={`/en/create/?custom=1&setting=${setting}`}><PencilSimple size={18} /> Have another idea? Start your own story <ArrowRight size={17} /></Link></div>
   </section>;
 }

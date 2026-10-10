@@ -135,3 +135,13 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .theme-card-copy p{font-weight:700;color:#526f7e}
 
 
+
+/* Continuous theme belt; the second visual copy creates a seamless seam. */
+.theme-marquee .theme-track{width:100%;max-width:none;padding-inline:5.5%;scroll-snap-type:none;scroll-behavior:auto;overflow-anchor:none}
+.theme-marquee:not(.themes-full) .theme-card{flex-basis:clamp(280px,29vw,420px)}
+.theme-marquee .section-heading,.theme-marquee .theme-audience-switch{animation:theme-enter .65s ease both;animation-play-state:paused}
+.theme-marquee.is-entered .section-heading,.theme-marquee.is-entered .theme-audience-switch{animation-play-state:running}
+.theme-marquee .theme-audience-switch{animation-delay:.1s}
+@keyframes theme-enter{from{opacity:.65;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:600px){.theme-marquee .theme-track{width:100%;padding-inline:5%}.theme-marquee:not(.themes-full) .theme-card{flex-basis:82vw}}
+@media(prefers-reduced-motion:reduce){.theme-marquee .section-heading,.theme-marquee .theme-audience-switch{animation:none}.theme-marquee [data-loop-copy]{display:none}.theme-marquee .theme-card{transition:none}}
