@@ -130,14 +130,7 @@ try {
   await page.getByRole('link', { name: /Continue to Stripe test checkout/ }).click();
   await page.waitForURL('**/en/checkout/**');
   const customEmail = page.getByLabel('Adult delivery email');
-  if (!await customEmail.count()) {
-    const debug = await page.evaluate(() => ({
-      url: location.href,
-      draft: localStorage.getItem('paw-draft'),
-      main: document.querySelector('main')?.innerText.slice(0, 1200),
-    }));
-    throw new Error('Custom checkout form missing: ' + JSON.stringify(debug));
-  }
+  await customEmail.waitFor({ state: 'visible', timeout: 10000 });
   await customEmail.fill('tester@example.com');
   await page.getByRole('button', { name: /Continue to Stripe test/ }).click();
   await page.waitForURL('**/en/orders/mock-custom/');
