@@ -1,1 +1,1 @@
-Catalogue-first layout and two-action cards QA 2026-10-10
+Final catalogue responsive QA 2026-10-10 with proportional artwork
