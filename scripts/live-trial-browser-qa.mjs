@@ -20,7 +20,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
       if (!response?.ok() || response.headers()['x-robots-tag']?.includes('noindex') || await page.locator('meta[name="robots"][content*="noindex"]').count()) problems.push(viewport.name + ' ' + route + ' HTTP/indexability mismatch');
       const player = page.getByRole('button', { name: 'Download ' + setting + ' A4 Player Pack' });
       await player.waitFor({ state: 'visible', timeout: 15000 });
-      if (await page.getByText(setting === 'home' ? 'Trial v0.2' : 'Trial v0.1').count() === 0) problems.push(viewport.name + ' ' + route + ' lacks trial version');
+      if (await page.getByText(setting === 'home' ? 'Trial v0.3' : 'Trial v0.1').count() === 0) problems.push(viewport.name + ' ' + route + ' lacks trial version');
       const overflow = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - innerWidth));
       if (overflow > 16) problems.push(viewport.name + ' ' + route + ' horizontal overflow ' + overflow + 'px');
       const scan = await new AxeBuilder({ page }).analyze();
