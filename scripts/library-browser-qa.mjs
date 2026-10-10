@@ -1,9 +1,13 @@
 import { chromium } from 'playwright';
+import { publicCatalog } from '../shared/catalog.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
 const browser = await chromium.launch({headless:true});
 mkdirSync('output/browser-qa',{recursive:true});
 for (const width of [1440,390]) {
  const page=await browser.newPage({viewport:{width,height:900}});
+ await page.route('**/api/v1/health',r=>r.fulfill({json:{status:'configured_runtime',account:true}}));
+ await page.route('**/api/v1/catalog',r=>r.fulfill({json:publicCatalog()}));
+ await page.route('**/api/v1/auth/session',r=>r.fulfill({json:{authenticated:true}}));
  await page.route('**/api/v1/my-orders',r=>r.fulfill({json:{orders:[
  {id:'qa-paid',sku:'ready_home',product_kind:'ready',status:'published',title:"The Little Dinosaur's Way Home",setting:'home',image:'/assets/celebration-home-v0.1.jpg',amount_total:999,currency:'USD',created_at:'2026-10-10 10:00:00',paid_at:'2026-10-10 10:01:00',filesReady:true,accessExpiresAt:'2027-10-10 10:01:00'},
  {id:'qa-unpaid',sku:'ready_home',product_kind:'ready',status:'pending_payment',title:'Unpaid Dinosaur',setting:'home',amount_total:999,created_at:'2026-10-10 09:00:00',filesReady:false}

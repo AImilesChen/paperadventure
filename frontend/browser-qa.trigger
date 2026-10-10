@@ -1,1 +1,1 @@
-Account library desktop/mobile fixture verification 2026-10-10
+Library QA with configured-runtime fixture 2026-10-10
