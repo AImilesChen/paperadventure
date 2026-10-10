@@ -11,7 +11,7 @@ const browser = await chromium.launch({ headless: true });
 const problems = [];
 const snapshots = [];
 const accessibility = [];
-const routesToCapture = new Set(['/en/', '/en/themes/', '/en/themes/celebration/home/', '/en/themes/dinosaur/home/', '/en/themes/dinosaur/classroom/', '/en/for-home/', '/en/for-classroom/', '/en/create/', '/en/pricing/', '/en/privacy/']);
+const routesToCapture = new Set(['/en/', '/en/themes/', '/en/themes/celebration/home/', '/en/themes/dinosaur/home/', '/en/themes/dinosaur/classroom/', '/en/for-home/', '/en/for-classroom/', '/en/create/', '/en/how-it-works/', '/en/pricing/', '/en/privacy/']);
 
 for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 390, height: 844 }]) {
   const context = await browser.newContext({ viewport, reducedMotion: 'reduce' });
@@ -46,6 +46,20 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
         if (headingSize > (viewport.name === 'desktop' ? 70 : 49)) problems.push(viewport.name + ' creator title is oversized: ' + headingSize + 'px');
 
         if (!await page.getByRole('heading', { name: 'Questions before you begin.' }).isVisible()) problems.push(viewport.name + ' creator page lacks FAQs');
+      }
+
+      if (route === '/en/how-it-works/') {
+        if (await page.locator('main h1').count() !== 1) problems.push(viewport.name + ' guide page must have one main heading');
+        if (!await page.getByRole('heading', { name: 'Pick the path that suits your group.' }).isVisible()) problems.push(viewport.name + ' guide page lacks the two paths');
+        if (!await page.getByRole('heading', { name: 'Two parts, with different jobs.' }).isVisible()) problems.push(viewport.name + ' guide page lacks file contents');
+        if (!await page.getByRole('heading', { name: 'Questions before you start.' }).isVisible()) problems.push(viewport.name + ' guide page lacks FAQs');
+        if (await page.locator('.how-guide-visual img').count() !== 2) problems.push(viewport.name + ' guide page lacks real printable previews');
+        if ((await page.locator('main').innerText()).includes('planned paid experience')) problems.push(viewport.name + ' guide page contains outdated placeholder copy');
+        const headingSize = await page.locator('#how-guide-title').evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+        if (headingSize > (viewport.name === 'desktop' ? 70 : 49)) problems.push(viewport.name + ' guide title is oversized: ' + headingSize + 'px');
+        await page.getByRole('button', { name: 'For classroom' }).click();
+        if (!await page.getByRole('heading', { name: 'A teacher-led group adventure' }).isVisible()) problems.push(viewport.name + ' classroom guidance does not appear');
+        await page.getByRole('button', { name: 'For home' }).click();
       }
 
       if (routesToCapture.has(route)) {

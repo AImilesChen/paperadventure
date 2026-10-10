@@ -9,6 +9,7 @@ import { CatalogPage, ThemeDetailPage, PricingPageV13 } from './productPages.jsx
 import { LiveAccount, LiveShelf, LiveOrder, LiveSamples, LiveCheckout, LiveLegal, LivePricing } from './livePages.jsx';
 import { LiveCreate } from './liveCreate.jsx';
 import { CustomCreateIntro, CustomCreateAfterform } from './customCreateContent.jsx';
+import { HowItWorksPage } from './howItWorks.jsx';
 import CurrentPrivacyNotice from './privacyNotice.jsx';
 import { useModalFocus } from './useModalFocus.js';
 
@@ -117,8 +118,6 @@ function Home({ sampleReady = false }) { return <main>
 function PageIntro({ eyebrow, title, body, children }) { return <section className="page-intro"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{body && <p>{body}</p>}{children}</section>; }
 function NotFoundPage() { return <main><PageIntro eyebrow="PAGE NOT FOUND" title="That page isn't here." body="The address may have changed. You can return to the story worlds or start from the homepage." /><div className="inline-cta"><Link className="button" to="/en/themes/">Browse story worlds <ArrowRight size={18} /></Link><Link className="text-link" to="/en/">Go to homepage <ArrowRight size={18} /></Link></div></main>; }
 function ThemesPage() { return <main><PageIntro eyebrow="THE IDEA SHELF" title="Where will your story begin?" body="These illustrated worlds are starting points. Your own idea is welcome too." /><ThemeGallery full sampleReady={false} /><div className="inline-cta"><div><h2>Something else in mind?</h2><p>Describe a favourite place, creature, or curiosity.</p></div><Link className="button" to="/en/create/?custom=1">Make my own world <ArrowUpRight size={19} /></Link></div></main>; }
-function HowPage() { return <main><PageIntro eyebrow="HOW IT WORKS" title="Make room for a story they can step into." body="A few thoughtful choices help shape an adventure for your players and your space." /><div className="detail-steps">{[['01','Choose a story world','Browse a featured theme or describe your own idea. A theme is an invitation, not a fixed story.'],['02','Set the scene','Tell us whether you are playing at home or with a class, plus a few practical details.'],['03','Pick a direction','Preview short story directions before deciding whether to continue.'],['04','Prepare to play','The planned paid experience will include printable player pages and a separate organiser guide.']].map(([n,h,p]) => <article key={n}><span>{n}</span><div><h2>{h}</h2><p>{p}</p></div></article>)}</div><div className="inline-cta"><div><h2>Ready to start?</h2><p>Your first choices take only a moment.</p></div><Link className="button" to="/en/create/">Create My Adventure <ArrowUpRight size={19} /></Link></div></main>; }
-
 const initialDraft = () => { try { const value = JSON.parse(localStorage.getItem('paw-draft') || '{}'); return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; } catch { return {}; } };
 const emptyDraft = () => ({ theme: '', custom: false, idea: '', setting: '', players: '', age: '', place: '', reading: '', paper: '', groups: '', materials: '', direction: '' });
 function SetupExtras({ draft, change }) {
@@ -206,7 +205,7 @@ export function App() {
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/occasions/halloween')) page = <ThemesExplorer Link={Link} themes={themes} initialCategory="Seasonal" />;
-  else if (route.startsWith('/en/how-it-works')) page = <HowPage />;
+  else if (route.startsWith('/en/how-it-works')) page = <HowItWorksPage Link={Link} catalog={runtimeCatalog} checkoutMode={runtime?.checkoutMode} />;
   else if (route.startsWith('/en/create')) page = runtime?.proposals ? <LiveCreate key={window.location.search} Link={Link} checkoutReady={runtime.checkout} checkoutMode={runtime.checkoutMode} runtimeOffers={runtimeCatalog?.offers} /> : <CreatePage key={window.location.search} unavailable={Boolean(runtime)} />;
   else if (route.startsWith('/en/samples/classroom')) page = runtimeCatalog?.themes.find(theme => theme.id === 'celebration')?.classroom.freeSample ? <LiveSamples Link={Link} classroom catalog={runtimeCatalog} /> : <SamplesExperience Link={Link} classroom />;
   else if (route.startsWith('/en/samples')) page = runtimeCatalog?.themes.find(theme => theme.id === 'celebration')?.home.freeSample ? <LiveSamples Link={Link} catalog={runtimeCatalog} /> : <SamplesExperience Link={Link} />;
