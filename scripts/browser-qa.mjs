@@ -135,6 +135,16 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
       if (!await page.getByRole('heading', { name: title }).isVisible()) problems.push(route + ' has the wrong audience heading');
       if (await page.locator('.product-theme-card').count() !== 6) problems.push(route + ' does not show six available adventures');
       if (route === '/en/for-classroom/' && (!await page.locator('.catalog-classroom-hero').isVisible() || !await page.getByRole('heading', { name: 'What comes in a Classroom pack?' }).isVisible())) problems.push('Classroom page lacks its teacher-facing introduction or pack explanation');
+      const layout = await page.evaluate(() => {
+        const listing = document.querySelector('.catalog-listing').getBoundingClientRect();
+        const benefits = document.querySelector('.catalog-home-benefits').getBoundingClientRect();
+        return { listingTop: listing.top + scrollY, benefitsTop: benefits.top + scrollY,
+          actions: [...document.querySelectorAll('.product-card-actions')].map(el => el.querySelectorAll('a').length),
+          customInCards: document.querySelectorAll('.product-theme-card a[href*="/create/"]').length };
+      });
+      if (layout.listingTop >= layout.benefitsTop) problems.push(route + ' explanation precedes the game catalogue');
+      if (layout.actions.some(count => count > 2) || layout.customInCards) problems.push(route + ' game cards have competing actions');
+      if (await page.locator('.catalog-search').count()) problems.push(route + ' six-game catalogue has unnecessary search');
       await page.getByRole('button', { name: /Parties & seasons/ }).click();
       if (await page.locator('.product-theme-card').count() !== (route === '/en/for-home/' ? 3 : 1)) problems.push(route + ' occasion filter did not narrow the catalog');
       await page.getByRole('button', { name: /Any-day adventures/ }).click();

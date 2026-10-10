@@ -104,3 +104,46 @@
 .catalog-discovery-filters button:focus-visible{outline:3px solid #a93b2a;outline-offset:3px}
 
 
+
+/* Catalogue first: concise introduction, unified controls and two actions. */
+.catalog-page .catalog-hero-inner{grid-template-columns:minmax(0,1fr) 220px;gap:32px;padding-top:30px;padding-bottom:30px}
+.catalog-page .catalog-home-copy h1{font-size:clamp(2rem,3.2vw,3.2rem);max-width:840px;line-height:1.08}
+.catalog-page .catalog-home-copy>p{font-size:.96rem;max-width:780px}
+.catalog-page .catalog-hero-actions{display:none}
+.catalog-page .catalog-hero-facts{margin-top:16px}
+.catalog-page .catalog-hero-visual{padding:0;max-width:220px}
+.catalog-page .catalog-hero-visual>img{border-width:5px;transform:rotate(2deg)}
+.catalog-page .catalog-hero-note{display:none}
+.catalog-page .audience-switch{display:flex;gap:10px;margin:0 0 26px}
+.catalog-page .audience-switch a{display:block;flex:1;padding:14px 18px;box-shadow:none}
+.catalog-page .audience-switch span{font-family:inherit;font-size:.95rem;font-weight:900}
+.catalog-page .audience-switch strong,.catalog-page .audience-switch small{display:none}
+.catalog-page .audience-switch a.active{background:#153d5a;color:white}
+.catalog-page .catalog-listing-heading h2{font-size:clamp(1.65rem,2.7vw,2.4rem)}
+.catalog-page .catalog-total{border:0;background:transparent;color:#466273;padding:0}
+.catalog-page .catalog-discovery-filters{display:inline-flex;gap:4px;padding:5px;border:1px solid #accddc;border-radius:12px;background:#edf8fc;margin:20px 0 0}
+.catalog-page .catalog-discovery-filters button{border:0;border-radius:8px;min-height:44px;padding:10px 16px;background:transparent;font-size:.86rem}
+.catalog-page .catalog-discovery-filters button.active{background:#153d5a;color:#fff}
+.catalog-results{margin:12px 0 20px;color:#466273;font-size:.8rem}
+.catalog-page .product-theme-card{display:flex;flex-direction:column;box-shadow:0 5px 0 #b7dbe766}
+.catalog-page .product-card-copy{display:flex;flex-direction:column;flex:1;padding:22px}
+.catalog-page .product-card-copy h3{font-size:1.55rem;line-height:1.24;margin:0 0 12px}
+.catalog-page .product-card-copy .product-story-title{font-size:.68rem;letter-spacing:.06em;margin-bottom:9px}
+.catalog-page .product-card-copy .product-story-teaser{min-height:0;font-size:.88rem;line-height:1.6;margin:0 0 20px}
+.catalog-page .product-card-copy .catalog-card-facts{font-size:.72rem;line-height:1.7;margin:auto 0 18px;padding-top:6px;color:#466273}
+.catalog-card-facts span{padding:0 3px}
+.catalog-page .product-card-actions{display:flex;flex-direction:column;align-items:stretch;gap:13px;margin:0}
+.catalog-page .product-card-actions .button{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:12px 15px;font-size:.86rem}
+.catalog-page .product-card-actions .text-link{align-self:flex-start;min-height:30px;font-size:.82rem}
+.catalog-availability{font-size:.76rem;line-height:1.5;min-height:30px;color:#466273}
+.catalog-page .catalog-home-benefits{padding:60px 0 0}
+.catalog-page .catalog-custom{margin-top:48px}
+@media(max-width:650px){
+.catalog-page .catalog-hero-inner{grid-template-columns:1fr;padding-top:26px;padding-bottom:24px}
+.catalog-page .catalog-hero-visual{display:none}
+.catalog-page .catalog-home-copy h1{font-size:2.1rem}
+.catalog-page .catalog-discovery-filters{display:flex}
+.catalog-page .catalog-discovery-filters button{flex:1;padding:9px 10px;font-size:.76rem}
+.catalog-page .catalog-listing-heading{gap:8px}
+.catalog-page .catalog-home-benefits{padding-top:42px}
+}

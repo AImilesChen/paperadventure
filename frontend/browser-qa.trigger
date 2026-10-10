@@ -1,1 +1,1 @@
-Verify Celebration Home v0.4 live PDF and two-file ZIP downloads after release.
+Catalogue-first layout and two-action cards QA 2026-10-10
