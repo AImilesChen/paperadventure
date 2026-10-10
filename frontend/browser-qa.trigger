@@ -1,1 +1,1 @@
-2026-10-10 verify pricing redesign with three clear choices and responsive comparison
+2026-10-10 check distinct Home/Classroom worlds after deployment

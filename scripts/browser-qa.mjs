@@ -11,7 +11,7 @@ const browser = await chromium.launch({ headless: true });
 const problems = [];
 const snapshots = [];
 const accessibility = [];
-const routesToCapture = new Set(['/en/', '/en/themes/', '/en/themes/celebration/home/', '/en/themes/dinosaur/home/', '/en/themes/dinosaur/classroom/', '/en/for-home/', '/en/for-classroom/', '/en/create/', '/en/how-it-works/', '/en/pricing/', '/en/privacy/']);
+const routesToCapture = new Set(['/en/', '/en/themes/', '/en/themes/celebration/home/', '/en/themes/dinosaur/home/', '/en/themes/ocean/classroom/', '/en/for-home/', '/en/for-classroom/', '/en/create/', '/en/how-it-works/', '/en/pricing/', '/en/privacy/']);
 
 for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 390, height: 844 }]) {
   const context = await browser.newContext({ viewport, reducedMotion: 'reduce' });
@@ -102,7 +102,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     if (!await page.locator('.nav-actions a[href="/en/create/"]').isVisible()) problems.push('Desktop Create an adventure action is missing');
     if (!await primaryLinks.nth(2).isVisible() || await primaryLinks.nth(2).innerText() !== 'AI custom adventure') problems.push('Desktop navigation lacks a clearly labelled AI custom entry');
     await page.locator('.theme-audience-switch button').nth(1).click();
-    if (!await page.locator('.theme-card').nth(1).getByText('The Dinosaur Research Station Mix-up').isVisible()) problems.push('Home gallery did not switch to the six Classroom stories');
+    if (!await page.locator('.theme-card').nth(1).getByText('The Coral Chart Expedition').isVisible()) problems.push('Home gallery did not switch to the distinct Classroom worlds');
     if (!await page.locator('.theme-card').nth(1).getAttribute('href').then(href => href?.endsWith('/classroom/'))) problems.push('Classroom gallery card lost its setting');
     if (await page.locator('.sample-spotlight-card a[href^="/en/samples/"]').count() !== 2) problems.push('Home does not link to both Celebration editions');
     const rail = page.locator('.theme-track').first();
@@ -136,22 +136,22 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
     for (const [route, title] of [['/en/for-home/', 'Printable Adventure Games for Kids at Home.'], ['/en/for-classroom/', 'Printable Classroom Adventure Games for Kids.']]) {
       await page.goto(base + route, { waitUntil: 'domcontentloaded' });
       if (!await page.getByRole('heading', { name: title }).isVisible()) problems.push(route + ' has the wrong audience heading');
-      if (await page.locator('.product-theme-card').count() !== themes.length) problems.push(route + ' does not show all available themes');
+      if (await page.locator('.product-theme-card').count() !== 6) problems.push(route + ' does not show six available adventures');
       if (route === '/en/for-classroom/' && (!await page.locator('.catalog-classroom-hero').isVisible() || !await page.getByRole('heading', { name: 'What comes in a Classroom pack?' }).isVisible())) problems.push('Classroom page lacks its teacher-facing introduction or pack explanation');
       await page.getByRole('button', { name: /Parties & seasons/ }).click();
-      if (await page.locator('.product-theme-card').count() !== 3) problems.push(route + ' occasion filter did not narrow the catalog');
+      if (await page.locator('.product-theme-card').count() !== (route === '/en/for-home/' ? 3 : 1)) problems.push(route + ' occasion filter did not narrow the catalog');
       await page.getByRole('button', { name: /Any-day adventures/ }).click();
-      if (await page.locator('.product-theme-card').count() !== 3) problems.push(route + ' any-day filter did not narrow the catalog');
+      if (await page.locator('.product-theme-card').count() !== (route === '/en/for-home/' ? 3 : 5)) problems.push(route + ' any-day filter did not narrow the catalog');
       await page.getByRole('button', { name: /All themes/ }).click();
     }
     await page.goto(base + '/en/for-classroom/', { waitUntil: 'domcontentloaded' });
     const classroomDetail = page.locator('.product-theme-card').nth(1).locator('a.product-image-link');
     if (!await classroomDetail.getAttribute('href').then(href => href?.endsWith('/classroom/'))) problems.push('Classroom catalog did not preserve the selected setting');
-    await page.goto(base + '/en/themes/dinosaur/classroom/', { waitUntil: 'domcontentloaded' });
-    if (!await page.getByRole('heading', { level: 1, name: "The Dinosaur Research Station Mix-up." }).isVisible()) problems.push('Theme detail did not prioritize the selected Classroom story');
+    await page.goto(base + '/en/themes/ocean/classroom/', { waitUntil: 'domcontentloaded' });
+    if (!await page.getByRole('heading', { level: 1, name: "The Coral Chart Expedition." }).isVisible()) problems.push('Theme detail did not prioritize the selected Classroom story');
     if (await page.locator('.theme-checkpoints li').count() !== 5) problems.push('Classroom theme detail lost its five checkpoint explanation');
     if (!await page.getByRole('heading', { name: 'Inside the Classroom adventure' }).isVisible()) problems.push('Classroom theme detail lacks its pack contents');
-    if (!await page.getByText(/6 Player Pack pages \+ 3 Teacher Guide pages/).isVisible()) problems.push('Classroom print plan does not show draft PDF page counts');
+    if (!await page.getByText(/7 Player Pack pages \+ 7 Teacher Guide pages/).isVisible()) problems.push('Classroom print plan does not show draft PDF page counts');
   }
   await context.close();
 }
@@ -170,3 +170,5 @@ writeFileSync(out + '/report.json', JSON.stringify({ snapshots, accessibility, p
 console.log(JSON.stringify({ checked: snapshots.length, screenshots: routesToCapture.size * 2, problems }, null, 2));
 if (problems.length) console.log(JSON.stringify(accessibility.filter(item => item.violations.some(violation => ['serious', 'critical'].includes(violation.impact))), null, 2));
 if (problems.length) process.exitCode = 1;
+
+
