@@ -126,21 +126,25 @@ export function buildStageReadyPlan(root, options = {}) {
     statements.push('INSERT OR IGNORE INTO ready_packs (id,theme_world_id,setting,version,status,licence_version) VALUES (' +
       [pack.id, pack.world, pack.setting, pack.version, pack.status, 'draft-not-approved'].map(sql).join(',') + ');');
     statements.push('DELETE FROM ready_pack_files WHERE ready_pack_id = ' + sql(pack.id) +
-      ' AND EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(pack.id) + " AND status = 'internal_test');");
+      ' AND EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(pack.id) + " AND status = 'internal_test')" +
+      ' AND NOT EXISTS (SELECT 1 FROM entitlements WHERE ready_pack_id = ' + sql(pack.id) + ');');
     for (const file of pack.files) {
       statements.push('INSERT INTO ready_pack_files (ready_pack_id,paper,role,r2_key,sha256,bytes) SELECT ' +
         [pack.id, file.paper, file.role, file.r2Key, file.sha256].map(sql).join(',') + ',' + file.bytes +
-        ' WHERE EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(pack.id) + " AND status = 'internal_test');");
+        ' WHERE EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(pack.id) + " AND status = 'internal_test')" +
+        ' AND NOT EXISTS (SELECT 1 FROM entitlements WHERE ready_pack_id = ' + sql(pack.id) + ');');
     }
   }
   for (const variant of variants) {
     statements.push('DELETE FROM ready_pack_variants WHERE ready_pack_id = ' + sql(variant.packId) +
       ' AND variant_id = ' + sql(variant.variantId) +
-      ' AND EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(variant.packId) + " AND status = 'internal_test');");
+      ' AND EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(variant.packId) + " AND status = 'internal_test')" +
+      ' AND NOT EXISTS (SELECT 1 FROM entitlements WHERE ready_pack_id = ' + sql(variant.packId) + ');');
     for (const file of variant.files) {
       statements.push('INSERT INTO ready_pack_variants (ready_pack_id,variant_id,paper,role,r2_key,sha256,bytes) SELECT ' +
         [variant.packId, variant.variantId, file.paper, file.role, file.r2Key, file.sha256].map(sql).join(',') + ',' + file.bytes +
-        ' WHERE EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(variant.packId) + " AND status = 'internal_test');");
+        ' WHERE EXISTS (SELECT 1 FROM ready_packs WHERE id = ' + sql(variant.packId) + " AND status = 'internal_test')" +
+        ' AND NOT EXISTS (SELECT 1 FROM entitlements WHERE ready_pack_id = ' + sql(variant.packId) + ');');
     }
   }
   return { privateOnly: true, packs, variants, previews, uploads, sql: statements.join('\n') + '\n' };
