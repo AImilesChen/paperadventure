@@ -97,7 +97,7 @@ test('all twelve edition pages explain their actual paper materials and five che
   }
 });
 
-test('confirmed Home and Classroom rights appear consistently while checkout stays closed', async () => {
+test('pricing explains all three choices and confirmed Home and Classroom rights', async () => {
   assert.equal(productRights.onlineRedownloadMonths, 12);
   assert.equal(productRights.legalReviewPending, true);
   const pricing = await read('en/pricing/index.html');
@@ -107,7 +107,13 @@ test('confirmed Home and Classroom rights appear consistently while checkout sta
     assert.ok(pricing.includes(scope), scope);
   }
   assert.match(pricing, /from confirmed payment/);
-  assert.match(pricing, /No ready-made packs are published yet/);
+  assert.match(pricing, /Three clear ways to begin/);
+  assert.match(pricing, /Celebration adventure/);
+  assert.match(pricing, /Pick an existing theme/);
+  assert.match(pricing, /Make a new story/);
+  assert.match(pricing, /\$9\.99/);
+  assert.match(pricing, /\$19\.99/);
+  assert.doesNotMatch(pricing, /No ready-made packs are published yet/);
   assert.doesNotMatch(pricing, /href="[^"]*\/api\/v1\/samples\//);
   assert.match(pricing, /from first qualified delivery/);
   assert.match(checkout, /Online re-download/);
