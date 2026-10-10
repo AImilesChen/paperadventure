@@ -1,12 +1,21 @@
 """An illustrated, hosted forest-post-office adventure with physical delivery."""
 import math
+import re
 from reportlab.platypus import Flowable, Image, Paragraph, Table, TableStyle
 from reportlab.lib.styles import ParagraphStyle
 import generate_celebration_samples as g
-from dinosaur_home_experience import p, head, steps, cardgrid
+from dinosaur_home_experience import p, head, steps, cardgrid as base_cardgrid
 from space_home_experience import symbol
+def steps(items):
+ return [p(f'<b>{i+1}.</b> '+re.sub(r'\b(Postmaster|Routekeeper|Registrar|Inspector|Adult)\b',r'<b>\1</b>',t)) for i,t in enumerate(items)]
 
 JOBS=['Postmaster','Routekeeper','Registrar','Inspector']
+def cardgrid(items,w,h=140):
+ t=base_cardgrid(items,w,h)
+ for i in range(len(items)):
+  x=i%2;y=i//2
+  t.setStyle(TableStyle([('BOX',(x,y),(x,y),1,g.NAVY,1,(4,3))]))
+ return t
 LABELS=['4, 5','6, 7','8, 9, 10','11, 12, 13','14, 15, 16, 17']
 STORIES=[
  'The rain has stopped, but Nori finds a parcel with a blurred address. A surviving postmark note describes its border, stars and weekday. Four postal records look similar. Which one belongs to this parcel?',
@@ -16,11 +25,11 @@ STORIES=[
  'Nori places the parcel on the delivery board. Before it leaves the post office, your team must check every address field. Attach the repaired label and deliver the whole board to the correct paper home.'
 ]
 FEEDBACK=[
- 'The postmark identifies batch M2. Nori can now pick the matching route strips. Release mission 2.',
- 'The route reaches BLUE TREE. Nori has arrived at the sorting desk for that district. Release mission 3.',
- 'Parcel C has the right district, two leaves and a round outline. W4 is the surviving address fragment. Release mission 4.',
- 'BLUE TREE and W4 identify OWL HOUSE. Your replacement label gives Nori a readable address. Release mission 5.',
- 'All four fields match, and the parcel is at OWL HOUSE. The adult returns a checked receipt and reads Nori\'s thank-you note.'
+ 'The postmark identifies batch M2. Nori can now pick the matching route strips. ',
+ 'The route reaches BLUE TREE. Nori has arrived at the sorting desk for that district. ',
+ 'Parcel C has the right district, two leaves and a round outline. W4 is the surviving address fragment. ',
+ 'BLUE TREE and W4 identify OWL HOUSE. Your replacement label gives Nori a readable address. ',
+ 'All four fields match, and the parcel is at OWL HOUSE. Nori brings back a receipt: your careful checks completed the delivery!'
 ]
 ACTIONS=[
  ['Postmaster reads the surviving note: LEAF border, TWO stars, weekday TUE. Read each feature separately.',
@@ -29,7 +38,7 @@ ACTIONS=[
   'Registrar writes the matching card letter and BATCH in record row 1. Show the adult the card and three matching features.'],
  ['Registrar reads BATCH from row 1. Routekeeper sorts the five route strips into matching batch and other batch. Keep other-batch strips aside.',
   'Postmaster finds the matching strip starting at POST OFFICE. Routekeeper joins its TO place to the next strip\'s FROM place, left to right beside the route board.',
-  'Inspector checks every joined name and batch. Move Nori along the joins. Finish at a named TREE district; never add an excluded batch.',
+  'Inspector checks every joined name and batch. Put Nori at POST OFFICE. Follow each arrow, moving Nori to its TO place, then onto the next strip. Finish at a named TREE district; never add an excluded batch.',
   'Registrar fills the four places on the route board and writes strip letters plus the complete district in row 2. Show the adult the joins and one excluded strip.'],
  ['Adult gives the three private clues to Postmaster, Routekeeper and Inspector. In a two-player team one person holds two clue cards. Registrar listens.',
   'Each clue holder reads their own fact aloud, then shows it. Registrar reads the previous district when asked and repeats all three requirements.',
@@ -40,17 +49,17 @@ ACTIONS=[
   'Postmaster reads the matched home name. Registrar records RECIPIENT in row 4 and fills all four replacement-label fields on page 13 from record rows 1-4.',
   'Inspector checks the label against the record and map. Show the adult the map location and label. Keep the label whole until mission 5.'],
  ['Registrar reads BATCH, DISTRICT, FRAGMENT and RECIPIENT from the record. Divide the four checks between the jobs: Postmaster batch, Routekeeper district, Registrar fragment, Inspector recipient.',
-  'Compare each dispatch card with ALL four facts. Mark a tick for a match and X for a mismatch on page 16. Choose only the dispatch card with four ticks.',
+  'Compare each dispatch card with ALL four facts. On page 16, tick matches and mark X for mismatches. Choose only a card matching all four fields. Younger players may point and say match or mismatch while the adult checks; ticks are optional.',
   'Registrar records its letter in row 5. Inspector rechecks the repaired label. Adult cuts only its outer rectangle from page 13. Place it in the label box on page 16; glue is optional.',
   'Routekeeper places the four home cards apart on the table, then slides the delivery board to the matching home. Two players show two different earlier sources to the adult.',
-  'Adult checks the chosen dispatch, label and delivery position. Correct any mismatch and resubmit. Only after acceptance receive the receipt on page 18 and hear the thank-you note.']
+  'Adult checks the dispatch, label and home. Correct any mismatch and resubmit. After acceptance, Registrar marks YES in Delivery checked (record row 5). Receive receipt 18 and hear the thank-you note.']
 ]
 MATERIALS=[
  'Jobs (2), record (3), task (4), four postmarks (5).',
  'Record (3), task/route board (6), five route strips and Nori marker (7).',
  'Record (3), task (8), three private clues (9), four parcel records (10).',
  'Record (3), task (11), whole address map (12), replacement label (13).',
- 'Record (3), repaired label (13), task/check table (14), five dispatch cards (15), delivery board (16), four homes (17). Adult holds receipt (18).'
+ 'Record (3), repaired label (13), task (14), five dispatch cards (15), delivery board/check table (16), four homes (17). Adult holds receipt (18).'
 ]
 EVIDENCE=[
  'B: leaf border, two stars, TUE; batch M2. A has one star; C has a moon border; D says FRI. Accept only after all three checks.',
@@ -72,8 +81,11 @@ def home_icon(c,x,y,name,r=24):
  # Each destination has a different animal sign, plus a printed full name.
  if name=='OWL HOUSE':
   c.circle(x,y+8,10,stroke=1,fill=0);c.circle(x-4,y+10,3,stroke=1,fill=0);c.circle(x+4,y+10,3,stroke=1,fill=0)
- elif name=='FOX DEN':symbol(c,x,y+8,'TRIANGLE',10)
- elif name=='BEAVER HUT':c.rect(x-10,y,20,14,stroke=1,fill=0);c.line(x,y,x,y+10)
+ elif name=='FOX DEN':
+  q=c.beginPath();q.moveTo(x-11,y+18);q.lineTo(x-10,y+2);q.lineTo(x,y-2);q.lineTo(x+10,y+2);q.lineTo(x+11,y+18);q.lineTo(x+4,y+12);q.lineTo(x-4,y+12);q.close();c.drawPath(q)
+  c.circle(x-4,y+8,1.5);c.circle(x+4,y+8,1.5);c.line(x-2,y+1,x+2,y+1)
+ elif name=='BEAVER HUT':
+  c.circle(x,y+8,10);c.circle(x-9,y+16,3);c.circle(x+9,y+16,3);c.circle(x-4,y+10,1.5);c.circle(x+4,y+10,1.5);c.rect(x-3,y-2,6,6);c.line(x,y-2,x,y+4)
  else:
   c.ellipse(x-8,y,x+8,y+13);c.ellipse(x-7,y+10,x-1,y+25);c.ellipse(x+1,y+10,x+7,y+25)
  c.setLineWidth(1)
@@ -102,10 +114,11 @@ class ForestBoard(Flowable):
     yy=h-76-i*25;label(8,yy,t);c.setStrokeColor(g.NAVY);c.line(0,yy-6,w,yy-6)
     for j in range(1,5):c.rect(j*w/5+15,yy-2,12,12,stroke=1,fill=0)
   elif self.kind=='label':
-   # Physical rectangle fits the identically sized box on the delivery board.
-   bw=w-20;box(10,h-230,bw,215,'REPAIRED ADDRESS / cut outer rectangle in mission 5')
+   # Label leaves 3 mm of cutting clearance on every side of the slot.
+   bw=w-38
+   c.saveState();c.setDash(4,3);box(19,h-230,bw,197,'REPAIRED ADDRESS / cut in mission 5');c.restoreState()
    for i,t in enumerate(['BATCH','DISTRICT','FRAGMENT','RECIPIENT']):
-    yy=h-70-i*39;label(22,yy,t,13);c.line(140,yy-3,w-24,yy-3)
+    yy=h-85-i*35;label(29,yy,t,13);c.line(145,yy-3,w-33,yy-3)
    label(0,15,'No real names or addresses. Copy only the fictional record.',11)
   elif self.kind=='delivery':
    box(0,0,w,h,'NORI\'S PAPER PARCEL / keep this whole board')
@@ -128,6 +141,14 @@ class ForestBoard(Flowable):
    ch=h/math.ceil(len(self.rows)/2);cw=w/2
    for i,row in enumerate(self.rows):
     xx=i%2*cw;yy=h-(i//2+1)*ch;c.setStrokeColor(g.NAVY)
+    if self.kind=='routes' and row[0]=='NORI':
+     cx=xx+cw/2;cy=yy+ch*.44
+     label(xx+12,yy+ch-24,'2 / CUT SMALL NORI MARKER')
+     c.saveState();c.setDash(4,3);c.rect(cx-39,cy-39,78,78,stroke=1,fill=0);c.restoreState()
+     c.circle(cx,cy,24,stroke=1,fill=0);leaf(c,cx,cy,15)
+     label(cx-14,cy+28,'NORI',9)
+     label(xx+12,yy+12,'Move leaf centre to each TO place.',10.5)
+     continue
     c.saveState();c.setDash(4,3);c.rect(xx,yy,cw,ch,stroke=1,fill=0);c.restoreState()
     if self.kind=='postmark':
      card,border,stars,day,batch=row;label(xx+12,yy+ch-24,'1 / POSTMARK '+card);label(xx+12,yy+ch-47,'BATCH '+batch,14)
@@ -152,12 +173,23 @@ class ForestBoard(Flowable):
      for j,(t,v) in enumerate(zip(['BATCH','DISTRICT','FRAGMENT','RECIPIENT'],row[1:])):label(xx+12,yy+ch-51-j*25,t+': '+v,11.5)
     elif self.kind=='routes':
      if row[0]=='NORI':
-      label(xx+12,yy+ch-24,'2 / NORI MARKER');c.setStrokeColor(g.NAVY);c.circle(xx+cw/2,yy+ch*.44,24,stroke=1,fill=0);leaf(c,xx+cw/2,yy+ch*.44,15);label(xx+12,yy+12,'Move this card along the route.',11)
+      label(xx+12,yy+ch-24,'2 / NORI MARKER');c.setStrokeColor(g.NAVY);c.circle(xx+cw/2,yy+ch*.44,24,stroke=1,fill=0);leaf(c,xx+cw/2,yy+ch*.44,15);label(xx+12,yy+12,'Move the leaf centre to each TO place.',10.5)
      else:
       card,batch,start,end=row;label(xx+12,yy+ch-24,'2 / ROUTE '+card+' / '+batch,13);label(xx+12,yy+ch-49,'FROM '+start,11.5);label(xx+12,yy+33,'TO '+end,11.5);c.setStrokeColor(g.NAVY);c.line(xx+25,yy+56,xx+cw-25,yy+56);c.line(xx+cw-25,yy+56,xx+cw-34,yy+62);c.line(xx+cw-25,yy+56,xx+cw-34,yy+50)
 
+class ActionStrip(Flowable):
+ def __init__(self,w,words):self.width=w;self.height=64;self.words=words
+ def draw(self):
+  c=self.canv;n=len(self.words);cw=self.width/n
+  for i,t in enumerate(self.words):
+   x=i*cw;c.setStrokeColor(g.NAVY);c.setFillColor(g.PALE);c.roundRect(x+2,10,cw-15,43,5,fill=1)
+   c.setFillColor(g.NAVY);c.setFont('ArialBold',11);c.drawCentredString(x+(cw-11)/2,27,t)
+   if i<n-1:c.drawString(x+cw-10,27,'>')
+
 def task(i,w,board=None):
- f=head(['Find the rain-blurred postmark','Rebuild Nori\'s route','Listen at the sorting desk','Repair the address','Check and deliver the parcel'][i],f'CHECKPOINT {i+1} / KEEP WHOLE')+[p(STORIES[i]),p('PUT ON THE TABLE',True),p(MATERIALS[i]),p('DO THIS TOGETHER',True)]+steps(ACTIONS[i])+[p('READY FOR THE ADULT?',True),p('Show the result and the evidence described above. Ask the adult to check before taking the next mission.')]
+ end='Show your result and evidence. Adult checks before releasing the next mission.' if i<4 else 'After acceptance, mark Delivery checked: YES in record row 5. Receive the checked receipt, hear Nori\'s note and share one contribution. Your delivery is complete!'
+ cues=[['LOOK','COMPARE','RECORD'],['SORT','JOIN','MOVE','RECORD'],['SHARE','LISTEN','MATCH'],['FIND DISTRICT','FIND CODE','WRITE LABEL'],['CHECK','DELIVER','GET RECEIPT']]
+ f=head(['Find the rain-blurred postmark','Rebuild Nori\'s route','Listen at the sorting desk','Repair the address','Check and deliver the parcel'][i],f'CHECKPOINT {i+1} / KEEP WHOLE')+[p(STORIES[i]),p('PUT ON THE TABLE',True),p(MATERIALS[i]),ActionStrip(w,cues[i]),p('DO THIS TOGETHER',True)]+steps(ACTIONS[i])+[p('READY FOR THE ADULT?' if i<4 else 'DELIVERY ACCEPTED?',True),p(end)]
  if board:f+=[board]
  return f
 
@@ -169,14 +201,14 @@ def player(s,w):
  'Write the team\'s agreed facts, repair the label and keep the record visible. Adult may write dictated answers.',
  'Check every required field. Ask for evidence and show it to the adult. Return incorrect work for a correction.'
  ])),w,155),p('Everyone may discuss. No acting voices are required. Teams of 7-12 use two complete packs; the host guide gives exact groups.')])
- pages.append(head('Our postal work record','PAGE 3 / KEEP WHOLE')+[p('Registrar keeps this page in the centre. Record only agreed results. Speak and point if writing is difficult; an adult can write for you. Keep solved props as evidence.'),ForestBoard(w,'record',h=330),p('Invented team name: ____________________<br/>Ask for one hint, try again, then request another. Pencil answers can be corrected.')])
+ pages.append(head('Our postal work record','PAGE 3 / KEEP WHOLE')+[p('Registrar keeps this page in the centre. Record only agreed results. Speak and point if writing is difficult; an adult can write for you. Keep solved props as evidence.'),ForestBoard(w,'record',h=330),p('Evidence may be spoken instead of written. Keep the result fields complete; an adult may write for you.'),p('Invented team name: ____________________<br/>Ask for one hint, try again, then request another. Pencil answers can be corrected.')])
  pages.append(task(0,w))
  pages.append(head('Postal postmark records','CHECKPOINT 1 / PAGE 5 / CUT FOUR')+[p('Cut the outer rectangles, not the postmark drawings. Keep cards upright. Inspect the drawn border, stars and weekday; the batch is the result to record.'),ForestBoard(w,'postmark',s['stages'][0]['rows'],h=460)])
  pages.append(task(1,w,ForestBoard(w,'route',h=145)))
- pages.append(head('Route strips and Nori marker','CHECKPOINT 2 / PAGE 7 / CUT SIX')+[p('Example only: FROM EARTH / TO MARS joins FROM MARS / TO BASE. Match the repeated place name, then follow the arrows. The example words are not forest clues.'),ForestBoard(w,'routes',s['stages'][1]['rows']+[('NORI',)],h=420)])
+ pages.append(head('Route strips and Nori marker','CHECKPOINT 2 / PAGE 7 / CUT SIX')+[p('Example only: FROM ACORN / TO NEST joins FROM NEST / TO HILL. Match the repeated place name, then follow the arrows. These are not game clues.'),ActionStrip(w,['ACORN > NEST','NEST > HILL']),ForestBoard(w,'routes',s['stages'][1]['rows']+[('NORI',)],h=420)])
  pages.append(task(2,w))
  pages.append(head('Three workers, three facts','CHECKPOINT 3 / PAGE 9 / CUT THREE')+[p('Adult hands each clue to its named job. Read your own clue aloud and show it. These worker messages are not additional player roles.'),cardgrid([
- ('3 / Postmaster / Carrier','Use the DISTRICT from your route record.'),('3 / Routekeeper / Sorter','The correct parcel has TWO drawn leaf marks.'),('3 / Inspector / Keeper','The correct parcel has a ROUND outline.')],w,125),p('Registrar combines the spoken facts. With two players one holds two clues. Keep the spare cell uncut; it is not another clue.')])
+ ('3 / Postmaster / Carrier','Use the DISTRICT from your route record.'),('3 / Routekeeper / Sorter','The correct parcel has TWO drawn leaf marks.'),('3 / Inspector / Keeper','The correct parcel has a ROUND outline.')],w,160),p('Registrar combines the spoken facts. With two players one holds two clues. Keep the spare cell uncut; it is not another clue.')])
  pages.append(head('Parcel records at the sorting desk','CHECKPOINT 3 / PAGE 10 / CUT FOUR')+[p('Inspect the leaf drawings and parcel outline. Use the district you already found. The fragment inside the parcel becomes your next clue.'),ForestBoard(w,'parcel',s['stages'][2]['rows'],h=460)])
  pages.append(task(3,w))
  pages.append(head('Forest address map','CHECKPOINT 4 / PAGE 12 / KEEP WHOLE')+[p('This is an address directory, not another route puzzle. Find the district panel first, then the exact fragment. Drawings identify homes; full printed names work in black and white.'),ForestBoard(w,'map',h=455)])
@@ -185,7 +217,7 @@ def player(s,w):
  pages.append(head('Final dispatch records','CHECKPOINT 5 / PAGE 15 / CUT FIVE')+[p('Compare ALL four fields with your record and repaired label. A card with one mismatch cannot be dispatched. Keep rejected cards visible until checked.'),ForestBoard(w,'dispatch',s['stages'][4]['rows'],h=490)])
  pages.append(head('Nori\'s parcel delivery board','CHECKPOINT 5 / PAGE 16 / KEEP WHOLE')+[p('Place the repaired label inside the box; hold it by hand. Keep this board whole. Slide it to the matching home card after checking.'),ForestBoard(w,'delivery',h=340),ForestBoard(w,'check',h=190),p('Show two earlier sources to the adult. Glue is optional.')])
  pages.append(head('Four forest homes','CHECKPOINT 5 / PAGE 17 / CUT FOUR')+[p('Place the four home cards apart on the table. Read the full name before delivering. Only one matches your repaired address.'),ForestBoard(w,'home',['FOX DEN','OWL HOUSE','BEAVER HUT','RABBIT GATE'],h=380)])
- pages.append(head('Parcel received!','PAGE 18 / ADULT HOLDS UNTIL DELIVERY ACCEPTED')+[p('Adult: complete the check line only after verifying the dispatch, label, home and two evidence sources. Return this receipt to the team.'),ForestBoard(w,'receipt',h=255),p('<b>NORI\'S NOTE:</b> "Your repaired label brought the parcel to Owl House in Blue Tree. The forest neighbours can trust the post office again. Thank you for listening, sorting and checking together!"'),p('Each player names or points to one contribution.<br/>I helped by: ______________________________<br/>Our strongest check: ______________________'),p('Replay uses the same solution. Sort the numbered piles, erase pencil marks and try different jobs next time.')])
+ pages.append(head('Parcel received!','PAGE 18 / ADULT HOLDS UNTIL DELIVERY ACCEPTED')+[p('Adult: complete the check line only after verifying the dispatch, label, home and two evidence sources. Return this receipt to the team.'),ForestBoard(w,'receipt',h=255),p('<b>NORI\'S NOTE:</b> "Your repaired label brought the parcel to Owl House in Blue Tree. The rain could not stop your team: the parcel has reached its home safely. Thank you for listening, sorting and checking together!"'),p('Each player names or points to one contribution.<br/>I helped by: ______________________________<br/>Our strongest check: ______________________'),p('Replay uses the same solution. Sort the numbered piles, erase pencil marks and try different jobs next time.')])
  return pages
 
 def gp(t,b=False):
@@ -202,16 +234,16 @@ def grid(heads,rows,widths):
 def guide(s,w,counts,base):
  pages=[head(s['title'],'HOST / QUICK START')+[gp('Read this guide on screen. Children use the printed Player Pack; keep the answers and receipt out of view.'),gp('1. Choose one team for 2-6 players, two balanced teams for 7-12. You are the adult host, outside that count.'),gp('2. Standard: print player pages 1-18 per team (18 sheets). Minimum: pages 2-18 (17 sheets); read the cover from your screen. Choose A4 OR US Letter, single-sided, Actual size / 100%. Do not print several pages per sheet.'),gp('3. Cut and sort the 30 initial pieces using page 2. Keep label page 13 whole until mission 5, when it becomes piece 31.'),gp('4. Give jobs and record. Prepare one clear table per team; hold five mission piles and receipt page 18 behind you.'),gp('5. Read the opening on guide page 4. Release each mission only after checking the previous result. Read its story, lead its actions, accept its evidence, then read the next-scene feedback.'),gp('Required: printed pack, ordinary paper, two pencils and an eraser per team. Adult-handled scissors are recommended; five envelopes, glue and tape are optional. No box, toy, real postal item or prize is required.'),gp('Without scissors: compare whole candidate pages, number route strips and trace with a finger. Place the whole label page beside the delivery board. The same solution applies.')]]
  pages.append(head('Print, cut and sort','HOST / PREPARATION')+[gp('Each team gets a complete pack. Two teams: 36 standard sheets or 34 minimum. No guide page is a required prop.'),grid(['Player pages','Prepare / distribute'],[
- ['2-3','4 job cards; whole work record. Give before the opening.'],['4-5','Whole task + 4 postmark cards. Mission 1.'],['6-7','Whole route board/task + 5 routes and Nori marker. Mission 2.'],['8-10','Whole task + 3 named private clues + 4 parcel cards. Mission 3.'],['11-13','Whole task, map and replacement-label page. Mission 4. Do not cut map.'],['14-17','Whole task + delivery board/check table + 5 dispatch cards + 4 home cards. Mission 5. Cut the repaired label only now.'],['18','Whole receipt and ending. Adult holds until accepted.']],[w*.17,w*.83]),gp('Final cut count: 31 = 4 jobs + 4 postmarks + 5 routes + 1 Nori marker + 3 clues + 4 parcels + 1 label + 5 dispatches + 4 homes.'),gp('Cut only the outside rectangular boundaries. Keep drawings, card IDs and job names attached. Never cut the map, tasks, record, delivery board or receipt. Empty cells are not cards.'),gp('Before starting, count each pile and check all text and shapes are visible. Reprint a missing piece by its page number; do not invent replacement clues.')])
+ ['2-3','4 job cards; whole work record. Give before the opening.'],['4-5','Whole task + 4 postmark cards. Mission 1.'],['6-7','Whole route board/task + 5 routes and Nori marker. Mission 2.'],['8-10','Whole task + 3 named private clues + 4 parcel cards. Mission 3.'],['11-13','Whole task, map and replacement-label page. Mission 4. Do not cut map.'],['14-17','Whole task + delivery board/check table + 5 dispatch cards + 4 home cards. Mission 5. Cut the repaired label only now.'],['18','Whole receipt and ending. Adult holds until accepted.']],[w*.17,w*.83]),gp('Final cut count: 31 = 4 jobs + 4 postmarks + 5 routes + 1 Nori marker + 3 clues + 4 parcels + 1 label + 5 dispatches + 4 homes.'),gp('Dashed dark borders mean CUT; KEEP WHOLE pages have solid borders. Cut only the outside rectangular boundaries. Keep drawings, card IDs and job names attached. Never cut the map, tasks, record, delivery board or receipt. Empty cells are not cards.'),gp('Before starting, count each pile and check all text and shapes are visible. Reprint a missing piece by its page number; do not invent replacement clues.')])
  pages.append(head('Make every player useful','HOST / JOB ASSIGNMENTS')+[grid(['Players','Assignment'],[
  ['2','Person 1: Postmaster + Registrar. Person 2: Routekeeper + Inspector. Exchange both bundles after missions 1-4.'],['3','Postmaster; Routekeeper; Registrar + Inspector. Pass the three bundles clockwise after missions 1-4.'],['4','One job each; pass job cards clockwise after missions 1-4.'],['5','Postmaster pair + Routekeeper + Registrar + Inspector. Jobs stay fixed; the pair swaps reader and clue-pointer each mission.'],['6','Postmaster pair + Routekeeper pair + Registrar + Inspector. Jobs stay fixed; pairs swap reader/mover and checker each mission.']],[w*.13,w*.87]),gp('7 = 3+4; 8 = 4+4; 9 = 4+5; 10 = 5+5; 11 = 5+6; 12 = 6+6. Each team has its own materials. One host visits both tables; an extra adult is optional.'),gp('Before accepting, invite every player to point to one fact or describe one action. Let early readers move pieces and dictate answers. Older readers must allow others to decide too.'),gp('Story workers Carrier, Sorter and Keeper are messages for the named player jobs, not extra roles to assign.')])
  from generate_celebration_home_v04 import Diagram
- pages.append(head('Open the forest post office','HOST / TABLE SETUP AND OPENING')+[Diagram(w,'table'),gp('Host-only area: five piles, this guide, receipt 18. Team centre: record and pencils. Active area: current task and props. Evidence area: solved cards and repaired label, kept visible.'),gp('Read aloud',True),gp('"Rain has blurred a parcel address. Nori needs your post office team to put it right. We will inspect, sort, connect, repair and deliver. Read one step at a time. Everyone shares before deciding. Show me evidence before the next mission."'),gp('Give jobs and page 3, then mission 1 pages 4-5. Later facts stay hidden. Before mission 2 demonstrate a non-game join: EARTH > MARS connects MARS > BASE. Point to the repeated name.'),gp('Keep the last page away from players: it reveals the destination. Once printed, hold it separately, not beneath the work record.')])
+ pages.append(head('Open the forest post office','HOST / TABLE SETUP AND OPENING')+[Diagram(w,'table'),gp('Host-only area: five piles, this guide, receipt 18. Team centre: record and pencils. Active area: current task and props. Evidence area: solved cards and repaired label, kept visible.'),gp('Read aloud',True),gp('"Rain has blurred a parcel address. Nori needs your post office team to put it right. We will inspect, sort, connect, repair and deliver. Read one step at a time. Everyone shares before deciding. Show me evidence before the next mission."'),gp('Give jobs and page 3, then mission 1 pages 4-5. Later facts stay hidden. Before mission 2 demonstrate a non-game join: ACORN > NEST connects NEST > HILL. Point to the repeated name.'),gp('Keep the last page away from players: it reveals the destination. Once printed, hold it separately, not beneath the work record.')])
  for i in range(5):
-  pages.append(head(['Postal observation','Route sorting','Shared parcel clues','Address repair','Checked paper delivery'][i],f'HOST / CHECKPOINT {i+1} / PLAYER PAGES {LABELS[i]}')+[gp('Prepare and distribute',True),gp(MATERIALS[i]),gp('Story to read',True),gp(STORIES[i]),gp('Lead the actions',True)]+[gp(f'<b>{j+1}.</b> '+a) for j,a in enumerate(ACTIONS[i])]+[gp('Accept only after checking',True),gp(EVIDENCE[i]),gp('If wrong, point to the first failed condition; allow correction. Use guide page 10 hints one at a time. Accept spoken evidence and adult-assisted writing.'),gp('Handover',True),gp(FEEDBACK[i]+(' Keep solved evidence. 2-4 players pass bundles; 5-6 swap partner tasks. Give player pages '+LABELS[i+1]+'.' if i<4 else ' Give receipt page 18 only now; follow guide page 12.'))])
+  pages.append(head(['Postal observation','Route sorting','Shared parcel clues','Address repair','Checked paper delivery'][i],f'HOST / CHECKPOINT {i+1} / PLAYER PAGES {LABELS[i]}')+[gp('Prepare and distribute',True),gp(MATERIALS[i]),gp('Story to read',True),gp(STORIES[i]),gp('Lead the actions',True)]+[gp(f'<b>{j+1}.</b> '+a) for j,a in enumerate(ACTIONS[i])]+[gp('Accept only after checking',True),gp(EVIDENCE[i]),gp('If wrong, point to the first failed condition; allow correction. Use guide page 10 hints one at a time. Accept spoken evidence and adult-assisted writing.'),gp('Read aloud after acceptance',True),gp(FEEDBACK[i]),gp('Handover - adult instructions',True),gp(('Keep solved evidence. 2-4 players pass bundles; 5-6 swap partner tasks. Give player pages '+LABELS[i+1]+'.' if i<4 else ' Give receipt page 18 only now; follow guide page 12.'))])
  hints=[list(st['hints']) for st in s['stages']]
  hints[4][2]='Dispatch A. Help check its four label fields and deliver to OWL HOUSE before giving the receipt.'
  pages.append(head('Hints without taking over','HOST / ONE HINT AT A TIME')+[gp('Offer Hint 1, allow another attempt, then Hint 2. Hint 3 can reveal a result, but never skips recording, label repair or final delivery.'),grid(['Mission','What to say'],[[str(i+1),'<br/>'.join('<b>Hint '+str(j+1)+':</b> '+x for j,x in enumerate(h))] for i,h in enumerate(hints)],[w*.13,w*.87]),gp('Wrong earlier result: bring back that evidence pile, correct its record row and retry the current step. Pause with each team\'s record and numbered piles together.')])
- pages.append(head('Support, printing and troubleshooting','HOST / FIRST-USE HELP')+[gp('Early readers: read one numbered action at a time. Let the child point, sort or move. Adult writes dictated results. Check-table ticks are optional; the main record and repaired label must be complete.'),gp('Confident readers: before acceptance ask why each rejected option fails. In mission 2 explain why other-batch strips cannot extend the route; in mission 4 demonstrate why using W4 alone gives several homes. These are extra reasoning tasks, not a different mystery.'),gp('Two teams: keep receipts and completed delivery boards out of the other team\'s view. Give a finished team a quiet drawing task while checking the second team.'),gp('Black-and-white copies: use the printed district words. Shapes and counts are drawn, not colour-dependent. If lines are faint or cropped, reprint at Actual size; never several pages per sheet.'),gp('No-cut play: number or point to candidates; trace route joins on the whole page. Hold the whole label page next to the delivery board and move both to the chosen home. Share private clues by covering other messages until read.'),gp('A label will not fit if one page is scaled differently: reprint label and delivery board in the same paper size at 100%. Until then, place the label beside the board; do not change its facts.'),gp('Replay: clues keep the same answer. Change jobs; do not promise a new mystery. Completion needs no real names, real addresses, outdoor walk or purchased reward.')])
- pages.append(head('Sign, thank and reset','HOST / FINALE')+[gp('Accept only Dispatch A, label M2 / BLUE TREE / W4 / OWL HOUSE, and the delivery board beside OWL HOUSE. Ask two different players for two earlier sources, such as postmark B and the map location.'),gp('If one field or location is wrong, ask the team to check that source and resubmit. Do not make them replay all five missions.'),gp('Mark the adult check line on receipt page 18. Give the receipt to the team and read:',True),gp('"Your repaired label brought the parcel to Owl House in Blue Tree. The forest neighbours can trust the post office again. Thank you for listening, sorting and checking together!"'),gp('Invite each player to name or point to one contribution. The receipt is the game reward; no gift is required.'),gp('Reset: erase pencil answers, count 31 cut pieces and put them in their numbered piles. Keep the label with mission 4 until mission 5 needs it; store receipt 18 with adult material. A damaged label can be reprinted from player page 13.')])
+ pages.append(head('Support, printing and troubleshooting','HOST / FIRST-USE HELP')+[gp('Early readers: read one numbered action at a time. Let the child point, sort or move. Adult writes dictated results. Check-table ticks are optional; the main record and repaired label must be complete.'),gp('Confident readers: before acceptance ask why each rejected option fails. In mission 2 explain why other-batch strips cannot extend the route; in mission 4 demonstrate why using W4 alone gives several homes. Ask every player to justify one rejected candidate. At the finale, explain which single changed field would make each wrong dispatch match. No extra printing or new solution is needed.'),gp('Two teams: keep receipts and completed delivery boards out of the other team\'s view. Give a finished team a quiet drawing task while checking the second team.'),gp('Black-and-white copies: use the printed district words. Shapes and counts are drawn, not colour-dependent. If lines are faint or cropped, reprint at Actual size; never several pages per sheet.'),gp('No-cut play: number or point to candidates; trace route joins on the whole page. Hold the whole label page next to the delivery board and move both to the chosen home. Share private clues by covering other messages until read.'),gp('The label has about 3 mm clearance on each side. If it still will not fit, check trimming and page scaling: reprint label and delivery board in the same paper size at 100%. Until then, place the label beside the board; do not change its facts.'),gp('Replay: clues keep the same answer. Change jobs; do not promise a new mystery. Completion needs no real names, real addresses, outdoor walk or purchased reward.')])
+ pages.append(head('Sign, thank and reset','HOST / FINALE')+[gp('Accept only Dispatch A, label M2 / BLUE TREE / W4 / OWL HOUSE, and the delivery board beside OWL HOUSE. Ask two different players for two earlier sources, such as postmark B and the map location.'),gp('If one field or location is wrong, ask the team to check that source and resubmit. Do not make them replay all five missions.'),gp('Ask Registrar to mark YES in record row 5: Delivery checked. Mark the adult check line on receipt page 18. Give the receipt to the team and read:',True),gp('"Your repaired label brought the parcel to Owl House in Blue Tree. The rain could not stop your team: the parcel has reached its home safely. Thank you for listening, sorting and checking together!"'),gp('Invite each player to name or point to one contribution. The receipt is the game reward; no gift is required.'),gp('Reset: erase pencil answers, count 31 cut pieces and put them in their numbered piles. Keep the label with mission 4 until mission 5 needs it; store receipt 18 with adult material. A damaged label can be reprinted from player page 13.')])
  return pages

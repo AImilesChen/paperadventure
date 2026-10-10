@@ -1,1 +1,1 @@
-Release Forest Home illustrated postal adventure: stories, shared clues, address map, repaired label and checked delivery receipt.
+Release Forest Home first-use refinements: correct page references, completed finale, action strips, forest route example, consistent cutting, smaller marker and label clearance. Preserve existing orders.

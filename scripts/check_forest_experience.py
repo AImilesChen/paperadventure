@@ -35,5 +35,12 @@ for paper in ['A4','Letter']:
  assert 'ADULT HOLDS UNTIL DELIVERY ACCEPTED' in pt[17]
  assert '31' in gt[1] and '17 sheets' in gt[0]
  assert 'before giving the receipt' in gt[9]
+ assert 'task/check table (14)' not in pt[13]+gt[8]
+ assert 'delivery board/check table (16)' in pt[13] and 'delivery board/check table (16)' in gt[8]
+ assert 'next mission' not in pt[13]
+ assert 'Delivery checked: YES' in pt[13] and 'record row 5: Delivery checked' in gt[11]
+ assert 'ticks are optional' in pt[13]
+ assert 'ACORN > NEST' in pt[6]
+ assert '3 mm clearance' in gt[10]
  for i in range(5):assert 'Handover' in gt[4+i] and 'Accept only after checking' in gt[4+i]
 print('Forest: unique five-stage postal chain, hidden clues, jobs, whole map, label, delivery and receipt verified in A4 and Letter.')
