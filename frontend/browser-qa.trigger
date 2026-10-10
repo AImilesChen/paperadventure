@@ -1,1 +1,1 @@
-Celebration Home v0.3 PDF and complete ZIP verification after release.
+Verify Celebration Home v0.4 live PDF and two-file ZIP downloads after release.
