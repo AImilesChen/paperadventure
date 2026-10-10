@@ -13,6 +13,8 @@ async function api(path, options = {}) {
 function Intro({ eyebrow, title, children }) { return <section className="page-intro extended-intro"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{children}</section>; }
 function Alert({ children }) { return <p className="live-alert" role="alert"><WarningCircle size={18} /> {children}</p>; }
 
+const orderLabel = { pending_payment: 'Awaiting Stripe confirmation', paid: 'Payment confirmed · queued', fulfilling: 'Generating and checking', published: 'Files ready', failed: 'Needs support review', refunded: 'Refunded' };
+
 export function LiveAccount({ Link }) {
   const button = useRef(null);
   const [busy, setBusy] = useState(false);
