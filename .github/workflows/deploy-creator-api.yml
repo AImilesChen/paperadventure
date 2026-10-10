@@ -26,6 +26,10 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test:backend
+      - name: Read existing database identifier
+        run: |
+          npx --yes wrangler@4.74.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/paw-d1.json"
+          node -e "const fs=require('node:fs'); const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-d1.json','utf8')); const id=d.uuid||d.result?.uuid||d.database?.uuid; if(!/^[0-9a-f-]{36}$/i.test(id||'')) throw Error('D1 UUID missing'); fs.appendFileSync(process.env.GITHUB_ENV,'PAPER_ADVENTURE_STAGE_D1_ID='+id+'\n')"
       - name: Deploy API without changing configured variables or secrets
         run: |
           node scripts/write-stage-wrangler.mjs
@@ -33,3 +37,4 @@ jobs:
       - name: Verify configured runtime
         run: |
           curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(!v.generation||!v.proposals||!v.account)throw Error('Creator runtime unavailable');console.log('Creator runtime ready')})"
+
