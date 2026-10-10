@@ -1,2 +1,1 @@
-2026-10-10: verify homepage product explanation and theme carousel hover/resume behavior.
-
+Account layout and sign-in recovery QA 2026-10-10
