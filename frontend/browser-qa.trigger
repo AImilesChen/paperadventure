@@ -1,1 +1,1 @@
-Account layout and sign-in recovery QA 2026-10-10
+Account and existing commerce regression QA 2026-10-10 revision 2
