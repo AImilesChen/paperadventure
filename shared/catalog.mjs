@@ -27,8 +27,8 @@ export const offers = Object.freeze([
 // evidence of a finished, tested or downloadable game pack.
 export const themeStories = Object.freeze({
   celebration: {
-    home: { code: 'H01', title: 'The Missing Birthday Chest', goal: 'Restore Fenn the fox\'s missing delivery label through a cooperative paper adventure.', image: '/assets/celebration-home-v0.1.jpg', imageCaption: 'Fenn the fox Home story concept; the printable materials remain internal drafts.', beats: ['Choose the right letter', 'Repair the route', 'Share label clues', 'Decode a message', 'Find the matching parcel'] },
-    classroom: { code: 'C01', title: 'The Adventure Club\'s First Badge', goal: 'Each group earns a paper badge by solving an invitation and sharing role clues.', image: '/assets/celebration-classroom-v0.1.jpg', imageCaption: 'Adventure Club classroom concept; the printable materials remain internal drafts.', beats: ['Find the invitation', 'Trace the team route', 'Share equipment clues', 'Arrange badge pieces', 'Complete the badge'] },
+    home: { code: 'H01', title: 'The Missing Birthday Chest', goal: 'Restore Fenn the fox\'s missing delivery label through a cooperative paper adventure.', image: '/assets/celebration-home-v0.1.jpg', imageCaption: 'Fenn the fox Home story concept; download the Player Pack and adult guide for the printable materials.', beats: ['Choose the right letter', 'Repair the route', 'Share label clues', 'Decode a message', 'Find the matching parcel'] },
+    classroom: { code: 'C01', title: 'The Adventure Club\'s First Badge', goal: 'Each group earns a paper badge by solving an invitation and sharing role clues.', image: '/assets/celebration-classroom-v0.1.jpg', imageCaption: 'Adventure Club classroom concept; download the Player Pack and adult guide for the printable materials.', beats: ['Find the invitation', 'Trace the team route', 'Share equipment clues', 'Arrange badge pieces', 'Complete the badge'] },
   },
   dinosaur: {
     home: { code: 'H02', title: 'The Little Dinosaur\'s Way Home', goal: 'Help a friendly dinosaur follow paper clues back to the correct camp.', beats: ['Match footprints', 'Repair the map', 'Share supply clues', 'Read the signposts', 'Find the camp'] },
@@ -44,11 +44,11 @@ export const themeStories = Object.freeze({
   },
   halloween: {
     home: { code: 'H05', title: 'The Missing Pumpkin Light', goal: 'Recover four paper seals to relight a friendly story-world pumpkin.', beats: ['Meet the messenger', 'Repair the festival map', 'Find the right parcel', 'Decode the reply', 'Arrange four seals'] },
-    classroom: { code: 'C05', title: 'The Autumn Festival Crew', goal: 'Each group prepares a friendly paper festival and checks its opening plan.', image: '/assets/autumn-classroom-v0.1.jpg', imageCaption: 'Neutral autumn classroom concept; printable materials are still internal drafts.', alternateWording: { title: 'The Pumpkin Festival Crew', note: 'A teacher-selected Halloween wording draft has the same puzzles and answers. Both versions still need real classroom and print tests.' }, beats: ['Find the invitation', 'Repair the festival map', 'Share decoration clues', 'Read the plan', 'Complete the opening'] },
+    classroom: { code: 'C05', title: 'The Autumn Festival Crew', goal: 'Each group prepares a friendly paper festival and checks its opening plan.', image: '/assets/autumn-classroom-v0.1.jpg', imageCaption: 'Neutral autumn classroom concept; see the Player Pack and adult guide for the printable materials.', alternateWording: { title: 'The Pumpkin Festival Crew', note: 'A teacher-selected Halloween wording has the same puzzles and answers.' }, beats: ['Find the invitation', 'Repair the festival map', 'Share decoration clues', 'Read the plan', 'Complete the opening'] },
   },
   christmas: {
     home: { code: 'H06', title: 'The Christmas Delivery Office', goal: 'Sort story gift cards and complete the final paper delivery.', beats: ['Check the labels', 'Match gift cards', 'Share route clues', 'Decode a note', 'Complete delivery'] },
-    classroom: { code: 'C06', title: 'The Winter Gift Sorting Station', goal: 'Each group sorts pretend gifts and checks a paper departure plan.', image: '/assets/winter-classroom-v0.1.jpg', imageCaption: 'Neutral winter classroom concept; printable materials are still internal drafts.', alternateWording: { title: 'The Christmas Gift Sorting Station', note: 'A teacher-selected Christmas wording draft has the same puzzles and answers. Both versions still need real classroom and print tests.' }, beats: ['Check the batch', 'Match destinations', 'Combine sorting rules', 'Check the route', 'Finish the manifest'] },
+    classroom: { code: 'C06', title: 'The Winter Gift Sorting Station', goal: 'Each group sorts pretend gifts and checks a paper departure plan.', image: '/assets/winter-classroom-v0.1.jpg', imageCaption: 'Neutral winter classroom concept; see the Player Pack and adult guide for the printable materials.', alternateWording: { title: 'The Christmas Gift Sorting Station', note: 'A teacher-selected Christmas wording has the same puzzles and answers.' }, beats: ['Check the batch', 'Match destinations', 'Combine sorting rules', 'Check the route', 'Finish the manifest'] },
   },
 });
 
@@ -86,5 +86,4 @@ export function publicCatalog() {
     themes,
   };
 }
-
 
