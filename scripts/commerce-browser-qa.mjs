@@ -90,7 +90,7 @@ try {
   await page.locator('.theme-preview-pages figure img').first().waitFor();
   check(await page.locator('.theme-preview-pages figure img').count() === 2, 'Ready-made page needs both real player-page previews');
   await page.locator('.theme-detail-hero-actions').getByRole('link', { name: /Get (Home|Classroom) pack/ }).click();
-  await page.getByLabel('Adult delivery email').fill('tester@example.com');
+  await page.getByLabel('Google account email').fill('tester@example.com');
   await page.getByRole('button', { name: /Continue to Stripe test/ }).click();
   await page.waitForURL('**/en/orders/mock-ready/');
   check(checkoutPayloads[0]?.sku === 'ready_home' &&
@@ -101,7 +101,7 @@ try {
 
   await page.goto(base + '/en/themes/ocean/classroom/', { waitUntil: 'domcontentloaded' });
   await page.locator('.theme-detail-hero-actions').getByRole('link', { name: /Get (Home|Classroom) pack/ }).click();
-  await page.getByLabel('Adult delivery email').fill('tester@example.com');
+  await page.getByLabel('Google account email').fill('tester@example.com');
   await page.getByRole('button', { name: /Continue to Stripe test/ }).click();
   await page.waitForURL('**/en/orders/mock-classroom/');
   check(checkoutPayloads[1]?.sku === 'ready_classroom' &&
@@ -138,7 +138,7 @@ try {
   await page.getByRole('button', { name: /Review choices/ }).click();
   await page.getByRole('link', { name: /Continue to Stripe test checkout/ }).click();
   await page.waitForURL('**/en/checkout/**');
-  const customEmail = page.getByLabel('Adult delivery email');
+  const customEmail = page.getByLabel('Google account email');
   await customEmail.waitFor({ state: 'visible', timeout: 10000 });
   await customEmail.fill('tester@example.com');
   await page.getByRole('button', { name: /Continue to Stripe test/ }).click();
@@ -167,7 +167,7 @@ try {
   const signIn = page.getByRole('link', { name: 'Sign in with Google' });
   await signIn.waitFor();
   check((await signIn.getAttribute('href'))?.includes('returnTo='), 'Checkout sign-in did not preserve the return path');
-  check(await page.getByLabel('Adult delivery email').count() === 0, 'Signed-out visitor can submit test checkout');
+  check(await page.getByLabel('Google account email').count() === 0, 'Signed-out visitor can submit test checkout');
   writeFileSync(out + '/commerce-flow-report.json', JSON.stringify({
     fixedPacksVisible: packs.length, readyHomeOrderLinks: 4, readyClassroomOrderLinks: 4,
     classroomWorld: checkoutPayloads[1].themeId,
