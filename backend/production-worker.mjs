@@ -405,7 +405,7 @@ async function googleLogin(request, env) {
     clientId: env.GOOGLE_CLIENT_ID, nonce, fetcher: env.FETCH || fetch,
   });
   const hash = await emailHash(env, identity.email);
-  const session = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: hash, exp: nowSeconds() + 7 * 86400 });
+  const session = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: hash, email: identity.email, exp: nowSeconds() + 7 * 86400 });
   const secure = new URL(env.PUBLIC_ORIGIN || request.url).protocol === 'https:' ? '; Secure' : '';
   const headers = new Headers({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
   headers.append('set-cookie', 'paw_session=' + session + '; HttpOnly' + secure + '; SameSite=Lax; Path=/; Max-Age=604800');
@@ -578,7 +578,12 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && path === '/api/v1/auth/verify') return await verifyAccessLink(request, env);
     if (request.method === 'GET' && path === '/api/v1/auth/session') {
       const available = accountReady(env);
-      return json({ available, authenticated: available && Boolean(await authenticatedEmailHash(request, env)) });
+      const hash = available ? await authenticatedEmailHash(request, env) : null;
+      const cookies = request.headers.get('cookie') || '';
+      const token = cookies.split(';').map(part => part.trim()).find(part => part.startsWith('paw_session='))?.slice('paw_session='.length);
+      const session = token ? await verifyAccessToken(env.SESSION_SECRET, token).catch(() => null) : null;
+      const email = hash && session?.scope === 'session' && session.email && await emailHash(env, normalizeEmail(session.email)) === hash ? normalizeEmail(session.email) : null;
+      return json({ available, authenticated: Boolean(hash), email });
     }
     if (request.method === 'GET' && path === '/api/v1/my-orders') return await myOrders(request, env);
     if (['GET','PUT','DELETE'].includes(request.method) && path === '/api/v1/my-draft') return await savedDraft(request, env);
