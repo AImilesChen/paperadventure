@@ -583,7 +583,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       const token = cookies.split(';').map(part => part.trim()).find(part => part.startsWith('paw_session='))?.slice('paw_session='.length);
       const session = token ? await verifyAccessToken(env.SESSION_SECRET, token).catch(() => null) : null;
       const email = hash && session?.scope === 'session' && session.email && await emailHash(env, normalizeEmail(session.email)) === hash ? normalizeEmail(session.email) : null;
-      return json({ available, authenticated: Boolean(hash), email });
+      return json({ available, authenticated: Boolean(hash), ...(email ? { email } : {}) });
     }
     if (request.method === 'GET' && path === '/api/v1/my-orders') return await myOrders(request, env);
     if (['GET','PUT','DELETE'].includes(request.method) && path === '/api/v1/my-draft') return await savedDraft(request, env);

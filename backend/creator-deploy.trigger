@@ -1,1 +1,1 @@
-Account email and account-first download checkout 2026-10-10
+Account session compatibility fix 2026-10-10
