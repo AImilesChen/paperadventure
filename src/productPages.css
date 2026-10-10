@@ -106,14 +106,6 @@
 
 
 /* Catalogue first: concise introduction, unified controls and two actions. */
-.catalog-page .catalog-hero-inner{grid-template-columns:minmax(0,1fr) 220px;gap:32px;padding-top:30px;padding-bottom:30px}
-.catalog-page .catalog-home-copy h1{font-size:clamp(2rem,3.2vw,3.2rem);max-width:840px;line-height:1.08}
-.catalog-page .catalog-home-copy>p{font-size:.96rem;max-width:780px}
-.catalog-page .catalog-hero-actions{display:none}
-.catalog-page .catalog-hero-facts{margin-top:16px}
-.catalog-page .catalog-hero-visual{padding:0;max-width:220px}
-.catalog-page .catalog-hero-visual>img{border-width:5px;transform:rotate(2deg)}
-.catalog-page .catalog-hero-note{display:none}
 .catalog-page .audience-switch{display:flex;gap:10px;margin:0 0 26px}
 .catalog-page .audience-switch a{display:block;flex:1;padding:14px 18px;box-shadow:none}
 .catalog-page .audience-switch span{font-family:inherit;font-size:.95rem;font-weight:900}
@@ -139,14 +131,9 @@
 .catalog-page .catalog-home-benefits{padding:60px 0 0}
 .catalog-page .catalog-custom{margin-top:48px}
 @media(max-width:650px){
-.catalog-page .catalog-hero-inner{grid-template-columns:1fr;padding-top:26px;padding-bottom:24px}
-.catalog-page .catalog-hero-visual{display:none}
-.catalog-page .catalog-home-copy h1{font-size:2.1rem}
 .catalog-page .catalog-discovery-filters{display:flex}
 .catalog-page .catalog-discovery-filters button{flex:1;padding:9px 10px;font-size:.76rem}
 .catalog-page .catalog-listing-heading{gap:8px}
 .catalog-page .catalog-home-benefits{padding-top:42px}
 }
 
-.catalog-page .catalog-hero-visual>img{height:auto}
-@media(max-width:950px){.catalog-page .catalog-hero-inner{grid-template-columns:1fr}.catalog-page .catalog-hero-visual{display:none}}
