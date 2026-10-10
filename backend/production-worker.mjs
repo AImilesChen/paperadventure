@@ -434,8 +434,9 @@ async function myOrders(request, env) {
     const world = themes.find(theme => theme.id === spec.themeId);
     const story = world?.story?.[setting];
     const entitlement = order.status === 'published' ? await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first() : null;
+    const expired = order.status === 'failed' && !order.paid_at ? await query(env.DB, "SELECT event_type FROM webhook_events WHERE order_id = ? AND event_type = 'checkout.session.expired' LIMIT 1", order.id).first() : null;
     const { purchase_spec_json, ...safe } = order;
-    return { ...safe, setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
+    return { ...safe, checkoutExpired: Boolean(expired), setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
       image: order.product_kind === 'ready' ? story?.image || world?.image : '/assets/custom-adventure-workshop-v1.jpg',
       paper: spec.paper, filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
   }));

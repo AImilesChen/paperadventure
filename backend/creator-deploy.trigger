@@ -1,1 +1,1 @@
-Game library metadata and ready checkout reuse 2026-10-10
+Verified expired checkout labels 2026-10-10
