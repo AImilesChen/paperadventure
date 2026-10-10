@@ -14,7 +14,7 @@ async function api(path, options = {}) {
 function Intro({ eyebrow, title, children }) { return <section className="page-intro extended-intro"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{children}</section>; }
 function Alert({ children }) { return <p className="live-alert" role="alert"><WarningCircle size={18} /> {children}</p>; }
 
-const orderLabel = { pending_payment: 'Awaiting Stripe confirmation', paid: 'Payment confirmed · queued', fulfilling: 'Generating and checking', published: 'Files ready', failed: 'Needs support review', refunded: 'Refunded' };
+const orderLabel = { pending_payment: 'Payment not confirmed', paid: 'Payment confirmed · queued', fulfilling: 'Generating and checking', published: 'Files ready', failed: 'Needs support review', refunded: 'Refunded' };
 
 export function LiveAccount({ Link }) {
   const button = useRef(null);
@@ -69,17 +69,45 @@ export function LiveAccount({ Link }) {
 }
 
 export function LiveShelf({ Link }) {
-  const [orders, setOrders] = useState(null); const [draft, setDraft] = useState(null); const [needsLogin, setNeedsLogin] = useState(false); const [error, setError] = useState('');
+  const [orders, setOrders] = useState(null); const [draft, setDraft] = useState(null);
+  const [needsLogin, setNeedsLogin] = useState(false); const [error, setError] = useState('');
+  const [section, setSection] = useState('games'); const [paper, setPaper] = useState('A4');
+  const refresh = () => api('/api/v1/my-orders').then(data => { setOrders(data.orders); setError(''); }).catch(failure => { if (/Sign in|Verify/.test(failure.message)) setNeedsLogin(true); else setError(failure.message); });
+  useEffect(() => { refresh(); api('/api/v1/my-draft').then(result => setDraft(result.draft)).catch(() => {}); }, []);
+  useEffect(() => { if (!orders?.some(order => ['paid','fulfilling'].includes(order.status))) return; const timer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 10000); return () => clearInterval(timer); }, [orders]);
   async function deleteDraft() {
-    if (!window.confirm('Delete this saved planning draft? Your purchased adventures will remain available.')) return;
-    try { await api('/api/v1/my-draft', { method: 'DELETE' }); localStorage.removeItem('paw-draft'); setDraft(null); }
-    catch (failure) { setError(failure.message); }
+    if (!window.confirm('Delete this saved planning draft? Your purchased games remain available.')) return;
+    try { await api('/api/v1/my-draft', { method: 'DELETE' }); localStorage.removeItem('paw-draft'); setDraft(null); } catch (failure) { setError(failure.message); }
   }
-  useEffect(() => {
-    api('/api/v1/my-orders').then(data => { setOrders(data.orders); api('/api/v1/my-draft').then(result => setDraft(result.draft)).catch(() => {}); })
-      .catch(failure => { if (failure.message.includes('Sign in') || failure.message.includes('Verify')) setNeedsLogin(true); else setError(failure.message); });
-  }, []);
-  return <main className="extended-page live-page"><Intro eyebrow="MY ADVENTURES" title="Your adventure shelf."><p>Purchases and planning drafts tied to your verified adult email appear here.</p></Intro><section className="live-shell">{needsLogin ? <div className="live-panel"><p>Sign in with Google to see your purchased adventures.</p><Link className="button" to="/en/account/">Sign in with Google <ArrowRight size={18} /></Link></div> : error ? <Alert>{error}</Alert> : orders === null ? <p>Loading your adventures…</p> : <div className="live-list">{draft && <article className="live-panel"><span className="eyebrow">SAVED DRAFT</span><h2>{draft.themeId || draft.customIdea || 'Your story idea'}</h2><p>{draft.setting} · {draft.players} players</p><Link className="text-link" to="/en/create/">Continue planning <ArrowRight size={18} /></Link> <button className="button-quiet" onClick={deleteDraft}>Delete saved draft</button></article>}{orders.length === 0 ? <div className="live-panel"><h2>No purchases yet</h2><p>Explore a published fixed game or plan a new adventure.</p><Link className="button" to="/en/themes/">Explore themes <ArrowRight size={18} /></Link></div> : orders.map(order => <article className="live-panel" key={order.id}><span className="eyebrow">{order.product_kind === 'ready' ? 'READY-MADE PACK' : 'CUSTOM ADVENTURE'}</span><h2>{order.sku.replaceAll('_', ' ')}</h2><p>Status: <strong>{orderLabel[order.status] || order.status}</strong> · {formatUsd(order.amount_total)}</p><Link className="text-link" to={`/en/orders/${order.id}/`}>Open order <ArrowRight size={18} /></Link></article>)}</div>}</section></main>;
+  const games = (orders || []).filter(order => order.status === 'published');
+  const making = (orders || []).filter(order => ['paid','fulfilling'].includes(order.status));
+  const visible = section === 'games' ? games : section === 'making' ? making : orders || [];
+  const date = value => value ? new Date(value.replace(' ', 'T') + (value.endsWith('Z') ? '' : 'Z')).toLocaleDateString('en', { year:'numeric', month:'short', day:'numeric' }) : '';
+  return <main className="extended-page live-page shelf-page">
+    <Intro eyebrow="MY ADVENTURES" title="Your games, ready to play."><p>Download your purchased adventures, follow custom creations and return to your ideas.</p></Intro>
+    <section className="shelf-shell">
+      {needsLogin ? <div className="live-panel"><h2>Sign in to your library</h2><Link className="button" to="/en/account/?returnTo=%2Fen%2Fmy-adventures%2F">Sign in with Google <ArrowRight size={18} /></Link></div> : orders === null ? <p role="status">Loading your library…</p> : <>
+        <nav className="shelf-tabs" aria-label="Your adventure library">{[['games','My games',games.length],['making','In progress',making.length],['drafts','My drafts',draft ? 1 : 0],['orders','Order history',orders.length]].map(([id,title,count]) => <button type="button" key={id} aria-pressed={section === id} className={section === id ? 'active' : ''} onClick={() => setSection(id)}>{title}<span>{count}</span></button>)}</nav>
+        <div className="shelf-toolbar"><p>{section === 'games' ? 'Your completed purchases. Choose a paper size and download both PDFs.' : section === 'making' ? 'Paid custom adventures being generated and checked. You can leave and return.' : section === 'drafts' ? 'Saved ideas are not purchases and have not been charged.' : 'Starting checkout creates a record. An unconfirmed record does not mean you paid.'}</p><button type="button" className="button-quiet" onClick={refresh}>Refresh</button></div>
+        {error && <Alert>{error}</Alert>}
+        {section === 'games' && games.some(order => order.product_kind === 'ready') && <label className="shelf-paper">Download paper size<select value={paper} onChange={event => setPaper(event.target.value)}><option value="A4">A4</option><option value="Letter">US Letter</option></select></label>}
+        {section === 'drafts' ? draft ? <article className="live-panel shelf-draft"><span className="eyebrow">UNPURCHASED IDEA</span><h2>{draft.customIdea || draft.themeId || 'Your story idea'}</h2><p>{draft.setting === 'classroom' ? 'Classroom' : 'Home'} · {draft.players} players</p><Link className="button" to="/en/create/">Continue designing <ArrowRight size={18} /></Link><button className="button-quiet" onClick={deleteDraft}>Delete draft</button></article> : <div className="shelf-empty"><h2>No saved ideas yet</h2><Link className="button" to="/en/create/">Create an adventure <ArrowRight size={18} /></Link></div> : visible.length === 0 ? <div className="shelf-empty"><Books size={38} /><h2>{section === 'games' ? 'Your first adventure belongs here' : section === 'making' ? 'Nothing is being made right now' : 'No orders yet'}</h2><p>{section === 'games' ? 'Completed purchases appear here. Unfinished checkouts are in Order history.' : 'Explore a game or create a new story for your group.'}</p><Link className="button" to="/en/for-home/">Browse games <ArrowRight size={18} /></Link></div> :
+        <div className={'shelf-grid ' + (section === 'orders' ? 'shelf-history' : '')}>{visible.map(order => {
+          const downloadPaper = order.product_kind === 'ready' ? paper : order.paper;
+          return <article className="shelf-game" key={order.id}>
+            {order.image && <img src={order.image} alt="" width="800" height="600" loading="lazy" />}
+            <div className="shelf-game-copy"><span className="eyebrow">{order.setting === 'classroom' ? 'CLASSROOM' : 'HOME'} · {order.product_kind === 'ready' ? 'READY-MADE' : 'AI CUSTOM'}</span><h2>{order.title || 'Your adventure'}</h2>
+              <p className={'shelf-status status-' + order.status}>{order.status === 'pending_payment' ? 'Unfinished checkout · payment not confirmed' : orderLabel[order.status] || order.status}</p>
+              <p className="live-note">{order.paid_at ? 'Purchased ' + date(order.paid_at) : 'Started ' + date(order.created_at)} · {formatUsd(order.amount_total)}<br />{order.accessExpiresAt && 'Downloads until ' + date(order.accessExpiresAt)}</p>
+              {section === 'games' && order.filesReady ? <div className="shelf-downloads"><a className="button" href={'/api/v1/files/' + order.id + '/player?paper=' + downloadPaper}>Player Pack · {downloadPaper === 'Letter' ? 'US Letter' : downloadPaper} <DownloadSimple size={18} /></a><a className="button-quiet" href={'/api/v1/files/' + order.id + '/guide?paper=' + downloadPaper}>{order.setting === 'classroom' ? 'Teacher Guide' : 'Host Guide'} <DownloadSimple size={18} /></a><small>Download both: player activities and separate instructions with answers.</small></div> : section === 'games' && <p className="live-note">Online downloads are unavailable. Check your order for access details.</p>}
+              <Link className="text-link" to={'/en/orders/' + order.id + '/'}>{section === 'making' ? 'View progress' : 'Order details'} <ArrowRight size={18} /></Link>
+            </div>
+          </article>;
+        })}</div>}
+        <div className="shelf-help"><p>Looking for a new adventure?</p><Link to="/en/for-home/">Home games</Link><Link to="/en/for-classroom/">Classroom games</Link><Link to="/en/create/">Create with AI</Link><Link to="/en/help/">Get help</Link></div>
+      </>}
+    </section>
+  </main>;
 }
 
 function RevisionForm({ order, refresh }) {

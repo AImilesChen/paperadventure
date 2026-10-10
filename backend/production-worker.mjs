@@ -190,6 +190,16 @@ async function checkout(request, env) {
   const specHash = await sha256(specJson);
   let order = await query(env.DB, 'SELECT * FROM orders WHERE idempotency_key = ?', key).first();
   if (order && (order.purchase_spec_sha256 !== specHash || order.purchaser_email_hash !== buyerHash)) throw new ApiError(409, 'IDEMPOTENCY_CONFLICT', 'This request key was used for another purchase.');
+  if (!order && offer.kind === 'ready') {
+    const existing = await query(env.DB, "SELECT * FROM orders WHERE purchaser_email_hash = ? AND purchase_spec_sha256 = ? AND status = 'pending_payment' AND created_at > datetime('now','-23 hours') ORDER BY created_at DESC LIMIT 1", buyerHash, specHash).first();
+    if (existing?.stripe_checkout_session_id && existing.checkout_url) {
+      const activeSession = await stripeRequest(env, 'checkout/sessions/' + encodeURIComponent(existing.stripe_checkout_session_id), {}, env.FETCH || fetch);
+      if (activeSession.status === 'open' && activeSession.expires_at > nowSeconds())
+        return json({ orderId: existing.id, checkoutUrl: existing.checkout_url, mode: testOnly ? 'stripe_test' : 'stripe' });
+      if (activeSession.status === 'complete' && activeSession.payment_status === 'paid')
+        return json({ orderId: existing.id, checkoutUrl: new URL('/en/orders/' + existing.id + '/', env.PUBLIC_ORIGIN).href, mode: testOnly ? 'stripe_test' : 'stripe' });
+    }
+  }
   if (!order) {
     const id = crypto.randomUUID();
     await query(env.DB, `INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,idempotency_key)
@@ -417,8 +427,19 @@ async function myOrders(request, env) {
   if (!env.DB || !env.SESSION_SECRET) throw new ApiError(503, 'ACCOUNT_NOT_READY', 'Account storage is not configured.');
   const hash = await authenticatedEmailHash(request, env);
   if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google first.');
-  const rows = await query(env.DB, 'SELECT id,sku,product_kind,status,currency,amount_total,created_at FROM orders WHERE purchaser_email_hash = ? ORDER BY created_at DESC LIMIT 50', hash).all();
-  return json({ orders: rows.results || [] });
+  const rows = await query(env.DB, 'SELECT id,sku,product_kind,status,currency,amount_total,created_at,paid_at,purchase_spec_json FROM orders WHERE purchaser_email_hash = ? ORDER BY created_at DESC LIMIT 50', hash).all();
+  const orders = await Promise.all((rows.results || []).map(async order => {
+    let spec = {}; try { spec = JSON.parse(order.purchase_spec_json || '{}'); } catch {}
+    const setting = order.sku.endsWith('_classroom') ? 'classroom' : 'home';
+    const world = themes.find(theme => theme.id === spec.themeId);
+    const story = world?.story?.[setting];
+    const entitlement = order.status === 'published' ? await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first() : null;
+    const { purchase_spec_json, ...safe } = order;
+    return { ...safe, setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
+      image: order.product_kind === 'ready' ? story?.image || world?.image : '/assets/custom-adventure-workshop-v1.jpg',
+      paper: spec.paper, filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
+  }));
+  return json({ orders });
 }
 
 async function savedDraft(request, env) {
