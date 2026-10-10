@@ -150,6 +150,9 @@ def build(s,paper,size):
  elif s['id']=='forest' and s['setting']=='home':
   import forest_home_experience as forest
   pp=forest.player(s,w)
+ elif s['id']=='halloween' and s['setting']=='home':
+  import halloween_home_experience as halloween
+  pp=halloween.player(s,w)
  else: pp=player(s,w)
  labels=[]
  for i in range(5):
@@ -159,6 +162,7 @@ def build(s,paper,size):
  gp=dino.guide(s,w,dict(player=len(pp),stages=labels),guide) if s['id']=='dinosaur' and s['setting']=='home' else guide(s,w,dict(player=len(pp),stages=labels))
  if s['id']=='space' and s['setting']=='home':gp=space.guide(s,w,dict(player=len(pp),stages=labels),guide)
  if s['id']=='forest' and s['setting']=='home':gp=forest.guide(s,w,dict(player=len(pp),stages=labels),guide)
+ if s['id']=='halloween' and s['setting']=='home':gp=halloween.guide(s,w,dict(player=len(pp),stages=labels),guide)
  for role,pages in [('player',pp),('guide',gp)]:
   path=OUT/f"{s['id']}-{s['setting']}-{role}-1.0-{paper}.pdf";doc=SimpleDocTemplate(str(path),pagesize=size,leftMargin=44,rightMargin=44,topMargin=60,bottomMargin=55,title=s['title']+' / '+role,author='Paper Adventure Workshop');doc.game_id=s['id'];doc.setting=s['setting'];doc.role=role;doc.paper=paper
   flow=[]
