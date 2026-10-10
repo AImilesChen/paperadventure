@@ -130,3 +130,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 
 .nav-account-mobile{display:none!important}
 @media(max-width:1300px){.nav-actions{display:none}.nav-account-mobile,.nav-create-mobile{display:flex!important;align-items:center;justify-content:space-between}.site-nav button.nav-account-mobile{padding:13px 0;border:0;border-bottom:1px solid #e4edf0;background:none;text-align:left;color:#153b56;font:800 .92rem 'Nunito Sans',sans-serif}}
+
+.theme-card-copy p{font-weight:700;color:#526f7e}
+
+

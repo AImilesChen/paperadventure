@@ -1,6 +1,9 @@
+import { independentClassroomDetails } from './independentClassroomDetails.js';
+
 // Editorial detail data follows the checked theme blueprints in content/theme-design/.
 // These are descriptions of draft materials, not a publication or play-test claim.
 export const themeDetailContent = {
+  ...independentClassroomDetails,
   celebration: {
     home: {
       hook: 'A friendly paper mystery for a celebration at home.',
@@ -158,3 +161,5 @@ export const themeDetailContent = {
     },
   },
 };
+
+

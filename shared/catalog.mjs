@@ -1,6 +1,7 @@
 // Product facts shared by the React preview and the Cloudflare API scaffold.
+import { independentClassroomWorlds } from './classroom-worlds.mjs';
 // Publication remains disabled until real packs, checkout, tax, and legal gates pass.
-export const catalogVersion = '2026-10-08-v1.3-rights';
+export const catalogVersion = '2026-10-10-v1.5-classroom-worlds';
 
 // Owner-confirmed product policy. Consumer-facing legal text and enforcement
 // still require review before any sale or public download is enabled.
@@ -60,10 +61,11 @@ export const themes = Object.freeze([
   { id: 'christmas', discoveryGroup: 'occasion', title: 'Christmas', kicker: 'A festive quest to share', image: '/assets/christmas.png', tag: 'Seasonal' },
 ].map(theme => Object.freeze({
   ...theme,
+  availableSettings: Object.freeze(theme.id === 'celebration' ? ['home', 'classroom'] : ['home']),
   story: Object.freeze(themeStories[theme.id]),
   home: Object.freeze({ readyStatus: 'not_published', freeSample: false }),
-  classroom: Object.freeze({ readyStatus: 'not_published', freeSample: false }),
-})));
+  classroom: Object.freeze({ readyStatus: theme.id === 'celebration' ? 'not_published' : 'not_offered', freeSample: false }),
+})).concat(independentClassroomWorlds));
 
 export function formatUsd(unitAmount) {
   return `US$${(unitAmount / 100).toFixed(2)}`;
@@ -84,3 +86,5 @@ export function publicCatalog() {
     themes,
   };
 }
+
+

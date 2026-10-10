@@ -12,9 +12,13 @@ if not renderer:
     raise RuntimeError("pdftoppm is required to build PDF previews")
 
 count = 0
-for world in ("dinosaur", "space", "forest", "halloween", "christmas"):
-    manifest = json.loads((ROOT / "content" / f"{world}-pdf-manifest.v0.1.json").read_text(encoding="utf-8"))
-    for setting in ("home", "classroom"):
+legacy_worlds = ("dinosaur", "space", "forest", "halloween", "christmas")
+new_classroom_worlds = ("ocean", "museum", "library", "weather", "workshop")
+for world in (*legacy_worlds, *new_classroom_worlds):
+    manifest_name = f"{world}-pdf-manifest.v0.1.json" if world in legacy_worlds else f"{world}-classroom-pdf-manifest.v0.1.json"
+    manifest = json.loads((ROOT / "content" / manifest_name).read_text(encoding="utf-8"))
+    settings = ("home", "classroom") if world in legacy_worlds else ("classroom",)
+    for setting in settings:
         source = next(item for item in manifest["items"] if item["setting"] == setting and item["role"] == "player" and item["paper"] == "A4")
         if source["pages"] < 2:
             raise RuntimeError(f"Player Pack needs two previewable pages: {world}/{setting}")
@@ -28,5 +32,7 @@ for world in ("dinosaur", "space", "forest", "halloween", "christmas"):
                 raise RuntimeError(f"Preview render failed: {result}")
             count += 1
 
-assert count == 20
+assert count == 30
 print(f"Rendered {count} paid-pack player previews (cover and first checkpoint); adult answers remain private")
+
+

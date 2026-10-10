@@ -15,6 +15,9 @@ export function validatePurchase(input) {
   const offer = offers.find(item => item.sku === input.sku);
   if (!offer) throw new ApiError(400, 'UNKNOWN_SKU', 'Choose a valid product.');
   const themeId = input.themeId && themes.some(theme => theme.id === input.themeId) ? input.themeId : null;
+  if (offer.kind === 'custom' && themeId && !themes.find(theme => theme.id === themeId)?.availableSettings?.includes(offer.setting)) {
+    throw new ApiError(400, 'INVALID_SPEC', 'Choose a story world available for this setting.');
+  }
   if (offer.kind === 'ready') {
     if (!themeId || input.customIdea) throw new ApiError(400, 'INVALID_SPEC', 'A ready-made pack requires a listed theme.');
     const variantId = input.variantId == null || input.variantId === '' ? null : String(input.variantId);
@@ -78,3 +81,5 @@ export function validateGeneratedStory(story, spec) {
   if (spec.setting === 'classroom' && !story.groupInstructions) throw new ApiError(422, 'GENERATION_INVALID', 'Classroom group instructions are required.');
   return { title, introduction, ending, stages, groupInstructions: story.groupInstructions ? requireText(story.groupInstructions, 'Group instructions', 700) : null };
 }
+
+

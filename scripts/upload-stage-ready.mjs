@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 
 const root = resolve(process.cwd());
 const plan = JSON.parse(readFileSync(resolve(root, 'output/stage-ready-plan.json'), 'utf8'));
-if (!plan.privateOnly || plan.packs.length !== 12 || plan.variants?.length !== 2 || plan.previews?.length !== 20 || plan.uploads.length !== 56 ||
+if (!plan.privateOnly || plan.packs.length !== 17 || plan.variants?.length !== 2 || plan.previews?.length !== 30 || plan.uploads.length !== 76 ||
     !process.env.CLOUDFLARE_API_TOKEN || !process.env.CLOUDFLARE_ACCOUNT_ID) {
   throw new Error('Private stage upload preflight failed');
 }
@@ -22,8 +22,8 @@ for (const item of plan.uploads) {
   }
 }
 for (const item of plan.previews) {
-  if (!/^internal\/draft-previews\/(?:dinosaur|space|forest|halloween|christmas)\/(?:home|classroom)\/v[0-9]+[.][0-9]+-p[12][.]jpg$/.test(item.r2Key) ||
-      !/^output\/previews\/(?:dinosaur|space|forest|halloween|christmas)-(?:home|classroom)-v[0-9]+[.][0-9]+-p[12][.]jpg$/.test(item.path)) throw new Error('Invalid preview path');
+  if (!/^internal\/draft-previews\/(?:dinosaur|space|forest|halloween|christmas|ocean|museum|library|weather|workshop)\/(?:home|classroom)\/v[0-9]+[.][0-9]+-p[12][.]jpg$/.test(item.r2Key) ||
+      !/^output\/previews\/(?:dinosaur|space|forest|halloween|christmas|ocean|museum|library|weather|workshop)-(?:home|classroom)-v[0-9]+[.][0-9]+-p[12][.]jpg$/.test(item.path)) throw new Error('Invalid preview path');
   const bytes = readFileSync(resolve(root, item.path));
   if (bytes.length !== item.bytes || createHash('sha256').update(bytes).digest('hex') !== item.sha256) throw new Error('Preview changed since stage plan was built');
 }
@@ -44,3 +44,5 @@ execFileSync('npx', ['--yes', 'wrangler@4.74.0', 'd1', 'execute', 'paper-adventu
   '--remote', '--file', resolve(root, 'output/stage-ready.sql'), '--yes'],
 { stdio: 'inherit', env: process.env });
 console.log('Staged ' + plan.uploads.length + ' private draft PDFs, ' + plan.previews.length + ' preview images and ' + plan.packs.length + ' internal_test pack records.');
+
+

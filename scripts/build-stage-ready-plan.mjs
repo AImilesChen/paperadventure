@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { independentClassroomWorlds } from '../shared/classroom-worlds.mjs';
 
 const BASE_MANIFESTS = [
   'content/celebration-pdf-manifest.v0.1.json',
@@ -11,6 +12,7 @@ const BASE_MANIFESTS = [
   'content/halloween-pdf-manifest.v0.1.json',
   'content/christmas-pdf-manifest.v0.1.json',
 ];
+const CLASSROOM_MANIFESTS = independentClassroomWorlds.map(world => `content/${world.id}-classroom-pdf-manifest.v0.1.json`);
 const VARIANT_MANIFESTS = [
   'content/halloween-classroom-halloween-pdf-manifest.v0.1.json',
   'content/christmas-classroom-christmas-pdf-manifest.v0.1.json',
@@ -48,19 +50,21 @@ function readManifest(root, path) {
 
 export function buildStageReadyPlan(root, options = {}) {
   const basePaths = options.basePaths || BASE_MANIFESTS;
+  const classroomPaths = options.classroomPaths ?? (options.basePaths ? [] : CLASSROOM_MANIFESTS);
   const variantPaths = options.variantPaths || VARIANT_MANIFESTS;
   const packs = [];
   const variants = [];
   const previews = [];
   const uploads = [];
   const worlds = new Set();
-  for (const manifestPath of basePaths) {
+  for (const manifestPath of [...basePaths, ...classroomPaths]) {
     const manifest = readManifest(root, manifestPath);
     const world = manifest.themeWorldId;
     if (worlds.has(world)) throw new Error('Duplicate world manifest: ' + world);
     worlds.add(world);
-    if (manifest.items.length !== 8) throw new Error('A world needs exactly eight base PDFs: ' + world);
-    for (const setting of ['home', 'classroom']) {
+    const classroomOnly = classroomPaths.includes(manifestPath);
+    if (manifest.items.length !== (classroomOnly ? 4 : 8)) throw new Error('Incomplete base PDF manifest: ' + world);
+    for (const setting of (classroomOnly ? ['classroom'] : ['home', 'classroom'])) {
       const files = [];
       const seen = new Set();
       for (const item of manifest.items.filter(entry => entry.setting === setting)) {
@@ -115,7 +119,9 @@ export function buildStageReadyPlan(root, options = {}) {
         r2Key: 'internal/draft-previews/' + pack.world + '/' + pack.setting + '/' + pack.version + '-p' + page + '.jpg' });
     }
   }
-  const statements = [];
+  const statements = independentClassroomWorlds.filter(world => worlds.has(world.id)).map(world =>
+    'INSERT OR IGNORE INTO theme_worlds (id,title_en,status) VALUES (' +
+    [world.id, world.title, 'published'].map(sql).join(',') + ');');
   for (const pack of packs) {
     statements.push('INSERT OR IGNORE INTO ready_packs (id,theme_world_id,setting,version,status,licence_version) VALUES (' +
       [pack.id, pack.world, pack.setting, pack.version, pack.status, 'draft-not-approved'].map(sql).join(',') + ');');
@@ -152,3 +158,5 @@ if (process.argv[1] && resolve(process.argv[1]) === current) {
   writeFileSync(resolve(output, 'stage-ready.sql'), plan.sql);
   console.log(JSON.stringify({ packs: plan.packs.length, uploads: plan.uploads.length, privateOnly: true }));
 }
+
+

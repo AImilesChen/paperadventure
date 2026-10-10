@@ -44,6 +44,7 @@ function paymentReady(env) {
 }
 const rangeReady = env => [env.SUPPORTED_AGE_MIN,env.SUPPORTED_AGE_MAX,env.HOME_PLAYER_MAX,env.CLASSROOM_STUDENT_MAX].every(value => Number.isInteger(Number(value)) && Number(value) > 0) && Number(env.SUPPORTED_AGE_MAX) >= Number(env.SUPPORTED_AGE_MIN) && Number(env.HOME_PLAYER_MAX) >= 2 && Number(env.CLASSROOM_STUDENT_MAX) >= 2;
 const generationReady = env => Boolean(aiProvider(env) && env.GENERATION_QUEUE && env.PRIVATE_FILES && rangeReady(env));
+const offeredFor = (themeId, setting) => themes.find(theme => theme.id === themeId)?.availableSettings?.includes(setting) ?? false;
 
 async function publishedLegal(env) {
   if (!env.DB) return null;
@@ -80,8 +81,8 @@ async function liveCatalog(env) {
     ['home','classroom'].every(setting => trialPacks.some(pack => pack.setting === setting));
   const prices = await query(env.DB, 'SELECT sku,unit_amount,currency FROM price_versions WHERE sale_enabled = 1').all();
   const liveSkus = new Set((prices.results || []).filter(price => offers.some(offer => offer.sku === price.sku && offer.unitAmount === price.unit_amount && price.currency === 'USD')).map(price => price.sku));
-  const availablePaidPack = setting => ready.some(pack => pack.setting === setting && pack.theme_world_id !== 'celebration' && pack.status === (testOnly ? 'internal_test' : 'published'));
-  const readyStatus = (themeId, setting) => themeId === 'celebration'
+  const availablePaidPack = setting => ready.some(pack => pack.setting === setting && offeredFor(pack.theme_world_id, setting) && pack.theme_world_id !== 'celebration' && pack.status === (testOnly ? 'internal_test' : 'published'));
+  const readyStatus = (themeId, setting) => !offeredFor(themeId, setting) ? 'not_offered' : themeId === 'celebration'
     ? (free ? 'downloadable_trial' : 'not_published')
     : (ready.some(pack => pack.theme_world_id === themeId && pack.setting === setting && pack.status === 'published') ? 'published'
       : testOnly && ready.some(pack => pack.theme_world_id === themeId && pack.setting === setting && pack.status === 'internal_test') ? 'test_ready' : 'not_published');
@@ -119,7 +120,7 @@ async function testReadyCatalog(request, env) {
   const packs = [];
   for (const row of rows.results || []) {
     const slot = row.theme_world_id + '/' + row.setting;
-    if (seen.has(slot)) continue;
+    if (seen.has(slot) || !offeredFor(row.theme_world_id, row.setting)) continue;
     seen.add(slot);
     packs.push({ themeId: row.theme_world_id, setting: row.setting, version: row.version,
       variantIds: (variants.results || []).filter(item => item.ready_pack_id === row.id).map(item => item.variant_id) });
@@ -130,7 +131,7 @@ async function testReadyCatalog(request, env) {
 async function testPackPreview(request, env, themeId, setting, previewPage = null) {
   if (!testCheckoutReady(env) || !['home','classroom'].includes(setting) ||
       ![null, 1, 2].includes(previewPage) ||
-      !['dinosaur','space','forest','halloween','christmas'].includes(themeId)) {
+      !offeredFor(themeId, setting) || themeId === 'celebration') {
     throw new ApiError(404, 'NOT_FOUND', 'Preview not found.');
   }
   const pack = await query(env.DB, `SELECT p.version FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id
@@ -164,6 +165,7 @@ async function checkout(request, env) {
   if (offer.kind === 'custom' && !generationReady(env)) throw new ApiError(503, 'GENERATION_NOT_READY', 'Custom generation is not available.');
   if (offer.kind === 'custom') validateSupportedRange(spec, env);
   if (offer.kind === 'ready' && spec.themeId === 'celebration') throw new ApiError(409, 'SAMPLE_IS_FREE', 'Celebration is the free sample theme and is not sold as a ready-made pack.');
+  if (offer.kind === 'ready' && !offeredFor(spec.themeId, spec.setting)) throw new ApiError(409, 'EDITION_RETIRED', 'This ready-made edition is no longer offered. Existing orders remain available in My adventures.');
   const key = request.headers.get('Idempotency-Key');
   if (!key || !/^[A-Za-z0-9_-]{16,100}$/.test(key)) throw new ApiError(400, 'IDEMPOTENCY_REQUIRED', 'A valid idempotency key is required.');
   const price = await query(env.DB, 'SELECT * FROM price_versions WHERE sku = ? AND sale_enabled = 1 ORDER BY created_at DESC LIMIT 1', offer.sku).first();
@@ -731,3 +733,5 @@ export default {
     for (const item of revisions.results || []) await env.GENERATION_QUEUE.send({ type: 'revision', revisionId: item.id });
   },
 };
+
+

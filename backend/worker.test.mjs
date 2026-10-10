@@ -10,7 +10,9 @@ test('catalog prices and sale gates match the agreed four SKUs', () => {
     ready_home: 999, ready_classroom: 1499, custom_home: 1499, custom_classroom: 1999,
   });
   assert.ok(offers.every(o => o.saleEnabled === false));
-  assert.ok(themes.every(t => t.home.readyStatus === 'not_published' && t.classroom.readyStatus === 'not_published'));
+  assert.equal(themes.filter(t => t.availableSettings.includes('home')).length, 6);
+  assert.equal(themes.filter(t => t.availableSettings.includes('classroom')).length, 6);
+  assert.ok(themes.every(t => t.availableSettings.every(setting => t[setting].readyStatus === 'not_published')));
   assert.equal(publicCatalog().freeSampleThemeId, null);
   assert.equal(publicCatalog().freeSampleCandidateThemeId, 'celebration');
 });
@@ -20,7 +22,7 @@ test('catalog is machine-readable but cannot imply a live product', async () => 
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.publicationState, 'development_preview');
-  assert.equal(body.themes.length, 6);
+  assert.equal(body.themes.length, 11);
   assert.equal(body.offers.length, 4);
 });
 
@@ -33,3 +35,5 @@ test('unknown themes and unfinished commercial routes fail closed', async () => 
   assert.equal(order.status, 503);
   assert.equal((await order.json()).error.code, 'ORDER_ACCESS_NOT_READY');
 });
+
+

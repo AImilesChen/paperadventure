@@ -62,21 +62,22 @@ test('brand icons and social card are built and linked from every preview route'
   }
 });
 
-test('legacy theme addresses stay available while edition pages have distinct canonical routes', async () => {
+test('world roots stay available while offered edition pages have distinct canonical routes', async () => {
   for (const theme of themes) {
-    const legacy = await read(`en/themes/${theme.id}/index.html`);
-    assert.match(legacy, /<meta name="robots" content="noindex" \/>/);
-    for (const setting of ['home', 'classroom']) {
-      assert.ok(legacy.includes(`/en/themes/${theme.id}/${setting}/`), `${theme.id} ${setting}`);
+    const rootPage = await read(`en/themes/${theme.id}/index.html`);
+    assert.match(rootPage, /<meta name="robots" content="noindex" \/>/);
+    for (const setting of theme.availableSettings) {
+      assert.ok(rootPage.includes(`/en/themes/${theme.id}/${setting}/`), `${theme.id} ${setting}`);
     }
   }
 });
 
-test('all twelve edition pages explain their actual paper materials and five checkpoints', async () => {
-  assert.equal(themes.length, 6);
+test('twelve offered games have independent descriptions and five checkpoints', async () => {
+  assert.equal(themes.length, 11);
+  assert.equal(themes.reduce((count, theme) => count + theme.availableSettings.length, 0), 12);
   const codes = new Set();
   for (const theme of themes) {
-    for (const setting of ['home', 'classroom']) {
+    for (const setting of theme.availableSettings) {
       const story = theme.story[setting];
       const details = themeDetailContent[theme.id][setting];
       const html = await read(`en/themes/${theme.id}/${setting}/index.html`);
@@ -90,7 +91,6 @@ test('all twelve edition pages explain their actual paper materials and five che
       assert.equal((html.match(/class="theme-step-number"/g) || []).length, 5, `${story.code} checkpoint count`);
       assert.match(html, /Four PDF files per edition:/);
       assert.match(html, /A4 or US Letter/);
-      assert.ok(html.includes(`/en/themes/${theme.id}/${setting === 'home' ? 'classroom' : 'home'}/`));
       assert.ok(!html.includes('/en/checkout/?kind=ready'), `${story.code} checkout should await live runtime`);
       assert.equal(theme[setting].readyStatus, 'not_published');
     }
@@ -120,3 +120,5 @@ test('pricing explains all three choices and confirmed Home and Classroom rights
   assert.match(checkout, /Checkout unavailable/);
   assert.match(terms, /Final consumer wording and technical enforcement still need review/);
 });
+
+

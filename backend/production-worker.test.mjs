@@ -159,13 +159,15 @@ test('classroom wording choice is snapshotted and serves only its selected priva
   const purchaseSpec = { sku: 'ready_classroom', themeId: 'halloween', packVersion: 'v1', variantId: 'halloween', email: 'adult@example.com' };
   const checkout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', purchaseSpec,
     { 'Idempotency-Key': 'classroom-variant-001', origin: 'https://adventure.example' }), env);
-  assert.equal(checkout.status, 201);
-  const { orderId } = await checkout.json();
-  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
-  assert.equal(JSON.parse(order.purchase_spec_json).variantId, 'halloween');
-  db.prepare("UPDATE orders SET status = 'published' WHERE id = ?").run(orderId);
-  db.prepare("INSERT INTO entitlements (id,order_id,ready_pack_id,status,access_expires_at) VALUES ('ent-variant',?,?,'active',datetime('now','+12 months'))").run(orderId,'pack-c05');
+  assert.equal(checkout.status, 409);
+  assert.equal((await checkout.json()).error.code, 'EDITION_RETIRED');
+  // Existing orders remain versioned and downloadable after the former edition closes.
+  const orderId = 'order-legacy-c05';
+  const specJson = JSON.stringify(purchaseSpec);
   const emailHash = await sha256(`${env.SESSION_SECRET}|adult@example.com`);
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status) VALUES (?,'ready','ready_classroom',?,?,?,?,1499,'USD','published')")
+    .run(orderId, specJson, await sha256(specJson), emailHash, 'price-class');
+  db.prepare("INSERT INTO entitlements (id,order_id,ready_pack_id,status,access_expires_at) VALUES ('ent-variant',?,?,'active',datetime('now','+12 months'))").run(orderId,'pack-c05');
   const token = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash, exp: Math.floor(Date.now()/1000)+3600 });
   const file = await handleProductionApi(request(`/api/v1/files/${orderId}/player?paper=Letter`, 'GET', undefined,
     { cookie: `paw_session=${token}` }), env);
@@ -176,8 +178,8 @@ test('classroom wording choice is snapshotted and serves only its selected priva
   assert.deepEqual(unpublished.themes.find(theme => theme.id === 'halloween').classroom.variantIds, []);
   const blocked = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', purchaseSpec,
     { 'Idempotency-Key': 'classroom-variant-002', origin: 'https://adventure.example' }), env);
-  assert.equal(blocked.status, 503);
-  assert.equal((await blocked.json()).error.code, 'PACK_VARIANT_NOT_READY');
+  assert.equal(blocked.status, 409);
+  assert.equal((await blocked.json()).error.code, 'EDITION_RETIRED');
 });
 
 test('signed email access tokens expire and reject tampering', async () => {
@@ -615,3 +617,5 @@ test('Google sign-in config creates a short-lived nonce and rejects missing or i
     { origin: 'https://adventure.example', cookie: 'paw_google_nonce=' + google.nonce }), env);
   assert.equal(invalidCredential.status, 401);
 });
+
+
