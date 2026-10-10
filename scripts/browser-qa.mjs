@@ -37,15 +37,12 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
       snapshots.push({ viewport: viewport.name, route, ...state });
       if (route === '/en/create/') {
         if (await page.locator('main h1').count() !== 1) problems.push(viewport.name + ' creator page must have one main heading');
-        if (!await page.getByRole('heading', { name: 'One idea can become your own paper adventure.' }).isVisible()) problems.push(viewport.name + ' creator page lacks the example journey');
-        if (!await page.getByRole('heading', { name: 'A story to print, and a guide to run it.' }).isVisible()) problems.push(viewport.name + ' creator page lacks output details');
-        if (await page.locator('.custom-create-page-previews img').count() !== 2) problems.push(viewport.name + ' creator page lacks real printable page previews');
-        const heroImage = page.locator('.custom-create-hero-art img');
-        if (await heroImage.getAttribute('src') !== '/assets/custom-adventure-workshop-v1.jpg') problems.push(viewport.name + ' creator hero still reuses the home artwork');
-        const headingSize = await page.locator('#custom-create-title').evaluate(element => parseFloat(getComputedStyle(element).fontSize));
-        if (headingSize > (viewport.name === 'desktop' ? 70 : 49)) problems.push(viewport.name + ' creator title is oversized: ' + headingSize + 'px');
-
-        if (!await page.getByRole('heading', { name: 'Questions before you begin.' }).isVisible()) problems.push(viewport.name + ' creator page lacks FAQs');
+        for (const title of ['From a sentence to a paper adventure.', 'Player activities plus a separate adult guide.', 'About custom printable adventures.']) {
+          if (!await page.getByRole('heading', { name: title, exact: true }).isVisible()) problems.push(viewport.name + ' creator missing ' + title);
+        }
+        if (await page.locator('#custom-files img').count() !== 2) problems.push(viewport.name + ' creator lacks real format previews');
+        const headingSize = await page.locator('main h1').evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+        if (headingSize > 49) problems.push(viewport.name + ' creator title is oversized');
       }
 
       if (route === '/en/how-it-works/') {
