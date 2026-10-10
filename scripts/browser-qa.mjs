@@ -62,6 +62,19 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 900 }, { name: '
         await page.getByRole('button', { name: 'For home' }).click();
       }
 
+      if (route === '/en/pricing/') {
+        if (await page.locator('main h1').count() !== 1) problems.push(viewport.name + ' pricing page must have one main heading');
+        if (await page.locator('.pricing-guide-card').count() !== 3) problems.push(viewport.name + ' pricing page must show three choices');
+        if (!await page.getByRole('heading', { name: 'Three clear ways to begin.' }).isVisible()) problems.push(viewport.name + ' pricing page lacks a clear choice overview');
+        if (!await page.getByRole('heading', { name: 'Ready-made or custom?' }).isVisible()) problems.push(viewport.name + ' pricing page lacks product comparison');
+        if (!await page.getByRole('heading', { name: 'Choose the licence that fits your group.' }).isVisible()) problems.push(viewport.name + ' pricing page lacks usage rights');
+        const pricingText = await page.locator('main').innerText();
+        if (pricingText.includes('checkout is closed while files') || pricingText.includes('No ready-made packs are published yet')) problems.push(viewport.name + ' pricing page contains outdated placeholder copy');
+        for (const amount of ['$0', '$9.99', '$14.99', '$19.99']) if (!pricingText.includes(amount)) problems.push(viewport.name + ' pricing page missing ' + amount);
+        const pricingHeadingSize = await page.locator('main h1').evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+        if (pricingHeadingSize > (viewport.name === 'desktop' ? 76 : 50)) problems.push(viewport.name + ' pricing title is oversized: ' + pricingHeadingSize + 'px');
+      }
+
       if (routesToCapture.has(route)) {
         const scan = await new AxeBuilder({ page }).analyze();
         accessibility.push({ viewport: viewport.name, route, violations: scan.violations.map(item => ({

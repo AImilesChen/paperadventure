@@ -21,7 +21,7 @@ export const publicPages = Object.freeze([
   page('/en/samples/', 'Free Printable Adventure Samples', 'Explore the free Celebration story games for Home and Classroom, with Player Packs and adult guides in A4 and US Letter.'),
   page('/en/samples/home/', 'Free Printable Home Adventure Game', 'Download the free Celebration Home Player Pack and Host Guide in A4 or US Letter and see how a family story adventure works.'),
   page('/en/samples/classroom/', 'Free Printable Classroom Adventure Game', 'Download the free Celebration Classroom Player Pack and Teacher Guide in A4 or US Letter for a guided group story mission.'),
-  page('/en/pricing/', 'Printable Adventure Game Pricing', 'Compare Home and Classroom ready-made packs, custom adventures and the free Celebration game. Paid checkout currently uses Stripe test mode.'),
+  page('/en/pricing/', 'Printable Adventure Pricing for Home & Classroom', 'Compare the free Celebration trial, ready-made theme packs and AI custom adventures. See one-time Home and Classroom prices, included files and download rights.'),
   page('/en/help/', 'Help with Printable Adventures', 'Find help with printable game packs, free downloads, custom adventures, file access and support.'),
   page('/en/help/start/', 'Getting Started', 'Preview how an adult organiser guides a printable story adventure from invitation to final reveal.'),
   page('/en/help/print/', 'Printing Help', 'Preview printing guidance for player pages and organiser materials.'),

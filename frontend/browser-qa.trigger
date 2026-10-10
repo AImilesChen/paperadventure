@@ -1,1 +1,1 @@
-2026-10-10 validate complete printable-adventure guide across desktop and mobile
+2026-10-10 verify pricing redesign with three clear choices and responsive comparison
