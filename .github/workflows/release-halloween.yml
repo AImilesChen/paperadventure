@@ -28,12 +28,6 @@ jobs:
           node-version: '22'
       - run: python -m pip install reportlab pypdf pdfplumber pillow
       - run: npm install --no-save --package-lock=false wrangler@4.74.0
-      - name: Install PDF renderer
-        run: |
-          choco install poppler -y --no-progress
-          $renderer = Get-ChildItem -LiteralPath 'C:/ProgramData/chocolatey/lib/poppler' -Filter pdftoppm.exe -Recurse | Select-Object -First 1
-          if (!$renderer) { throw 'PDF renderer missing' }
-          $renderer.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
       - run: python scripts/generate_retail_packs.py
       - run: python scripts/check_retail_packs.py
       - run: python scripts/check_halloween_experience.py
