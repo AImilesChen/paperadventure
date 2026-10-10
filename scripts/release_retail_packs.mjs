@@ -9,7 +9,8 @@ if(process.env.RETAIL_SCOPE){
 }
 const q=s=>"'"+String(s).replaceAll("'","''")+"'";
 const bucket='paper-adventure-stage-private';
-const run=(args)=>execFileSync('npx',['--yes','wrangler@4.74.0',...args],{stdio:'inherit'});
+const cli=(args,options)=>process.env.WRANGLER_CLI ? execFileSync(process.execPath,[process.env.WRANGLER_CLI,...args],options) : execFileSync('npx',['--yes','wrangler@4.74.0',...args],options);
+const run=(args)=>cli(args,{stdio:'inherit'});
 const sql=[];
 for(const f of manifest.items){
  const bytes=readFileSync(f.path);
@@ -35,7 +36,7 @@ for(let attempt=0;attempt<3&&!applied;attempt++){
 // points to a different PDF than the one just uploaded.
 const checks=manifest.items.map(f=>`SELECT COUNT(*) AS matched FROM ready_packs p JOIN ready_pack_files f ON f.ready_pack_id=p.id WHERE p.theme_world_id=${q(f.world)} AND p.setting=${q(f.setting)} AND f.paper=${q(f.paper)} AND f.role=${q(f.role)} AND f.sha256=${q(f.sha256)} AND f.bytes=${f.bytes};`).join('\n');
 writeFileSync('output/pdf/verify-retail.sql',checks);
-const raw=execFileSync('npx',['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--command',checks,'--json'],{encoding:'utf8'});
+const raw=cli(['d1','execute','paper-adventure-stage-db','--remote','--command',checks,'--json'],{encoding:'utf8'});
 const results=JSON.parse(raw);
 if(results.length!==manifest.items.length||results.some(r=>!r.success||r.results?.[0]?.matched<1))throw Error('An upgraded pack slot is missing');
 for(const f of manifest.items.filter(f=>f.world==='celebration')){
