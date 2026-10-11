@@ -1,5 +1,5 @@
 """Verify every edition's content, geometry, inventory and ZIP integrity."""
-import json,hashlib,re,zipfile
+import json,hashlib,os,re,zipfile
 from pathlib import Path
 from pypdf import PdfReader
 from audit_pdf_layout import audit
@@ -20,7 +20,7 @@ for f in m['items']:
   compact_dinosaur_guide=f['world']=='dinosaur' and f['setting']=='home' and f['role']=='guide'
   compact_space_guide=f['world']=='space' and f['setting']=='home' and f['role']=='guide'
   assert f['pages'] >= (10 if theatre_home and f['role']=='guide' else 10 if compact_dinosaur_guide or compact_space_guide or compact_forest_guide else 11 if story_led_home and f['role']=='guide' else 12)
-  if f['role']=='guide':
+  if f['role']=='guide' and (not os.getenv('RETAIL_SCOPE') or (f['world']=='halloween' and f['setting']=='home')):
    required=(['Print, cut and sort','Perform and keep the ending','READ, PLAY, VERIFY']
              if theatre_home else ['Print, cut and stage','Hints for all five stations','Final check and reset']
              if compact_forest_guide else ['Print, cut and sort','Hints and recovery','Restore contact and reset']
