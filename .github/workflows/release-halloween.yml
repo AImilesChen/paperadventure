@@ -33,3 +33,5 @@ jobs:
       - run: python scripts/check_halloween_experience.py
       - run: python scripts/build_retail_previews.py
       - run: node scripts/release_retail_packs.mjs
+      - run: node scripts/activate_halloween_test.mjs
+
