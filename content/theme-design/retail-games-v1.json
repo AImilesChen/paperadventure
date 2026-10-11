@@ -2223,261 +2223,212 @@
     "setting": "classroom",
     "title": "The Adventure Club's First Badge",
     "cover": "public/assets/celebration-classroom-v0.1.jpg",
-    "opening": "The Adventure Club has left five paper clues. Find the invitation, repair a route, combine equipment clues and build a four-symbol badge. Every group has its own full clue set.",
-    "ending": "Welcome to the Adventure Club! Your invitation led from GATE to WORKSHOP, equipment A gave 2-4-1-3, and your badge reads COMPASS, BOOK, STAR, HANDS clockwise. Draw those four symbols on your keepsake, starting at the top.",
+    "opening": "A gust scattered the Adventure Club invitation. Each crew rebuilds it, sets a paper welcome table, exchanges private badge clues, makes a foldable paper display badge and passes it clockwise for peer review before the shared welcome.",
+    "ending": "Welcome to the Adventure Club. You rebuilt the invitation, set the table, listened to every keeper and made a badge together. Every crew member helped.",
     "stages": [
       {
-        "title": "Find the invitation",
-        "story": "Choose the invitation with a COMPASS seal and exactly TWO stars. Take its route start.",
+        "title": "Rebuild the invitation",
+        "story": "Match the cut-edge marks on four invitation fragments, then read the joined welcome message.",
+        "answer": "OAK side; MAP nearest OAK; BADGE between MAP and PENCIL",
+        "handoff": "Two table-placement clues",
         "heads": [
-          "Card",
-          "Seal",
-          "Stars",
-          "Start"
+          "Fragment",
+          "Message",
+          "Edge marks"
         ],
         "rows": [
           [
             "A",
-            "COMPASS",
-            "1",
-            "GARDEN"
+            "Welcome, Adventure Club!",
+            "circle / triangle"
           ],
           [
             "B",
-            "COMPASS",
-            "2",
-            "GATE"
+            "Meet at the OAK side of the welcome table.",
+            "circle / square"
           ],
           [
             "C",
-            "STAR",
-            "2",
-            "LIBRARY"
-          ]
-        ],
-        "answer": "Card B; GATE",
-        "handoff": "GATE",
-        "hints": [
-          "Check the seal.",
-          "Also count both stars.",
-          "Card B gives GATE."
-        ],
-        "role_cards": [],
-        "prompts": [
-          "Our choice",
-          "Outgoing discovery"
-        ],
-        "next": "Use the recorded discovery on the next mission.",
-        "why": "Compare the stated conditions with Card B; GATE. Each required field must match; a candidate with one wrong field is rejected."
-      },
-      {
-        "title": "Repair the club route",
-        "story": "Start at your discovered place. Join FROM and TO place names. The useful route ends at WORKSHOP.",
-        "heads": [
-          "Strip",
-          "From",
-          "To"
-        ],
-        "rows": [
-          [
-            "D",
-            "GATE",
-            "GARDEN"
-          ],
-          [
-            "B",
-            "LIBRARY",
-            "TABLE"
-          ],
-          [
-            "A",
-            "GATE",
-            "LIBRARY"
-          ],
-          [
-            "E",
-            "GARDEN",
-            "SHED"
-          ],
-          [
-            "C",
-            "TABLE",
-            "WORKSHOP"
-          ]
-        ],
-        "answer": "A-B-C; WORKSHOP",
-        "handoff": "WORKSHOP",
-        "hints": [
-          "Try the two GATE strips.",
-          "The garden route stops at SHED.",
-          "A-B-C reaches WORKSHOP."
-        ],
-        "role_cards": [],
-        "prompts": [
-          "Our choice",
-          "Outgoing discovery"
-        ],
-        "next": "Use the recorded discovery on the next mission.",
-        "why": "Compare the stated conditions with A-B-C; WORKSHOP. Each required field must match; a candidate with one wrong field is rejected."
-      },
-      {
-        "title": "Choose the equipment",
-        "story": "Combine all three clues: BLUE, exactly TWO dots and TRIANGLE. Copy the code from the same matching card.",
-        "heads": [
-          "Card",
-          "Colour",
-          "Dots",
-          "Shape",
-          "Code"
-        ],
-        "rows": [
-          [
-            "A",
-            "BLUE",
-            "2",
-            "TRIANGLE",
-            "2-4-1-3"
-          ],
-          [
-            "B",
-            "BLUE",
-            "1",
-            "TRIANGLE",
-            "1-4-2-3"
-          ],
-          [
-            "C",
-            "RED",
-            "2",
-            "TRIANGLE",
-            "2-3-1-4"
+            "Put the MAP nearest the OAK mark.",
+            "triangle / diamond"
           ],
           [
             "D",
-            "BLUE",
-            "2",
-            "CIRCLE",
-            "4-2-1-3"
+            "The BADGE goes between the MAP and PENCIL.",
+            "square / diamond"
           ]
         ],
-        "answer": "Equipment A; 2-4-1-3",
-        "handoff": "A / 2-4-1-3",
         "hints": [
-          "Share each clue.",
-          "Every condition must fit the same card.",
-          "A gives 2-4-1-3."
+          "Find the greeting.",
+          "Match identical edge marks.",
+          "Read the joined message in order."
+        ],
+        "role_cards": [],
+        "prompts": [
+          "Meeting side",
+          "Two table clues"
+        ],
+        "next": "Use both clues on the welcome-table mat.",
+        "why": "The two printed placement rules are available only after joining the fragments."
+      },
+      {
+        "title": "Set the welcome table",
+        "story": "Move MAP, BADGE and PENCIL tiles onto the three-slot mat using the joined invitation.",
+        "answer": "OAK to GATE: MAP, BADGE, PENCIL",
+        "handoff": "BADGE in the middle",
+        "heads": [
+          "Tile",
+          "Position"
+        ],
+        "rows": [
+          [
+            "MAP",
+            "Nearest OAK"
+          ],
+          [
+            "BADGE",
+            "Between MAP and PENCIL"
+          ],
+          [
+            "PENCIL",
+            "Nearest GATE"
+          ]
+        ],
+        "hints": [
+          "Find the OAK end.",
+          "What sits between two objects?",
+          "MAP, BADGE, PENCIL."
+        ],
+        "role_cards": [],
+        "prompts": [
+          "Order from OAK to GATE"
+        ],
+        "next": "Use the blank badge in the centre.",
+        "why": "The MAP must be first and BADGE between it and PENCIL, leaving one unique order."
+      },
+      {
+        "title": "Share the badge clues",
+        "story": "Four separately dealt keeper clues specify the badge design.",
+        "answer": "COMPASS centre; 2 STARS top; BOOK bottom; HANDS left and right",
+        "handoff": "Completed badge blueprint",
+        "heads": [
+          "Role",
+          "Clue"
+        ],
+        "rows": [
+          [
+            "Reader",
+            "COMPASS centre"
+          ],
+          [
+            "Mover",
+            "2 STARS top"
+          ],
+          [
+            "Recorder",
+            "BOOK bottom"
+          ],
+          [
+            "Checker",
+            "HANDS on both sides"
+          ]
+        ],
+        "hints": [
+          "Hear each holder.",
+          "Check all five positions.",
+          "Use the four printed clue cards."
         ],
         "role_cards": [
           [
             "Reader",
-            "The equipment is BLUE."
+            "COMPASS centre"
           ],
           [
-            "Investigator",
-            "It has exactly TWO dots."
+            "Mover",
+            "2 STARS top"
+          ],
+          [
+            "Recorder",
+            "BOOK bottom"
           ],
           [
             "Checker",
-            "It has a TRIANGLE shape."
+            "HANDS on both sides"
           ]
         ],
         "prompts": [
-          "Our choice",
-          "Outgoing discovery"
+          "Blueprint and evidence"
         ],
-        "next": "Use the recorded discovery on the next mission.",
-        "why": "Compare the stated conditions with Equipment A; 2-4-1-3. Each required field must match; a candidate with one wrong field is rejected."
+        "next": "Use the blueprint to choose paper symbols.",
+        "why": "The task page does not duplicate private clue contents."
       },
       {
-        "title": "Build the badge pattern",
-        "story": "Use the code you earned. Each number names one symbol. Read your code in order; positions are TOP, RIGHT, BOTTOM, LEFT clockwise. Draw or write each symbol.",
+        "title": "Make the team badge",
+        "story": "Try nine small labelled symbol squares inside the blank display badge; draw or write the six supported symbols. In low-cut mode, point to symbols instead.",
+        "answer": "COMPASS, two STARS, BOOK, HANDS LEFT and HANDS RIGHT",
+        "handoff": "Completed paper display badge and four retained clue cards",
         "heads": [
-          "Number",
-          "Symbol"
+          "Chosen symbols",
+          "Spare symbols"
         ],
         "rows": [
           [
-            "1",
-            "STAR"
-          ],
-          [
-            "2",
-            "COMPASS"
-          ],
-          [
-            "3",
-            "HANDS"
-          ],
-          [
-            "4",
-            "BOOK"
+            "COMPASS / STAR 1 / STAR 2 / BOOK / HANDS LEFT / HANDS RIGHT",
+            "MOON / KEY / FLAG"
           ]
         ],
-        "answer": "COMPASS / BOOK / STAR / HANDS",
-        "handoff": "COMPASS-BOOK-STAR-HANDS",
         "hints": [
-          "Copy the equipment code first.",
-          "Replace each number with its symbol.",
-          "2-4-1-3 means COMPASS, BOOK, STAR, HANDS."
+          "Point to one clue per mark.",
+          "Count both stars.",
+          "Use six supported pieces; leave three spare."
         ],
         "role_cards": [],
         "prompts": [
-          "Our choice",
-          "Outgoing discovery"
+          "Badge checked against clue cards"
         ],
-        "next": "Use the recorded discovery on the next mission.",
-        "why": "Compare the stated conditions with COMPASS / BOOK / STAR / HANDS. Each required field must match; a candidate with one wrong field is rejected."
+        "next": "Pass the badge and all four clue cards clockwise for peer review.",
+        "why": "Every placed mark must be supported by one of the four cards."
       },
       {
-        "title": "Check your badge plan",
-        "story": "Your plan must match the destination, equipment card and all four positions TOP-RIGHT-BOTTOM-LEFT. Check every field and explain two facts.",
+        "title": "Check and welcome",
+        "story": "Each crew checks the next crew's display badge against its four retained clue cards, offers a repair and welcomes the makers. A lone crew uses the teacher as reviewer.",
+        "answer": "All four checklist lines passed after any friendly repairs",
+        "handoff": "Club welcome",
         "heads": [
-          "Plan",
-          "Place",
-          "Equipment",
-          "Clockwise symbols"
+          "Review",
+          "Evidence"
         ],
         "rows": [
           [
-            "A",
-            "WORKSHOP",
-            "A",
-            "COMPASS / BOOK / STAR / HANDS"
+            "Centre",
+            "Reader clue"
           ],
           [
-            "B",
-            "WORKSHOP",
-            "A",
-            "COMPASS / STAR / BOOK / HANDS"
+            "Top",
+            "Mover clue"
           ],
           [
-            "C",
-            "GARDEN",
-            "A",
-            "COMPASS / BOOK / STAR / HANDS"
+            "Bottom",
+            "Recorder clue"
           ],
           [
-            "D",
-            "WORKSHOP",
-            "B",
-            "COMPASS / BOOK / STAR / HANDS"
+            "Both sides",
+            "Checker clue"
           ]
         ],
-        "answer": "Plan A",
-        "handoff": "Plan A",
         "hints": [
-          "Read all earlier results.",
-          "Check both place and symbol order.",
-          "Plan A matches every field."
+          "Show a source card.",
+          "Compare position and count.",
+          "Repair mismatches, then welcome the crew."
         ],
         "role_cards": [],
         "prompts": [
-          "Our choice",
-          "Outgoing discovery"
+          "Peer review message"
         ],
-        "next": "Use the recorded discovery on the next mission.",
-        "why": "Compare the stated conditions with Plan A. Each required field must match; a candidate with one wrong field is rejected."
+        "next": "Teacher reads the Club welcome.",
+        "why": "The ending is a checked physical artifact, not a final multiple-choice card."
       }
-    ]
+    ],
+    "source": "scripts/celebration_classroom_badge.py"
   }
 ]
