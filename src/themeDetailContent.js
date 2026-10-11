@@ -58,15 +58,15 @@ export const themeDetailContent = {
   },
   space: {
     home: {
-      hook: 'Restore contact with a lost robot probe using a paper star map.',
-      reasons: ['Signal cards distinguish a real message from noise without electronics.', 'Players draw a path across a labelled 3×3 coordinate map.', 'The decoded message changes which probe card completes the mission.'],
-      materials: ['Signal and noise choices', 'Route strips and a 3×3 coordinate star map', 'Role parameters, device cards and symbol dictionary', 'Probe choices and a final contact check'],
+      hook: 'Restore contact with Pip by rebuilding a wave and operating a printable paper control centre.',
+      reasons: ['Three cut wave strips form one continuous received band.', 'Six reusable paper power cells move between receiving and sending configurations.', 'Separate crew clues, a picture-symbol key and a paper transmission make each discovery part of the finale.'],
+      materials: ['Three wave strips and an intact receiver board', 'Five-device power board and six larger reusable cells', 'Crew clues, receive-settings board and three decoder strips', 'Transmission form, five pulse markers, record and held-back response'],
       stages: [
-        ['Find the signal', 'Compare the shapes and labels on the signal cards.', 'A starting sector'],
-        ['Draw the star route', 'Join valid route strips on the paper coordinate map.', 'The station destination'],
-        ['Calibrate the device', 'Combine three players’ conditions to pick a paper device.', 'A decoding key'],
-        ['Read the message', 'Use the printed dictionary to translate a short transmission.', 'A probe confirmation clue'],
-        ['Send a paper reply', 'Choose the matching probe and reveal the reply card.', 'Restored story-world contact'],
+        ['Rebuild the wave', 'Connect three printed signal strips from HIGH back to HIGH.', 'The MID receiver band'],
+        ['Power the receiver', 'Choose the three devices needed to catch, read and protect a signal; place six paper cells.', 'A working receiving console'],
+        ['Tune the receive channel', 'Share three private clues to set band, phase and pictured badge.', 'The code for Pip’s message'],
+        ['Decode the instruction', 'Match received picture icons to a differently ordered fixed key and one phase strip.', 'A decoded sending instruction'],
+        ['Send a paper reply', 'Move the same six cells to sending equipment, then use the decoded pulse count.', 'Pip’s held-back paper response'],
       ],
     },
     classroom: {

@@ -145,7 +145,7 @@ def build(s,paper,size):
   import dinosaur_home_experience as dino
   pp=dino.player(s,w)
  elif s['id']=='space' and s['setting']=='home':
-  import space_home_experience as space
+  import space_home_control_room as space
   pp=space.player(s,w)
  elif s['id']=='forest' and s['setting']=='home':
   import forest_home_experience as forest
