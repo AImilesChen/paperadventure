@@ -19,4 +19,12 @@ console.log('Halloween Home after activation:', JSON.stringify(after));
 if (!after.some(pack => pack.version === 'v1.0' && pack.status === 'internal_test' && pack.files === 4)) {
   throw Error('Halloween Home v1.0 is not test-ready with four files');
 }
+const response = await fetch('https://paperadventure.app/api/v1/catalog');
+if (!response.ok) throw Error(`Public catalog responded ${response.status}`);
+const catalog = await response.json();
+const status = catalog.themes?.find(theme => theme.id === 'halloween')?.home?.readyStatus;
+console.log('Halloween Home public catalog status:', status);
+if (!['test_ready', 'published'].includes(status)) {
+  throw Error(`Halloween Home is not available through the public catalog: ${status}`);
+}
 
