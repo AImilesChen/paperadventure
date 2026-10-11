@@ -6,7 +6,7 @@ m=json.loads((ROOT/'output/pdf/retail-packs-1.0-manifest.json').read_text())
 for f in m['items']:
  if f['role']!='player' or f['paper']!='A4' or f['world']=='celebration':continue
  for n in [1,2]:
-  source_page=({1:5,2:11}[n] if f['world']=='space' and f['setting']=='home' else {1:6,2:16}[n] if f['world']=='forest' and f['setting']=='home' else {1:5,2:16}[n] if f['world']=='halloween' and f['setting']=='home' else n)
+  source_page=({1:8,2:10}[n] if f['world']=='dinosaur' and f['setting']=='home' else {1:5,2:11}[n] if f['world']=='space' and f['setting']=='home' else {1:6,2:16}[n] if f['world']=='forest' and f['setting']=='home' else {1:5,2:16}[n] if f['world']=='halloween' and f['setting']=='home' else n)
   target=out/f"{f['world']}-{f['setting']}-v1.0-p{n}.jpg"
   pdf=pdfium.PdfDocument(str(ROOT/f['path']))
   try:
