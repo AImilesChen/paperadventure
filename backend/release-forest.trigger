@@ -1,1 +1,1 @@
-Release Forest Home paper post office edition: 16 Player and 10 Host Guide pages in A4 and Letter, 19 cut pieces, evidence-led P17 label repair, private neighbour interviews and signed delivery. Update only forest/home PDF and preview slots; preserve existing orders.
+Release Forest Home paper post office edition: 16 Player and 10 Host Guide pages in A4 and Letter, 19 cut pieces, evidence-led P17 label repair, private neighbour interviews and signed delivery. Build from a clean checkout, update only forest/home PDF and preview slots, and preserve existing orders.

@@ -19,7 +19,7 @@ for paper, size in [('A4', retail.g.A4), ('Letter', retail.g.letter)]:
     items.extend(retail.build(story, paper, size))
 
 manifest_path = root / 'output/pdf/retail-packs-1.0-manifest.json'
-manifest = json.loads(manifest_path.read_text())
+manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {'items': []}
 old = [x for x in manifest['items'] if (x['world'], x['setting']) != ('forest', 'home')]
 manifest['items'] = old + items
 manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
