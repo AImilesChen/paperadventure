@@ -1,1 +1,1 @@
-Halloween Home playable festival release: 18 player / 11 host pages; 33 pieces; five story-led missions and pumpkin reveal. Use bundled PDFium previews.
+Halloween Home paper-theatre repair: 15 Player / 10 Host pages; 17 pieces; 2-6-player cue dealing, hidden finale, three-tear example and distinct actor art.

@@ -14,7 +14,7 @@ for f in m['items']:
  assert not re.search(r'internal|draft|not play.tested|do not sell|unpublished',t,re.I),path
  assert 'Edition 1.0' in t
  if f['world']!='celebration' or f['setting']!='home':
-  assert f['pages'] >= (10 if f['world']=='dinosaur' and f['setting']=='home' and f['role']=='guide' else 11 if f['world']=='halloween' and f['setting']=='home' and f['role']=='guide' else 12)
+  assert f['pages'] >= (10 if f['world']=='dinosaur' and f['setting']=='home' and f['role']=='guide' else 10 if f['world']=='halloween' and f['setting']=='home' and f['role']=='guide' else 12)
   if f['role']=='guide':assert all(v in t for v in ['Prepare and distribute','Handover','Print, cut and sort','Hints without taking over'])
  report=audit(path);assert not report['failures'],report;reports.append(report)
 for key in {(x['world'],x['setting'],x['paper']) for x in m['items']}:

@@ -1,35 +1,80 @@
-"""Check Halloween's answer chain, release order and physical prop geometry."""
-import sys,json,zipfile
+"""Check Halloween paper theatre content, inventory and print geometry."""
+import re
+import zipfile
 from pathlib import Path
+
+import pdfplumber
 from pypdf import PdfReader
-import generate_retail_packs as r
-import halloween_home_experience as h
-root=Path(__file__).resolve().parents[1]
-for size,pagesize in [('A4',r.g.A4),('Letter',r.g.letter)]:
- player=PdfReader(root/f'output/pdf/halloween-home-player-1.0-{size}.pdf');guide=PdfReader(root/f'output/pdf/halloween-home-guide-1.0-{size}.pdf')
- assert len(player.pages)==18 and len(guide.pages)==11
- texts=[p.extract_text() for p in player.pages]
- for i,n in enumerate([4,6,9,12,15]):
-  assert f'CHECKPOINT {i+1} / READ THE STORY, THEN PLAY' in texts[n-1]
-  assert 'Pip:' in texts[n-1] and 'Talk together:' in texts[n-1] and 'Put on the table:' in texts[n-1]
-  assert '1.' in texts[n-1] and '4.' in texts[n-1]
- assert all('5723' not in page for page in texts[:16])
- assert 'TWO stripes' not in texts[8] and 'ROUND outline' not in texts[8]
- assert 'ADULT HOLDS UNTIL FINAL ACCEPTANCE' in texts[17]
- assert '1 star' in texts[4] and '1 stripe' in texts[10]
- assert '33 cut pieces per team' in guide.pages[1].extract_text()
- assert all('After acceptance, read before the next mission:' in guide.pages[i].extract_text() for i in range(4,8))
- assert 'Page 18' in guide.pages[1].extract_text()
- w=pagesize[0]-88;slot=(w-20)/4
- assert slot-8 < slot and 75 < 85
- assert 65 < w/2-10 and 55 < 72
- assert h.Art(w,'bright').height==h.Art(w,'pumpkin').height==450
- assert [5,7,2,3]==[int(c) for c in '5723']
- with zipfile.ZipFile(root/f'output/pdf/halloween-home-{size}-complete-1.0.zip') as z:assert len(z.namelist())==2 and z.testzip() is None
-# Solve from actual source values rather than only checking expected text.
-s=next(s for s in json.loads((root/'content/theme-design/retail-games-v1.json').read_text()) if s['id']=='halloween' and s['setting']=='home')
-letters=s['stages'][0]['rows'];matches=[x for x in letters if x[1:4]==['Fox','2','Moon']]
-assert len(matches)==1 and matches[0][0]=='C'
-routes={x[0]:x for x in s['stages'][1]['rows']};assert routes['A'][2]==routes['B'][1] and routes['B'][2]==routes['C'][1] and routes['C'][2]=='PARCEL TABLE'
-parcels=[x for x in s['stages'][2]['rows'] if x[1:4]==['P3','2','Round']];assert len(parcels)==1 and parcels[0][0]=='B'
-print('Halloween: 18/11 pages in both sizes, story-plus-action missions, causal chain, prop inventory, no early finale leak and seal fit passed.')
+
+import halloween_paper_theatre as theatre
+
+
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / 'output' / 'pdf'
+assert len(theatre.MISSIONS) == 5
+
+for paper, dimensions in [('A4', (595.28, 841.89)), ('Letter', (612, 792))]:
+    player_path = OUT / f'halloween-home-player-1.0-{paper}.pdf'
+    guide_path = OUT / f'halloween-home-guide-1.0-{paper}.pdf'
+    player = PdfReader(player_path)
+    guide = PdfReader(guide_path)
+    assert len(player.pages) == 15 and len(guide.pages) == 10
+    text = [re.sub(r'\s+', ' ', page.extract_text() or '') for page in player.pages]
+    private = re.sub(r'\s+', ' ', ' '.join(page.extract_text() or '' for page in guide.pages))
+    assert all(f'PLAYER / MISSION {i} / STORY AND ACTIONS' in text[n - 1]
+               for i, n in enumerate([4, 6, 8, 11, 14], 1))
+    for page in [4, 6, 8, 11, 14]:
+        assert 'Story to read:' in text[page - 1]
+        assert 'Now do these actions:' in text[page - 1]
+        assert 'Finished when:' in text[page - 1]
+    for label, page in [('BAT', 7), ('OWL', 7), ('PUMPKIN', 7), ('STAR', 7),
+                        ('WINDOW 1', 12), ('WINDOW 4', 12), ('NIGHT SKY', 13)]:
+        assert label in text[page - 1]
+    assert 'ADULT HOLDS UNTIL MISSION 5' in text[14]
+    assert 'THREE zigzag tears' in text[4]
+    assert 'THREE-TEAR EXAMPLE' in text[4]
+    assert 'Recorder writes' not in ' '.join(text)
+    assert 'Stage Checker writes or dictates' in text[3]
+    assert 'Stage Checker writes or dictates' in text[7]
+    assert 'two players hold two each' in text[10]
+    assert 'Players return only after the art is hidden' in text[13]
+    assert 'Adult only: while players look away' in text[14]
+    assert 'Which part of our shared show did you help make?' in text[13]
+    assert 'four outer template cards' in text[5]
+    assert all(name not in text[12] for name in ['BAT', 'OWL', 'PUMPKIN', 'STAR'])
+    assert all(name not in text[11] for name in ['BAT', 'OWL', 'STAR'])
+    assert 'PAPER LANTERN IS LIT' in text[14]
+    assert '17 loose pieces' in private
+    assert all(part in private for part in ['OWL top left', 'BAT top right',
+                                           'PUMPKIN bottom left', 'STAR bottom right'])
+    assert 'No real candle' in private
+    assert 'leave the silhouettes uncut for mission 2' in private
+    assert 'DURING mission 2' in private
+    assert 'HOST / MISSION 4 / EXACT SCRIPT' in private
+    assert 'with three, deal 2/1/1' in private
+    assert 'Only now invite children to look again' in private
+    assert all(line in private for line in ['NIGHT SKY', 'OLD TREE', 'WARM PORCH',
+                                             'FINAL SPARK', 'New finale order'])
+    assert all('5723' not in page and 'seal' not in page.lower() for page in text)
+    assert all('route strip' not in page.lower() and 'parcel' not in page.lower() for page in text)
+    with pdfplumber.open(player_path) as pdf:
+        for page in pdf.pages:
+            assert abs(page.width - dimensions[0]) < 1
+            assert abs(page.height - dimensions[1]) < 1
+            assert all(ch['x0'] >= 0 and ch['x1'] <= page.width and
+                       ch['top'] >= 0 and ch['bottom'] <= page.height for ch in page.chars)
+        # Matching title, fixed-height instructions and identical flowable height
+        # place all three printable theatre sheets at the same page position.
+        def first_top(page_no, label):
+            return next(word['top'] for word in pdf.pages[page_no - 1].extract_words()
+                        if word['text'] == label)
+        stage_top = first_top(10, 'TOP')
+        finale_top = first_top(15, 'OWL')
+        facade_top = first_top(12, "PIP'S")
+        assert abs(stage_top - finale_top) < 2
+        assert 20 < stage_top - facade_top < 35
+    with zipfile.ZipFile(OUT / f'halloween-home-{paper}-complete-1.0.zip') as bundle:
+        assert len(bundle.namelist()) == 2 and bundle.testzip() is None
+
+print('Halloween theatre: 15/10 pages per paper size, five missions, scripts, printed props, private answers and ZIPs passed.')
+

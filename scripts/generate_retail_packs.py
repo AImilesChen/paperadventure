@@ -151,7 +151,7 @@ def build(s,paper,size):
   import forest_post_office as forest
   pp=forest.player(s,w)
  elif s['id']=='halloween' and s['setting']=='home':
-  import halloween_home_experience as halloween
+  import halloween_paper_theatre as halloween
   pp=halloween.player(s,w)
  else: pp=player(s,w)
  labels=[]
