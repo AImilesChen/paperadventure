@@ -1,11 +1,13 @@
 """Check Dinosaur Home's route logic, printed pieces, handover and two paper sizes."""
 import hashlib
+from io import BytesIO
 import json
 import zipfile
 from itertools import permutations
 from pathlib import Path
 
 from pypdf import PdfReader
+import pypdfium2 as pdfium
 
 from audit_pdf_layout import audit
 
@@ -129,8 +131,16 @@ for paper, expected_width in [('A4', 595.2756), ('Letter', 612)]:
     assert camp_width - marker_width >= 12
     assert parking_width - token_width >= 20 and parking_height - token_height >= 20
 
-for number in (1, 2):
-    assert (ROOT / 'public/assets' / f'dinosaur-home-preview-{number}.jpg').stat().st_size > 20000
+pdf = pdfium.PdfDocument(str(PDF / 'dinosaur-home-player-1.0-A4.pdf'))
+try:
+    for page_number in (8, 10):
+        image = pdf[page_number - 1].render(scale=110 / 72).to_pil().convert('RGB')
+        preview = BytesIO()
+        image.save(preview, format='JPEG', quality=84)
+        assert image.width > 700 and image.height > 900
+        assert preview.tell() > 20000
+finally:
+    pdf.close()
 
 print('Dinosaur Home: shuffled tiles, visible road ports, camp finish, 16 cut props, distinct cover/finale art, 15/10 pages, A4/Letter geometry, hints, manifest, ZIPs and previews passed.')
 
