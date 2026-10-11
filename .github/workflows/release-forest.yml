@@ -37,3 +37,4 @@ jobs:
       - run: python scripts/build_forest_post_office.py
       - run: python scripts/check_forest_experience.py
       - run: node scripts/release_retail_packs.mjs
+      - run: node scripts/activate_forest_test.mjs

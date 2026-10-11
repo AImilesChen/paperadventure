@@ -1,1 +1,1 @@
-Release Forest Home paper post office edition: 16 Player and 10 Host Guide pages in A4 and Letter, 19 cut pieces, evidence-led P17 label repair, private neighbour interviews and signed delivery. Build from a clean checkout, update only forest/home PDF and preview slots, and preserve existing orders.
+Activate Forest Home paper post office v1.0 in Stripe test mode after verifying its 16 Player / 10 Host pages and four online PDF slots. Preserve existing forest/home orders and leave other settings unchanged.
