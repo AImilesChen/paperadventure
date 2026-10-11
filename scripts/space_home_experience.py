@@ -3,7 +3,7 @@ import math
 from reportlab.platypus import Flowable, Image, Spacer, Paragraph, Table, TableStyle
 import generate_celebration_samples as g
 from reportlab.lib.styles import ParagraphStyle
-from dinosaur_home_experience import p, head, steps, cardgrid
+from legacy_home_helpers import p, head, steps, cardgrid
 
 JOBS=['Commander','Navigator','Communicator','Verifier']
 SYMBOLS=['SUN','MOON','STAR','PATH','RING']

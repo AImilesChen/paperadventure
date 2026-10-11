@@ -4,7 +4,7 @@ import re
 from reportlab.platypus import Flowable, Image, Paragraph, Table, TableStyle, Spacer
 from reportlab.lib.styles import ParagraphStyle
 import generate_celebration_samples as g
-from dinosaur_home_experience import p, head, steps, cardgrid as base_cardgrid
+from legacy_home_helpers import p, head, steps, cardgrid as base_cardgrid
 from space_home_experience import symbol
 def steps(items):
  return [p(f'<b>{i+1}.</b> '+re.sub(r'\b(Postmaster|Routekeeper|Registrar|Inspector|Adult)\b',r'<b>\1</b>',t)) for i,t in enumerate(items)]
