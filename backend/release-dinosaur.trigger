@@ -1,1 +1,1 @@
-Release Dinosaur Home 1.0 after A4 preview check runs directly on generated PDF pages. Preserve H02 entitlements; 15 Player / 10 Guide pages and 16 pieces.
+Release Dinosaur Home 1.0 in one verified job; artifact quota blocks cross-job transfer. A4/Letter 15 Player / 10 Guide pages, 16 pieces. Preserve H02 orders.

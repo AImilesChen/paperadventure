@@ -9,50 +9,28 @@ concurrency:
   group: retail-game-release
   cancel-in-progress: false
 jobs:
-  build:
+  build-and-release:
     runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-      - run: python -m pip install reportlab pypdf pdfplumber pillow pypdfium2
-      - run: python scripts/generate_retail_packs.py
-      - run: python scripts/check_retail_packs.py
-      - run: python scripts/check_dinosaur_experience.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: retail-game-packs
-          path: |
-            output/pdf/*-1.0-*.pdf
-            output/pdf/*-complete-1.0.zip
-            output/pdf/retail-packs-1.0-manifest.json
-            output/pdf/retail-layout-audit.json
-  release:
-    needs: build
-    runs-on: ubuntu-latest
     env:
       RETAIL_SCOPE: 'dinosaur/home'
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      WRANGLER_CLI: ./node_modules/wrangler/bin/wrangler.js
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - run: python -m pip install pypdfium2 pillow
-      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
-      - uses: actions/download-artifact@v4
+      - uses: actions/setup-node@v7
         with:
-          name: retail-game-packs
-          path: output/pdf
+          node-version: '22'
+      - run: python -m pip install reportlab pypdf pdfplumber pillow pypdfium2
+      - run: npm install --no-save --package-lock=false wrangler@4.74.0
+      - run: python scripts/generate_retail_packs.py
+      - run: python scripts/check_retail_packs.py
+      - run: python scripts/check_dinosaur_experience.py
       - run: python scripts/build_retail_previews.py
       - run: node scripts/release_retail_packs.mjs
 
