@@ -84,15 +84,15 @@ export const themeDetailContent = {
   },
   forest: {
     home: {
-      hook: 'Repair a rain-blurred parcel label and complete Nori’s forest delivery.',
-      reasons: ['Five story openings lead into different hands-on postal tasks.', 'Share private clues, sort batches and connect route strips before repairing the address.', 'Complete a checked label and paper delivery to receive Nori’s receipt.'],
-      materials: ['Illustrated postmarks, route strips and Nori marker', 'Named private clues and illustrated parcel records', 'Whole forest address map and replacement label', 'Dispatch records, delivery board, four home cards and receipt'],
+      hook: 'Run Nori’s paper post office: sort rain-soaked mail, repair a parcel and deliver it with a signed receipt.',
+      reasons: ['Five connected postal jobs let children handle the same paper mail from intake to delivery.', 'Use mail evidence and a picture seal to rebuild P17’s label, then load a two-slot morning bag.', 'Ask three neighbours about their privately held answers before a checked, signed handover.'],
+      materials: ['Six illustrated cut mail pieces, an intake sorting desk and four rotating job cards', 'Four evidence clues, a faint carbon copy and a fillable replacement label', 'Two-slot mailbag board, handover slip, interview notes and three foldable private neighbour cards', 'Delivery and signature board, paper stamp and adult-held ending'],
       stages: [
-        ['Identify the batch', 'Inspect a drawn border, count stars and match the weekday.', 'The mail batch'],
-        ['Rebuild the route', 'Filter strips by batch, connect place names and move Nori.', 'The delivery district'],
-        ['Find the parcel', 'Share three private clues and inspect parcel drawings.', 'The surviving address fragment'],
-        ['Repair the address', 'Look up district and fragment on the map, then fill the label.', 'A complete repaired address'],
-        ['Check and deliver', 'Verify four fields and slide the labelled parcel to the matching home.', 'An accepted delivery and receipt'],
+        ['Sort the incoming mail', 'Apply seal and address rules to every piece at the intake desk.', 'P17 is held for label repair'],
+        ['Repair P17’s label', 'Use letter A, P17’s picture seal and three parcel clues; check deductions against a faint carbon copy.', 'A readable label with recipient still unknown'],
+        ['Load the morning mailbag', 'Reuse the sorted pieces and load only Blue Tree morning mail, priority first.', 'A two-item handover slip'],
+        ['Interview the neighbours', 'Keep each actor’s answers private while the courier asks about mail type, ID and seal.', 'A confirmed household'],
+        ['Deliver and sign', 'Check parcel, label and bag slip, then complete a fictional signature and paper stamp.', 'A witnessed delivery and Nori’s ending'],
       ],
     },
     classroom: {

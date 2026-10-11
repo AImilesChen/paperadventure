@@ -148,7 +148,7 @@ def build(s,paper,size):
   import space_home_control_room as space
   pp=space.player(s,w)
  elif s['id']=='forest' and s['setting']=='home':
-  import forest_home_experience as forest
+  import forest_post_office as forest
   pp=forest.player(s,w)
  elif s['id']=='halloween' and s['setting']=='home':
   import halloween_home_experience as halloween

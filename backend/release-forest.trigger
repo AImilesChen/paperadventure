@@ -1,1 +1,1 @@
-Release Forest Home story-first edition: 23 Player and 17 Guide pages, larger reading type, five separate story scenes and short action pages, dialogue, checked-result transitions, print inventory and remapped references. Preserve existing orders and prop geometry.
+Release Forest Home paper post office edition: 16 Player and 10 Host Guide pages in A4 and Letter, 19 cut pieces, evidence-led P17 label repair, private neighbour interviews and signed delivery. Update only forest/home PDF and preview slots; preserve existing orders.
