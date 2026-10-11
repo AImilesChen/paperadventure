@@ -110,15 +110,15 @@ export const themeDetailContent = {
   },
   halloween: {
     home: {
-      hook: 'Recover four paper seals for a friendly pumpkin-festival story.',
-      reasons: ['A gentle mystery begins every mission with Pip’s story and a team discussion.', 'Players join route pieces, share separate parcel clues and translate a picture message.', 'Four earned seals restore a printed pumpkin picture, with no candle or real lock.'],
-      materials: ['Four job cards, team record and illustrated letter choices', 'Five route strips, six-place festival board and Pip marker', 'Three helper clues, four illustrated parcels, picture message and decoder cards', 'Four fillable seals, pumpkin board, number check cards and a folding bright-face reveal'],
+      hook: 'A cooperative paper theatre: children discover the cast, make shadows, solve their stage places and reveal Pip’s glowing paper lantern.',
+      reasons: ['Each mission starts with a short scene and produces something used later in the show.', 'The main actions are observing, folding, speaking clues, staging and performing rather than collecting a number code.', 'The four-window lantern reveal uses printed paper only; no real flame, lamp or special toy is needed.'],
+      materials: ['Four rotating job cards, team record, eight-poster scene and cut-out viewer', 'Four fold-and-cut paper shadows, four private stage memories and rehearsal mat', 'A hinged four-window theatre and four clue-only cue cards', 'Adult-held lantern finale and a step-by-step Host Guide with read-aloud scripts'],
       stages: [
-        ['Find Pip’s letter', 'Match the animal, stars and postmark on one illustrated letter.', 'A starting place and SUN seal'],
-        ['Repair the festival route', 'Join shuffled strips, test both branches and move Pip to the parcel table.', 'A parcel batch and MOON seal'],
-        ['Find the parcel', 'Share three helper clues and match all of them to one parcel.', 'A decoder letter and HAT seal'],
-        ['Translate the picture message', 'Use the matching decoder for all four pictures, from left to right.', 'A STAR seal and the installation order'],
-        ['Restore the paper pumpkin', 'Arrange all four seals, check their numbers and show two earlier clues.', 'An adult-held bright pumpkin reveal and team keepsake'],
+        ['Spot the torn posters', 'Use the paper viewer to find which four of eight posters share three zigzag tears.', 'Four actors to make'],
+        ['Make paper shadows', 'Fold and cut the bat, owl, pumpkin and star templates with adult help.', 'Four reusable stage figures'],
+        ['Arrange the stage together', 'Share four private spoken clues and place the figures on a two-by-two mat.', 'One complete stage arrangement'],
+        ['Rehearse the windows', 'Match four spoken character clues to the stage places and lift the hinged windows.', 'A coordinated paper-theatre rehearsal'],
+        ['Perform the festival ending', 'Follow a new story order and open all four windows over Pip’s held-back lantern scene.', 'One glowing pumpkin picture'],
       ],
     },
     classroom: {

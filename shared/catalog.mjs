@@ -43,7 +43,7 @@ export const themeStories = Object.freeze({
     classroom: { code: 'C04', title: 'The Forest Postal Investigators', goal: 'Build a group evidence trail for a wrongly sorted paper parcel.', beats: ['Check the mail batch', 'Order the records', 'Combine role clues', 'Match the map', 'Write the evidence'] },
   },
   halloween: {
-    home: { code: 'H05', title: 'The Missing Pumpkin Light', goal: 'Recover four paper seals to relight a friendly story-world pumpkin.', beats: ['Meet the messenger', 'Repair the festival map', 'Find the right parcel', 'Decode the reply', 'Arrange four seals'] },
+    home: { code: 'H05', title: 'The Missing Pumpkin Light', goal: 'Make paper shadows, solve the stage places and reveal Pip’s glowing pumpkin lantern.', beats: ['Spot the torn posters', 'Make four paper shadows', 'Arrange the stage together', 'Rehearse four paper windows', 'Perform the festival ending'] },
     classroom: { code: 'C05', title: 'The Autumn Festival Crew', goal: 'Each group prepares a friendly paper festival and checks its opening plan.', image: '/assets/autumn-classroom-v0.1.jpg', imageCaption: 'Neutral autumn classroom concept; see the Player Pack and adult guide for the printable materials.', alternateWording: { title: 'The Pumpkin Festival Crew', note: 'A teacher-selected Halloween wording has the same puzzles and answers.' }, beats: ['Find the invitation', 'Repair the festival map', 'Share decoration clues', 'Read the plan', 'Complete the opening'] },
   },
   christmas: {
