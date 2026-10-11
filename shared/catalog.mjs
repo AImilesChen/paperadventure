@@ -31,7 +31,7 @@ export const themeStories = Object.freeze({
     classroom: { code: 'C01', title: 'The Adventure Club\'s First Badge', goal: 'Each group earns a paper badge by solving an invitation and sharing role clues.', image: '/assets/celebration-classroom-v0.1.jpg', imageCaption: 'Adventure Club classroom concept; download the Player Pack and adult guide for the printable materials.', beats: ['Find the invitation', 'Trace the team route', 'Share equipment clues', 'Arrange badge pieces', 'Complete the badge'] },
   },
   dinosaur: {
-    home: { code: 'H02', title: 'The Little Dinosaur\'s Way Home', goal: 'Help a friendly dinosaur follow paper clues back to the correct camp.', beats: ['Match footprints', 'Repair the map', 'Share supply clues', 'Read the signposts', 'Find the camp'] },
+    home: { code: 'H02', title: 'The Little Dinosaur\'s Way Home', goal: 'Build a paper landscape and guide Milo around a rain-closed bridge to camp.', beats: ['Read trail marks', 'Build the map', 'Pack two supplies', 'Follow a safe detour', 'Bring Milo home'] },
     classroom: { code: 'C02', title: 'The Dinosaur Research Station Mix-up', goal: 'Sort the station\'s mixed-up records and explain the route with evidence.', beats: ['Sort observation cards', 'Match footprints', 'Combine location clues', 'Order the time strips', 'Submit a conclusion'] },
   },
   space: {

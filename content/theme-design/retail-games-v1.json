@@ -4,298 +4,190 @@
     "setting": "home",
     "title": "The Little Dinosaur's Way Home",
     "cover": "public/assets/dinosaur.png",
-    "opening": "Milo and the camp guide have lost their paper route. Nobody is in danger. Your explorer team must compare footprints, repair a map, choose a paper supply pack and find the welcoming camp. Every piece you need is printed in this pack.",
-    "ending": "Milo waves from Camp A. Your SUN trail reached PINE SIGN; the supply pack gave code 4; the signpost led EAST to a ROUND gate. You checked the clues together and helped Milo find the right camp. Welcome home, explorers!",
+    "opening": "Follow Milo's prints, rebuild a shuffled six-tile map by matching paths, pack two supplies for uncertain weather, and move him around a closed bridge to the separate camp finish area.",
+    "ending": "Milo reaches the camp finish area by the safe detour: SUN, FERN, FORD and TUNNEL. The team proves its route with the BLOCK marker, BOOTS at the ford, LANTERN at the tunnel and a completed arrival record.",
     "stages": [
       {
-        "title": "Find Milo's footprint",
-        "story": "Milo has THREE toes, a ROUND heel and ONE notch on the RIGHT edge. Match all three features. The route start belongs to the matching footprint.",
+        "title": "Read the trail marks",
+        "story": "Circle three matching printed tracks and read SUN.",
+        "answer": "Tracks 1, 3 and 5 spell SUN",
         "heads": [
-          "Print",
+          "Track",
           "Toes",
           "Heel",
-          "Right notch",
-          "Start"
+          "Notch"
         ],
         "rows": [
           [
-            "A",
+            "1/S",
             "3",
             "ROUND",
-            "ONE",
+            "RIGHT"
+          ],
+          [
+            "2/O",
+            "2",
+            "ROUND",
+            "RIGHT"
+          ],
+          [
+            "3/U",
+            "3",
+            "ROUND",
+            "RIGHT"
+          ],
+          [
+            "4/A",
+            "3",
+            "POINT",
+            "RIGHT"
+          ],
+          [
+            "5/N",
+            "3",
+            "ROUND",
+            "RIGHT"
+          ],
+          [
+            "6/R",
+            "3",
+            "ROUND",
+            "NONE"
+          ]
+        ],
+        "hints": [
+          "Count toes.",
+          "Check heel and notch.",
+          "Circle 1, 3 and 5."
+        ]
+      },
+      {
+        "title": "Rebuild the expedition map",
+        "story": "Fit six shuffled landscape tiles to the board by matching printed path ends; the board's separate CAMP area is beyond C2.",
+        "answer": "Top SUN FERN BRIDGE; bottom HOLLOW FORD TUNNEL",
+        "heads": [
+          "Slot",
+          "Tile"
+        ],
+        "rows": [
+          [
+            "A1",
             "SUN"
           ],
           [
-            "B",
-            "3",
-            "POINTED",
-            "ONE",
-            "MOON"
-          ],
-          [
-            "C",
-            "2",
-            "ROUND",
-            "ONE",
-            "STAR"
-          ],
-          [
-            "D",
-            "3",
-            "ROUND",
-            "NONE",
-            "RAIN"
-          ]
-        ],
-        "answer": "Print A; SUN",
-        "handoff": "SUN",
-        "hints": [
-          "Count the toes first.",
-          "Check heel and right notch as well.",
-          "Print A matches all three; take SUN."
-        ],
-        "role_cards": [],
-        "prompts": [
-          "Our choice",
-          "Outgoing discovery"
-        ],
-        "next": "Use the recorded discovery on the next mission.",
-        "why": "Compare the stated conditions with Print A; SUN. Each required field must match; a candidate with one wrong field is rejected."
-      },
-      {
-        "title": "Repair the trail map",
-        "story": "Begin at your previous route start. Join each strip's TO place to the next strip's FROM place. The correct trail must end at a SIGN. Lay the route on the table; keep rejected strips beside it.",
-        "heads": [
-          "Strip",
-          "From",
-          "To"
-        ],
-        "rows": [
-          [
-            "D",
-            "SUN",
-            "CAVE"
-          ],
-          [
-            "B",
-            "FERN",
-            "RIVER"
-          ],
-          [
-            "E",
-            "CAVE",
-            "ROCK"
-          ],
-          [
-            "C",
-            "RIVER",
-            "PINE SIGN"
-          ],
-          [
-            "A",
-            "SUN",
+            "B1",
             "FERN"
+          ],
+          [
+            "C1",
+            "BRIDGE"
+          ],
+          [
+            "A2",
+            "HOLLOW"
+          ],
+          [
+            "B2",
+            "FORD"
+          ],
+          [
+            "C2",
+            "TUNNEL"
           ]
         ],
-        "answer": "A-B-C: SUN-FERN-RIVER-PINE SIGN",
-        "handoff": "PINE SIGN",
         "hints": [
-          "Find both strips starting at SUN.",
-          "Only one branch can end at a sign; CAVE ends at ROCK.",
-          "A-B-C leads to PINE SIGN."
-        ],
-        "role_cards": [],
-        "prompts": [
-          "Our choice",
-          "Outgoing discovery"
-        ],
-        "next": "Use the recorded discovery on the next mission.",
-        "why": "Compare the stated conditions with A-B-C: SUN-FERN-RIVER-PINE SIGN. Each required field must match; a candidate with one wrong field is rejected."
+          "Find NORTH.",
+          "Put SUN top-left and FERN east.",
+          "Top SUN FERN BRIDGE; bottom HOLLOW FORD TUNNEL."
+        ]
       },
       {
-        "title": "Choose the paper supplies",
-        "story": "Combine THREE explorer notes: use the sign from your route, exactly TWO straps, and a TRIANGLE tag. PINE SIGN is shortened to PINE on the pack cards. Choose the same card satisfying every clue. These are paper records, not real bags.",
+        "title": "Pack for the possible detour",
+        "story": "A storm may close the short bridge route. Two backpack slots must cover wet stones and darkness on the safe alternative.",
+        "answer": "BOOTS + LANTERN",
         "heads": [
-          "Pack",
-          "Sign",
-          "Straps",
-          "Tag",
-          "Code"
+          "Supply",
+          "Use"
         ],
         "rows": [
           [
-            "A",
-            "PINE",
-            "1",
-            "TRIANGLE",
-            "2"
+            "BOOTS",
+            "FORD"
           ],
           [
-            "B",
-            "PINE",
-            "2",
-            "TRIANGLE",
-            "4"
+            "LANTERN",
+            "TUNNEL"
           ],
           [
-            "C",
-            "PINE",
-            "2",
-            "CIRCLE",
-            "5"
+            "ROPE",
+            "OPEN BRIDGE ONLY"
           ],
           [
-            "D",
-            "ROCK",
-            "2",
-            "TRIANGLE",
-            "3"
+            "SNACK",
+            "NO OBSTACLE"
           ]
         ],
-        "answer": "Pack B; code 4",
-        "handoff": "PINE + 4",
         "hints": [
-          "Share all three notes.",
-          "Reject one wrong feature at a time.",
-          "Pack B matches PINE, two straps and triangle; code 4."
-        ],
-        "role_cards": [
-          [
-            "Guide",
-            "Use the sign from the repaired trail. PINE SIGN means PINE."
-          ],
-          [
-            "Milo",
-            "The pack must have exactly TWO straps."
-          ],
-          [
-            "Scout",
-            "The pack must have a TRIANGLE tag."
-          ]
-        ],
-        "prompts": [
-          "Our choice",
-          "Outgoing discovery"
-        ],
-        "next": "Use the recorded discovery on the next mission.",
-        "why": "Compare the stated conditions with Pack B; code 4. Each required field must match; a candidate with one wrong field is rejected."
+          "Read FORD.",
+          "Read TUNNEL.",
+          "Pack BOOTS and LANTERN."
+        ]
       },
       {
-        "title": "Build the signpost",
-        "story": "Take BOTH inputs from your record: the sign and the pack code. Only one row matches both. Reader checks the sign, Investigator checks the code, Recorder writes the turn and gate, Checker rejects another row. Say the turn and draw the gate shape on your record. No one leaves the table.",
+        "title": "Follow the changed route",
+        "story": "After the storm, place BLOCK on BRIDGE. Move MILO along matching printed paths and leave used supplies at the obstacles.",
+        "answer": "SUN > FERN > FORD > TUNNEL > CAMP",
         "heads": [
-          "Row",
-          "Sign",
-          "Code",
-          "Turn",
-          "Gate"
+          "Tile",
+          "Status"
         ],
         "rows": [
           [
-            "A",
-            "PINE",
-            "2",
-            "NORTH",
-            "SQUARE"
+            "BRIDGE",
+            "CLOSED"
           ],
           [
-            "B",
-            "PINE",
-            "4",
-            "EAST",
-            "ROUND"
+            "FORD",
+            "BOOTS"
           ],
           [
-            "C",
-            "PINE",
-            "5",
-            "WEST",
-            "ROUND"
-          ],
-          [
-            "D",
-            "ROCK",
-            "4",
-            "SOUTH",
-            "TRIANGLE"
+            "TUNNEL",
+            "LANTERN"
           ]
         ],
-        "answer": "Row B; EAST / ROUND",
-        "handoff": "EAST / ROUND",
         "hints": [
-          "You need two inputs.",
-          "PINE alone leaves three rows; also match 4.",
-          "PINE + 4 gives EAST / ROUND."
-        ],
-        "role_cards": [],
-        "prompts": [
-          "Our choice",
-          "Outgoing discovery"
-        ],
-        "next": "Use the recorded discovery on the next mission.",
-        "why": "Compare the stated conditions with Row B; EAST / ROUND. Each required field must match; a candidate with one wrong field is rejected."
+          "Block BRIDGE.",
+          "Return to FERN.",
+          "Go through FORD and TUNNEL."
+        ]
       },
       {
-        "title": "Find the welcoming camp",
-        "story": "Compare ALL FOUR discoveries: start, sign, turn and gate. Choose the camp matching every field. Each player checks a field; explain TWO earlier clues to your host. PINE SIGN means PINE.",
+        "title": "Bring Milo home",
+        "story": "Move Milo into the separate CAMP finish area and fill an arrival proof from the blocked crossing, route and two used supplies.",
+        "answer": "Milo reaches CAMP by the safe detour",
         "heads": [
-          "Camp",
-          "Start",
-          "Sign",
-          "Turn",
-          "Gate"
+          "Proof",
+          "Result"
         ],
         "rows": [
           [
-            "A",
-            "SUN",
-            "PINE",
-            "EAST",
-            "ROUND"
+            "Route",
+            "SUN-FERN-FORD-TUNNEL-CAMP"
           ],
           [
-            "B",
-            "SUN",
-            "PINE",
-            "EAST",
-            "SQUARE"
+            "Used at FORD",
+            "BOOTS"
           ],
           [
-            "C",
-            "SUN",
-            "ROCK",
-            "EAST",
-            "ROUND"
-          ],
-          [
-            "D",
-            "MOON",
-            "PINE",
-            "EAST",
-            "ROUND"
-          ],
-          [
-            "E",
-            "SUN",
-            "PINE",
-            "WEST",
-            "ROUND"
+            "Used at TUNNEL",
+            "LANTERN"
           ]
         ],
-        "answer": "Camp A",
-        "handoff": "Camp A",
         "hints": [
-          "Read the four discoveries aloud.",
-          "One wrong field rules out a camp.",
-          "Camp A matches SUN, PINE, EAST and ROUND."
-        ],
-        "role_cards": [],
-        "prompts": [
-          "Our choice",
-          "Outgoing discovery"
-        ],
-        "next": "Use the recorded discovery on the next mission.",
-        "why": "Compare the stated conditions with Camp A. Each required field must match; a candidate with one wrong field is rejected."
+          "Move to CAMP.",
+          "Show two tokens.",
+          "BOOTS at FORD; LANTERN at TUNNEL."
+        ]
       }
     ]
   },

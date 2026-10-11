@@ -32,15 +32,15 @@ export const themeDetailContent = {
   },
   dinosaur: {
     home: {
-      hook: 'Help a little dinosaur find the correct camp by following paper clues.',
-      reasons: ['Footprint shapes and labels make the first clue something children can inspect.', 'A six-place, unconnected map lets players draw the route themselves.', 'Supply cards and signposts feed into one final camp choice.'],
-      materials: ['Observation and footprint cards', 'Shuffled route strips and a six-place paper map', 'Shared supply clues, supply choices and signpost table', 'Camp choices and final answer space'],
+      hook: 'Build Milo’s landscape, pack for a possible detour, then move him around a rain-closed bridge to camp.',
+      reasons: ['Children fit six shuffled landscape tiles by matching printed paths, then move Milo to a separate camp finish area.', 'A two-slot backpack makes the printed supplies matter when the weather changes.', 'A storm changes the plan: players block a crossing, test a safe detour and complete an arrival proof.'],
+      materials: ['Six cut landscape tiles with matching paths and a whole-page map board with CAMP finish area', 'Six illustrated trail marks and four rotating explorer jobs', 'Two-slot backpack mat and four cut supply tokens', 'Storm notice, BLOCK and MILO markers, journey record, arrival proof and held-back welcome'],
       stages: [
-        ['Match footprints', 'Compare printed toe, heel and notch features.', 'The route’s starting place'],
-        ['Repair the map', 'Use connected route strips to draw a path between labelled places.', 'A signpost checkpoint'],
-        ['Share supply clues', 'Combine the players’ separate conditions to choose a supply card.', 'A checkpoint code'],
-        ['Read the signposts', 'Use the printed table and the earlier code to narrow the entrance.', 'The final entrance clue'],
-        ['Find the camp', 'Check the footprint, route and entrance against the candidate camp cards.', 'A paper welcome reply'],
+        ['Read the trail marks', 'Circle the three tracks that fit Milo’s print and read their start letters.', 'The SUN trailhead'],
+        ['Rebuild the expedition map', 'Fit shuffled landscape tiles into the board by matching printed path ends.', 'Two possible paths toward camp'],
+        ['Pack for the possible detour', 'Select two of four printed supplies for a route that still works if the weather changes.', 'A packed expedition kit'],
+        ['Follow the changed route', 'Block a crossing after the storm, move Milo through another route and use the supplies.', 'A safe paper detour'],
+        ['Bring Milo home', 'Move Milo into CAMP and complete an arrival proof from the route and used supplies.', 'A read-aloud welcome'],
       ],
     },
     classroom: {

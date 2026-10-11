@@ -1,1 +1,1 @@
-Release illustrated Dinosaur Home experience with 17 Player pages, 12 Guide pages and 32 cut pieces per team.
+Release Dinosaur Home 1.0 map expedition: 15 Player pages, 10 Host Guide pages and 16 cut pieces in A4 and Letter. Preserve H02 order entitlements.
