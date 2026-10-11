@@ -1135,325 +1135,91 @@
     "id": "christmas",
     "setting": "home",
     "title": "The Christmas Delivery Office",
-    "opening": "The story delivery office has mixed up its last paper list. Match pretend gift cards with story destinations and find the final thank-you note. No one needs to buy, exchange or wrap a real gift.",
-    "ending": "After players select Delivery Card A and explain two clues, read: 'The messenger finished the paper route. Every story friend has a matching picture card. Thank you for checking the list together.' Any family reward is an adult's optional separate choice.",
+    "opening": "A winter gust has stopped the star press. Fold three paper gifts, share wrapping clues, check each design and build a winter village display. No real gift or delivery is needed.",
+    "ending": "When the three decorated gifts and star press stand in the village display, the host shares Owl, Fox and Rabbit's printed reply.",
     "cover": "public/assets/christmas.png",
+    "mechanic": "folded paper gift workshop with split-information drawing and physical quality check",
     "stages": [
       {
-        "title": "Choose the right list",
-        "story": "The task label has a SNOWFLAKE frame, TWO round dots and a STAR print. Match every property.",
-        "heads": [
-          "Card",
-          "Frame",
-          "Dots",
-          "Print",
-          "Batch"
+        "title": "Open the star press",
+        "story": "The paper star press has collapsed in a winter gust. The crew folds it into a free-standing workbench sign.",
+        "props": [
+          "foldable star press"
         ],
-        "rows": [
-          [
-            "A",
-            "Snowflake",
-            "2",
-            "Star",
-            "B3"
-          ],
-          [
-            "B",
-            "Snowflake",
-            "1",
-            "Star",
-            "B2"
-          ],
-          [
-            "C",
-            "Leaf",
-            "2",
-            "Star",
-            "B4"
-          ],
-          [
-            "D",
-            "Snowflake",
-            "2",
-            "Moon",
-            "B5"
-          ]
-        ],
-        "answer": "Card A; B3",
-        "handoff": "B3",
-        "used": "Gift-card batch filter",
-        "prompts": [
-          "Matching label",
-          "Batch mark"
-        ],
-        "next": "Use only gift cards from the chosen batch.",
-        "hints": [
-          "Check frame, dots and print.",
-          "All three details must match together.",
-          "Card A; give B3."
-        ],
-        "card_note": "Compare frame picture, dot count and print picture together. Every visual clue is repeated in the label; no colour is needed.",
-        "why": "Compare the stated conditions with Card A; B3. Each required field must match; a candidate with one wrong field is rejected."
-      },
-      {
-        "title": "Match the picture gifts",
-        "story": "Use only your batch. Owl wants the ROUND picture at OWL WINDOW; Fox wants the SQUARE picture at FOX DEN; Rabbit wants the TRIANGLE picture at RABBIT GATE. These are imaginary characters.",
-        "heads": [
-          "Gift",
-          "Batch",
-          "Picture shape"
-        ],
-        "rows": [
-          [
-            "A",
-            "B3",
-            "Round"
-          ],
-          [
-            "D",
-            "B2",
-            "Round"
-          ],
-          [
-            "C",
-            "B3",
-            "Triangle"
-          ],
-          [
-            "B",
-            "B3",
-            "Square"
-          ]
-        ],
-        "answer": "A-Owl, B-Fox, C-Rabbit",
-        "handoff": "OWL / FOX / RABBIT places",
-        "used": "Three route stops",
-        "prompts": [
-          "Gift-to-place pairs",
-          "Three places"
-        ],
-        "next": "All three places must appear exactly once in the paper route.",
-        "hints": [
-          "First remove the wrong batch.",
-          "Match each shape to the stated character and place.",
-          "A-Owl, B-Fox, C-Rabbit; keep their places."
-        ],
-        "strip_cards": true,
-        "destinations": [
-          [
-            "OWL WINDOW",
-            "Round"
-          ],
-          [
-            "FOX DEN",
-            "Square"
-          ],
-          [
-            "RABBIT GATE",
-            "Triangle"
-          ]
-        ],
-        "why": "Compare the stated conditions with A-Owl, B-Fox, C-Rabbit. Each required field must match; a candidate with one wrong field is rejected.",
         "actions": [
-          "Read the batch from checkpoint 1. Remove gift cards belonging to a different batch.",
-          "Put the three destination cards across the table. Read each character's requested picture shape aloud.",
-          "Investigator places each remaining gift under the destination with its matching shape. Checker makes sure each gift and destination are used once.",
-          "Recorder writes all THREE gift-letter/character/place pairs. Keep the matched gifts accessible for the next route task."
+          "adult cuts outer edge",
+          "child folds coral centre line",
+          "show the upright five-point star with the centre fold as the top ridge"
         ],
-        "extra_props": [
-          [
-            "DESTINATION / OWL WINDOW",
-            "Requested shape: Round"
-          ],
-          [
-            "DESTINATION / FOX DEN",
-            "Requested shape: Square"
-          ],
-          [
-            "DESTINATION / RABBIT GATE",
-            "Requested shape: Triangle"
-          ]
-        ]
+        "answer": "upright star and correct ridge; thin paper may rest face-up",
+        "handoff": "the gift blanks can now be made"
       },
       {
-        "title": "Share the route conditions",
-        "story": "Use your gift-to-place pairs from Checkpoint 2. Guide: FOX DEN comes BEFORE OWL WINDOW. Clock: RABBIT GATE is LAST. Map: visit the three places once. Put the gift LETTERS in route order.",
-        "heads": [
-          "Route",
-          "First gift",
-          "Second gift",
-          "Last gift"
+        "title": "Make three paper gifts",
+        "story": "Three plain blanks marked A, B and C are waiting. The crew cuts, creases and opens them ready for decoration.",
+        "props": [
+          "A ARCH gift blank",
+          "B LONG gift blank",
+          "C ROUND gift blank"
         ],
-        "rows": [
-          [
-            "A",
-            "A",
-            "B",
-            "C"
-          ],
-          [
-            "B",
-            "B",
-            "A",
-            "C"
-          ],
-          [
-            "C",
-            "B",
-            "C",
-            "A"
-          ],
-          [
-            "D",
-            "C",
-            "B",
-            "A"
-          ]
-        ],
-        "answer": "Route B; FOX-OWL-RABBIT",
-        "handoff": "FOX-OWL-RABBIT / RABBIT GATE",
-        "used": "Last-stop paper envelope",
-        "prompts": [
-          "Matching route",
-          "Last story place"
-        ],
-        "next": "Only the last place has the coded paper thank-you note.",
-        "hints": [
-          "Use the three gift-to-place pairs first.",
-          "Rabbit's gift is last and Fox's gift comes before Owl's.",
-          "Route B: gifts B-A-C; give FOX-OWL-RABBIT."
-        ],
-        "role_cards": [
-          [
-            "Guide",
-            "FOX DEN comes BEFORE OWL WINDOW."
-          ],
-          [
-            "Clock",
-            "RABBIT GATE is LAST."
-          ],
-          [
-            "Map",
-            "Visit all three paper places exactly once."
-          ]
-        ],
-        "card_note": "The picture and printed labels show the same order. An adult may cut the four cards, or players can compare them on this page; read all role clues before choosing.",
-        "why": "Compare the stated conditions with Route B; FOX-OWL-RABBIT. Each required field must match; a candidate with one wrong field is rejected.",
         "actions": [
-          "Retrieve the three matched gift cards from your checkpoint 2 evidence pile. Read the three route clue cards aloud.",
-          "Investigator lays the gifts in a route satisfying BEFORE and LAST. Use each destination exactly once.",
-          "Checker compares that order with the printed route candidates and explains why another route fails.",
-          "Recorder writes gift LETTERS in route order and the last destination. Leave the matching pairs in the evidence area."
-        ]
+          "adult cuts three outer edges",
+          "children fold each centre line with the decorated front below the fold",
+          "check the front reads upright at the ridge, then open it flat"
+        ],
+        "answer": "three distinct folded blanks",
+        "handoff": "the messenger shares wrapping clues"
       },
       {
-        "title": "Read the final paper note",
-        "story": "Find the envelope for the LAST place on your route. Use the printed dictionary in order; the note is pretend and no one needs to go anywhere.",
-        "heads": [
-          "Envelope",
-          "Paper code",
-          "Note state"
+        "title": "Share the wrapping plan",
+        "story": "Three clue-holders each know one part of the design. The team combines their spoken information and draws onto the three gift fronts.",
+        "props": [
+          "recipient clue",
+          "ribbon clue",
+          "seal clue",
+          "whole-page drawing guide"
         ],
-        "rows": [
-          [
-            "FOX DEN",
-            "--",
-            "Blank"
-          ],
-          [
-            "RABBIT GATE",
-            "TREE / STAR / MOON",
-            "Coded"
-          ],
-          [
-            "OWL WINDOW",
-            "--",
-            "Blank"
-          ]
-        ],
-        "answer": "RABBIT GATE; GO!",
-        "handoff": "RABBIT GATE / GO!",
-        "used": "Final delivery record",
-        "prompts": [
-          "Last place",
-          "Decoded note"
-        ],
-        "next": "Use both last place and note on the final delivery card.",
-        "hints": [
-          "Choose the route's final place.",
-          "Replace TREE, STAR, MOON without sorting them.",
-          "RABBIT GATE; give GO!."
-        ],
-        "extra": "Dictionary: TREE = G / STAR = O / MOON = !",
-        "why": "Compare the stated conditions with RABBIT GATE; GO!. Each required field must match; a candidate with one wrong field is rejected.",
         "actions": [
-          "Read the LAST destination from the route you solved at checkpoint 3. Find the envelope addressed to that place.",
-          "Reader reads its code symbols from left to right. Investigator points to each symbol in the printed TREE/STAR/MOON dictionary.",
-          "Recorder writes one character for each symbol, keeping punctuation. Join the characters into the pretend message.",
-          "Checker verifies both the envelope destination and every dictionary lookup. Record the last place and the whole message."
-        ]
+          "read all three cards aloud",
+          "draw named icon on each front",
+          "draw ribbon and seal in specified positions"
+        ],
+        "answer": "A Owl star lamp vertical lower left; B Fox scarf horizontal upper right; C Rabbit bell diagonal lower centre",
+        "handoff": "the decorated gifts need a quality check"
       },
       {
-        "title": "Check the final delivery",
-        "story": "Compare batch, route order, last place and note. Circle the only card matching all four and tell your grown-up two reasons.",
-        "heads": [
-          "Card",
-          "Batch",
-          "Route",
-          "Last",
-          "Note"
+        "title": "Check and repair",
+        "story": "A gust tests the gifts. The crew slides a small inspection window across each flat front and corrects any feature that differs.",
+        "props": [
+          "cut-out quality frame",
+          "three clue cards",
+          "eraser"
         ],
-        "rows": [
-          [
-            "A",
-            "B3",
-            "FOX-OWL-RABBIT",
-            "RABBIT",
-            "GO!"
-          ],
-          [
-            "B",
-            "B3",
-            "OWL-FOX-RABBIT",
-            "RABBIT",
-            "GO!"
-          ],
-          [
-            "C",
-            "B2",
-            "FOX-OWL-RABBIT",
-            "RABBIT",
-            "GO!"
-          ],
-          [
-            "D",
-            "B3",
-            "FOX-OWL-RABBIT",
-            "FOX",
-            "GO!"
-          ],
-          [
-            "E",
-            "B3",
-            "FOX-OWL-RABBIT",
-            "RABBIT",
-            "NO!"
-          ]
+        "actions": [
+          "slide the small frame window over each mark on A then B then C",
+          "check icon ribbon and seal",
+          "erase and redraw only incorrect marks",
+          "fold each gift with its decorated front upright, or lay thin paper flat"
         ],
-        "answer": "Delivery Card A",
-        "handoff": "Host reads thank-you note",
-        "used": "Story conclusion",
-        "prompts": [
-          "Matching card",
-          "Two supporting facts"
+        "answer": "three fronts match all three clues, upright or laid flat if thin paper slips",
+        "handoff": "the village display is ready"
+      },
+      {
+        "title": "Build the village display",
+        "story": "The crew stands the gifts by the three winter friends and opens a printed thank-you reply.",
+        "props": [
+          "whole winter village display",
+          "three gifts",
+          "star press",
+          "adult-held reply"
         ],
-        "next": "The grown-up can read the paper thank-you note.",
-        "hints": [
-          "Use the full record sheet.",
-          "Each other card changes one field.",
-          "Card A; read the thank-you note."
+        "actions": [
+          "use the earlier WHO clue to match each gift to a friend",
+          "stand or lay the gifts at their friends and set the press beside them",
+          "host reads reply"
         ],
-        "why": "Compare the stated conditions with Delivery Card A. Each required field must match; a candidate with one wrong field is rejected."
+        "answer": "A with Owl, B with Fox and C with Rabbit; the press is beside them",
+        "handoff": "complete paper ending"
       }
     ]
   },

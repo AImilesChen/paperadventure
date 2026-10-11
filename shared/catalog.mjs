@@ -47,7 +47,7 @@ export const themeStories = Object.freeze({
     classroom: { code: 'C05', title: 'The Autumn Festival Crew', goal: 'Each group prepares a friendly paper festival and checks its opening plan.', image: '/assets/autumn-classroom-v0.1.jpg', imageCaption: 'Neutral autumn classroom concept; see the Player Pack and adult guide for the printable materials.', alternateWording: { title: 'The Pumpkin Festival Crew', note: 'A teacher-selected Halloween wording has the same puzzles and answers.' }, beats: ['Find the invitation', 'Repair the festival map', 'Share decoration clues', 'Read the plan', 'Complete the opening'] },
   },
   christmas: {
-    home: { code: 'H06', title: 'The Christmas Delivery Office', goal: 'Sort story gift cards and complete the final paper delivery.', beats: ['Check the labels', 'Match gift cards', 'Share route clues', 'Decode a note', 'Complete delivery'] },
+    home: { code: 'H06', title: 'The Christmas Delivery Office', goal: 'Fold three paper gifts, share a wrapping plan and build a winter village display.', beats: ['Open the star press', 'Make three gifts', 'Share wrapping clues', 'Check and repair', 'Build the village display'] },
     classroom: { code: 'C06', title: 'The Winter Gift Sorting Station', goal: 'Each group sorts pretend gifts and checks a paper departure plan.', image: '/assets/winter-classroom-v0.1.jpg', imageCaption: 'Neutral winter classroom concept; see the Player Pack and adult guide for the printable materials.', alternateWording: { title: 'The Christmas Gift Sorting Station', note: 'A teacher-selected Christmas wording has the same puzzles and answers.' }, beats: ['Check the batch', 'Match destinations', 'Combine sorting rules', 'Check the route', 'Finish the manifest'] },
   },
 });

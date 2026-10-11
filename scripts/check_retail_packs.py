@@ -19,14 +19,15 @@ for f in m['items']:
   compact_forest_guide=f['world']=='forest' and f['setting']=='home' and f['role']=='guide'
   compact_dinosaur_guide=f['world']=='dinosaur' and f['setting']=='home' and f['role']=='guide'
   compact_space_guide=f['world']=='space' and f['setting']=='home' and f['role']=='guide'
-  assert f['pages'] >= (10 if theatre_home and f['role']=='guide' else 10 if compact_dinosaur_guide or compact_space_guide or compact_forest_guide else 11 if story_led_home and f['role']=='guide' else 12)
+  assert f['pages'] >= (8 if f['world']=='christmas' and f['setting']=='home' and f['role']=='guide' else 10 if theatre_home and f['role']=='guide' else 10 if compact_dinosaur_guide or compact_space_guide or compact_forest_guide else 11 if story_led_home and f['role']=='guide' else 12)
   if f['role']=='guide' and (not os.getenv('RETAIL_SCOPE') or (f['world']=='halloween' and f['setting']=='home')):
    required=(['Print, cut and sort','Perform and keep the ending','READ, PLAY, VERIFY']
-             if theatre_home else ['Print, cut and stage','Hints for all five stations','Final check and reset']
+             if theatre_home else ['Print, cut and stage','READ, MAKE, CHECK','Help, finish and reset']
+             if f['world']=='christmas' and f['setting']=='home' else ['Print, cut and stage','Hints for all five stations','Final check and reset']
              if compact_forest_guide else ['Print, cut and sort','Hints and recovery','Restore contact and reset']
              if compact_space_guide else ['Print, cut and sort','Handover'])
-   if not compact_space_guide and not compact_forest_guide and not theatre_home:
-    required+=['READ, PLAY, VERIFY','Help without taking over'] if f['world']=='christmas' and f['setting']=='home' else ['Prepare and distribute','Hints without taking over']
+   if not compact_space_guide and not compact_forest_guide and not theatre_home and not (f['world']=='christmas' and f['setting']=='home'):
+    required+=['Prepare and distribute','Hints without taking over']
    assert all(v in t for v in required),path
  report=audit(path);assert not report['failures'],report;reports.append(report)
 for key in {(x['world'],x['setting'],x['paper']) for x in m['items']}:

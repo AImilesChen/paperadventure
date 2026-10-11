@@ -136,15 +136,15 @@ export const themeDetailContent = {
   },
   christmas: {
     home: {
-      hook: 'Finish one fictional holiday delivery by sorting paper gift cards.',
-      reasons: ['The puzzle uses illustrated gift and destination cards, not real presents.', 'Players combine delivery order and route clues.', 'A paper reply gives the story a warm ending without requiring purchases.'],
-      materials: ['Delivery batch and label cards', 'Paper gift and destination choices', 'Separate role clues, route rules and message dictionary', 'Final delivery record and recipient choices'],
+      hook: 'Become the last gift crew in a winter delivery office: fold, draw, check and display three pretend paper gifts.',
+      reasons: ['Five linked messenger scenes each put the story beside numbered actions.', 'Children fold a star press and three standing paper gifts, then combine three separate wrapping clues to draw each pattern.', 'A cut-out quality frame helps them check and repair their work before the adult reveals the story friends’ paper reply.'],
+      materials: ['One foldable star press and three standing paper gift blanks', 'Three separate wrapping clues and a whole-page icon drawing guide', 'One cut-out quality frame and a whole winter village display board', 'Four rotating job cards and an adult-held reply'],
       stages: [
-        ['Check the label', 'Compare batch symbols on paper delivery cards.', 'The list to repair'],
-        ['Match paper gifts', 'Pair illustrated cards with the printed destinations.', 'A provisional delivery list'],
-        ['Share route clues', 'Combine separate timing and route conditions.', 'The delivery order'],
-        ['Read the note', 'Use the supplied dictionary to decode the short message.', 'The final stop'],
-        ['Finish delivery', 'Check the list, order and stop together.', 'A paper thank-you reply'],
+        ['Open the star press', 'Cut and fold one paper station piece until it stands on the table.', 'A working star press'],
+        ['Make three gifts', 'Cut and crease three different paper gift blanks, ready for their drawn patterns.', 'Three gift stands'],
+        ['Share wrapping clues', 'Combine three spoken cards to draw an icon, ribbon and seal on each gift.', 'Three decorated paper gifts'],
+        ['Check and repair', 'Slide the frame’s small window over each icon, ribbon and seal; erase and redraw an incorrect mark.', 'Three checked gifts'],
+        ['Build the village display', 'Use the shared clue to match each gift to a friend, then stand or lay it in the village for the held-back reply.', 'A paper keepsake scene'],
       ],
     },
     classroom: {
