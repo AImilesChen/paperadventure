@@ -2,11 +2,10 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 const manifest=JSON.parse(readFileSync('output/pdf/retail-packs-1.0-manifest.json','utf8'));
-if(manifest.items.length!==48) throw Error('Expected 12 complete four-file packs');
 if(process.env.RETAIL_SCOPE){
  manifest.items=manifest.items.filter(f=>f.world+'/'+f.setting===process.env.RETAIL_SCOPE);
  if(manifest.items.length!==4) throw Error('Scoped release must contain exactly four PDF slots');
-}
+} else if(manifest.items.length!==48) throw Error('Expected 12 complete four-file packs');
 const q=s=>"'"+String(s).replaceAll("'","''")+"'";
 const bucket='paper-adventure-stage-private';
 const cli=(args,options)=>process.env.WRANGLER_CLI ? execFileSync(process.execPath,[process.env.WRANGLER_CLI,...args],options) : execFileSync('npx',['--yes','wrangler@4.74.0',...args],options);

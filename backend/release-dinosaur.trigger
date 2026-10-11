@@ -1,1 +1,1 @@
-Release Dinosaur Home 1.0 in one verified job; artifact quota blocks cross-job transfer. A4/Letter 15 Player / 10 Guide pages, 16 pieces. Preserve H02 orders.
+Build and release only four Dinosaur Home PDFs; 15 Player / 10 Host pages in A4 and Letter, 16 cut pieces; preserve H02 orders.
