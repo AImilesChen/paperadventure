@@ -25,15 +25,15 @@ export const independentClassroomDetails = {
     ],
   } },
   library: { classroom: {
-    hook: 'A lost story ending can only be found after three readers combine their page clues.',
-    reasons: ['Shelf marks and page bundles create a reading-led mystery.', 'Event-order clues are held by separate readers and must be joined.', 'The finale asks for an ending supported by the recovered page, not a random twist.'],
-    materials: ['Index slip and shelf-symbol cards', 'Page-bundle ledger and three event cards', 'Final-page pocket index', 'Candidate ending cards and evidence trail'],
+    hook: 'Work as a reading crew: recover a book, reorder its loose leaves, compare three witness notes, copy a story route and write a missing final page.',
+    reasons: ['Pupils handle and read a complete short paper story instead of choosing five answers from cards.', 'Three separately dealt witness notes each add a different fact; the group must listen before it writes.', 'The crew makes a paper route copy, writes its own ending, and corrects a visitor’s mistaken summary using printed evidence.'],
+    materials: ['Stamped return slip, four marked book spines and a continuing crew record', 'Opening leaf with an original story map and four story leaves that may stay on their sheets', 'Three separately dealt private witness notes', 'Damaged final leaf with a four-stop route-copy strip and writing space, plus a visitor-correction page'],
     stages: [
-      ['Follow the index', 'Match the slip to a shelf mark.', 'A shelf code'],
-      ['Find the bundle', 'Use that shelf\'s ledger and page count.', 'The right paper bundle'],
-      ['Order the story', 'Combine three readers\' event rules.', 'A sequence'],
-      ['Find the last page', 'Look up that sequence in the pocket index.', 'A page location'],
-      ['Choose the ending', 'Compare endings with the recovered page.', 'A complete fictional story'],
+      ['Find the returned book', 'Compare both stamp marks on the return slip with four book spines.', 'The right book and its opening leaf'],
+      ['Rebuild the middle', 'Read four leaves, then write their letter order; adult cutting is optional.', 'An evidence-backed page order'],
+      ['Listen to witnesses', 'Share three private notes without showing the whole sheet.', 'A plan using all three facts'],
+      ['Restore the last page', 'Copy the original map’s four stops onto Kit’s route strip and write the missing action.', 'A paper route copy and crew-authored final leaf'],
+      ['Read to a visitor', 'Read the whole story, then correct the visitor’s mistaken map summary using printed evidence.', 'A checked and repaired paper story'],
     ],
   } },
   weather: { classroom: {
