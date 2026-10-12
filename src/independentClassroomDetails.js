@@ -49,7 +49,7 @@ export const independentClassroomDetails = {
     ],
   } },
   workshop: { classroom: {
-    hook: 'Pupils build and test a real foldable paper message path. No powered device is involved.',
+    hook: 'Build Mira’s display with paper and pencils, then show the crew’s message travelling through the channel.',
     reasons: ['Six rotating jobs give every pupil a clear contribution, with bundled jobs for smaller crews.', 'Three separate design notes must be shared before one message card can be drawn.', 'The crew physically slides trial cards, diagnoses fit and direction, then explains a possible repair.'],
     materials: ['Three blueprint fragments', 'Foldable channel and calibration card', 'Three separately dealt design notes and a blank message card', 'Three trial cards, test record and peer-check sheet'],
     stages: [
@@ -61,5 +61,6 @@ export const independentClassroomDetails = {
     ],
   } },
 };
+
 
 
