@@ -49,15 +49,15 @@ export const independentClassroomDetails = {
     ],
   } },
   workshop: { classroom: {
-    hook: 'A safe paper-only invention relay, with no real device to build or operate.',
-    reasons: ['Designer, Checker and Explainer must pool separate constraints.', 'Blueprint, kit and display order form one traceable design decision.', 'All gear and machine parts are fictional paper symbols.'],
-    materials: ['Marked design-code inventory slips', 'Blueprint frame drawings', 'Distributed constraint and paper-kit cards', 'Display-order strips and candidate boards'],
+    hook: 'Pupils build and test a real foldable paper message path. No powered device is involved.',
+    reasons: ['Six rotating jobs give every pupil a clear contribution, with bundled jobs for smaller crews.', 'Three separate design notes must be shared before one message card can be drawn.', 'The crew physically slides trial cards, diagnoses fit and direction, then explains a possible repair.'],
+    materials: ['Three blueprint fragments', 'Foldable channel and calibration card', 'Three separately dealt design notes and a blank message card', 'Three trial cards, test record and peer-check sheet'],
     stages: [
-      ['Find the code', 'Compare the gear mark and tab count.', 'A design code'],
-      ['Pick the drawing', 'Use that code\'s register to select a frame.', 'A frame letter'],
-      ['Share constraints', 'Combine three role cards to pick a paper kit.', 'A kit number'],
-      ['Order the display', 'Apply the kit\'s printed instruction rule.', 'A card sequence'],
-      ['Show the blueprint', 'Check code, frame, kit and order together.', 'A safe display board'],
+      ['Rebuild the blueprint', 'Match the three seam marks and mark the message path from START to DISPLAY.', 'An assembled plan with the clear lane width'],
+      ['Fold the paper channel', 'Fold the two outer rails up and slide a plain calibration card through without bending it.', 'A working paper path'],
+      ['Make the message card', 'Three note holders share separate requirements; the crew draws all marks on one blank card.', 'A crew-authored message'],
+      ['Test and repair', 'Predict and physically try three sample cards, record each fault, then test the crew card.', 'A documented fit-and-direction check'],
+      ['Demonstrate the relay', 'Run the finished card, explain a repair and have another pupil check the evidence.', 'A peer-checked paper invention'],
     ],
   } },
 };

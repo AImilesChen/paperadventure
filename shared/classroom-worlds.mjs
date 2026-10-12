@@ -38,13 +38,13 @@ export const independentClassroomWorlds = Object.freeze([
       beats: ['Sort the morning records', 'Calibrate the paper wind dial', 'Count covered sky panes', 'Read and repair the rain log', 'Write and peer-check the bulletin'] } },
   },
   {
-    id: 'workshop', title: "Inventors' Paper Workshop", kicker: 'Reassemble a pretend blueprint',
+    id: 'workshop', title: "Inventors' Paper Workshop", kicker: 'Build and test a paper message relay',
     image: '/assets/workshop-classroom-v0.1.webp', tag: 'Paper inventors',
     discoveryGroup: 'everyday',
     story: { classroom: { code: 'C11', title: 'The Great Blueprint Relay',
-      goal: 'Share design constraints, choose paper parts and explain a safe imaginary blueprint.',
+      goal: 'Rebuild a blueprint, fold a paper channel, make a message card from shared clues and test which designs travel to the display.',
       image: '/assets/workshop-classroom-v0.1.webp',
-      beats: ['Find the design code', 'Pick the blueprint sheet', 'Share constraint cards', 'Order the display cards', 'Complete the blueprint'] } },
+      beats: ['Rebuild the blueprint', 'Fold the paper channel', 'Share three design notes', 'Test and repair the message cards', 'Demonstrate and peer-check the relay'] } },
   },
 ].map(world => Object.freeze({
   ...world,
