@@ -37,7 +37,7 @@ export const independentClassroomDetails = {
     ],
   } },
   weather: { classroom: {
-    hook: 'Operate a paper observatory: align a wind dial, count four-pane sky views, read a rain gauge and correct a copied record.',
+    hook: 'Fictional printed observations, six rotating jobs and a report checked against the original paper tools.',
     reasons: ['Five missions ask pupils to sort, rotate, count, measure and author rather than repeatedly choose candidate cards.', 'All three instruments and their original observations are printed; a peer can check every bulletin entry.', 'The invented morning readings teach evidence checking without presenting a real-world forecast.'],
     materials: ['Five station time slips and a three-row observation board', 'Large compass base and three rotatable wind snapshots', 'Three patterned four-pane sky cards and a matching count board', 'Printed rain gauge, three equal-size level strips, miscopied notice and blank peer-checked bulletin'],
     stages: [
@@ -61,6 +61,7 @@ export const independentClassroomDetails = {
     ],
   } },
 };
+
 
 
 
