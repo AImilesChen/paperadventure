@@ -18,7 +18,7 @@ export const themeDetailContent = {
       ],
     },
     classroom: {
-      hook: 'A five-mission classroom welcome in which each crew makes and checks a paper display badge.',
+      hook: 'Rebuild the Club welcome, combine four separate clues and make a desk badge another crew can check.',
       reasons: ['Children rebuild an invitation and use its clues to place paper supplies on a welcome-table mat.', 'Four separate role cards make every badge feature depend on shared information.', 'The crew makes a foldable paper display badge, then the next crew checks it against the clues.'],
       materials: ['Four invitation fragments with matching edge marks and a welcome-table mat', 'Three paper supply tiles, four separate badge clues and a blank blueprint', 'Nine symbol squares, a foldable badge template and a peer-check card', 'Rotating job cards, team record and a step-by-step Teacher Guide'],
       stages: [
@@ -161,4 +161,5 @@ export const themeDetailContent = {
     },
   },
 };
+
 
