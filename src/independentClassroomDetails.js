@@ -13,7 +13,7 @@ export const independentClassroomDetails = {
     ],
   } },
   museum: { classroom: {
-    hook: 'Become a curatorial crew: handle paper evidence, rebuild an invented object, write its label and let a visitor challenge the display.',
+    hook: 'Three separately held observations guide the assembly; matching archive notes support the crew’s own visitor label.',
     reasons: ['Five missions use different actions: verification, spatial placement, collaborative assembly, original writing and peer review.', 'Three private conservation slips make each pupil’s observation matter before the paper model can be assembled.', 'The fictional Wind Listener avoids unsupported claims about real cultures or historical artifacts.'],
     materials: ['Marked accession tag, three ledger records and a gallery plan with three movable case signs', 'Six illustrated paper parts and three separately dealt conservation slips', 'Three archive notes with a distinct unrelated object, plus a blank visitor-label sheet', 'Flat exhibit mat, four-point visitor audit and separate Teacher Guide with scenes, answers and hints'],
     stages: [
@@ -61,6 +61,7 @@ export const independentClassroomDetails = {
     ],
   } },
 };
+
 
 
 
