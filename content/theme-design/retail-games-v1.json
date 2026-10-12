@@ -1227,198 +1227,45 @@
     "id": "ocean",
     "setting": "classroom",
     "title": "The Coral Chart Expedition",
-    "opening": "The research ship has five loose pages from a fictional survey. Work as a crew to rebuild the route and send the captain one checked report.",
-    "ending": "The captain thanks your crew. The repaired chart can guide the next pretend paper expedition.",
+    "source": "scripts/ocean_classroom_chart.py",
+    "opening": "A gust scatters the research ship's fictional chart. Rebuild it, combine crew observations, repair a copied log and write a checked captain's report.",
+    "ending": "The captain can trust the repaired chart because every observation and correction has printed evidence.",
     "cover": "public/assets/ocean-classroom-v0.1.webp",
     "stages": [
       {
-        "title": "Find the survey station",
-        "story": "The log says: choose the station with a BLUE flag and exactly THREE wave marks. Colour words and counts are both printed; do not rely on colour alone.",
-        "heads": [
-          "Option",
-          "Details"
-        ],
-        "rows": [
-          [
-            "1",
-            "Reef A | blue flag | two waves"
-          ],
-          [
-            "2",
-            "Reef B | blue flag | three waves"
-          ],
-          [
-            "3",
-            "Reef C | red flag | three waves"
-          ]
-        ],
-        "answer": "Reef B",
-        "handoff": "BLUE-3",
-        "used": "Next checkpoint",
-        "prompts": [
-          "Which station should the crew inspect?"
-        ],
-        "next": "Give the crew BLUE-3 and move to the chart.",
-        "hints": [
-          "Read both conditions in the log.",
-          "A station with only one matching condition is not enough.",
-          "Reef B has blue and three waves."
-        ],
-        "why": "Only Reef B has both the blue flag and three waves."
+        "title": "Repair the chart",
+        "story": "Fit four upright chart quarters using the north arrow and four paired edge marks.",
+        "answer": "A1 Kelp Bay; B1 Lighthouse; A2 Channel; B2 Coral Reef. Only check chart seams and orientation in this mission.",
+        "handoff": "assembled chart",
+        "why": "Only this placement matches every seam and the north arrow."
       },
       {
-        "title": "Locate the chart square",
-        "story": "Find your station code in this chart key: BLUE-2 = A1; BLUE-3 = C2; RED-3 = D4. Use the code from the log, not a guess from the drawing.",
-        "heads": [
-          "Option",
-          "Details"
-        ],
-        "rows": [
-          [
-            "1",
-            "A1 | shallow inlet"
-          ],
-          [
-            "2",
-            "C2 | coral observation square"
-          ],
-          [
-            "3",
-            "D4 | harbour gate"
-          ]
-        ],
-        "answer": "C2",
-        "handoff": "C2",
-        "used": "Next checkpoint",
-        "prompts": [
-          "Which square matches the log code?"
-        ],
-        "next": "Give the crew C2 and continue with the observation cards.",
-        "hints": [
-          "Keep the complete code from checkpoint 1.",
-          "Read the middle row of the key.",
-          "BLUE-3 points to C2."
-        ],
-        "why": "The key maps BLUE-3 to C2."
+        "title": "Find the survey square",
+        "story": "Frame the square south of Lighthouse and east of Channel.",
+        "answer": "B2",
+        "handoff": "framed B2",
+        "why": "Both independent reference movements meet at B2."
       },
       {
-        "title": "Compare the three observations",
-        "story": "At C2, the Navigator says the route must touch a buoy. The Observer says it must avoid the red marker. The Recorder says it must pass east of the square.",
-        "heads": [
-          "Option",
-          "Details"
-        ],
-        "rows": [
-          [
-            "1",
-            "North Passage | buoy | red marker | west"
-          ],
-          [
-            "2",
-            "East Passage | buoy | no red marker | east"
-          ],
-          [
-            "3",
-            "South Passage | no buoy | no red marker | east"
-          ]
-        ],
-        "answer": "East Passage",
-        "handoff": "EAST",
-        "used": "Next checkpoint",
-        "prompts": [
-          "Which passage satisfies all three crew notes?"
-        ],
-        "next": "Give the crew EAST; keep the role evidence for the final report.",
-        "hints": [
-          "Share all three role notes.",
-          "Cross out any passage with a red marker or no buoy.",
-          "East Passage satisfies all conditions."
-        ],
-        "why": "Only East Passage has a buoy, no red marker and an eastward position.",
-        "role_cards": [
-          [
-            "Navigator",
-            "At C2, the route must touch a buoy."
-          ],
-          [
-            "Observer",
-            "At C2, the route must avoid the red marker."
-          ],
-          [
-            "Recorder",
-            "At C2, the route must pass EAST of the square."
-          ]
-        ]
+        "title": "Plot the three observations",
+        "story": "Deal three separate crew observations and plot them on the B2 survey board.",
+        "answer": "three fish left; fan centre; striped buoy right",
+        "handoff": "marked survey",
+        "why": "A supplies the fish count; B supplies the fan centre and fish side; C supplies the buoy and its side. All three slips must be combined."
       },
       {
-        "title": "Order the record strips",
-        "story": "The EAST passage record says the Kelp note came first, the Reef note came after Kelp, and the Channel note came last.",
-        "heads": [
-          "Option",
-          "Details"
-        ],
-        "rows": [
-          [
-            "1",
-            "K | Kelp sample"
-          ],
-          [
-            "2",
-            "R | Reef drawing"
-          ],
-          [
-            "3",
-            "C | Channel depth"
-          ]
-        ],
-        "answer": "K-R-C",
-        "handoff": "K-R-C",
-        "used": "Next checkpoint",
-        "prompts": [
-          "What is the correct record order?"
-        ],
-        "next": "Give the crew K-R-C for the report.",
-        "hints": [
-          "Place the first and last strips before the middle.",
-          "K is first and C is last.",
-          "The remaining R sits between them."
-        ],
-        "why": "Kelp first, Reef next and Channel last makes K-R-C."
+        "title": "Repair the copied log",
+        "story": "Check each copied-log entry against the original slips and repair any error without a preannounced count.",
+        "answer": "three fish, not two; buoy right, not left",
+        "handoff": "corrected log",
+        "why": "Entry A is correct; B and C conflict with the original observations."
       },
       {
-        "title": "Send the captain's report",
-        "story": "A valid report must include the station code, chart square, passage and record order that your crew earned. Compare your written results with the three candidate reports.",
-        "heads": [
-          "Option",
-          "Details"
-        ],
-        "rows": [
-          [
-            "1",
-            "Report 1 | BLUE-3 / C2 / EAST / K-R-C"
-          ],
-          [
-            "2",
-            "Report 2 | BLUE-3 / D4 / EAST / K-R-C"
-          ],
-          [
-            "3",
-            "Report 3 | RED-3 / C2 / NORTH / R-K-C"
-          ]
-        ],
-        "answer": "Report 1",
-        "handoff": "REPORT-1",
-        "used": "Next checkpoint",
-        "prompts": [
-          "Which report is fully supported by your paper evidence?"
-        ],
-        "next": "Use Report 1 and read the ending.",
-        "hints": [
-          "Read the results in checkpoint order.",
-          "Check the square and passage before the final order.",
-          "All four results match Report 1."
-        ],
-        "why": "Report 1 is the only report consistent with all four earlier results."
+        "title": "Write the captain's report",
+        "story": "Author and check a new report from the chart, observations and corrected log.",
+        "answer": "B2; three fish left; fan centre; striped buoy right; two explained repairs",
+        "handoff": "crew-authored report",
+        "why": "Every report fact traces to a physical printed source."
       }
     ]
   },

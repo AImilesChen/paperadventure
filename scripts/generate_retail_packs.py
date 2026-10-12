@@ -140,6 +140,12 @@ def footer(c,d):
  w,h=d.pagesize;c.setFillColor(g.BLUE);c.rect(0,h-37,w,37,fill=1,stroke=0);c.setFillColor(g.NAVY);c.setFont('ArialBold',8);c.drawString(44,h-23,'PAPER ADVENTURE / '+d.game_id.upper()+' / '+d.setting.upper());c.setFont('Arial',8);c.drawString(44,28,f'{d.role.upper()} / Edition 1.0 / {d.paper}');c.drawRightString(w-44,28,f'Page {d.page}');c.setStrokeColor(g.LINE);c.line(44,42,w-44,42)
 
 def build(s,paper,size):
+ if s['id']=='celebration' and s['setting']=='classroom':
+  import celebration_classroom_badge as badge
+  return badge.build_paper(paper,size)
+ if s['id']=='ocean' and s['setting']=='classroom':
+  import ocean_classroom_chart as ocean
+  return ocean.build_paper(paper,size)
  w=size[0]-88
  if s['id']=='dinosaur' and s['setting']=='home':
   import dinosaur_home_experience as dino

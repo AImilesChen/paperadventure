@@ -1,15 +1,15 @@
 // Public editorial descriptions; exact answers remain in the private Teacher Guides.
 export const independentClassroomDetails = {
   ocean: { classroom: {
-    hook: 'A crew mystery on a fictional research ship, solved through a shared paper chart.',
-    reasons: ['Navigator, Observer and Recorder each contribute a different kind of evidence.', 'The route, observation cards and record order feed into one captain\'s report.', 'The game uses invented locations and needs no real marine-science knowledge.'],
-    materials: ['Survey log and marked station cards', 'Fictional chart key and passage notes', 'Distributed crew observations and record strips', 'Three candidate captain reports and group evidence sheet'],
+    hook: 'A hands-on chart expedition aboard a fictional research ship: assemble, observe, correct and report.',
+    reasons: ['Children physically assemble a chart, then use position clues to find the survey square.', 'Three privately held observations must be combined before the crew can mark its map.', 'The group repairs a copied log and authors its own report rather than picking a ready-made answer.'],
+    materials: ['Four chart quarters, matching seam marks and a whole-page chart board', 'A paper survey frame and two position references', 'Three separate observation slips and a plotting sheet', 'Copied log, correction space and a blank captain\'s report'],
     stages: [
-      ['Find the station', 'Match two printed marks on the ship\'s log.', 'A survey code'],
-      ['Read the chart', 'Use that code in the chart key.', 'A map square'],
-      ['Share crew notes', 'Combine three observations to select a passage.', 'The valid route'],
-      ['Order records', 'Place the paper survey strips using the route rule.', 'A record sequence'],
-      ['Send the report', 'Check all four prior results against candidate sheets.', 'A captain\'s checked report'],
+      ['Repair the chart', 'Fit four quarters by their north arrow and matching seam marks.', 'An assembled paper map'],
+      ['Find the survey square', 'Follow two position notes on the map and place the survey frame.', 'A marked survey square'],
+      ['Plot crew sightings', 'Combine three separate observations to work out the count and positions before drawing.', 'A completed survey drawing'],
+      ['Correct the copied log', 'Check every copied line against the original observations and repair what does not match.', 'An evidence-backed log'],
+      ['Write the report', 'Create and check a captain\'s report from the real map and log.', 'A crew-authored report'],
     ],
   } },
   museum: { classroom: {

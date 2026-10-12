@@ -2,13 +2,13 @@
 // independently from the former C02-C06 classroom test drafts.
 export const independentClassroomWorlds = Object.freeze([
   {
-    id: 'ocean', title: 'Ocean Research Ship', kicker: 'Repair a fictional coral survey',
-    image: '/assets/ocean-classroom-v0.1.webp', tag: 'Crew investigation',
+    id: 'ocean', title: 'Ocean Research Ship', kicker: 'Rebuild a paper coral chart',
+    image: '/assets/ocean-classroom-v0.1.webp', tag: 'Chart-making crew',
     discoveryGroup: 'everyday',
     story: { classroom: { code: 'C07', title: 'The Coral Chart Expedition',
-      goal: 'Work as a research crew to rebuild the ship\'s chart and send one checked report.',
+      goal: 'Assemble a paper sea chart, share three crew sightings, correct its log and write the captain\'s report.',
       image: '/assets/ocean-classroom-v0.1.webp',
-      beats: ['Find the survey station', 'Locate the chart square', 'Compare crew observations', 'Order the record strips', 'Send the captain\'s report'] } },
+      beats: ['Repair four chart quarters', 'Find the survey square', 'Plot three private sightings', 'Correct the copied log', 'Write the captain\'s report'] } },
   },
   {
     id: 'museum', title: 'Museum of Curious Objects', kicker: 'Restore a mixed-up exhibition',
