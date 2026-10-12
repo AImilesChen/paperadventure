@@ -1,7 +1,7 @@
 // Public editorial descriptions; exact answers remain in the private Teacher Guides.
 export const independentClassroomDetails = {
   ocean: { classroom: {
-    hook: 'A hands-on chart expedition aboard a fictional research ship: assemble, observe, correct and report.',
+    hook: 'Work around a table with paper pieces, pencils and your teacher’s story scenes.',
     reasons: ['Children physically assemble a chart, then use position clues to find the survey square.', 'Three privately held observations must be combined before the crew can mark its map.', 'The group repairs a copied log and authors its own report rather than picking a ready-made answer.'],
     materials: ['Four chart quarters, matching seam marks and a whole-page chart board', 'A paper survey frame and two position references', 'Three separate observation slips and a plotting sheet', 'Copied log, correction space and a blank captain\'s report'],
     stages: [
@@ -61,4 +61,5 @@ export const independentClassroomDetails = {
     ],
   } },
 };
+
 
