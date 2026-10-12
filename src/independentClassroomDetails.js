@@ -37,15 +37,15 @@ export const independentClassroomDetails = {
     ],
   } },
   weather: { classroom: {
-    hook: 'Three symbol teams rebuild a fictional bulletin from printed observations.',
-    reasons: ['Cloud, Wind and Rain readers each hold one necessary clue.', 'Every answer comes from a printed key; it is not a real forecast.', 'The final bulletin must preserve the evidence in order.'],
-    materials: ['Observation-day mark cards and date chart', 'Fictional map-grid key', 'Cloud, wind and rain symbol cards', 'Bulletin strips and candidate station notices'],
+    hook: 'Operate a paper observatory: align a wind dial, count four-pane sky views, read a rain gauge and correct a copied record.',
+    reasons: ['Five missions ask pupils to sort, rotate, count, measure and author rather than repeatedly choose candidate cards.', 'All three instruments and their original observations are printed; a peer can check every bulletin entry.', 'The invented morning readings teach evidence checking without presenting a real-world forecast.'],
+    materials: ['Five station time slips and a three-row observation board', 'Large compass base and three rotatable wind snapshots', 'Three patterned four-pane sky cards and a matching count board', 'Printed rain gauge, three equal-size level strips, miscopied notice and blank peer-checked bulletin'],
     stages: [
-      ['Choose the day', 'Match the station mark to a date card.', 'An observation day'],
-      ['Find the grid', 'Use the date chart to locate a map square.', 'A grid code'],
-      ['Combine symbols', 'Share the three teams\' observations.', 'A symbol set'],
-      ['Order the strips', 'Use that set\'s printed station rule.', 'A bulletin sequence'],
-      ['Post the notice', 'Check all results against candidate bulletins.', 'A verified paper notice'],
+      ['Sort the morning records', 'Separate this station’s slips from another station and order three times.', 'A trustworthy time sequence'],
+      ['Calibrate the wind dial', 'Rotate each snapshot until NORTH matches the base, then read its thick pointer.', 'Three wind readings'],
+      ['Count covered sky panes', 'Inspect the four-pane cards and shade the same count on the crew board.', 'Three cloud records'],
+      ['Read and repair the rain log', 'Align each strip baseline with zero, read its top and correct the copied notice.', 'Three checked rain readings'],
+      ['Publish the bulletin', 'Fill a blank notice from original evidence and ask another pupil to audit every row.', 'A crew-authored, peer-checked observation bulletin'],
     ],
   } },
   workshop: { classroom: {
@@ -61,3 +61,4 @@ export const independentClassroomDetails = {
     ],
   } },
 };
+

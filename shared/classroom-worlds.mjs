@@ -29,13 +29,13 @@ export const independentClassroomWorlds = Object.freeze([
       beats: ['Match the return slip', 'Order the loose leaves', 'Share three witness notes', 'Copy the route and write the final page', 'Read and correct a visitor’s summary'] } },
   },
   {
-    id: 'weather', title: 'Weather Observatory', kicker: 'Rebuild a paper forecast bulletin',
-    image: '/assets/weather-classroom-v0.1.webp', tag: 'Symbol detectives',
+    id: 'weather', title: 'Weather Observatory', kicker: 'Run a paper weather station',
+    image: '/assets/weather-classroom-v0.1.webp', tag: 'Instrument crew',
     discoveryGroup: 'everyday',
-    story: { classroom: { code: 'C10', title: 'The Lost Forecast Bulletin',
-      goal: 'Three symbol teams compare fictional observations and post a checked paper notice.',
+    story: { classroom: { code: 'C10', title: "The Observatory's Missing Morning Bulletin",
+      goal: 'Restore three morning records, operate printed wind, cloud and rain tools, then publish a peer-checked observation bulletin.',
       image: '/assets/weather-classroom-v0.1.webp',
-      beats: ['Choose the observation day', 'Find the map grid', 'Combine symbol teams', 'Order the bulletin strips', 'Post the checked bulletin'] } },
+      beats: ['Sort the morning records', 'Calibrate the paper wind dial', 'Count covered sky panes', 'Read and repair the rain log', 'Write and peer-check the bulletin'] } },
   },
   {
     id: 'workshop', title: "Inventors' Paper Workshop", kicker: 'Reassemble a pretend blueprint',
@@ -56,3 +56,4 @@ export const independentClassroomWorlds = Object.freeze([
 
 export const independentClassroomIds = Object.freeze(independentClassroomWorlds.map(world => world.id));
 export const retiredClassroomIds = Object.freeze(['dinosaur', 'space', 'forest', 'halloween', 'christmas']);
+
