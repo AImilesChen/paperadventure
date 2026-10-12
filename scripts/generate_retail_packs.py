@@ -146,6 +146,9 @@ def build(s,paper,size):
  if s['id']=='ocean' and s['setting']=='classroom':
   import ocean_classroom_chart as ocean
   return ocean.build_paper(paper,size)
+ if s['id']=='museum' and s['setting']=='classroom':
+  import museum_classroom_exhibition as museum
+  return museum.build_paper(paper,size)
  w=size[0]-88
  if s['id']=='dinosaur' and s['setting']=='home':
   import dinosaur_home_experience as dino
@@ -231,6 +234,3 @@ def main():
  print('Built',len(items),'retail PDFs')
 
 if __name__=='__main__':main()
-
-
-

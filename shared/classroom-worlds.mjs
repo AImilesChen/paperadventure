@@ -15,9 +15,9 @@ export const independentClassroomWorlds = Object.freeze([
     image: '/assets/museum-classroom-v0.1.webp', tag: 'Curator mystery',
     discoveryGroup: 'everyday',
     story: { classroom: { code: 'C08', title: 'The Mixed-Up Exhibition',
-      goal: 'Compare ticket marks, case notes and labels to restore a fictional exhibit.',
+      goal: 'Verify a fictional object, rebuild its display case, assemble its paper parts and write a label visitors can trust.',
       image: '/assets/museum-classroom-v0.1.webp',
-      beats: ['Read the lost ticket', 'Walk the gallery route', 'Identify the curious object', 'Restore the label', 'Complete the exhibition sheet'] } },
+      beats: ['Verify the accession tag', 'Arrange the case signs', 'Assemble the Wind Listener', 'Write a visitor label', 'Mount and audit the exhibit'] } },
   },
   {
     id: 'library', title: 'Storybook Library', kicker: 'Recover the final chapter',
@@ -56,4 +56,3 @@ export const independentClassroomWorlds = Object.freeze([
 
 export const independentClassroomIds = Object.freeze(independentClassroomWorlds.map(world => world.id));
 export const retiredClassroomIds = Object.freeze(['dinosaur', 'space', 'forest', 'halloween', 'christmas']);
-

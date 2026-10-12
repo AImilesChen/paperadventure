@@ -13,15 +13,15 @@ export const independentClassroomDetails = {
     ],
   } },
   museum: { classroom: {
-    hook: 'Become curators who restore the label of an invented object before opening time.',
-    reasons: ['The floor plan, object inventory and label record are separate evidence sources.', 'A fictional exhibit avoids unsupported claims about real cultures or artifacts.', 'Students must explain why one complete display sheet fits the evidence.'],
-    materials: ['Marked lost ticket and three gallery cards', 'Gallery route and window-side case notes', 'Three role records and curious-object cards', 'Candidate labels and exhibition sheets'],
+    hook: 'Become a curatorial crew: handle paper evidence, rebuild an invented object, write its label and let a visitor challenge the display.',
+    reasons: ['Five missions use different actions: verification, spatial placement, collaborative assembly, original writing and peer review.', 'Three private conservation slips make each pupil’s observation matter before the paper model can be assembled.', 'The fictional Wind Listener avoids unsupported claims about real cultures or historical artifacts.'],
+    materials: ['Marked accession tag, three ledger records and a gallery plan with three movable case signs', 'Six illustrated paper parts and three separately dealt conservation slips', 'Three archive notes with a distinct unrelated object, plus a blank visitor-label sheet', 'Flat exhibit mat, four-point visitor audit and separate Teacher Guide with scenes, answers and hints'],
     stages: [
-      ['Read the ticket', 'Compare symbol counts to identify a gallery.', 'A gallery name'],
-      ['Follow the route', 'Use that gallery\'s floor-plan directions.', 'A display case'],
-      ['Identify the object', 'Share role records to match one invented artifact.', 'An object name'],
-      ['Restore the label', 'Choose the fictional description that belongs to it.', 'A label code'],
-      ['Open the exhibit', 'Check gallery, case, object and label together.', 'A corrected display sheet'],
+      ['Verify the accession', 'Compare two printed tag marks with the ledger and record the matching ID.', 'A checked accession number'],
+      ['Arrange the gallery', 'Move three case signs into an entrance-to-window plan using placement notes.', 'The window-side display case'],
+      ['Conserve the object', 'Share three private observations and assemble a paper top, dial and base.', 'A three-part Wind Listener model'],
+      ['Write the visitor label', 'Keep only archive notes with the verified ID and author a label in your own words.', 'An evidence-backed original label'],
+      ['Open the exhibition', 'Lay out the object and label, then answer a visitor’s evidence question.', 'A checked paper exhibit'],
     ],
   } },
   library: { classroom: {
@@ -61,4 +61,3 @@ export const independentClassroomDetails = {
     ],
   } },
 };
-

@@ -20,8 +20,9 @@ for f in m['items']:
   compact_dinosaur_guide=f['world']=='dinosaur' and f['setting']=='home' and f['role']=='guide'
   compact_space_guide=f['world']=='space' and f['setting']=='home' and f['role']=='guide'
   chart_ocean=f['world']=='ocean' and f['setting']=='classroom'
+  exhibit_museum=f['world']=='museum' and f['setting']=='classroom'
   compact_celebration_classroom=f['world']=='celebration' and f['setting']=='classroom'
-  assert f['pages'] >= (9 if chart_ocean or compact_celebration_classroom else 8 if f['world']=='christmas' and f['setting']=='home' and f['role']=='guide' else 10 if theatre_home and f['role']=='guide' else 10 if compact_dinosaur_guide or compact_space_guide or compact_forest_guide else 11 if story_led_home and f['role']=='guide' else 12)
+  assert f['pages'] >= (10 if exhibit_museum and f['role']=='guide' else 11 if exhibit_museum else 9 if chart_ocean or compact_celebration_classroom else 8 if f['world']=='christmas' and f['setting']=='home' and f['role']=='guide' else 10 if theatre_home and f['role']=='guide' else 10 if compact_dinosaur_guide or compact_space_guide or compact_forest_guide else 11 if story_led_home and f['role']=='guide' else 12)
   if f['role']=='guide' and (not os.getenv('RETAIL_SCOPE') or (f['world']=='halloween' and f['setting']=='home')):
    required=(['Print, cut and sort','Perform and keep the ending','READ, PLAY, VERIFY']
              if theatre_home else ['Print, cut and stage','READ, MAKE, CHECK','Help, finish and reset']
@@ -29,8 +30,9 @@ for f in m['items']:
              if compact_forest_guide else ['Print, cut and sort','Hints and recovery','Restore contact and reset']
              if compact_space_guide else ['Print, cut and sort','Handover'])
    if chart_ocean:required=['Cut, sort and assign jobs','Read this story aloud','Answer atlas']
+   elif exhibit_museum:required=['Print, cut and stage','Roles, groups and opening','Answer atlas','Recover, end and reset']
    elif compact_celebration_classroom:required=['Cut, sort and hand out','Give everyone a job','Read this story aloud']
-   elif not compact_space_guide and not compact_forest_guide and not theatre_home and not (f['world']=='christmas' and f['setting']=='home'):
+   elif not exhibit_museum and not compact_space_guide and not compact_forest_guide and not theatre_home and not (f['world']=='christmas' and f['setting']=='home'):
     required+=['Prepare and distribute','Hints without taking over']
    assert all(v in t for v in required),path
  report=audit(path);assert not report['failures'],report;reports.append(report)
@@ -41,4 +43,3 @@ for key in {(x['world'],x['setting'],x['paper']) for x in m['items']}:
    if (x['world'],x['setting'],x['paper'])==key:assert hashlib.sha256(z.read(Path(x['path']).name)).hexdigest()==x['sha256']
 (ROOT/'output/pdf/retail-layout-audit.json').write_text(json.dumps(reports,indent=2)+'\n')
 print('48 PDFs and 24 two-file ZIPs passed content, page geometry and integrity checks.')
-
