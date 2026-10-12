@@ -35,9 +35,9 @@ jobs:
       - run: npm run test:sites
       - run: npm run test:backend
       - name: Bundle production API without publishing
-        run: npx --yes wrangler@4.74.0 deploy --config backend/wrangler.production-smoke.jsonc --dry-run
+        run: npx --yes wrangler@4.149.0 deploy --config backend/wrangler.production-smoke.jsonc --dry-run
       - name: Validate site Worker bundle without publishing
-        run: npx --yes wrangler@4.74.0 deploy --config backend/wrangler.preview.jsonc --dry-run
+        run: npx --yes wrangler@4.149.0 deploy --config backend/wrangler.preview.jsonc --dry-run
       - name: Diagnose existing public connectivity
         run: |
           for url in \
@@ -57,7 +57,24 @@ jobs:
             echo "::notice::CLOUDFLARE_API_TOKEN is not configured; no deployment was attempted."
             exit 0
           fi
-          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.preview.jsonc --keep-vars
+          deployed=0
+          deploy_log="$RUNNER_TEMP/paperadventure-deploy-attempt.log"
+          for deploy_attempt in 1 2 3; do
+            if npx --yes wrangler@4.149.0 deploy --config backend/wrangler.preview.jsonc --keep-vars > "$deploy_log" 2>&1; then
+              cat "$deploy_log"
+              deployed=1
+              break
+            fi
+            cat "$deploy_log"
+            if ! grep -Eqi 'malformed response|502|503|504|ETIMEDOUT|ECONNRESET|fetch failed|timed out' "$deploy_log"; then
+              exit 1
+            fi
+            if [ "$deploy_attempt" -lt 3 ]; then
+              echo "::warning::Temporary Cloudflare API error; retrying deployment."
+              sleep 20
+            fi
+          done
+          test "$deployed" -eq 1
           asset_name=$(basename "$(find dist/client/assets -maxdepth 1 -name 'index-*.js' -print -quit)")
           test -n "$asset_name"
           for attempt in 1 2 3 4 5 6; do
