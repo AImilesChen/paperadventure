@@ -25,7 +25,7 @@ export const independentClassroomDetails = {
     ],
   } },
   library: { classroom: {
-    hook: 'Work as a reading crew: recover a book, reorder its loose leaves, compare three witness notes, copy a story route and write a missing final page.',
+    hook: 'Your crew reads the repaired story to a visitor, then uses printed evidence to correct a mistaken summary.',
     reasons: ['Pupils handle and read a complete short paper story instead of choosing five answers from cards.', 'Three separately dealt witness notes each add a different fact; the group must listen before it writes.', 'The crew makes a paper route copy, writes its own ending, and corrects a visitor’s mistaken summary using printed evidence.'],
     materials: ['Stamped return slip, four marked book spines and a continuing crew record', 'Opening leaf with an original story map and four story leaves that may stay on their sheets', 'Three separately dealt private witness notes', 'Damaged final leaf with a four-stop route-copy strip and writing space, plus a visitor-correction page'],
     stages: [
@@ -61,6 +61,7 @@ export const independentClassroomDetails = {
     ],
   } },
 };
+
 
 
 
