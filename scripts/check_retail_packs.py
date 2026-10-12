@@ -23,8 +23,9 @@ for f in m['items']:
   exhibit_museum=f['world']=='museum' and f['setting']=='classroom'
   story_library=f['world']=='library' and f['setting']=='classroom'
   instrument_weather=f['world']=='weather' and f['setting']=='classroom'
+  relay_workshop=f['world']=='workshop' and f['setting']=='classroom'
   compact_celebration_classroom=f['world']=='celebration' and f['setting']=='classroom'
-  assert f['pages'] >= (10 if (exhibit_museum or story_library or instrument_weather) and f['role']=='guide' else 11 if exhibit_museum or story_library else 9 if chart_ocean or compact_celebration_classroom else 8 if f['world']=='christmas' and f['setting']=='home' and f['role']=='guide' else 10 if theatre_home and f['role']=='guide' else 10 if compact_dinosaur_guide or compact_space_guide or compact_forest_guide else 11 if story_led_home and f['role']=='guide' else 12)
+  assert f['pages'] >= (10 if (exhibit_museum or story_library or instrument_weather or relay_workshop) and f['role']=='guide' else 11 if exhibit_museum or story_library else 9 if chart_ocean or compact_celebration_classroom else 8 if f['world']=='christmas' and f['setting']=='home' and f['role']=='guide' else 10 if theatre_home and f['role']=='guide' else 10 if compact_dinosaur_guide or compact_space_guide or compact_forest_guide else 11 if story_led_home and f['role']=='guide' else 12)
   if f['role']=='guide' and (not os.getenv('RETAIL_SCOPE') or (f['world']=='halloween' and f['setting']=='home')):
    required=(['Print, cut and sort','Perform and keep the ending','READ, PLAY, VERIFY']
              if theatre_home else ['Print, cut and stage','READ, MAKE, CHECK','Help, finish and reset']
@@ -35,8 +36,9 @@ for f in m['items']:
    elif exhibit_museum:required=['Print, cut and stage','Roles, groups and opening','Answer atlas','Recover, end and reset']
    elif story_library:required=['Print, cut and stage','Roles, groups and opening','Answers and a model ending','Help, closing and reset']
    elif instrument_weather:required=['Print, cut and stage','Roles, groups and opening','Answer atlas and evidence','Help, closing and reset']
+   elif relay_workshop:required=['Print, cut and stage','Roles, groups and opening','Answer and geometry atlas','Help, closing and reset']
    elif compact_celebration_classroom:required=['Cut, sort and hand out','Give everyone a job','Read this story aloud']
-   elif not exhibit_museum and not story_library and not instrument_weather and not compact_space_guide and not compact_forest_guide and not theatre_home and not (f['world']=='christmas' and f['setting']=='home'):
+   elif not exhibit_museum and not story_library and not instrument_weather and not relay_workshop and not compact_space_guide and not compact_forest_guide and not theatre_home and not (f['world']=='christmas' and f['setting']=='home'):
     required+=['Prepare and distribute','Hints without taking over']
    assert all(v in t for v in required),path
  report=audit(path);assert not report['failures'],report;reports.append(report)
