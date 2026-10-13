@@ -33,8 +33,13 @@ jobs:
       - name: Deploy API without changing configured variables or secrets
         run: |
           node scripts/write-stage-wrangler.mjs
+          npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
           npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
       - name: Verify configured runtime
         run: |
-          curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(!v.generation||!v.proposals||!v.account)throw Error('Creator runtime unavailable');console.log('Creator runtime ready')})"
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(!v.generation||v.proposals!==false||!v.paidPlanReview||!v.account)throw Error('Paid creator runtime unavailable: '+s);console.log('Paid creator runtime ready')})"; then exit 0; fi
+            sleep 5
+          done
+          exit 1
 

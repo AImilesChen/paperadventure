@@ -5,7 +5,7 @@ export default function CurrentPrivacyNotice() {
     <section className="page-intro extended-intro">
       <span className="eyebrow">PRIVACY NOTICE</span>
       <h1>How Paper Adventure uses your information.</h1>
-      <p>Effective 9 October 2026 · Version 1.1 · Applies to the website, free trial downloads, adult Google sign-in and free AI story previews currently available.</p>
+      <p>Effective 9 October 2026 · Version 1.1 · Applies to the website, free trial downloads, adult Google sign-in and the paid custom plan-review flow.</p>
     </section>
     <article className="live-shell privacy-document">
       <div className="live-panel">
@@ -16,7 +16,7 @@ export default function CurrentPrivacyNotice() {
           <li>When you browse or download a free PDF, Cloudflare processes technical request information, such as IP address, browser details and requested pages, to deliver and protect the site.</li>
           <li>If you choose Google sign-in, Google provides an ID token containing your verified adult email and Google account identifier. Our server verifies the token and uses a keyed hash of your email to identify your account. We do not store the Google ID token or your plain email in the account database. Google may process information when its sign-in button loads or you use it.</li>
           <li>If you save an adventure idea in this browser, its settings are stored on your device until you delete them or clear browser storage. Do not enter a child's name, photo, address or other identifying details.</li>
-          <li>When a signed-in adult requests a story preview, we process the selected theme or story idea, age range, player count and activity settings. We send those inputs to DeepSeek to return two short story directions. Please do not include a child’s name or other identifying details. We record an account-linked daily limit and technical usage counts to control service costs and misuse.</li>
+          <li>For a paid custom order, we process the story idea, age range, player count and activity settings to create a personal plan after confirmed payment. We send those inputs and any plan-change feedback to the configured AI provider. Please do not include a child’s name or other identifying details. We record order-linked plan attempts, included-change usage and technical token counts to run the service and control costs.</li>
           <li>If you are the authorised tester and use Stripe test checkout, we send the test order amount, your adult email and billing details to Stripe. Stripe test cards do not move real funds. We store the resulting order status, test transaction identifiers and generated files so you can inspect fulfilment.</li>
           <li>If you contact support, we receive your email address and message through our support mail service.</li>
         </ul>

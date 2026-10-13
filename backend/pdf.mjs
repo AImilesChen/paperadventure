@@ -17,6 +17,8 @@ function wrap(value, width = 82) {
 }
 
 function documentLines(story, spec, role) {
+  const materials = spec.plan ? 'Printed player pages and pencils.' : spec.materials;
+  const place = spec.place && !/[^\x20-\x7e]/.test(spec.place) ? spec.place : 'Your chosen comfortable supervised space.';
   const lines = [
     ...wrap(story.title, 40).map(text => ({ text, kind: 'title' })),
     { text: `${spec.setting.toUpperCase()} / ${role === 'player' ? 'PLAYER PACK' : spec.setting === 'home' ? 'HOST GUIDE' : 'TEACHER GUIDE'}`, kind: 'sub' },
@@ -30,13 +32,17 @@ function documentLines(story, spec, role) {
     }
   };
   add('The story begins', [story.introduction]);
-  if (role === 'player') add('What you need', [spec.materials || 'Printed pages, paper and pencils. Ask your adult organiser for each new checkpoint after you solve the last one.']);
-  else add('Before you begin', [`Materials: ${spec.materials || 'Printed player pages, paper and pencils.'}`, `Playing place: ${spec.place || 'A comfortable supervised space.'}`, `Players: ${spec.players}${spec.groups ? ` in ${spec.groups} groups` : ''}. Suggested age: ${spec.age}. Print the player pages and keep this answer guide with the adult organiser.`]);
+  if (spec.plan) {
+    add('Your team and mission',[spec.plan.roles,spec.plan.goal]);
+    if (role !== 'player') add('Prepare your adventure',[spec.plan.preparation]);
+  }
+  if (role === 'player') add('What you need', [materials || 'Printed pages, paper and pencils. Ask your adult organiser for each new checkpoint after you solve the last one.']);
+  else add('Before you begin', [`Materials: ${materials || 'Printed player pages, paper and pencils.'}`, `Playing place: ${place}`, `Players: ${spec.players}${spec.groups ? ` in ${spec.groups} groups` : ''}. Suggested age: ${spec.age}. Print the player pages and keep this answer guide with the adult organiser.`]);
   if (spec.setting === 'classroom') add('Group setup', [story.groupInstructions]);
   for (const stage of story.stages) {
     if (role === 'player') lines.push({ text: '', kind: 'pageBreak' });
     const paragraphs = role === 'player'
-      ? [stage.clue, ...stage.options.map((option, i) => `${String.fromCharCode(65 + i)}. ${option}`), 'Our answer: ______________________________']
+      ? [...(stage.task ? [stage.task,`Work together: ${stage.teamwork}`] : []),stage.clue, ...stage.options.map((option, i) => `${String.fromCharCode(65 + i)}. ${option}`), 'Our answer: ______________________________']
       : [`Prerequisite: ${stage.prerequisite}`, `Answer: ${String.fromCharCode(65 + stage.answerIndex)}. ${stage.options[stage.answerIndex]}`, `Why: ${stage.explanation}`, `Gentle hint: ${stage.hint}`, `Unlock for the next stage: ${stage.unlock}`];
     add(`Checkpoint ${stage.number}: ${stage.title}`, paragraphs);
   }

@@ -1,4 +1,6 @@
 import { offers, themes } from '../shared/catalog.mjs';
+import { creatorFields } from './creator-preview.mjs';
+import { validatePlan } from '../shared/creator-plan.mjs';
 
 export class ApiError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code; }
@@ -35,14 +37,15 @@ export function validatePurchase(input) {
   const idea = themeId ? null : requireText(input.customIdea, 'Story idea', 400);
   const paper = input.paper === 'Letter' || input.paper === 'US Letter' ? 'Letter' : input.paper === 'A4' ? 'A4' : null;
   if (!paper) throw new ApiError(400, 'INVALID_SPEC', 'Choose A4 or US Letter.');
-  const direction = ['mystery', 'mission'].includes(input.direction) ? input.direction : null;
+  const direction = input.creatorVersion === 3 ? 'mystery' : ['mystery', 'mission'].includes(input.direction) ? input.direction : null;
   if (!direction) throw new ApiError(400, 'INVALID_SPEC', 'Choose a story direction.');
   const proposalTitle = input.proposalTitle ? requireText(input.proposalTitle, 'Proposal title', 80) : null;
   const proposalSummary = input.proposalSummary ? requireText(input.proposalSummary, 'Proposal summary', 400) : null;
   if (Boolean(proposalTitle) !== Boolean(proposalSummary)) throw new ApiError(400, 'INVALID_SPEC', 'The selected proposal is incomplete.');
+  if (input.creatorVersion === 3 && (input.plan || input.previewToken || input.planConfirmed || proposalTitle || proposalSummary)) throw new ApiError(400,'INVALID_SPEC','The personal plan is created after payment.');
   return { offer, spec: { sku: offer.sku, kind: 'custom', setting: offer.setting, themeId, customIdea: idea, players, groups, age, paper, direction, proposalTitle, proposalSummary,
     preferences: Object.fromEntries(['characters','goal','include','avoid'].map(key => [key, input.preferences?.[key] ? requireText(input.preferences[key], `Preference ${key}`, 180) : ''])),
-    place: String(input.place || '').trim().slice(0, 180), reading: String(input.reading || '').trim().slice(0, 40), materials: String(input.materials || '').trim().slice(0, 180) } };
+    place: String(input.place || '').trim().slice(0, 180), reading: String(input.reading || '').trim().slice(0, 40), materials: String(input.materials || '').trim().slice(0, 180), ...creatorFields(input) } };
 }
 
 export function validateSupportedRange(spec, env) {
@@ -65,10 +68,16 @@ export function validateGeneratedStory(story, spec) {
   const title = requireText(story.title, 'Story title', 100);
   const introduction = requireText(story.introduction, 'Introduction', 1200);
   const ending = requireText(story.ending, 'Ending', 1200);
+  let plan = null;
+  if (spec.creatorVersion >= 2) {
+    try { plan = validatePlan(spec.plan,spec); } catch { throw new ApiError(422,'GENERATION_INVALID','The approved plan is unavailable.'); }
+    if (title !== plan.title || introduction !== plan.opening || /[^\x20-\x7e\n\r]/.test(JSON.stringify(story))) throw new ApiError(422,'GENERATION_INVALID','Keep the approved title, opening and English printable language.');
+  }
   if (!Array.isArray(story.stages) || story.stages.length !== 5) throw new ApiError(422, 'GENERATION_INVALID', 'Exactly five connected stages are required.');
   const stages = story.stages.map((stage, index) => {
     if (!stage || typeof stage !== 'object') throw new ApiError(422, 'GENERATION_INVALID', 'A stage is missing.');
     const number = index + 1;
+    if (plan && (stage.title !== plan.stages[index].title || stage.mechanic !== plan.stages[index].mechanic)) throw new ApiError(422,'GENERATION_INVALID',`Checkpoint ${number} changed the approved title or play style.`);
     const options = stage.options;
     if (!Array.isArray(options) || options.length !== 3 || new Set(options.map(x => String(x).trim().toLowerCase())).size !== 3) throw new ApiError(422, 'GENERATION_INVALID', `Stage ${number} needs three distinct options.`);
     const answerIndex = Number(stage.answerIndex);
@@ -77,7 +86,8 @@ export function validateGeneratedStory(story, spec) {
     const prerequisite = number === 1 ? 'START' : requireText(stage.prerequisite, `Stage ${number} prerequisite`, 100);
     if (number > 1 && prerequisite !== story.stages[index - 1].unlock) throw new ApiError(422, 'GENERATION_INVALID', `Stage ${number} does not follow the previous clue.`);
     return { number, title: requireText(stage.title, 'Stage title', 100), clue: requireText(stage.clue, 'Clue', 1200), options: options.map((value, i) => requireText(value, `Option ${i+1}`, 240)), answerIndex,
-      explanation: requireText(stage.explanation, 'Answer explanation', 600), hint: requireText(stage.hint, 'Hint', 400), prerequisite, unlock };
+      explanation: requireText(stage.explanation, 'Answer explanation', 600), hint: requireText(stage.hint, 'Hint', 400), prerequisite, unlock,
+      ...(plan ? {mechanic:stage.mechanic,task:plan.stages[index].task,teamwork:plan.stages[index].teamwork} : {}) };
   });
   if (spec.setting === 'classroom' && !story.groupInstructions) throw new ApiError(422, 'GENERATION_INVALID', 'Classroom group instructions are required.');
   return { title, introduction, ending, stages, groupInstructions: story.groupInstructions ? requireText(story.groupInstructions, 'Group instructions', 700) : null };

@@ -5,6 +5,9 @@ import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs
 import { aiProvider, generateStory, generateProposals, reviseStage } from './openai.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import { verifyGoogleCredential } from './google-auth.mjs';
+import { signPreview, confirmPreview } from './creator-preview.mjs';
+import { generateSinglePlan } from './plan-proposals.mjs';
+import { validatePlan } from '../shared/creator-plan.mjs';
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
@@ -44,6 +47,11 @@ function paymentReady(env) {
 }
 const rangeReady = env => [env.SUPPORTED_AGE_MIN,env.SUPPORTED_AGE_MAX,env.HOME_PLAYER_MAX,env.CLASSROOM_STUDENT_MAX].every(value => Number.isInteger(Number(value)) && Number(value) > 0) && Number(env.SUPPORTED_AGE_MAX) >= Number(env.SUPPORTED_AGE_MIN) && Number(env.HOME_PLAYER_MAX) >= 2 && Number(env.CLASSROOM_STUDENT_MAX) >= 2;
 const generationReady = env => Boolean(aiProvider(env) && env.GENERATION_QUEUE && env.PRIVATE_FILES && rangeReady(env));
+async function paidPlanSchemaReady(env) {
+  if (!env.DB) return false;
+  try { return Boolean(await query(env.DB,"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'custom_plan_orders'").first()); }
+  catch { return false; }
+}
 const offeredFor = (themeId, setting) => themes.find(theme => theme.id === themeId)?.availableSettings?.includes(setting) ?? false;
 
 async function publishedLegal(env) {
@@ -87,12 +95,13 @@ async function liveCatalog(env) {
     : (ready.some(pack => pack.theme_world_id === themeId && pack.setting === setting && pack.status === 'published') ? 'published'
       : testOnly && ready.some(pack => pack.theme_world_id === themeId && pack.setting === setting && pack.status === 'internal_test') ? 'test_ready' : 'not_published');
   const canCheckout = await checkoutReady(env);
+  const planSchemaReady = await paidPlanSchemaReady(env);
   return { ...base, publicationState: canCheckout || free ? 'partially_configured' : base.publicationState,
     freeSampleThemeId: free ? 'celebration' : null,
     themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: readyStatus(theme.id, 'home'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
       classroom: { readyStatus: readyStatus(theme.id, 'classroom'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null,
         variantIds: variantsFor(ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')) } })),
-    offers: offers.map(offer => ({ ...offer, saleEnabled: canCheckout && liveSkus.has(offer.sku) && (offer.kind === 'custom' ? generationReady(env) : availablePaidPack(offer.setting)) })) };
+    offers: offers.map(offer => ({ ...offer, saleEnabled: canCheckout && liveSkus.has(offer.sku) && (offer.kind === 'custom' ? generationReady(env) && planSchemaReady : availablePaidPack(offer.setting)) })) };
 }
 
 function requireSameOrigin(request, env) {
@@ -162,8 +171,16 @@ async function checkout(request, env) {
       throw new ApiError(403, 'ACCOUNT_EMAIL_MISMATCH', 'Sign in with Google and use the same email at checkout.');
   }
   const { offer, spec } = validatePurchase(input);
-  if (offer.kind === 'custom' && !generationReady(env)) throw new ApiError(503, 'GENERATION_NOT_READY', 'Custom generation is not available.');
+  if (offer.kind === 'custom' && (!generationReady(env) || spec.creatorVersion===3 && !await paidPlanSchemaReady(env))) throw new ApiError(503, 'GENERATION_NOT_READY', 'Custom generation is not available.');
   if (offer.kind === 'custom') validateSupportedRange(spec, env);
+  if (offer.kind === 'custom') {
+    const owner = await authenticatedEmailHash(request,env);
+    if (owner !== await emailHash(env,email)) throw new ApiError(403,'ACCOUNT_EMAIL_MISMATCH','Use the adult account that created this preview.');
+    if (spec.creatorVersion === 2) {
+      await confirmPreview(spec,owner,env.SESSION_SECRET);
+      if (!spec.planConfirmed) throw new ApiError(409,'PREVIEW_CONFIRMATION_REQUIRED','Confirm your five-checkpoint plan before checkout.');
+    } else if (spec.creatorVersion !== 3) throw new ApiError(409,'SETUP_UPDATE_REQUIRED','Update your custom setup before checkout.');
+  }
   if (offer.kind === 'ready' && spec.themeId === 'celebration') throw new ApiError(409, 'SAMPLE_IS_FREE', 'Celebration is the free sample theme and is not sold as a ready-made pack.');
   if (offer.kind === 'ready' && !offeredFor(spec.themeId, spec.setting)) throw new ApiError(409, 'EDITION_RETIRED', 'This ready-made edition is no longer offered. Existing orders remain available in My adventures.');
   const key = request.headers.get('Idempotency-Key');
@@ -260,8 +277,13 @@ async function webhook(request, env, context = {}) {
   const existing = await query(env.DB, 'SELECT stripe_event_id FROM webhook_events WHERE stripe_event_id = ?', event.id).first();
   if (existing) {
     if (order.product_kind === 'custom' && env.GENERATION_QUEUE) {
-      const activity = await query(env.DB, 'SELECT status FROM custom_activities WHERE order_id = ?', order.id).first();
-      if (activity?.status === 'queued') await env.GENERATION_QUEUE.send({ orderId: order.id });
+      if (JSON.parse(order.purchase_spec_json).creatorVersion === 3) {
+        const pending = await query(env.DB,"SELECT id FROM custom_plan_requests WHERE order_id = ? AND status IN ('queued','generating') ORDER BY created_at DESC LIMIT 1",order.id).first();
+        if (pending) await env.GENERATION_QUEUE.send({type:'plan',requestId:pending.id});
+      } else {
+        const activity = await query(env.DB, 'SELECT status FROM custom_activities WHERE order_id = ?', order.id).first();
+        if (activity?.status === 'queued') await env.GENERATION_QUEUE.send({ orderId: order.id });
+      }
     }
     return json({ received: true, duplicate: true });
   }
@@ -279,10 +301,14 @@ async function webhook(request, env, context = {}) {
     statements.push(query(env.DB, `INSERT OR IGNORE INTO custom_activities (id,order_id,status,story_spec_json) VALUES (?,?,'queued',?)`, activityId, order.id, JSON.stringify(spec)));
     statements.push(query(env.DB, `INSERT OR IGNORE INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit,revision_expires_at)
       VALUES (?,?,?,'active',?,NULL)`, crypto.randomUUID(), order.id, activityId, offers.find(item => item.sku === order.sku)?.revisionLimit || 0));
+    if (spec.creatorVersion === 3) {
+      statements.push(query(env.DB,"INSERT OR IGNORE INTO custom_plan_orders (order_id,status) VALUES (?,'queued')",order.id));
+      statements.push(query(env.DB,"INSERT OR IGNORE INTO custom_plan_requests (id,order_id,kind,status) VALUES (?,?,'initial','queued')",`plan-${order.id}-initial`,order.id));
+    }
   }
   statements.push(query(env.DB, "INSERT OR IGNORE INTO delivery_notifications (order_id,kind,status) VALUES (?,?,'pending')", order.id, order.product_kind === 'ready' ? 'files_ready' : 'payment'));
   await env.DB.batch(statements);
-  if (order.product_kind === 'custom' && env.GENERATION_QUEUE) await env.GENERATION_QUEUE.send({ orderId: order.id });
+  if (order.product_kind === 'custom' && env.GENERATION_QUEUE) await env.GENERATION_QUEUE.send(spec.creatorVersion === 3 ? {type:'plan',requestId:`plan-${order.id}-initial`} : {orderId:order.id});
   if (typeof context.waitUntil === 'function') context.waitUntil(dispatchNotification(order.id, order.product_kind === 'ready' ? 'files_ready' : 'payment', env).catch(caught => console.error('Email notification deferred', caught)));
   return json({ received: true });
 }
@@ -350,8 +376,9 @@ async function dispatchNotification(orderId, kind, env) {
       await query(env.DB, "UPDATE delivery_notifications SET status = 'blocked' WHERE order_id = ? AND kind = ?", orderId, kind).run();
       return;
     }
+    const paidSpec = JSON.parse(order.purchase_spec_json || '{}');
     const messages = {
-      payment: { subject: 'Your Paper Adventure order is being prepared', intro: 'Payment is confirmed. Your custom adventure is being generated and checked. Verify your email to see order progress:' },
+      payment: { subject: 'Your Paper Adventure order is being prepared', intro: paidSpec.creatorVersion === 3 ? 'Payment is confirmed. Your personal plan is being prepared for review. Approve a plan before printable PDFs are generated. Verify your email to see progress:' : 'Payment is confirmed. Your custom adventure is being generated and checked. Verify your email to see order progress:' },
       files_ready: { subject: 'Your Paper Adventure files are ready', intro: 'Your adventure files are ready. Verify your email to open the order and download them:' },
       generation_failed: { subject: 'Your Paper Adventure order needs help', intro: 'We could not complete your custom adventure. Verify your email to see the order and report the problem for a correction or refund review:' },
     };
@@ -365,7 +392,7 @@ async function dispatchNotification(orderId, kind, env) {
 }
 
 async function proposals(request, env) {
-  if (!env.DB || !env.SESSION_SECRET || env.PROPOSALS_ENABLED !== 'true' || !aiProvider(env)) throw new ApiError(503, 'GENERATION_NOT_READY', 'Free story proposals are not available.');
+  if (!env.DB || !env.SESSION_SECRET || env.LEGACY_PROPOSALS_ENABLED !== 'true' || !aiProvider(env)) throw new ApiError(410, 'PREPAYMENT_PLANS_CLOSED', 'Personal plans are created only after confirmed payment.');
   requireSameOrigin(request, env);
   const accountHash = await authenticatedEmailHash(request, env);
   if (!accountHash) throw new ApiError(401, 'SIGN_IN_REQUIRED', 'Sign in with Google to preview story ideas.');
@@ -378,10 +405,35 @@ async function proposals(request, env) {
   const bucket = await sha256(`${accountHash}|proposals|${Math.floor(nowSeconds() / 86400)}`);
   await query(env.DB, `INSERT INTO access_rate_limits (bucket,hits,expires_at) VALUES (?,1,?) ON CONFLICT(bucket) DO UPDATE SET hits = hits + 1`, bucket, nowSeconds() + 86400).run();
   const count = await query(env.DB, 'SELECT hits FROM access_rate_limits WHERE bucket = ?', bucket).first();
-  if (count.hits > 2) throw new ApiError(429, 'PROPOSAL_LIMIT', 'The free idea limit has been reached for today.');
-  const result = await generateProposals(spec, env, env.FETCH || fetch);
-  await query(env.DB, 'INSERT INTO proposal_usage (id,visitor_hash,model,input_tokens,output_tokens) VALUES (?,?,?,?,?)', crypto.randomUUID(), visitorHash, aiProvider(env)?.model, result.usage?.input_tokens || null, result.usage?.output_tokens || null).run();
-  return json({ proposals: result.proposals });
+  if (count.hits > 2) {
+    await query(env.DB,'UPDATE access_rate_limits SET hits = MAX(0,hits - 1) WHERE bucket = ?',bucket).run();
+    throw new ApiError(429, 'PROPOSAL_LIMIT', 'Your two free previews for today are used. Your saved plans remain available.');
+  }
+  // Reserve before calling AI, release on failure. Separate attempt throttling
+  // protects against repeated failures without charging the successful quota.
+  try {
+    const attempts = `${bucket}-attempts`;
+    await query(env.DB,`INSERT INTO access_rate_limits (bucket,hits,expires_at) VALUES (?,1,?) ON CONFLICT(bucket) DO UPDATE SET hits = hits + 1`,attempts,nowSeconds()+86400).run();
+    if ((await query(env.DB,'SELECT hits FROM access_rate_limits WHERE bucket = ?',attempts).first()).hits > 12) throw new ApiError(429,'PROPOSAL_ATTEMPT_LIMIT','Too many preview attempts today. Your saved plans remain available.');
+    const result = await generateProposals(spec, env, env.FETCH || fetch);
+    const plans = await Promise.all(result.proposals.map(async plan=>({...plan,...(spec.creatorVersion===2 ? {previewToken:await signPreview(plan,spec,accountHash,env.SESSION_SECRET)} : {})})));
+    await query(env.DB, 'INSERT INTO proposal_usage (id,visitor_hash,model,input_tokens,output_tokens) VALUES (?,?,?,?,?)', crypto.randomUUID(), visitorHash, aiProvider(env)?.model, result.usage?.input_tokens || null, result.usage?.output_tokens || null).run();
+    const used = (await query(env.DB,'SELECT hits FROM access_rate_limits WHERE bucket = ?',bucket).first()).hits;
+    return json({proposals:plans,remaining:Math.max(0,2-used),creatorVersion:spec.creatorVersion || 1});
+  } catch (failure) {
+    await query(env.DB,'UPDATE access_rate_limits SET hits = MAX(0,hits - 1) WHERE bucket = ?',bucket).run();
+    throw failure;
+  }
+}
+
+async function previewAllowance(request,env) {
+  if (env.LEGACY_PROPOSALS_ENABLED !== 'true') return json({remaining:0,closed:true});
+  if (!env.DB || !env.SESSION_SECRET) return json({remaining:null});
+  const owner = await authenticatedEmailHash(request,env);
+  if (!owner) return json({remaining:null});
+  const bucket = await sha256(`${owner}|proposals|${Math.floor(nowSeconds()/86400)}`);
+  const row = await query(env.DB,'SELECT hits FROM access_rate_limits WHERE bucket = ?',bucket).first();
+  return json({remaining:Math.max(0,2-(row?.hits||0))});
 }
 
 async function verifyAccessLink(request, env) {
@@ -458,8 +510,9 @@ async function savedDraft(request, env) {
   }
   const body = await requestBody(request);
   const { spec } = validatePurchase({ ...body, sku: body.setting === 'classroom' ? 'custom_classroom' : 'custom_home' });
+  if (spec.creatorVersion === 2) await confirmPreview(spec,hash,env.SESSION_SECRET,true);
   await query(env.DB, `INSERT INTO adult_drafts (email_hash,draft_json) VALUES (?,?) ON CONFLICT(email_hash) DO UPDATE SET draft_json = excluded.draft_json, updated_at = CURRENT_TIMESTAMP`, hash, JSON.stringify(spec)).run();
-  return json({ saved: true });
+  return json({ saved: true, ...(spec.creatorVersion===2 ? {previewToken:spec.previewToken} : {}) });
 }
 
 async function freeSample(request, env, setting, paper, role) {
@@ -484,6 +537,11 @@ async function orderView(request, env, orderId) {
   const activity = order.product_kind === 'custom' ? await query(env.DB, 'SELECT status FROM custom_activities WHERE order_id = ?', order.id).first() : null;
   const failedAttempts = order.product_kind === 'custom' ? await query(env.DB, "SELECT COUNT(*) AS count FROM generation_usage WHERE order_id = ? AND status = 'failed'", order.id).first() : null;
   const spec = JSON.parse(order.purchase_spec_json);
+  const paidPlan = order.product_kind === 'custom' && spec.creatorVersion === 3
+    ? await query(env.DB,'SELECT * FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
+  const planVersions = paidPlan ? (await query(env.DB,'SELECT version_number,plan_json,request_kind,created_at FROM custom_plan_versions WHERE order_id = ? ORDER BY version_number',order.id).all()).results || [] : [];
+  const pendingPlan = paidPlan ? await query(env.DB,"SELECT kind,status FROM custom_plan_requests WHERE order_id = ? AND status IN ('queued','generating') ORDER BY created_at DESC LIMIT 1",order.id).first() : null;
+  const activePlan = planVersions.find(item=>item.version_number===paidPlan?.active_version);
   return json({ id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
     generationState: order.product_kind === 'custom' ? (activity?.status || (order.status === 'pending_payment' ? 'awaiting_payment' : 'pending')) : null,
@@ -492,7 +550,70 @@ async function orderView(request, env, orderId) {
     variantId: order.product_kind === 'ready' ? spec.variantId || null : null,
     accessExpiresAt: entitlement?.access_expires_at || null,
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
-    revisionExpiresAt: entitlement?.revision_expires_at || null });
+    revisionExpiresAt: entitlement?.revision_expires_at || null,
+    plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
+    ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
+}
+
+async function changePaidPlan(request, env, orderId) {
+  if (!env.DB || !env.GENERATION_QUEUE || !aiProvider(env)) throw new ApiError(503,'PLAN_NOT_READY','Paid plan changes are not configured.');
+  requireSameOrigin(request,env);
+  const owner = await authenticatedEmailHash(request,env);
+  if (!owner) throw new ApiError(401,'SIGN_IN_REQUIRED','Sign in to review your paid plan.');
+  const order = await query(env.DB,"SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ? AND product_kind = 'custom' AND status = 'paid'",orderId,owner).first();
+  if (!order || JSON.parse(order.purchase_spec_json).creatorVersion!==3) throw new ApiError(404,'ORDER_NOT_FOUND','No eligible paid plan was found.');
+  const body = await requestBody(request);
+  const kind = body.action==='rework'?'full':body.action==='edit'?'targeted':null;
+  const scope = kind==='targeted' ? String(body.scope||'') : null;
+  const feedback=String(body.feedback||'').trim();
+  let requestId=null;
+  if (kind) {
+    const key=request.headers.get('Idempotency-Key');
+    if (!key || !/^[A-Za-z0-9_-]{16,100}$/.test(key)) throw new ApiError(400,'IDEMPOTENCY_REQUIRED','A valid request key is required.');
+    requestId=`plan-${orderId}-${await sha256(key)}`;
+    const prior=await query(env.DB,'SELECT id,kind,scope,feedback,status FROM custom_plan_requests WHERE id = ? AND order_id = ?',requestId,orderId).first();
+    if (prior) {
+      if (prior.kind!==kind || prior.scope!==scope || prior.feedback!==feedback) throw new ApiError(409,'IDEMPOTENCY_CONFLICT','This request key was used for another change.');
+      return json({requestId,status:prior.status,duplicate:true});
+    }
+  }
+  const state = await query(env.DB,'SELECT * FROM custom_plan_orders WHERE order_id = ?',orderId).first();
+  if (!state || state.status!=='review' || !state.active_version) throw new ApiError(409,'PLAN_NOT_REVIEWABLE','Wait for the current plan to finish or contact support.');
+  if (body.action==='select') {
+    const version = Number(body.version);
+    if (!Number.isInteger(version) || version<1) throw new ApiError(400,'INVALID_VERSION','Choose a saved plan version.');
+    const chosen = await query(env.DB,'SELECT version_number FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',orderId,version).first();
+    if (!chosen) throw new ApiError(404,'INVALID_VERSION','That plan version was not found.');
+    const changed = await query(env.DB,"UPDATE custom_plan_orders SET active_version = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'review'",version,orderId).run();
+    if (!changed.meta?.changes) throw new ApiError(409,'PLAN_BUSY','The plan changed. Refresh and try again.');
+    return json({selectedVersion:version});
+  }
+  if (body.action==='confirm') {
+    const version = Number(body.version);
+    if (version!==state.active_version) throw new ApiError(409,'PLAN_CHANGED','Review the active plan before confirming.');
+    const row = await query(env.DB,'SELECT plan_json FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',orderId,version).first();
+    const spec = JSON.parse(order.purchase_spec_json);
+    let plan; try { plan=validatePlan(JSON.parse(row?.plan_json),spec); } catch { throw new ApiError(409,'PLAN_INVALID','This plan cannot be confirmed. Contact support.'); }
+    const updatedSpec = {...spec,plan,direction:plan.id,proposalTitle:plan.title,proposalSummary:plan.summary,planConfirmed:true};
+    const locked = await env.DB.batch([
+      query(env.DB,"UPDATE custom_plan_orders SET status = 'confirmed',confirmed_version = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'review' AND active_version = ?",version,orderId,version),
+      query(env.DB,"UPDATE custom_activities SET story_spec_json = ? WHERE order_id = ? AND status = 'queued'",JSON.stringify(updatedSpec),orderId),
+    ]);
+    if (!locked[0].meta?.changes || !locked[1].meta?.changes) throw new ApiError(409,'PLAN_CHANGED','The plan changed. Refresh and contact support if the status does not update.');
+    await env.GENERATION_QUEUE.send({orderId});
+    return json({confirmedVersion:version,generationQueued:true});
+  }
+  if (!kind) throw new ApiError(400,'INVALID_PLAN_ACTION','Choose rework, edit, select or confirm.');
+  if (kind==='full' && state.full_used>=2 || kind==='targeted' && state.targeted_used>=3) throw new ApiError(403,'PLAN_CHANGE_LIMIT','Included plan changes are used. Contact support if the plan still does not fit.');
+  if (scope && !['title','summary','opening','roles','goal','preparation','stage1','stage2','stage3','stage4','stage5'].includes(scope)) throw new ApiError(400,'INVALID_PLAN_SCOPE','Choose the part to change.');
+  if (kind==='targeted' && !scope) throw new ApiError(400,'INVALID_PLAN_SCOPE','Choose the part to change.');
+  if (feedback.length<10 || feedback.length>500) throw new ApiError(400,'INVALID_PLAN_FEEDBACK','Describe the change in 10–500 characters.');
+  const reserved=await query(env.DB,`UPDATE custom_plan_orders SET status = 'queued',updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'review' AND active_version = ? AND ${kind==='full'?'full_used < 2':'targeted_used < 3'}`,orderId,state.active_version).run();
+  if (!reserved.meta?.changes) throw new ApiError(409,'PLAN_BUSY','The plan changed. Refresh and try again.');
+  try { await query(env.DB,"INSERT INTO custom_plan_requests (id,order_id,kind,scope,feedback,base_version,status) VALUES (?,?,?,?,?,?,'queued')",requestId,orderId,kind,scope,feedback,state.active_version).run(); }
+  catch (caught) { await query(env.DB,"UPDATE custom_plan_orders SET status = 'review' WHERE order_id = ? AND status = 'queued'",orderId).run(); throw caught; }
+  await env.GENERATION_QUEUE.send({type:'plan',requestId});
+  return json({requestId,status:'queued'},202);
 }
 
 async function fileDownload(request, env, orderId, role) {
@@ -574,7 +695,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);
       const catalog = await liveCatalog(env);
-      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), checkoutMode: testCheckoutReady(env) ? 'test' : paymentReady(env) ? 'live' : 'closed', generation: generationReady(env), proposals: env.PROPOSALS_ENABLED === 'true' && accountReady(env) && Boolean(aiProvider(env) && rangeReady(env)), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', checkout: await checkoutReady(env), checkoutMode: testCheckoutReady(env) ? 'test' : paymentReady(env) ? 'live' : 'closed', generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
@@ -594,6 +715,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'POST' && path === '/api/v1/checkout-intents') return await checkout(request, env);
     if (request.method === 'POST' && path === '/api/v1/stripe/webhook') return await webhook(request, env, context);
     if (request.method === 'POST' && path === '/api/v1/proposals') return await proposals(request, env);
+    if (request.method === 'GET' && path === '/api/v1/proposals') return await previewAllowance(request,env);
     if (request.method === 'POST' && path === '/api/v1/access-links') return await requestAccessLink(request, env);
     if (request.method === 'GET' && path === '/api/v1/auth/google/config') return googleLoginConfig(request, env);
     if (request.method === 'POST' && path === '/api/v1/auth/google') return await googleLogin(request, env);
@@ -618,6 +740,8 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && sample) return await freeSample(request, env, sample[1], sample[2], sample[3]);
     const order = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)$/);
     if (request.method === 'GET' && order) return await orderView(request, env, order[1]);
+    const paidPlan = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/plan$/);
+    if (request.method === 'POST' && paidPlan) return await changePaidPlan(request,env,paidPlan[1]);
     const revision = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revisions$/);
     if (request.method === 'POST' && revision) return await requestRevision(request, env, revision[1]);
     const cases = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/issues$/);
@@ -632,13 +756,56 @@ export async function handleProductionApi(request, env = {}, context = {}) {
   }
 }
 
+async function publishPlanRequest(requestId,env) {
+  if (!env.DB || !aiProvider(env)) throw new Error('Plan bindings are missing');
+  const request = await query(env.DB,"SELECT * FROM custom_plan_requests WHERE id = ? AND status IN ('queued','generating')",requestId).first();
+  if (!request) return;
+  const order = await query(env.DB,"SELECT * FROM orders WHERE id = ? AND product_kind = 'custom' AND status = 'paid'",request.order_id).first();
+  if (!order || JSON.parse(order.purchase_spec_json).creatorVersion!==3) return;
+  const lease = await query(env.DB,"UPDATE custom_plan_requests SET status = 'generating',attempts = attempts + 1,lease_until = ? WHERE id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))",nowSeconds()+300,requestId,nowSeconds()).run();
+  if (!lease.meta?.changes) return;
+  await query(env.DB,"UPDATE custom_plan_orders SET status = 'generating',updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status IN ('queued','generating')",order.id).run();
+  const attempt=(await query(env.DB,'SELECT attempts FROM custom_plan_requests WHERE id = ?',requestId).first()).attempts;
+  const usageAttempt=(await query(env.DB,'SELECT COALESCE(MAX(attempt),0) + 1 AS next FROM generation_usage WHERE order_id = ?',order.id).first()).next;
+  try {
+    const spec=JSON.parse(order.purchase_spec_json);
+    const base=request.base_version ? await query(env.DB,'SELECT plan_json FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',order.id,request.base_version).first() : null;
+    if (request.base_version && !base) throw new Error('Previous plan version is missing');
+    const result=await generateSinglePlan(spec,env,env.FETCH||fetch,{kind:request.kind,scope:request.scope,feedback:request.feedback,previousPlan:base?JSON.parse(base.plan_json):null});
+    const state=await query(env.DB,'SELECT * FROM custom_plan_orders WHERE order_id = ?',order.id).first();
+    const currentOrder=await query(env.DB,'SELECT status FROM orders WHERE id = ?',order.id).first();
+    if (!state || state.status!=='generating' || state.confirmed_version || currentOrder?.status!=='paid') return;
+    const version=(await query(env.DB,'SELECT COALESCE(MAX(version_number),0) + 1 AS next FROM custom_plan_versions WHERE order_id = ?',order.id).first()).next;
+    await env.DB.batch([
+      query(env.DB,'INSERT INTO custom_plan_versions (order_id,version_number,plan_json,request_kind) VALUES (?,?,?,?)',order.id,version,JSON.stringify(result.plan),request.kind),
+      query(env.DB,`UPDATE custom_plan_orders SET status = 'review',active_version = ?,full_used = full_used + ?,targeted_used = targeted_used + ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'`,version,request.kind==='full'?1:0,request.kind==='targeted'?1:0,order.id),
+      query(env.DB,"UPDATE custom_plan_requests SET status = 'published',result_version = ?,lease_until = NULL,completed_at = CURRENT_TIMESTAMP WHERE id = ?",version,requestId),
+      query(env.DB,'INSERT OR IGNORE INTO generation_usage (order_id,attempt,response_id,model,input_tokens,output_tokens,status) VALUES (?,?,?,?,?,?,?)',order.id,usageAttempt,result.responseId,aiProvider(env)?.model,result.usage?.input_tokens||null,result.usage?.output_tokens||null,'plan-published'),
+    ]);
+  } catch (caught) {
+    await query(env.DB,'INSERT OR IGNORE INTO generation_usage (order_id,attempt,model,status) VALUES (?,?,?,?)',order.id,usageAttempt,aiProvider(env)?.model||'unconfigured','plan-failed').run();
+    if (attempt>=3) await env.DB.batch([
+      query(env.DB,"UPDATE custom_plan_requests SET status = 'failed',lease_until = NULL,completed_at = CURRENT_TIMESTAMP WHERE id = ?",requestId),
+      query(env.DB,"UPDATE custom_plan_orders SET status = 'needs_help',updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'",order.id),
+    ]);
+    else await query(env.DB,'UPDATE custom_plan_requests SET lease_until = 0 WHERE id = ?',requestId).run();
+    throw caught;
+  }
+}
+
 async function publishCustomOrder(orderId, env) {
   if (!env.DB || !env.PRIVATE_FILES || !aiProvider(env)) throw new Error('Generation bindings are missing');
   const order = await query(env.DB, "SELECT * FROM orders WHERE id = ? AND product_kind = 'custom' AND status IN ('paid','fulfilling')", orderId).first();
   if (!order) return;
   const activity = await query(env.DB, 'SELECT * FROM custom_activities WHERE order_id = ?', orderId).first();
   if (!activity || activity.status === 'published') return;
-  const spec = JSON.parse(order.purchase_spec_json);
+  const purchaseSpec = JSON.parse(order.purchase_spec_json);
+  if (purchaseSpec.creatorVersion === 3) {
+    const state=await query(env.DB,'SELECT confirmed_version FROM custom_plan_orders WHERE order_id = ?',orderId).first();
+    if (!state?.confirmed_version) return;
+  }
+  const spec = purchaseSpec.creatorVersion === 3 ? JSON.parse(activity.story_spec_json) : purchaseSpec;
+  if (purchaseSpec.creatorVersion === 3 && (!spec.planConfirmed || !spec.plan)) return;
   const lease = await query(env.DB, `UPDATE custom_activities SET status = 'generating', lease_until = ? WHERE id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))`, nowSeconds() + 300, activity.id, nowSeconds()).run();
   if (!lease.meta?.changes) return;
   await env.DB.batch([
@@ -662,7 +829,7 @@ async function publishCustomOrder(orderId, env) {
     await env.DB.batch([
       query(env.DB, `INSERT OR IGNORE INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,guide_r2_key,player_sha256,guide_sha256,story_r2_key,story_sha256) VALUES (?,?,1,'published',?,?,?,?,?,?)`, `artifact-${orderId}-1`, activity.id, `${prefix}/player.pdf`, `${prefix}/guide.pdf`, playerHash, guideHash, `${prefix}/story.json`, storyHash),
       query(env.DB, "UPDATE custom_activities SET status = 'published', lease_until = NULL, generated_at = CURRENT_TIMESTAMP, published_at = CURRENT_TIMESTAMP WHERE id = ?", activity.id),
-      query(env.DB, "UPDATE orders SET status = 'published' WHERE id = ?", orderId),
+      query(env.DB, "UPDATE orders SET status = 'published' WHERE id = ? AND status IN ('paid','fulfilling')", orderId),
       query(env.DB, `UPDATE entitlements SET revision_expires_at = datetime('now','+30 days'), access_expires_at = datetime('now', ?) WHERE order_id = ?`,
         `+${accessMonths(spec)} months`, orderId),
       query(env.DB, "INSERT OR IGNORE INTO delivery_notifications (order_id,kind,status) VALUES (?,'files_ready','pending')", orderId),
@@ -694,7 +861,8 @@ async function publishRevision(revisionId, env) {
   const storyObject = await env.PRIVATE_FILES.get(previous.story_r2_key);
   if (!storyObject || storyObject.customMetadata?.sha256 !== previous.story_sha256) throw new Error('Story data failed integrity check');
   const oldStory = JSON.parse(await new Response(storyObject.body).text());
-  const spec = JSON.parse(order.purchase_spec_json);
+  const purchaseSpec = JSON.parse(order.purchase_spec_json);
+  const spec = purchaseSpec.creatorVersion === 3 ? JSON.parse(activity.story_spec_json) : purchaseSpec;
   const lease = await query(env.DB, `UPDATE revision_requests SET status = 'generating', lease_until = ?, attempts = attempts + 1 WHERE id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))`, nowSeconds() + 300, revision.id, nowSeconds()).run();
   if (!lease.meta?.changes) return;
   const revisionAttempt = (await query(env.DB, 'SELECT attempts FROM revision_requests WHERE id = ?', revision.id).first()).attempts;
@@ -737,7 +905,7 @@ export default {
   },
   async queue(batch, env) {
     for (const message of batch.messages) {
-      try { if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
+      try { if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else if (message.body?.type === 'plan') await publishPlanRequest(message.body.requestId,env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
       catch (failure) { console.error('Generation job failed', failure); message.retry(); }
     }
   },
@@ -754,11 +922,13 @@ export default {
     }
     if (!env.GENERATION_QUEUE) return;
     const jobs = await query(env.DB, `SELECT c.order_id FROM custom_activities c JOIN orders o ON o.id = c.order_id
-      WHERE c.status IN ('queued','generating') AND COALESCE(c.lease_until,0) < ? AND o.status IN ('paid','fulfilling') LIMIT 20`, nowSeconds()).all();
+      LEFT JOIN custom_plan_orders p ON p.order_id = c.order_id
+      WHERE c.status IN ('queued','generating') AND COALESCE(c.lease_until,0) < ? AND o.status IN ('paid','fulfilling') AND (p.order_id IS NULL OR p.confirmed_version IS NOT NULL) LIMIT 20`, nowSeconds()).all();
+    const plans = await query(env.DB,"SELECT r.id FROM custom_plan_requests r JOIN orders o ON o.id = r.order_id WHERE r.status IN ('queued','generating') AND COALESCE(r.lease_until,0) < ? AND o.status = 'paid' LIMIT 20",nowSeconds()).all();
     const revisions = await query(env.DB, "SELECT id FROM revision_requests WHERE status IN ('queued','generating') AND COALESCE(lease_until,0) < ? LIMIT 20", nowSeconds()).all();
     for (const item of jobs.results || []) await env.GENERATION_QUEUE.send({ orderId: item.order_id });
+    for (const item of plans.results || []) await env.GENERATION_QUEUE.send({type:'plan',requestId:item.id});
     for (const item of revisions.results || []) await env.GENERATION_QUEUE.send({ type: 'revision', revisionId: item.id });
   },
 };
-
 

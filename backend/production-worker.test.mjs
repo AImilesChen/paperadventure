@@ -8,10 +8,18 @@ import { sha256, signAccessToken, verifyAccessToken } from './security.mjs';
 import { validateGeneratedStory, validatePurchase, validateSupportedRange } from './domain.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import { productRights } from '../shared/catalog.mjs';
+import { signPreview } from './creator-preview.mjs';
+import { planFixture } from '../tests/fixtures/creator-plan-fixture.mjs';
+async function approvedCustomInput(env,input) {
+  const spec=validatePurchase({...input,creatorVersion:2,gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  spec.plan=planFixture(spec,spec.direction);spec.planConfirmed=true;
+  spec.previewToken=await signPreview(spec.plan,spec,await sha256(`${env.SESSION_SECRET}|${input.email}`),env.SESSION_SECRET);
+  return {...spec,email:input.email};
+}
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -317,8 +325,9 @@ test('custom checkout queues generation only after a verified paid webhook', asy
     const form = new URLSearchParams(init.body);
     return Response.json({ id: 'cs_custom_001', url: 'https://checkout.stripe.com/custom', client_reference_id: form.get('client_reference_id') });
   } };
-  const input = { sku: 'custom_home', customIdea: 'A moon library', players: 4, age: '8-10', paper: 'A4', direction: 'mission', email: 'adult@example.com' };
-  const checkout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', input, { 'Idempotency-Key': 'custom-attempt-001', origin: 'https://adventure.example' }), env);
+  const input = await approvedCustomInput(env,{ sku: 'custom_home', customIdea: 'A moon library', players: 4, age: '8-10', paper: 'A4', direction: 'mission', email: 'adult@example.com' });
+  const sessionToken = await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:await sha256(`${env.SESSION_SECRET}|${input.email}`),exp:Math.floor(Date.now()/1000)+3600});
+  const checkout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', input, { 'Idempotency-Key': 'custom-attempt-001', origin: 'https://adventure.example', cookie:`paw_session=${sessionToken}` }), env);
   assert.equal(checkout.status, 201);
   const { orderId } = await checkout.json();
   assert.equal(db.prepare('SELECT status FROM orders WHERE id = ?').get(orderId).status, 'pending_payment');
@@ -334,6 +343,32 @@ test('custom checkout queues generation only after a verified paid webhook', asy
   assert.equal(db.prepare('SELECT status FROM custom_activities WHERE order_id = ?').get(orderId).status, 'queued');
   assert.equal(queued.length, 1);
   assert.equal(queued[0].orderId, orderId);
+});
+
+test('v3 checkout and duplicate webhook queue only the paid plan',async()=>{
+  const {db,binding}=database();seedReady(db);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('v3-checkout-price','custom_home','USD',1499,'price_v3','exclusive',1)").run();
+  const queued=[];
+  const env={...config(binding),OPENAI_API_KEY:'test',OPENAI_MODEL:'test-model',GENERATION_QUEUE:{send:async value=>queued.push(value)},FETCH:async(_url,init)=>{
+    const form=new URLSearchParams(init.body);return Response.json({id:'cs_v3',url:'https://checkout.stripe.com/v3',client_reference_id:form.get('client_reference_id')});
+  }};
+  const input={sku:'custom_home',creatorVersion:3,customIdea:'A stopped clock tower',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:['discussion']},email:'adult@example.com'};
+  const owner=await sha256(`${env.SESSION_SECRET}|${input.email}`);
+  const sessionToken=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const checkout=await handleProductionApi(request('/api/v1/checkout-intents','POST',input,{origin:env.PUBLIC_ORIGIN,cookie:`paw_session=${sessionToken}`,'Idempotency-Key':'v3-checkout-attempt-001'}),env);
+  assert.equal(checkout.status,201,JSON.stringify(await checkout.clone().json()));
+  const {orderId}=await checkout.json(),order=db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  assert.equal(queued.length,0);
+  const session={id:'cs_v3',client_reference_id:orderId,metadata:{order_id:orderId,spec_hash:order.purchase_spec_sha256},payment_status:'paid',currency:'usd',amount_subtotal:1499,amount_total:1499,payment_intent:'pi_v3'};
+  const raw=JSON.stringify({id:'evt_v3',type:'checkout.session.completed',data:{object:session}}),time=Math.floor(Date.now()/1000);
+  const signature=createHmac('sha256',env.STRIPE_WEBHOOK_SECRET).update(`${time}.${raw}`).digest('hex');
+  const event=()=>handleProductionApi(new Request(`${env.PUBLIC_ORIGIN}/api/v1/stripe/webhook`,{method:'POST',headers:{'Stripe-Signature':`t=${time},v1=${signature}`},body:raw}),env);
+  assert.equal((await event()).status,200);assert.equal((await event()).status,200);
+  assert.equal(queued.length,2);assert.deepEqual(queued[0],{type:'plan',requestId:`plan-${orderId}-initial`});
+  assert.deepEqual(queued[1],queued[0]);
+  assert.equal(db.prepare('SELECT status FROM custom_activities WHERE order_id = ?').get(orderId).status,'queued');
+  await productionWorker.scheduled(null,env);
+  assert.deepEqual(queued.at(-1),queued[0]);
 });
 
 test('custom story validator requires five linked stages; PDF keeps answers out of player pack', () => {
@@ -450,7 +485,7 @@ test('terminal custom generation failure is visible and notifies the purchaser',
 
 test('free proposal endpoint returns two short directions and enforces an IP budget', async () => {
   const { binding } = database();
-  const env = { ...config(binding), PROPOSALS_ENABLED: 'true', OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', FETCH: async () => Response.json({ output: [{ content: [{ type: 'output_text', text: JSON.stringify({ proposals: [{ id: 'mystery', title: 'Lost note', summary: 'Follow a missing note.' }, { id: 'mission', title: 'Shared map', summary: 'Rebuild a map together.' }] }) }] }], usage: { input_tokens: 90, output_tokens: 60 } }) };
+  const env = { ...config(binding), LEGACY_PROPOSALS_ENABLED: 'true', OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', FETCH: async () => Response.json({ output: [{ content: [{ type: 'output_text', text: JSON.stringify({ proposals: [{ id: 'mystery', title: 'Lost note', summary: 'Follow a missing note.' }, { id: 'mission', title: 'Shared map', summary: 'Rebuild a map together.' }] }) }] }], usage: { input_tokens: 90, output_tokens: 60 } }) };
   const input = { themeId: 'celebration', setting: 'home', players: 4, age: '8-10', paper: 'A4' };
   const anonymous = await handleProductionApi(request('/api/v1/proposals', 'POST', input, { 'cf-connecting-ip': '203.0.113.7', origin: 'https://adventure.example' }), env);
   assert.equal(anonymous.status, 401);
@@ -473,7 +508,7 @@ test('Stripe sandbox checkout accepts any matching Google account and uses inlin
     FETCH: async (_url, init) => { form = new URLSearchParams(init.body); return Response.json({ id: 'cs_test_sandbox', url: 'https://checkout.stripe.com/test', client_reference_id: form.get('client_reference_id') }); } };
   const health = await handleProductionApi(request('/api/v1/health'), env);
   assert.equal((await health.json()).checkoutMode, 'test');
-  const input = { sku: 'custom_home', customIdea: 'A moon library', players: 4, age: '8-10', paper: 'A4', direction: 'mission', email: 'adult@example.com' };
+  const input = await approvedCustomInput(env,{ sku: 'custom_home', customIdea: 'A moon library', players: 4, age: '8-10', paper: 'A4', direction: 'mission', email: 'adult@example.com' });
   const headers = { 'Idempotency-Key': 'sandbox-attempt-001', origin: 'https://adventure.example' };
   const anonymous = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', input, headers), env);
   assert.equal(anonymous.status, 403);
@@ -619,3 +654,88 @@ test('Google sign-in config creates a short-lived nonce and rejects missing or i
 });
 
 
+
+test('full creator previews sign both plans, failed attempts refund quota, and saved plans verify', async()=>{
+  const {binding}=database();
+  const input={creatorVersion:2,customIdea:'A journey mystery',setting:'home',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:['discussion']}};
+  let fail=true;
+  const env={...config(binding),LEGACY_PROPOSALS_ENABLED:'true',DEEPSEEK_API_KEY:'test-only',AI_PROVIDER:'deepseek',FETCH:async(_,init)=>{
+    if(fail)return new Response('unavailable',{status:502});
+    const spec=JSON.parse(JSON.parse(init.body).input);
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({proposals:[planFixture(spec),planFixture(spec,'mission')]})}]}]});
+  }};
+  const owner=await sha256(`${env.SESSION_SECRET}|adult@example.com`);
+  const session=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${session}`,origin:env.PUBLIC_ORIGIN,'cf-connecting-ip':'203.0.113.7'};
+  const call=()=>handleProductionApi(request('/api/v1/proposals','POST',input,headers),env);
+  assert.equal((await call()).status,502);
+  assert.equal((await handleProductionApi(request('/api/v1/proposals','GET',undefined,headers),env).then(r=>r.json())).remaining,2);
+  fail=false;const result=await call();assert.equal(result.status,200);const body=await result.json();assert.equal(body.remaining,1);
+  const plan=body.proposals[0];assert.equal(plan.stages.length,5);assert.ok(plan.previewToken);
+  const draft={...input,direction:plan.id,plan,previewToken:plan.previewToken};
+  const saved=await handleProductionApi(request('/api/v1/my-draft','PUT',draft,headers),env);assert.equal(saved.status,200);
+  const tampered=await handleProductionApi(request('/api/v1/my-draft','PUT',{...draft,players:5},headers),env);assert.equal(tampered.status,409);
+  const restored=await handleProductionApi(request('/api/v1/my-draft','GET',undefined,headers),env).then(r=>r.json());assert.equal(restored.draft.plan.title,plan.title);
+});
+
+test('concurrent preview requests reserve the same account allowance atomically',async()=>{
+  const {binding}=database();
+  const env={...config(binding),LEGACY_PROPOSALS_ENABLED:'true',DEEPSEEK_API_KEY:'test-only',AI_PROVIDER:'deepseek',FETCH:async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({proposals:[{id:'mystery',title:'First',summary:'First plan'},{id:'mission',title:'Second',summary:'Second plan'}]})}]}]})};
+  const session=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:'test-owner',exp:Math.floor(Date.now()/1000)+3600});
+  const input={customIdea:'A paper journey',setting:'home',players:4,age:'8-10',paper:'A4'};
+  const statuses=await Promise.all(Array.from({length:3},()=>handleProductionApi(request('/api/v1/proposals','POST',input,{cookie:`paw_session=${session}`,origin:env.PUBLIC_ORIGIN,'cf-connecting-ip':'203.0.113.7'}),env).then(r=>r.status)));
+  assert.deepEqual(statuses.sort(),[200,200,429]);
+});
+
+test('paid v3 plan is reviewed before PDFs and only successful changes spend allowance',async()=>{
+  const {db,binding}=database();
+  const owner=await sha256('test-session-secret|adult@example.com');
+  const spec=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'The clock tower stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  const stored=JSON.stringify({...spec,onlineRedownloadMonths:12});
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('v3-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status) VALUES ('v3-order','custom','custom_home',?,?,?,?,1499,'USD','paid')").run(stored,await sha256(stored),owner,'v3-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('v3-activity','v3-order','queued',?)").run(stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit) VALUES ('v3-ent','v3-order','v3-activity','active',2)").run();
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status) VALUES ('v3-order','queued')").run();
+  db.prepare("INSERT INTO custom_plan_requests (id,order_id,kind,status) VALUES ('v3-initial','v3-order','initial','queued')").run();
+  let providerCalls=0,failAudit=true;
+  const queued=[];
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture-model',GENERATION_QUEUE:{send:async job=>queued.push(job)},FETCH:async(_url,init)=>{
+    providerCalls++;
+    const sent=JSON.parse(init.body),name=sent.text.format.name;
+    if(name==='paid_plan_audit')return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:!failAudit,issues:failAudit?['Mismatch']:[]})}]}]});
+    assert.equal(name,'paid_adventure_plan');
+    const input=JSON.parse(sent.input),plan=input.kind==='targeted'?structuredClone(input.previousPlan):planFixture(input.spec);
+    if(input.kind==='full'){plan.stages[1].task+=' Check the clock face.';plan.stages[2].task+=' Ask the keeper.';}
+    if(input.kind==='targeted')plan.opening+=' The clock has a paper dial.';
+    return Response.json({id:'response-plan',output:[{content:[{type:'output_text',text:JSON.stringify(plan)}]}],usage:{input_tokens:100,output_tokens:150}});
+  }};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN,'Idempotency-Key':'paid-plan-change-0001'};
+  const post=(body,key='paid-plan-change-0001')=>handleProductionApi(request('/api/v1/orders/v3-order/plan','POST',body,{...headers,'Idempotency-Key':key}),env);
+  await productionWorker.queue({messages:[{body:{orderId:'v3-order'},ack(){},retry(){throw Error('unexpected retry');}}]},env);
+  assert.equal(providerCalls,0,'PDF job must stop before plan approval');
+  failAudit=false;
+  await productionWorker.queue({messages:[{body:{type:'plan',requestId:'v3-initial'},ack(){},retry(){throw Error('unexpected retry');}}]},env);
+  assert.equal(db.prepare("SELECT active_version FROM custom_plan_orders WHERE order_id='v3-order'").get().active_version,1);
+  assert.equal(db.prepare("SELECT status FROM custom_activities WHERE order_id='v3-order'").get().status,'queued');
+  assert.equal((await post({action:'rework',feedback:'Make the middle checkpoints less repetitive.'})).status,202);
+  assert.equal((await post({action:'rework',feedback:'Make the middle checkpoints less repetitive.'})).status,200,'network retry reuses the same job');
+  const requestId=queued.at(-1).requestId;
+  failAudit=true;
+  await productionWorker.queue({messages:[{body:{type:'plan',requestId},ack(){throw Error('failed audit cannot ack');},retry(){}}]},env);
+  assert.equal(db.prepare("SELECT full_used FROM custom_plan_orders WHERE order_id='v3-order'").get().full_used,0);
+  failAudit=false;
+  await productionWorker.queue({messages:[{body:{type:'plan',requestId},ack(){},retry(){throw Error('unexpected retry');}}]},env);
+  assert.equal(db.prepare("SELECT full_used FROM custom_plan_orders WHERE order_id='v3-order'").get().full_used,1);
+  assert.equal((await post({action:'edit',scope:'opening',feedback:'Please mention the paper clock earlier.'},'paid-plan-change-0002')).status,202);
+  await productionWorker.queue({messages:[{body:queued.at(-1),ack(){},retry(){throw Error('unexpected retry');}}]},env);
+  const viewed=await handleProductionApi(request('/api/v1/orders/v3-order','GET',undefined,headers),env).then(r=>r.json());
+  assert.equal(viewed.planReview.targetedUsed,1);assert.equal(viewed.planReview.versions.length,3);
+  assert.equal((await post({action:'select',version:1},'paid-plan-select-0001')).status,200);
+  assert.equal((await post({action:'confirm',version:1},'paid-plan-confirm-0001')).status,200);
+  assert.equal(db.prepare("SELECT confirmed_version FROM custom_plan_orders WHERE order_id='v3-order'").get().confirmed_version,1);
+  assert.equal(JSON.parse(db.prepare("SELECT story_spec_json FROM custom_activities WHERE order_id='v3-order'").get().story_spec_json).plan.title,viewed.planReview.versions[0].plan.title);
+  assert.equal(queued.at(-1).orderId,'v3-order');
+  assert.equal((await post({action:'rework',feedback:'Try again after approval.'},'paid-plan-change-0003')).status,409);
+});

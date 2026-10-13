@@ -1,0 +1,66 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validatePurchase,validateGeneratedStory} from './domain.mjs';
+import {signPreview,confirmPreview} from './creator-preview.mjs';
+import {generateProposals,generateStory,reviseStage} from './openai.mjs';
+import {contextKey,storySuggestions} from '../shared/creator-plan.mjs';
+import {normalizeDraft,draftSpec,activePlans,readySetup,fromCloudDraft} from '../src/creatorDraft.mjs';
+import {planFixture} from '../tests/fixtures/creator-plan-fixture.mjs';
+import {buildGamePdf} from './pdf.mjs';
+const input={sku:'custom_home',creatorVersion:2,customIdea:'西游记',players:4,age:'8-10',paper:'A4',direction:'mystery',storyLocation:'A stop on the journey',mood:'Gentle mystery',gameplay:{primary:'reasoning',secondary:['code','discussion'],request:''}};
+const base=()=>validatePurchase(input).spec;
+const response=value=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
+const env={AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture-key'};
+function storyFixture(plan) {return {title:plan.title,introduction:plan.opening,ending:'The team restores the document.',groupInstructions:'',stages:plan.stages.map((item,index)=>({title:item.title,mechanic:item.mechanic,clue:'The target has a round seal and two stripes. Choose the matching record.',options:['Round seal, two stripes','Square seal, two stripes','Round seal, three stripes'],answerIndex:0,explanation:'Both stated features match only the first record.',hint:'Check both the seal and stripe count.',prerequisite:index?'STOP-'+index:'START',unlock:'STOP-'+(index+1)}))};}
+test('a preview is bound to its owner, settings, play choices and content',async()=>{
+  const spec=base();spec.plan=planFixture(spec);spec.previewToken=await signPreview(spec.plan,spec,'owner','secret');
+  await confirmPreview(spec,'owner','secret');
+  for(const changed of [{...spec,place:'Somewhere else'},{...spec,players:5},{...spec,storyLocation:'Another world'},{...spec,gameplay:{...spec.gameplay,request:'New request'}},{...spec,plan:{...spec.plan,goal:'Change the goal'}}])await assert.rejects(confirmPreview(changed,'owner','secret'),error=>error.code==='PREVIEW_STALE');
+  await assert.rejects(confirmPreview(spec,'other-owner','secret'));
+  await assert.rejects(confirmPreview({...spec,previewToken:spec.previewToken+'bad'},'owner','secret'));
+  await assert.rejects(confirmPreview({...spec,direction:'mission'},'owner','secret'));
+});
+test('play selection is validated and separate venue/story settings survive',()=>{
+  const spec=base();assert.equal(spec.storyLocation,input.storyLocation);assert.equal(spec.language,'en');
+  assert.throws(()=>validatePurchase({...input,gameplay:{primary:'folding',secondary:[]}}));
+  assert.throws(()=>validatePurchase({...input,gameplay:{primary:'reasoning',secondary:['reasoning']}}));
+  assert.throws(()=>validatePurchase({...input,language:'zh'}));
+});
+test('two full five-checkpoint plans are required from the proposal provider',async()=>{
+  const spec=base();let sent;
+  const result=await generateProposals(spec,env,async(_,options)=>{sent=JSON.parse(options.body);return response({proposals:[planFixture(spec),planFixture(spec,'mission')]});});
+  assert.equal(result.proposals[0].stages.length,5);assert.equal(JSON.parse(sent.input).gameplay.primary,'reasoning');
+  await assert.rejects(generateProposals(spec,env,async()=>response({proposals:[{id:'mystery',title:'Title',summary:'Short'}]})));
+  const invalid=planFixture(spec);invalid.stages[0].mechanic='sequence';
+  await assert.rejects(generateProposals(spec,env,async()=>response({proposals:[invalid,planFixture(spec,'mission')]})));
+});
+test('generated stories cannot depart from the approved checkpoint titles, mechanics or opening',async()=>{
+  const spec=base();spec.plan=planFixture(spec);const story=storyFixture(spec.plan);
+  assert.equal(validateGeneratedStory(story,spec).stages[0].task,spec.plan.stages[0].task);
+  assert.throws(()=>validateGeneratedStory({...story,introduction:'A new story begins.'},spec));
+  assert.throws(()=>validateGeneratedStory({...story,stages:story.stages.map((s,i)=>i===0?{...s,mechanic:'sequence'}:s)},spec));
+  let calls=0;
+  const result=await generateStory(spec,env,async(_,options)=>{const sent=JSON.parse(options.body);calls++;return response(sent.text.format.name==='story_audit'?{pass:true,issues:[]}:story);});
+  assert.equal(calls,2);assert.equal(result.story.title,spec.plan.title);
+  await assert.rejects(reviseStage(story,spec,1,'Change this into an ordering puzzle',env,async()=>response({...story.stages[0],mechanic:'sequence'})));
+});
+test('old drafts migrate to pay-first setup without trusting old plans',()=>{
+  const draft=normalizeDraft({idea:'西游记',setting:'home',players:4,age:'8-10',direction:'mission',proposalTitle:'Old synopsis'});
+  assert.equal(draft.creatorVersion,3);assert.equal(draft.plan,undefined);assert.equal(storySuggestions(draft.idea).name,'Journey to the West');assert.ok(readySetup(draft));
+  const spec=draftSpec(draft);assert.equal(spec.creatorVersion,3);assert.equal(spec.plan,undefined);assert.equal(spec.previewToken,undefined);
+  const restored=fromCloudDraft({...spec,plan:planFixture(spec),previewToken:'old-proof'});assert.equal(restored.plan,undefined);
+  assert.equal(readySetup({...draft,age:'10-8'}),false);
+  const broken=normalizeDraft({creatorVersion:2,preferences:{characters:{bad:'data'}},gameplay:{primary:'bad',secondary:'bad'},place:{bad:'data'}});
+  assert.equal(broken.preferences.characters,'');assert.equal(broken.place,'');assert.equal(broken.gameplay.primary,'reasoning');
+});
+test('new Player and Guide PDFs include the approved mission, preserve answer separation and use supported materials',()=>{
+  const spec=base();spec.plan=planFixture(spec);spec.materials='Glue and cardboard';
+  const story=validateGeneratedStory(storyFixture(spec.plan),spec);
+  for(const paper of ['A4','Letter']) {
+    const player=new TextDecoder().decode(buildGamePdf(story,{...spec,paper},'player'));
+    const guide=new TextDecoder().decode(buildGamePdf(story,{...spec,paper},'guide'));
+    assert.match(player,/Your team and mission/);assert.match(player,/Work together:/);
+    assert.doesNotMatch(player,/Gentle hint:|Why:|Glue and cardboard/);
+    assert.match(guide,/Gentle hint:/);assert.match(guide,/Printed player pages and pencils/);
+  }
+});

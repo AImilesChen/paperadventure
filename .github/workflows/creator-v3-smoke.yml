@@ -1,0 +1,28 @@
+name: Private paid creator v3 provider smoke
+on:
+  push:
+    branches: [creator-v3-staging]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: '1'
+      DEEPSEEK_MODEL: deepseek-flash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:backend
+      - name: Generate one real paid plan, full story and both PDFs
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
+        run: node scripts/creator-v3-smoke.mjs
