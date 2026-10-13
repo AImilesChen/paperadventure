@@ -19,7 +19,7 @@ async function approvedCustomInput(env,input) {
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -432,6 +432,10 @@ test('paid custom queue job generates private player and guide PDFs, then publis
   assert.ok(Date.parse(`${customEntitlement.revision_expires_at.replace(' ', 'T')}Z`) < Date.now() + 31 * 86400000);
   assert.equal(db.prepare("SELECT input_tokens FROM generation_usage WHERE order_id = 'order-1' AND status = 'published'").get().input_tokens, 1000);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM generation_usage WHERE order_id = 'order-1' AND status = 'failed'").get().n, 1);
+  assert.deepEqual(db.prepare("SELECT status,phase,round_number,trigger_kind FROM generation_usage WHERE order_id = 'order-1' AND status IN ('failed','published') ORDER BY attempt").all().map(row=>({...row})), [
+    {status:'failed',phase:'story',round_number:1,trigger_kind:'initial'},
+    {status:'published',phase:'delivered',round_number:1,trigger_kind:'automatic_retry'},
+  ]);
   assert.equal(stored.size, 3);
   const player = new TextDecoder().decode(stored.get('custom/order-1/v1/player.pdf').bytes);
   assert.match(player, /^%PDF-1\.4/);
@@ -526,6 +530,12 @@ test('paid plan attempts do not exhaust PDF retries and a failed paid order can 
   assert.equal(db.prepare("SELECT status FROM orders WHERE id='pdf-order'").get().status,'failed');
   view=await handleProductionApi(request('/api/v1/orders/pdf-order','GET',undefined,headers),env).then(r=>r.json());
   assert.equal(view.deliveryRetryAvailable,false);
+  assert.equal(view.pdfGenerationHistory.length,4);
+  assert.deepEqual(view.pdfGenerationHistory.map(item=>[item.round,item.attemptInRound,item.trigger,item.status]),[
+    [1,1,'initial','failed'],[1,2,'automatic_retry','failed'],
+    [2,1,'customer_retry','failed'],[2,2,'automatic_retry','failed'],
+  ]);
+  assert.equal(view.pdfGenerationHistory[0].detailsRecorded,true);
   shelf=await handleProductionApi(request('/api/v1/my-orders','GET',undefined,headers),env).then(r=>r.json());
   assert.equal(shelf.orders.find(order=>order.id==='pdf-order').deliveryRetryAvailable,false);
 });

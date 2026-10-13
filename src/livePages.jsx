@@ -194,7 +194,7 @@ function DeliveryRecovery({order,refresh}) {
     try { await api(`/api/v1/orders/${order.id}/retry-delivery`,{method:'POST'}); setNotice('PDF creation has been queued on this paid order. You will not be charged again.'); await refresh(); }
     catch (failure) { setError(failure.message); } finally { setBusy(false); }
   }
-  return <section className="live-revision paid-plan-recovery delivery-failed" role="status"><span className="eyebrow">PDF DELIVERY STOPPED</span><h3>No game pack is available to download yet</h3><p>Your approved plan is saved, but PDF generation failed its delivery checks. This order is no longer generating automatically, so there is no download button yet. Plan edits closed when you approved this version; checkpoint revisions become available only after a complete pack is delivered.</p>{order.deliveryRetryAvailable ? <><p>You can restart PDF creation on this same paid order at no charge. This does not use a plan edit or post-delivery revision.</p><button type="button" className="button" disabled={busy} onClick={retry}>{busy?'Requesting…':'Retry PDF creation at no charge'} <ArrowRight size={17}/></button></> : <><p>Self-service retries are unavailable. Ask for help with this order or request a refund review. You do not need to pay again.</p><a className="button" href={'mailto:support@paperadventure.app?subject=' + encodeURIComponent('PDF delivery failed · order ' + order.id.slice(0, 8).toUpperCase())}>Email support about this order <ArrowRight size={17}/></a><a className="delivery-report-link" href="#order-help" onClick={() => { const help = document.getElementById('order-help'); if (help) help.open = true; }}>Or record a report on this order</a></>}<p className="delivery-location">If the files are completed after recovery, the ZIP and both PDFs will appear at the top of this order and under My games.</p>{notice&&<p>{notice}</p>}{error&&<Alert>{error}</Alert>}</section>;
+  return <section className="live-revision paid-plan-recovery delivery-failed" role="status"><span className="eyebrow">PDF DELIVERY STOPPED</span><h3>No game pack is available to download yet</h3><p>Your approved plan is saved, but the full game package was not completed. This order is no longer generating automatically, so there is no download button yet. Plan edits closed when you approved this version; checkpoint revisions become available only after a complete pack is delivered.</p>{order.deliveryRetryAvailable ? <><p>You can restart PDF creation on this same paid order at no charge. This does not use a plan edit or post-delivery revision.</p><button type="button" className="button" disabled={busy} onClick={retry}>{busy?'Requesting…':'Retry PDF creation at no charge'} <ArrowRight size={17}/></button></> : <><p>Self-service retries are unavailable. Ask for help with this order or request a refund review. You do not need to pay again.</p><a className="button" href={'mailto:support@paperadventure.app?subject=' + encodeURIComponent('PDF delivery failed · order ' + order.id.slice(0, 8).toUpperCase())}>Email support about this order <ArrowRight size={17}/></a><a className="delivery-report-link" href="#order-help" onClick={() => { const help = document.getElementById('order-help'); if (help) help.open = true; }}>Or record a report on this order</a></>}<p className="delivery-location">If the files are completed after recovery, the ZIP and both PDFs will appear at the top of this order and under My games.</p>{notice&&<p>{notice}</p>}{error&&<Alert>{error}</Alert>}</section>;
 }
 
 function OrderNextStep({order,refresh,Link}) {
@@ -208,17 +208,106 @@ function OrderNextStep({order,refresh,Link}) {
   </section>;
 }
 
+const pdfPhaseText = {
+  story: 'creating and checking the game content',
+  pdf: 'building the two PDFs',
+  storage: 'saving the PDF files',
+  delivery_check: 'checking the saved files',
+  delivered: 'completed',
+};
+
+function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
+  const ready = order.filesReady;
+  const guide = order.sku.includes('classroom') ? 'Teacher Guide' : 'Host Guide';
+  const approved = order.kind === 'ready' || Boolean(order.planReview?.confirmedVersion || order.plan?.planConfirmed);
+  const state = ready ? 'Ready to download' : order.status === 'failed' ? 'PDF creation stopped' : !approved ? 'Waiting for plan approval' : order.status === 'pending_payment' ? 'Waiting for payment confirmation' : order.status === 'fulfilling' ? 'Creating and checking your PDFs' : 'PDF creation is queued';
+  const paper = order.kind === 'ready' ? selectedPaper : order.paper;
+  return <section className={'order-package' + (order.status === 'failed' ? ' order-package-failed' : '')} aria-labelledby="order-package-title">
+    <span className="eyebrow">YOUR GAME PACKAGE</span>
+    <h2 id="order-package-title">{state}</h2>
+    <p>{ready ? 'Your complete printable adventure is ready below.' : order.status === 'failed' ? 'No complete game package was delivered. There are no files to download at the moment.' : order.status === 'pending_payment' ? 'Payment has not been confirmed for this order.' : approved ? 'The full game package is being prepared. You can return to this order later.' : 'Approve a personal plan before the full game package can be created.'}</p>
+    <div className="order-package-files" aria-label="Files in your package">
+      <div><strong>Player Pack</strong><span>Children’s activities · PDF</span><small>{ready ? 'Ready' : 'Not ready'}</small></div>
+      <div><strong>{guide}</strong><span>Adult instructions and answers · PDF</span><small>{ready ? 'Ready' : 'Not ready'}</small></div>
+      <div><strong>Complete game</strong><span>Both PDFs together · ZIP</span><small>{ready ? 'Ready' : 'Not ready'}</small></div>
+    </div>
+    {ready && <div id="download-game" className="order-package-downloads">
+      {order.kind === 'ready' ? <label className="order-paper-choice">Paper size<select aria-label="Paper size" value={selectedPaper} onChange={event=>setSelectedPaper(event.target.value)}><option value="A4">A4</option><option value="Letter">US Letter</option></select></label> : <p className="live-note">Paper size: {paper === 'Letter' ? 'US Letter' : paper}</p>}
+      <CompletePackDownload orderId={orderId} paper={paper} setting={order.sku.includes('classroom') ? 'classroom' : 'home'}/>
+      <div className="live-downloads">{['player','guide'].map(role=><a key={role} href={'/api/v1/files/' + orderId + '/' + role + '?paper=' + paper}>{role === 'player' ? 'Player Pack' : guide} <DownloadSimple size={17}/></a>)}</div>
+    </div>}
+  </section>;
+}
+
+function PdfGenerationHistory({order}) {
+  const attempts = order.pdfGenerationHistory || [];
+  if (order.kind !== 'custom' || !order.planReview?.confirmedVersion && attempts.length === 0) return null;
+  const rounds = [...new Set(attempts.map(item=>item.round))];
+  return <section className="order-generation-history" aria-labelledby="order-history-title">
+    <span className="eyebrow">PDF PROGRESS</span><h2 id="order-history-title">Generation history</h2>
+    <p>{attempts.length ? 'A round can contain an automatic retry. These are PDF attempts after plan approval, not plan edits.' : 'Your approved plan is saved. The first PDF attempt has not been recorded yet.'}</p>
+    {rounds.map(round=><div className="order-generation-round" key={round}>
+      <h3>{round === 1 ? 'First PDF build' : 'Included delivery retry'}</h3>
+      <ol>{attempts.filter(item=>item.round===round).map(item=>{
+        const status = item.status === 'published' ? 'Completed' : item.status === 'generating' ? 'In progress' : item.status === 'interrupted' ? 'Interrupted' : 'Failed';
+        const phase = item.phase && pdfPhaseText[item.phase];
+        const detail = item.status === 'published' ? 'Both PDFs were published.' : item.status === 'generating' ? `Currently ${phase || 'creating your PDFs'}.` : !item.detailsRecorded ? 'This earlier attempt stopped; a detailed reason was not saved.' : `Stopped while ${phase || 'creating your PDFs'}. ${item.failureReason || 'The exact cause is not available in this record.'}`;
+        const date = item.recordedAt ? new Date(item.recordedAt.replace(' ','T') + 'Z') : null;
+        return <li key={item.attempt}><div><strong>{item.trigger === 'automatic_retry' ? 'Automatic retry' : item.trigger === 'customer_retry' ? 'Your free retry' : 'Initial attempt'}</strong><span className={'order-attempt-state state-' + item.status}>{status}</span></div><p>{detail}</p>{date && !Number.isNaN(date.getTime()) && <time dateTime={date.toISOString()}>{date.toLocaleString()}</time>}</li>;
+      })}</ol>
+    </div>)}
+    {order.status === 'failed' && <p className="order-history-conclusion">No attempt has produced a downloadable package for this order.</p>}
+  </section>;
+}
+
 export function LiveOrder({ Link, orderId }) {
-  const [order, setOrder] = useState(null); const [error, setError] = useState('');
+  const [order, setOrder] = useState(null);
+  const [error, setError] = useState('');
   const [selectedPaper, setSelectedPaper] = useState('A4');
   const refresh = () => api(`/api/v1/orders/${orderId}`).then(data => { setOrder(data); setError(''); }).catch(failure => setError(failure.message));
   useEffect(() => { setOrder(null); setError(''); refresh(); }, [orderId]);
   useEffect(() => {
-    if (!order || !['pending_payment', 'paid', 'fulfilling'].includes(order.status)) return;
+    if (!order || !['pending_payment','paid','fulfilling'].includes(order.status)) return;
     const timer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 10000);
     return () => clearInterval(timer);
-  }, [orderId, order?.status]);
-  return <main className="extended-page live-page"><Intro eyebrow="ORDER" title="Your adventure order."><p>Payment and file status come from the server. Returning from Stripe alone does not confirm payment.</p></Intro><section className="live-shell">{error ? <div className="live-panel"><Alert>{error}</Alert><Link className="button" to="/en/account/">Sign in with Google <ArrowRight size={18} /></Link></div> : !order ? <p>Checking your order…</p> : <div className="live-panel"><span className="eyebrow">{order.kind === 'ready' ? 'READY-MADE' : 'CUSTOM-MADE'}</span><h2>{order.sku.replaceAll('_', ' ')}</h2><p>Order status: <strong>{orderLabel[order.status] || order.status}</strong></p>{order.kind === 'custom' && order.status === 'fulfilling' && order.generationFailedAttempts > 0 && <p role="status">A quality check did not pass. We are retrying automatically; no unfinished PDF will be delivered.</p>}{order.kind === 'custom' && order.status === 'paid' && !order.planReview && <p role="status">Your full game is queued. You can leave this page and return through My adventures.</p>}<p>Charged total: {formatUsd(order.amountTotal)} · {order.currency}</p>{order.status === "published" && order.accessExpiresAt && <p>Online re-download until {new Date(order.accessExpiresAt.replace(" ", "T") + "Z").toLocaleDateString()}.</p>}{order.filesReady ? <section id="download-game" className="order-download-primary" aria-labelledby="order-download-title"><span className="eyebrow">YOUR GAME IS READY</span><h2 id="order-download-title">Download your complete game</h2><p>Get the Player Pack and {order.sku.includes('classroom') ? 'Teacher Guide' : 'Host Guide'} together in one ZIP. Extract the ZIP, then open the two PDFs.</p>{order.kind === 'ready' ? <label className="order-paper-choice">Paper size<select aria-label="Paper size" value={selectedPaper} onChange={event => setSelectedPaper(event.target.value)}><option value="A4">A4</option><option value="Letter">US Letter</option></select></label> : <p className="live-note">Paper size: {order.paper === 'Letter' ? 'US Letter' : order.paper}</p>}<CompletePackDownload orderId={orderId} paper={order.kind === 'ready' ? selectedPaper : order.paper} setting={order.sku.includes('classroom') ? 'classroom' : 'home'} /><h3 className="order-separate-title">Prefer individual PDF files?</h3><div className="live-downloads">{(order.kind === 'ready' ? ['A4','Letter'] : [order.paper]).map(paper => <div key={paper}><strong>{paper === 'Letter' ? 'US Letter' : paper}</strong><a href={'/api/v1/files/' + orderId + '/player?paper=' + paper}>Player Pack <DownloadSimple size={17} /></a><a href={'/api/v1/files/' + orderId + '/guide?paper=' + paper}>{order.sku.includes('classroom') ? 'Teacher Guide' : 'Host Guide'} <DownloadSimple size={17} /></a></div>)}</div></section> : <p>{order.status === "published" && order.accessExpiresAt && Date.parse(order.accessExpiresAt.replace(" ", "T") + "Z") <= Date.now() ? "The online re-download period has ended. Files already downloaded may still be used within your Home or Classroom licence." : order.status === "failed" ? "PDF creation stopped before a complete game pack could be delivered. There are no files to download yet; see the next step below." : order.status === "refunded" ? "This order was refunded, so online file access is closed." : order.planReview && order.status === "paid" ? (order.planReview.status === 'needs_help' ? 'Your paid plan could not be completed. Use the recovery options below; you do not need to pay again.' : 'Your personal plan is being prepared or awaits your review below. PDFs begin only after you approve a plan.') : "Files are not ready yet. If this is a custom order, generation and checking begin only after confirmed payment."}</p>}<DeliveryRecovery order={order} refresh={refresh}/>{order.planReview && <PaidPlanReview order={order} refresh={refresh}/>} {!order.planReview && order.plan && <details className="order-plan-review"><summary>Review the story and five-checkpoint plan</summary><PlanPreview plan={order.plan}/></details>}<OrderNextStep order={order} refresh={refresh} Link={Link}/><RevisionForm order={order} refresh={refresh} /><IssueForm orderId={orderId} failedDelivery={order.kind === 'custom' && order.status === 'failed' && Boolean(order.paidAt)} /><button className="button-quiet" onClick={refresh}>Refresh status</button><p className="live-note">If a file is missing or incorrect, contact support through the help page. A system correction does not use a paid revision.</p></div>}</section></main>;
+  }, [orderId,order?.status]);
+
+  if (error) return <main className="extended-page live-page order-page"><div className="order-workspace"><Alert>{error}</Alert><Link className="button" to="/en/account/">Sign in with Google <ArrowRight size={18}/></Link></div></main>;
+  if (!order) return <main className="extended-page live-page order-page"><div className="order-workspace" role="status">Checking your order…</div></main>;
+
+  const title = order.plan?.title || (order.kind === 'ready' ? order.sku.replaceAll('_',' ') : 'Your custom adventure');
+  const paid = Boolean(order.paidAt);
+  const approved = Boolean(order.planReview?.confirmedVersion);
+  return <main className="extended-page live-page order-page">
+    <div className="order-workspace">
+      <Link className="order-back" to="/en/my-adventures/">← My adventures</Link>
+      <header className="order-heading">
+        <div><span className="eyebrow">YOUR ADVENTURE ORDER</span><h1>{title}</h1><p>Order {order.id.slice(0,8).toUpperCase()} · {order.kind === 'ready' ? 'Ready-made' : order.sku.includes('classroom') ? 'Custom Classroom' : 'Custom Home'}</p></div>
+        <span className={'order-current-status status-' + order.status}>{orderLabel[order.status] || order.status}</span>
+      </header>
+      <div className="order-layout">
+        <div className="order-main">
+          <OrderPackage order={order} orderId={orderId} selectedPaper={selectedPaper} setSelectedPaper={setSelectedPaper}/>
+          <PdfGenerationHistory order={order}/>
+          {order.planReview && (approved ? <details className="order-approved-plan"><summary>View your approved five-checkpoint plan</summary><PaidPlanReview order={order} refresh={refresh}/></details> : <PaidPlanReview order={order} refresh={refresh}/>)}
+          {!order.planReview && order.plan && <details className="order-plan-review"><summary>Review the story and five-checkpoint plan</summary><PlanPreview plan={order.plan}/></details>}
+          <RevisionForm order={order} refresh={refresh}/>
+        </div>
+        <aside className="order-sidebar" aria-label="Order details">
+          <h2>Order details</h2>
+          <dl><div><dt>Payment</dt><dd>{paid ? 'Confirmed' : 'Not confirmed'}</dd></div><div><dt>Total</dt><dd>{formatUsd(order.amountTotal)} · {order.currency}</dd></div><div><dt>Paper</dt><dd>{order.paper === 'Letter' ? 'US Letter' : order.paper || 'Choose on download'}</dd></div>{order.kind === 'custom' && <div><dt>Plan</dt><dd>{approved ? `Version ${order.planReview.confirmedVersion} approved` : 'Awaiting approval'}</dd></div>}<div><dt>Files</dt><dd>{order.filesReady ? 'Ready' : 'Not available yet'}</dd></div></dl>
+          {order.filesReady && order.accessExpiresAt && <p>Online re-download until {new Date(order.accessExpiresAt.replace(' ','T') + 'Z').toLocaleDateString()}.</p>}
+          {order.kind === 'custom' && paid && <p>Plan changes happen before approval. Checkpoint revisions appear after your complete game is delivered.</p>}
+          <button type="button" className="button-quiet" onClick={refresh}>Refresh order status</button>
+        </aside>
+      </div>
+      <section className="order-help-footer" aria-label="Help with this order">
+        <DeliveryRecovery order={order} refresh={refresh}/>
+        <IssueForm orderId={orderId} failedDelivery={order.kind === 'custom' && order.status === 'failed' && paid}/>
+        {order.status !== 'failed' && <p className="live-note">If a file is missing or incorrect, use the help form. A system correction does not use a paid revision.</p>}
+      </section>
+    </div>
+  </main>;
 }
 
 export function LiveSamples(props) { return <FreeDownload {...props} />; }

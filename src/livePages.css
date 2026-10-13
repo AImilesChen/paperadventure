@@ -76,3 +76,63 @@
 .delivery-failed .delivery-location{padding-top:13px;border-top:1px solid #e5c9c1;font-size:.88rem}
 .shelf-downloads>.button-quiet{font-size:.84rem;min-height:40px}
 @media(max-width:650px){.order-download-primary{padding:19px}.order-download-primary h2{font-size:1.45rem}.complete-pack-download .complete-pack-button{font-size:.9rem;padding:13px}.order-next-step{padding:19px}.order-next-actions .button{width:100%}}
+
+/* Paid order: package and generation history lead; support follows the order details. */
+.order-page .order-workspace{width:min(1200px,calc(100% - 48px));margin:0 auto;padding:42px 0 90px}
+.order-back{display:inline-block;margin-bottom:20px;color:#155576;font-weight:800;text-decoration:none}
+.order-back:hover{text-decoration:underline}
+.order-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:30px}
+.order-heading h1{max-width:850px;margin:8px 0;font-size:clamp(2.1rem,4vw,3.8rem);line-height:1.1;overflow-wrap:anywhere}
+.order-heading p{margin:0;color:#496c7c;font-size:.93rem}
+.order-current-status{flex:none;max-width:280px;padding:9px 13px;border:1px solid #b6d2dd;border-radius:8px;background:#edf8fc;color:#173d5a;font-size:.84rem;font-weight:800;line-height:1.4}
+.order-current-status.status-failed{border-color:#e1aa9c;background:#fff1eb;color:#9e2e20}
+.order-current-status.status-published{border-color:#91c7a7;background:#eaf6ec;color:#286148}
+.order-layout{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(280px,.8fr);align-items:start;gap:28px}
+.order-main{min-width:0;display:grid;gap:24px}
+.order-package,.order-generation-history,.order-sidebar,.order-approved-plan,.order-plan-review{min-width:0;padding:28px;border:1px solid #bdd9e4;border-radius:14px;background:#fffdf9;box-shadow:0 5px 0 #b7dbe766}
+.order-package{border-top:5px solid #175676}
+.order-package-failed{border-top-color:#bd3828}
+.order-package h2,.order-generation-history h2{margin:9px 0 10px;font-size:clamp(1.45rem,2.3vw,2rem);line-height:1.2}
+.order-package>p,.order-generation-history>p{max-width:70ch;margin:0 0 22px;color:#41657a;line-height:1.65}
+.order-package-files{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.order-package-files>div{display:flex;flex-direction:column;gap:6px;padding:18px 15px;border:1px solid #c7dde5;border-radius:10px;background:#f2f9fb}
+.order-package-files strong{color:#0d294f;font-size:.97rem}
+.order-package-files span{color:#466a7a;font-size:.81rem;line-height:1.45}
+.order-package-files small{margin-top:auto;color:#5b7080;font-size:.77rem;font-weight:800}
+.order-package-downloads{margin-top:24px;padding-top:21px;border-top:1px solid #cee1e8}
+.order-package-downloads .live-note{margin:0 0 16px}
+.order-package-downloads .live-downloads{margin-bottom:0}
+.order-package-downloads .live-downloads a{justify-content:space-between;padding:13px 15px;border:1px solid #a8cbd8;border-radius:8px;background:#f5fafc;text-decoration:none}
+.order-generation-round+.order-generation-round{margin-top:22px}
+.order-generation-round h3{margin:0 0 12px;font-size:1rem}
+.order-generation-round ol{display:grid;gap:10px;list-style:none;margin:0;padding:0}
+.order-generation-round li{padding:14px 16px;border:1px solid #c8dfe7;border-radius:9px;background:#f6fafb}
+.order-generation-round li>div{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
+.order-generation-round li p{margin:9px 0;color:#3f6173;font-size:.88rem;line-height:1.55}
+.order-generation-round time{font-size:.76rem;color:#5a7786}
+.order-attempt-state{padding:4px 8px;border-radius:5px;background:#e8f1f5;color:#28516a;font-size:.73rem;font-weight:800}
+.order-attempt-state.state-failed,.order-attempt-state.state-interrupted{background:#fff0e9;color:#9e2e20}
+.order-attempt-state.state-published{background:#e6f5e9;color:#286148}
+.order-history-conclusion{margin-top:18px!important;padding-top:16px;border-top:1px solid #cbdfe6;font-weight:800}
+.order-sidebar h2{margin:0 0 20px;font-size:1.25rem}
+.order-sidebar dl{margin:0}
+.order-sidebar dl>div{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid #d9e6eb;font-size:.88rem}
+.order-sidebar dt{color:#557588}
+.order-sidebar dd{margin:0;text-align:right;font-weight:800;overflow-wrap:anywhere}
+.order-sidebar p{font-size:.85rem;color:#496c7c;line-height:1.6}
+.order-sidebar button{margin-top:10px}
+.order-approved-plan summary,.order-plan-review summary{cursor:pointer;color:#153d5a;font-weight:900}
+.order-approved-plan>.paid-plan-review{margin:22px 0 0}
+.order-help-footer{max-width:calc((100% - 28px)*1.75/2.55);margin-top:42px;padding-top:26px;border-top:1px solid #aacbd9}
+.order-help-footer .delivery-failed{margin:0 0 20px;padding:20px;border:1px solid #d8c9c0;background:#f8f5f0}
+.order-help-footer .delivery-failed h3{font-size:1.12rem}
+.order-help-footer .delivery-failed p{font-size:.86rem;line-height:1.6}
+.order-help-footer .delivery-failed .button{font-size:.84rem;min-height:42px}
+.order-help-footer .order-feedback{margin:0;padding-top:0}
+.order-help-footer .order-feedback form{display:grid;gap:15px;margin-top:18px;padding:20px;border:1px solid #c5dbe4;border-radius:9px;background:#f5fafc}
+.order-help-footer .order-feedback label{display:grid;gap:7px;font-weight:800}
+.order-help-footer .order-feedback select,.order-help-footer .order-feedback textarea{width:100%;padding:12px;border:1px solid #a8cbd8;border-radius:8px;background:#fff;font:inherit}
+.order-help-footer .order-feedback textarea{min-height:100px}
+.order-page a:focus-visible,.order-page button:focus-visible,.order-page summary:focus-visible{outline:3px solid #155576;outline-offset:3px}
+@media(max-width:900px){.order-layout{grid-template-columns:minmax(0,1fr)}.order-help-footer{max-width:none}.order-sidebar{grid-row:2}}
+@media(max-width:650px){.order-page .order-workspace{width:calc(100% - 32px);padding-top:26px}.order-heading{display:block}.order-current-status{display:inline-block;margin-top:14px}.order-package,.order-generation-history,.order-sidebar,.order-approved-plan,.order-plan-review{padding:20px}.order-package-files{grid-template-columns:1fr}.order-package-files>div{min-height:75px}.order-help-footer{margin-top:30px}.order-package-downloads .live-downloads{grid-template-columns:1fr}}
