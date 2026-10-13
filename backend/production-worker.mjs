@@ -485,10 +485,12 @@ async function myOrders(request, env) {
     const story = world?.story?.[setting];
     const entitlement = order.status === 'published' ? await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first() : null;
     const expired = order.status === 'failed' && !order.paid_at ? await query(env.DB, "SELECT event_type FROM webhook_events WHERE order_id = ? AND event_type = 'checkout.session.expired' LIMIT 1", order.id).first() : null;
+    const paidPlan = order.product_kind === 'custom' && spec.creatorVersion === 3 && ['paid','fulfilling'].includes(order.status)
+      ? await query(env.DB,'SELECT status FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
     const { purchase_spec_json, ...safe } = order;
     return { ...safe, checkoutExpired: Boolean(expired), setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
       image: order.product_kind === 'ready' ? story?.image || world?.image : '/assets/custom-adventure-workshop-v1.jpg',
-      paper: spec.paper, filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
+      paper: spec.paper, planStatus: paidPlan?.status || null, filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
   }));
   return json({ orders });
 }
@@ -539,6 +541,8 @@ async function orderView(request, env, orderId) {
     ? await query(env.DB,'SELECT * FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
   const planVersions = paidPlan ? (await query(env.DB,'SELECT version_number,plan_json,request_kind,created_at FROM custom_plan_versions WHERE order_id = ? ORDER BY version_number',order.id).all()).results || [] : [];
   const pendingPlan = paidPlan ? await query(env.DB,"SELECT kind,status FROM custom_plan_requests WHERE order_id = ? AND status IN ('queued','generating') ORDER BY created_at DESC LIMIT 1",order.id).first() : null;
+  const initialRequests = paidPlan?.status === 'needs_help' && !paidPlan.active_version
+    ? await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'initial'",order.id).first() : null;
   const activePlan = planVersions.find(item=>item.version_number===paidPlan?.active_version);
   return json({ id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
@@ -550,7 +554,7 @@ async function orderView(request, env, orderId) {
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
     revisionExpiresAt: entitlement?.revision_expires_at || null,
     plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
-    ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
+    ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
 }
 
 async function changePaidPlan(request, env, orderId) {
@@ -576,6 +580,22 @@ async function changePaidPlan(request, env, orderId) {
     }
   }
   const state = await query(env.DB,'SELECT * FROM custom_plan_orders WHERE order_id = ?',orderId).first();
+  if (body.action==='retry_initial') {
+    const attempts=await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'initial'",orderId).first();
+    if (!state || state.status!=='needs_help' || state.active_version || attempts?.count!==1) throw new ApiError(409,'PLAN_RETRY_UNAVAILABLE','This plan needs support. Please use the help form below.');
+    const reserved=await query(env.DB,"UPDATE custom_plan_orders SET status = 'queued',updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'needs_help' AND active_version = 0",orderId).run();
+    if (!reserved.meta?.changes) throw new ApiError(409,'PLAN_BUSY','The plan status changed. Refresh and try again.');
+    const retryId=`plan-${orderId}-customer-retry`;
+    try { await query(env.DB,"INSERT INTO custom_plan_requests (id,order_id,kind,status) VALUES (?,?,'initial','queued')",retryId,orderId).run(); }
+    catch (caught) { await query(env.DB,"UPDATE custom_plan_orders SET status = 'needs_help' WHERE order_id = ? AND status = 'queued'",orderId).run(); throw caught; }
+    await env.GENERATION_QUEUE.send({type:'plan',requestId:retryId});
+    return json({requestId:retryId,status:'queued'},202);
+  }
+  if (body.action==='resume_review') {
+    const restored=await query(env.DB,"UPDATE custom_plan_orders SET status = 'review',updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'needs_help' AND active_version > 0",orderId).run();
+    if (!restored.meta?.changes) throw new ApiError(409,'PLAN_NOT_REVIEWABLE','No saved plan is available to review.');
+    return json({status:'review'});
+  }
   if (!state || state.status!=='review' || !state.active_version) throw new ApiError(409,'PLAN_NOT_REVIEWABLE','Wait for the current plan to finish or contact support.');
   if (body.action==='select') {
     const version = Number(body.version);
@@ -781,10 +801,11 @@ async function publishPlanRequest(requestId,env) {
       query(env.DB,'INSERT OR IGNORE INTO generation_usage (order_id,attempt,response_id,model,input_tokens,output_tokens,status) VALUES (?,?,?,?,?,?,?)',order.id,usageAttempt,result.responseId,aiProvider(env)?.model,result.usage?.input_tokens||null,result.usage?.output_tokens||null,'plan-published'),
     ]);
   } catch (caught) {
+    console.error('Paid plan generation failed', {orderId:order.id,requestId,attempt,code:caught?.code||'UNEXPECTED',message:caught?.message||'Unknown failure'});
     await query(env.DB,'INSERT OR IGNORE INTO generation_usage (order_id,attempt,model,status) VALUES (?,?,?,?)',order.id,usageAttempt,aiProvider(env)?.model||'unconfigured','plan-failed').run();
     if (attempt>=3) await env.DB.batch([
       query(env.DB,"UPDATE custom_plan_requests SET status = 'failed',lease_until = NULL,completed_at = CURRENT_TIMESTAMP WHERE id = ?",requestId),
-      query(env.DB,"UPDATE custom_plan_orders SET status = 'needs_help',updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'",order.id),
+      query(env.DB,"UPDATE custom_plan_orders SET status = CASE WHEN active_version > 0 THEN 'review' ELSE 'needs_help' END,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'",order.id),
     ]);
     else await query(env.DB,'UPDATE custom_plan_requests SET lease_until = 0 WHERE id = ?',requestId).run();
     throw caught;
@@ -929,3 +950,4 @@ export default {
     for (const item of revisions.results || []) await env.GENERATION_QUEUE.send({ type: 'revision', revisionId: item.id });
   },
 };
+
