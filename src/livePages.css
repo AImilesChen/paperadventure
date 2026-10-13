@@ -62,10 +62,17 @@
 .order-next-step p{margin:0;max-width:63ch}
 .order-next-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:4px}
 .order-next-actions .button,.order-next-actions .button-quiet{display:inline-flex;align-items:center;gap:9px;text-decoration:none}
-.live-panel .order-feedback{margin-top:32px;padding:22px 0 0;background:transparent;border-top:1px solid #c5dbe4;border-radius:0}
-.order-feedback h3{font-size:1.05rem}.order-feedback>p{font-size:.82rem;color:#547082}
+.live-panel .order-feedback{margin-top:32px;padding:20px 0 0;border-top:1px solid #c5dbe4}
+.order-feedback summary{width:max-content;max-width:100%;cursor:pointer;color:#153d5a;font-size:.92rem;font-weight:900}
+.order-feedback summary:focus-visible{outline:3px solid #155576;outline-offset:4px}
+.live-panel .order-feedback form{margin:18px 0 0;padding:20px;border:1px solid #c5dbe4;background:#f5fafc}
+.order-feedback form>p{font-size:.85rem;color:#547082}
 .order-feedback textarea{min-height:90px;max-height:160px}
 .order-feedback button.button{justify-self:start;width:auto;min-height:40px;padding:9px 18px;background:#f4f8fa;color:#31576a;border:1px solid #b7cfd9;box-shadow:none;font-size:.85rem}
 .order-feedback button.button:hover{background:#e7f0f5;border-color:#769cae}
+.delivery-failed{border:2px solid #d9a89d;background:#fff4ef}
+.delivery-failed .button{display:inline-flex;align-items:center;gap:9px;width:max-content;max-width:100%;text-decoration:none}
+.delivery-failed .delivery-report-link{width:max-content;max-width:100%;color:#155576;font-size:.88rem;font-weight:800}
+.delivery-failed .delivery-location{padding-top:13px;border-top:1px solid #e5c9c1;font-size:.88rem}
 .shelf-downloads>.button-quiet{font-size:.84rem;min-height:40px}
 @media(max-width:650px){.order-download-primary{padding:19px}.order-download-primary h2{font-size:1.45rem}.complete-pack-download .complete-pack-button{font-size:.9rem;padding:13px}.order-next-step{padding:19px}.order-next-actions .button{width:100%}}
