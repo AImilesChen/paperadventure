@@ -6,14 +6,14 @@ export const themeDetailContent = {
   ...independentClassroomDetails,
   celebration: {
     home: {
-      hook: 'A cooperative delivery mystery with four explorer jobs throughout the five checkpoints.',
+      hook: 'One adult hosts; your family shares four jobs and keeps the paper evidence for a common finish.',
       reasons: ['Four rotating jobs make each checkpoint a shared task.', 'One team for 2–6 players or two balanced teams for 7–12, plus an adult host.', 'Separate clue cards, a split code key and a scripted host guide support the full adventure.'],
-      materials: ['Four full-game job cards, a team trail and letter choices with separate clues', 'Cut-out route strips and an intact six-place map', 'Label board and separate conditions; coded message and split keys', 'Parcel cards, evidence check, finale letter and optional keepsake'],
+      materials: ['Four full-game job cards, a team trail and letter choices with separate clues', 'Cut-out route strips and an intact six-place map', 'Label board and separate conditions; coded message and split keys', 'Parcel cards, evidence check, final report and optional teamwork keepsake'],
       stages: [
         ['Find the letter', 'Compare character and stamp clues to identify Fenn’s message.', 'A starting place for the map'],
         ['Draw the route', 'Join the shuffled route strips on the unconnected map.', 'A flag clue for the next decision'],
-        ['Compare labels', 'Combine three players’ clues to select a parcel label.', 'A code to use in the dictionary'],
-        ['Read the message', 'Look up the chosen code rather than guessing from the illustration.', 'The delivery place'],
+        ['Compare labels', 'Combine three clue conditions to select a delivery label.', 'A code-mark row for the two keys'],
+        ['Read the message', 'Use the chosen code-mark row on two separate keys; share and record the letters in order.', 'The delivery place'],
         ['Choose the parcel', 'Check the route, label and place together, then open the paper reply.', 'A complete story ending'],
       ],
     },
@@ -161,6 +161,3 @@ export const themeDetailContent = {
     },
   },
 };
-
-
-

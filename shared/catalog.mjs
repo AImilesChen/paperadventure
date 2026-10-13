@@ -27,7 +27,7 @@ export const offers = Object.freeze([
 // evidence of a finished, tested or downloadable game pack.
 export const themeStories = Object.freeze({
   celebration: {
-    home: { code: 'H01', title: 'The Missing Birthday Chest', goal: 'Restore Fenn the fox\'s missing delivery label through a cooperative paper adventure.', image: '/assets/celebration-home-v0.1.jpg', imageCaption: 'Fenn the fox Home story concept; download the Player Pack and adult guide for the printable materials.', beats: ['Choose the right letter', 'Repair the route', 'Share label clues', 'Decode a message', 'Find the matching parcel'] },
+    home: { code: 'H01', title: 'The Missing Birthday Chest', goal: 'Share clues, connect the route and decode a message to help Fenn deliver his birthday chest.', image: '/assets/celebration-home-v0.1.jpg', imageCaption: 'Fenn the fox Home story concept; download the Player Pack and adult guide for the printable materials.', beats: ['Choose the right letter', 'Repair the route', 'Share label clues', 'Decode a message', 'Find the matching parcel'] },
     classroom: { code: 'C01', title: 'The Adventure Club\'s First Badge', goal: 'Rebuild the club invitation, set its welcome table, share private clues and make a paper display badge.', image: '/assets/celebration-classroom-v0.1.jpg', imageCaption: 'Adventure Club classroom concept; the printable props are inside the Player Pack.', beats: ['Rebuild the invitation', 'Set the welcome table', 'Share private badge clues', 'Make a paper display badge', 'Check and welcome another crew'] },
   },
   dinosaur: {
@@ -86,4 +86,3 @@ export function publicCatalog() {
     themes,
   };
 }
-
