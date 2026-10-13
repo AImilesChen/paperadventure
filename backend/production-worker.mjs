@@ -485,7 +485,7 @@ async function myOrders(request, env) {
     const story = world?.story?.[setting];
     const entitlement = order.status === 'published' ? await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first() : null;
     const expired = order.status === 'failed' && !order.paid_at ? await query(env.DB, "SELECT event_type FROM webhook_events WHERE order_id = ? AND event_type = 'checkout.session.expired' LIMIT 1", order.id).first() : null;
-    const paidPlan = order.product_kind === 'custom' && spec.creatorVersion === 3 && ['paid','fulfilling'].includes(order.status)
+    const paidPlan = order.product_kind === 'custom' && spec.creatorVersion === 3 && ['paid','fulfilling','failed'].includes(order.status)
       ? await query(env.DB,'SELECT status FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
     const { purchase_spec_json, ...safe } = order;
     return { ...safe, checkoutExpired: Boolean(expired), setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
@@ -534,7 +534,7 @@ async function orderView(request, env, orderId) {
   const order = await query(env.DB, 'SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ?', orderId, hash).first();
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified order was found.');
   const entitlement = await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first();
-  const activity = order.product_kind === 'custom' ? await query(env.DB, 'SELECT status FROM custom_activities WHERE order_id = ?', order.id).first() : null;
+  const activity = order.product_kind === 'custom' ? await query(env.DB, 'SELECT status,delivery_retry_used FROM custom_activities WHERE order_id = ?', order.id).first() : null;
   const failedAttempts = order.product_kind === 'custom' ? await query(env.DB, "SELECT COUNT(*) AS count FROM generation_usage WHERE order_id = ? AND status = 'failed'", order.id).first() : null;
   const spec = JSON.parse(order.purchase_spec_json);
   const paidPlan = order.product_kind === 'custom' && spec.creatorVersion === 3
@@ -548,6 +548,7 @@ async function orderView(request, env, orderId) {
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
     generationState: order.product_kind === 'custom' ? (activity?.status || (order.status === 'pending_payment' ? 'awaiting_payment' : 'pending')) : null,
     generationFailedAttempts: failedAttempts?.count || 0,
+    deliveryRetryAvailable: Boolean(order.product_kind === 'custom' && order.status === 'failed' && order.paid_at && activity?.status === 'failed' && !activity.delivery_retry_used && paidPlan?.confirmed_version),
     paper: order.product_kind === 'custom' ? spec.paper : null,
     variantId: order.product_kind === 'ready' ? spec.variantId || null : null,
     accessExpiresAt: entitlement?.access_expires_at || null,
@@ -555,6 +556,27 @@ async function orderView(request, env, orderId) {
     revisionExpiresAt: entitlement?.revision_expires_at || null,
     plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
     ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
+}
+
+async function retryCustomDelivery(request, env, orderId) {
+  if (!env.DB || !env.GENERATION_QUEUE || !aiProvider(env)) throw new ApiError(503,'DELIVERY_NOT_READY','PDF generation is not configured.');
+  requireSameOrigin(request,env);
+  const owner = await authenticatedEmailHash(request,env);
+  if (!owner) throw new ApiError(401,'SIGN_IN_REQUIRED','Sign in to recover your order.');
+  const order = await query(env.DB,"SELECT id,paid_at,purchase_spec_json FROM orders WHERE id = ? AND purchaser_email_hash = ? AND product_kind = 'custom' AND status = 'failed'",orderId,owner).first();
+  if (!order?.paid_at || JSON.parse(order.purchase_spec_json).creatorVersion !== 3) throw new ApiError(404,'ORDER_NOT_FOUND','No eligible paid order was found.');
+  const plan = await query(env.DB,'SELECT confirmed_version FROM custom_plan_orders WHERE order_id = ?',orderId).first();
+  if (!plan?.confirmed_version) throw new ApiError(409,'PLAN_NOT_APPROVED','Approve a personal plan before creating PDFs.');
+  const activity = await query(env.DB,'SELECT id,status,delivery_retry_used FROM custom_activities WHERE order_id = ?',orderId).first();
+  if (activity?.status !== 'failed' || activity.delivery_retry_used) throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review.');
+  const artifact = await query(env.DB,"SELECT id FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' LIMIT 1",activity.id).first();
+  if (artifact) throw new ApiError(409,'FILES_ALREADY_CREATED','Files were already created. Refresh this order.');
+  const failed = await query(env.DB,"SELECT COUNT(*) AS count FROM generation_usage WHERE order_id = ? AND status = 'failed'",orderId).first();
+  const reserved = await query(env.DB,"UPDATE custom_activities SET status = 'queued',lease_until = NULL,delivery_retry_used = 1,delivery_retry_baseline = ? WHERE id = ? AND status = 'failed' AND delivery_retry_used = 0",failed?.count || 0,activity.id).run();
+  if (!reserved.meta?.changes) throw new ApiError(409,'DELIVERY_BUSY','The order changed. Refresh and try again.');
+  await query(env.DB,"UPDATE orders SET status = 'fulfilling' WHERE id = ? AND status = 'failed'",orderId).run();
+  await env.GENERATION_QUEUE.send({orderId});
+  return json({status:'fulfilling',retryQueued:true},202);
 }
 
 async function changePaidPlan(request, env, orderId) {
@@ -760,6 +782,8 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && order) return await orderView(request, env, order[1]);
     const paidPlan = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/plan$/);
     if (request.method === 'POST' && paidPlan) return await changePaidPlan(request,env,paidPlan[1]);
+    const deliveryRetry = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/retry-delivery$/);
+    if (request.method === 'POST' && deliveryRetry) return await retryCustomDelivery(request,env,deliveryRetry[1]);
     const revision = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revisions$/);
     if (request.method === 'POST' && revision) return await requestRevision(request, env, revision[1]);
     const cases = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/issues$/);
@@ -831,6 +855,8 @@ async function publishCustomOrder(orderId, env) {
     query(env.DB, "UPDATE orders SET status = 'fulfilling' WHERE id = ? AND status = 'paid'", orderId),
   ]);
   const attempt = (await query(env.DB, 'SELECT COALESCE(MAX(attempt),0) + 1 AS next FROM generation_usage WHERE order_id = ?', orderId).first()).next;
+  const failedDeliveries = await query(env.DB,"SELECT COUNT(*) AS count FROM generation_usage WHERE order_id = ? AND status = 'failed'",orderId).first();
+  const deliveryAttempt = (failedDeliveries?.count || 0) - (activity.delivery_retry_baseline || 0) + 1;
   try {
     const result = await generateStory(spec, env, env.FETCH || fetch);
     const player = buildGamePdf(result.story, spec, 'player');
@@ -856,7 +882,7 @@ async function publishCustomOrder(orderId, env) {
     ]);
   } catch (caught) {
     await query(env.DB, 'INSERT OR IGNORE INTO generation_usage (order_id,attempt,model,status) VALUES (?,?,?,?)', orderId, attempt, aiProvider(env)?.model || 'unconfigured', 'failed').run();
-    if (attempt >= 2) await env.DB.batch([
+    if (deliveryAttempt >= 2) await env.DB.batch([
       query(env.DB, "UPDATE custom_activities SET status = 'failed', lease_until = NULL WHERE id = ?", activity.id),
       query(env.DB, "UPDATE orders SET status = 'failed' WHERE id = ?", orderId),
       query(env.DB, "INSERT OR IGNORE INTO delivery_notifications (order_id,kind,status) VALUES (?,'generation_failed','pending')", orderId),

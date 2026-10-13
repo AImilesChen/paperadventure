@@ -19,7 +19,7 @@ async function approvedCustomInput(env,input) {
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -489,6 +489,41 @@ test('terminal custom generation failure is visible and notifies the purchaser',
   assert.equal(sent.length, 1);
   assert.match(sent[0].subject, /needs help/);
   assert.equal(db.prepare("SELECT status FROM delivery_notifications WHERE order_id = 'order-failed' AND kind = 'generation_failed'").get().status, 'sent');
+});
+
+test('paid plan attempts do not exhaust PDF retries and a failed paid order can retry delivery once', async () => {
+  const {db,binding}=database();
+  const owner=await sha256('test-session-secret|adult@example.com');
+  const spec=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  const confirmed={...spec,plan:planFixture(spec),planConfirmed:true};
+  const stored=JSON.stringify(spec);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('pdf-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('pdf-order','custom','custom_home',?,?,?,?,1499,'USD','paid',CURRENT_TIMESTAMP)").run(stored,await sha256(stored),owner,'pdf-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('pdf-activity','pdf-order','queued',?)").run(JSON.stringify(confirmed));
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version) VALUES ('pdf-order','confirmed',1,1)").run();
+  db.prepare("INSERT INTO generation_usage (order_id,attempt,model,status) VALUES ('pdf-order',1,'fixture','plan-failed'),('pdf-order',2,'fixture','plan-published')").run();
+  const jobs=[];
+  const env={...config(binding),OPENAI_API_KEY:'test',OPENAI_MODEL:'test-model',GENERATION_QUEUE:{send:async job=>jobs.push(job)},FETCH:async()=>Response.json({error:'provider unavailable'},{status:502}),PRIVATE_FILES:{put:async()=>{throw Error('No PDF expected');}}};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const run=()=>productionWorker.queue({messages:[{body:{orderId:'pdf-order'},ack(){throw Error('A failed job cannot be acknowledged');},retry(){}}]},env);
+  await run();
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id='pdf-order'").get().status,'fulfilling','a plan failure must not consume a PDF attempt');
+  await run();
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id='pdf-order'").get().status,'failed');
+  let view=await handleProductionApi(request('/api/v1/orders/pdf-order','GET',undefined,headers),env).then(r=>r.json());
+  assert.equal(view.deliveryRetryAvailable,true);
+  const retry=()=>handleProductionApi(request('/api/v1/orders/pdf-order/retry-delivery','POST',undefined,headers),env);
+  assert.equal((await retry()).status,202);
+  assert.equal(jobs.length,1);
+  assert.equal((await retry()).status,404,'a queued order cannot start another retry');
+  assert.equal(db.prepare("SELECT status,delivery_retry_used,delivery_retry_baseline FROM custom_activities WHERE order_id='pdf-order'").get().delivery_retry_baseline,2);
+  await run();
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id='pdf-order'").get().status,'fulfilling');
+  await run();
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id='pdf-order'").get().status,'failed');
+  view=await handleProductionApi(request('/api/v1/orders/pdf-order','GET',undefined,headers),env).then(r=>r.json());
+  assert.equal(view.deliveryRetryAvailable,false);
 });
 
 test('free proposal endpoint returns two short directions and enforces an IP budget', async () => {
