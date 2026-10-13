@@ -46,6 +46,17 @@ test('paid plan parser accepts fenced provider JSON and audits the result',async
   });
   assert.equal(calls,2);assert.equal(result.plan.title,plan.title);
 });
+test('an overlong paid plan is repaired before audit and usage includes the repair',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec;
+  const valid=planFixture(spec),overlong={...valid,roles:'R'.repeat(350)};
+  let calls=0;
+  const result=await generateSinglePlan(spec,env,async()=>{
+    const value=[overlong,valid,{pass:true,issues:[]}][calls++];
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
+  });
+  assert.equal(calls,3);assert.equal(result.plan.roles,valid.roles);
+  assert.equal(result.usage.input_tokens,30);assert.equal(result.usage.output_tokens,60);
+});
 test('two full five-checkpoint plans are required from the proposal provider',async()=>{
   const spec=base();let sent;
   const result=await generateProposals(spec,env,async(_,options)=>{sent=JSON.parse(options.body);return response({proposals:[planFixture(spec),planFixture(spec,'mission')]});});
