@@ -37,10 +37,17 @@
 .shelf-game h2{font-family:'Bree Serif',serif;font-size:1.6rem;line-height:1.3;margin:10px 0}
 .shelf-status{align-self:flex-start;padding:6px 10px;border-radius:6px;background:#edf4f7;color:#466273;font-size:.8rem;font-weight:800}
 .status-published{background:#e5f4e9;color:#286148}.status-fulfilling,.status-paid{background:#fff0d7;color:#805212}
+.shelf-status.status-failed{border:1px solid #e8b3a9;background:#fff0eb;color:#9e2e20}
+.shelf-action-note{margin:0 0 12px!important;color:#8e3a2d!important;font-size:.83rem;line-height:1.5}
+.shelf-game .shelf-action{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;margin-top:auto;padding:12px 17px;border-radius:9px;background:#173d5a;color:#fff;text-decoration:none;font-size:.92rem;font-weight:900;line-height:1.25;box-shadow:0 4px 0 #0e2d44}
+.shelf-game .shelf-action-urgent{background:#b53223;box-shadow:0 4px 0 #852419}
+.shelf-game .shelf-action:hover{background:#265672}.shelf-game .shelf-action-urgent:hover{background:#9d2c20}
+.shelf-game .shelf-action:focus-visible{outline:3px solid #0d294f;outline-offset:4px}
+.shelf-game .shelf-action svg{flex:none}
 .shelf-downloads{display:grid;gap:10px;margin:10px 0 20px}.shelf-downloads a{display:flex;align-items:center;justify-content:space-between;gap:10px;text-decoration:none}.shelf-downloads small{color:#466273;font-size:.76rem}
 .shelf-game .text-link{margin-top:auto;font-size:.85rem}.shelf-empty{padding:55px 20px;text-align:center;border:1px dashed #a7cbdc;border-radius:14px;background:#eef9fc}.shelf-empty p{color:#466273}
 .shelf-draft .button-quiet{margin:18px}.shelf-help{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-top:40px;padding-top:24px;border-top:1px solid #b2d5e3}.shelf-help p{margin:0;color:#466273}.shelf-help a{color:#153d5a;font-weight:800;font-size:.85rem}
-@media(max-width:650px){.shelf-grid{grid-template-columns:1fr}.shelf-tabs button{flex-basis:40%;font-size:.82rem}.shelf-toolbar{align-items:flex-start}.shelf-game-copy{padding:20px}.shelf-help{gap:15px}}
+@media(max-width:650px){.shelf-grid{grid-template-columns:1fr}.shelf-tabs button{flex-basis:40%;font-size:.82rem}.shelf-toolbar{align-items:flex-start}.shelf-game-copy{padding:20px}.shelf-game .shelf-action{min-height:54px}.shelf-help{gap:15px}}
 
 .order-download-primary{margin:28px 0;padding:26px;border:2px solid #95c7dc;border-radius:14px;background:#edf8fc}
 .order-download-primary h2{margin:10px 0;font-size:1.7rem}.order-download-primary>p{font-size:.94rem}

@@ -513,6 +513,8 @@ test('paid plan attempts do not exhaust PDF retries and a failed paid order can 
   assert.equal(db.prepare("SELECT status FROM orders WHERE id='pdf-order'").get().status,'failed');
   let view=await handleProductionApi(request('/api/v1/orders/pdf-order','GET',undefined,headers),env).then(r=>r.json());
   assert.equal(view.deliveryRetryAvailable,true);
+  let shelf=await handleProductionApi(request('/api/v1/my-orders','GET',undefined,headers),env).then(r=>r.json());
+  assert.equal(shelf.orders.find(order=>order.id==='pdf-order').deliveryRetryAvailable,true);
   const retry=()=>handleProductionApi(request('/api/v1/orders/pdf-order/retry-delivery','POST',undefined,headers),env);
   assert.equal((await retry()).status,202);
   assert.equal(jobs.length,1);
@@ -524,6 +526,8 @@ test('paid plan attempts do not exhaust PDF retries and a failed paid order can 
   assert.equal(db.prepare("SELECT status FROM orders WHERE id='pdf-order'").get().status,'failed');
   view=await handleProductionApi(request('/api/v1/orders/pdf-order','GET',undefined,headers),env).then(r=>r.json());
   assert.equal(view.deliveryRetryAvailable,false);
+  shelf=await handleProductionApi(request('/api/v1/my-orders','GET',undefined,headers),env).then(r=>r.json());
+  assert.equal(shelf.orders.find(order=>order.id==='pdf-order').deliveryRetryAvailable,false);
 });
 
 test('free proposal endpoint returns two short directions and enforces an IP budget', async () => {

@@ -486,11 +486,15 @@ async function myOrders(request, env) {
     const entitlement = order.status === 'published' ? await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first() : null;
     const expired = order.status === 'failed' && !order.paid_at ? await query(env.DB, "SELECT event_type FROM webhook_events WHERE order_id = ? AND event_type = 'checkout.session.expired' LIMIT 1", order.id).first() : null;
     const paidPlan = order.product_kind === 'custom' && spec.creatorVersion === 3 && ['paid','fulfilling','failed'].includes(order.status)
-      ? await query(env.DB,'SELECT status FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
+      ? await query(env.DB,'SELECT status,confirmed_version FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
+    const failedDelivery = order.product_kind === 'custom' && order.status === 'failed' && order.paid_at
+      ? await query(env.DB,'SELECT status,delivery_retry_used FROM custom_activities WHERE order_id = ?',order.id).first() : null;
     const { purchase_spec_json, ...safe } = order;
     return { ...safe, checkoutExpired: Boolean(expired), setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
       image: order.product_kind === 'ready' ? story?.image || world?.image : '/assets/custom-adventure-workshop-v1.jpg',
-      paper: spec.paper, planStatus: paidPlan?.status || null, filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
+      paper: spec.paper, planStatus: paidPlan?.status || null,
+      deliveryRetryAvailable: Boolean(order.paid_at && paidPlan?.confirmed_version && failedDelivery?.status === 'failed' && !failedDelivery.delivery_retry_used),
+      filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
   }));
   return json({ orders });
 }
