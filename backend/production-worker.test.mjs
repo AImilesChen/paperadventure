@@ -19,7 +19,7 @@ async function approvedCustomInput(env,input) {
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -466,6 +466,74 @@ test('paid custom queue job generates private player and guide PDFs, then publis
   assert.equal(expiredCustomFile.status, 403);
 });
 
+test('a failed PDF write resumes from the checked story without paying for another model call', async () => {
+  const { db, binding } = database();
+  const base = validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  const plan = planFixture(base);
+  const purchase = {...base,onlineRedownloadMonths:productRights.onlineRedownloadMonths,accessPolicyVersion:productRights.version};
+  const confirmed = {...purchase,plan,planConfirmed:true};
+  const story = {title:plan.title,introduction:plan.opening,ending:'The team restores the clock.',groupInstructions:'',stages:plan.stages.map((stage,index)=>({
+    title:stage.title,mechanic:stage.mechanic,clue:'The printed note says the sun marker is correct; moon and star do not match.',
+    options:['Sun marker','Moon marker','Star marker'],answerIndex:0,explanation:'The sun marker matches the printed note.',hint:'Read the note.',
+    prerequisite:index ? `CODE-${index}` : 'START',unlock:`CODE-${index+1}`,
+  }))};
+  const purchaseJson = JSON.stringify(purchase);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('checkpoint-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('checkpoint-order','custom','custom_home',?,?,?,?,1499,'USD','paid',CURRENT_TIMESTAMP)").run(purchaseJson,await sha256(purchaseJson),'owner-hash','checkpoint-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('checkpoint-activity','checkpoint-order','queued',?)").run(JSON.stringify(confirmed));
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version) VALUES ('checkpoint-order','confirmed',1,1)").run();
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit) VALUES ('checkpoint-entitlement','checkpoint-order','checkpoint-activity','active',2)").run();
+  let modelCalls = 0;
+  let failPdfWrite = true;
+  const saved = new Map();
+  const env = {...config(binding),OPENAI_API_KEY:'test',OPENAI_MODEL:'test-model',FETCH:async (_,options)=>{
+    modelCalls++;
+    const value = JSON.parse(options.body).text.format.name === 'story_audit' ? {pass:true,issues:[]} : story;
+    return Response.json({id:`model-${modelCalls}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:5}});
+  },PRIVATE_FILES:{put:async(key,bytes,options)=>{
+    if (key.endsWith('/player.pdf') && failPdfWrite) {failPdfWrite=false;throw Error('Temporary R2 write failure');}
+    saved.set(key,{bytes,options});
+  },head:async key=>saved.has(key)?{customMetadata:saved.get(key).options.customMetadata}:null}};
+  const job = {messages:[{body:{orderId:'checkpoint-order'},ack(){},retry(){}}]};
+  await productionWorker.queue(job,env);
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id='checkpoint-order'").get().status,'fulfilling');
+  assert.equal(db.prepare("SELECT status,phase,input_tokens,output_tokens FROM generation_usage WHERE order_id='checkpoint-order' AND attempt=1").get().phase,'storage');
+  assert.equal(db.prepare("SELECT story_json FROM custom_story_checkpoints WHERE order_id='checkpoint-order'").get().story_json.length > 100,true);
+  assert.equal(modelCalls,2);
+  await productionWorker.queue(job,env);
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id='checkpoint-order'").get().status,'published');
+  assert.equal(modelCalls,2,'PDF delivery must reuse the validated story');
+  assert.equal(db.prepare("SELECT input_tokens FROM generation_usage WHERE order_id='checkpoint-order' AND attempt=1").get().input_tokens,20);
+  assert.equal(db.prepare("SELECT input_tokens FROM generation_usage WHERE order_id='checkpoint-order' AND attempt=2").get().input_tokens,null);
+  assert.ok(saved.has('custom/checkpoint-order/v1/player.pdf'));
+  assert.ok(saved.has('custom/checkpoint-order/v1/guide.pdf'));
+});
+
+test('exhausted story quality repairs stop automatic retries and retain their billed usage', async () => {
+  const { db, binding } = database();
+  const spec = validatePurchase({sku:'custom_home',customIdea:'A garden map',players:4,age:'8-10',paper:'A4',direction:'mission'}).spec;
+  const stored = JSON.stringify({...spec,onlineRedownloadMonths:productRights.onlineRedownloadMonths,accessPolicyVersion:productRights.version});
+  const stages = Array.from({length:5},(_,index)=>({title:`Stage ${index+1}`,clue:'Choose the sun marker.',options:['Sun','Moon','Star'],answerIndex:0,explanation:'The sun matches.',hint:'Read the note.',prerequisite:index?`CODE-${index}`:'START',unlock:`CODE-${index+1}`}));
+  const story = {title:'Garden route',introduction:'Follow the paper clues.',ending:'The team celebrates.',groupInstructions:'',stages};
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('qa-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('qa-order','custom','custom_home',?,?,?,?,1499,'USD','paid',CURRENT_TIMESTAMP)").run(stored,await sha256(stored),'qa-owner','qa-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('qa-activity','qa-order','queued',?)").run(stored);
+  let calls = 0;
+  const env = {...config(binding),OPENAI_API_KEY:'test',OPENAI_MODEL:'test-model',FETCH:async(_,options)=>{
+    calls++;
+    const value = JSON.parse(options.body).text.format.name === 'story_audit' ? {pass:false,issues:['Ambiguous clue.']} : story;
+    return Response.json({id:`qa-${calls}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:5}});
+  },PRIVATE_FILES:{put:async()=>{throw Error('No PDF should be written');}}};
+  const job = {messages:[{body:{orderId:'qa-order'},ack(){},retry(){}}]};
+  await productionWorker.queue(job,env);
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id='qa-order'").get().status,'failed');
+  assert.deepEqual({...db.prepare("SELECT phase,error_code,input_tokens,output_tokens FROM generation_usage WHERE order_id='qa-order'").get()},{
+    phase:'story',error_code:'GENERATION_QA_FAILED',input_tokens:60,output_tokens:30,
+  });
+  await productionWorker.queue(job,env);
+  assert.equal(calls,6,'a terminal QA failure must not trigger another full generation');
+});
+
 test('terminal custom generation failure is visible and notifies the purchaser', async () => {
   const { db, binding } = database();
   const sent = [];
@@ -490,8 +558,10 @@ test('terminal custom generation failure is visible and notifies the purchaser',
   assert.equal(db.prepare("SELECT status FROM orders WHERE id = 'order-failed'").get().status, 'failed');
   assert.equal(db.prepare("SELECT status FROM delivery_notifications WHERE order_id = 'order-failed' AND kind = 'generation_failed'").get().status, 'pending');
   await productionWorker.scheduled(null, env);
-  assert.equal(sent.length, 1);
+  assert.equal(sent.length, 2);
   assert.match(sent[0].subject, /needs help/);
+  assert.equal(sent[1].to[0], 'support@paperadventure.app');
+  assert.match(sent[1].subject, /Paid custom delivery stopped/);
   assert.equal(db.prepare("SELECT status FROM delivery_notifications WHERE order_id = 'order-failed' AND kind = 'generation_failed'").get().status, 'sent');
 });
 

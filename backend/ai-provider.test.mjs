@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { aiProvider, generateProposals, generateStory } from './openai.mjs';
 import { validatePurchase } from './domain.mjs';
+import { planFixture } from '../tests/fixtures/creator-plan-fixture.mjs';
 
 const input = { sku: 'custom_home', customIdea: 'A garden map', players: 4, age: '8-10', paper: 'A4', direction: 'mission', proposalTitle: 'Garden route', proposalSummary: 'Follow clues around a paper garden.' };
 const { spec } = validatePurchase(input);
@@ -91,6 +92,48 @@ test('an overlong generated explanation is regenerated before audit and PDF deli
   assert.equal(audits, 1);
   assert.match(inputs[1].qaIssues[0], /Answer explanation/);
   assert.equal(result.usage.input_tokens, 25);
+});
+
+test('failed quality checks retain the token usage and last provider response for cost accounting', async () => {
+  const env = { AI_PROVIDER: 'deepseek', DEEPSEEK_API_KEY: 'deepseek-test' };
+  let storyCalls = 0;
+  let auditCalls = 0;
+  const fetcher = async (_, options) => {
+    const name = JSON.parse(options.body).text.format.name;
+    if (name === 'paper_adventure') {
+      storyCalls++;
+      return Response.json({ id: `story-${storyCalls}`, output: [{ content: [{ type: 'output_text', text: JSON.stringify(story) }] }], usage: { input_tokens: 12, output_tokens: 8 } });
+    }
+    auditCalls++;
+    return Response.json({ output: [{ content: [{ type: 'output_text', text: JSON.stringify({ pass: false, issues: ['The clue is ambiguous.'] }) }] }], usage: { input_tokens: 5, output_tokens: 2 } });
+  };
+  await assert.rejects(generateStory(spec, env, fetcher), failure => {
+    assert.equal(failure.code, 'GENERATION_QA_FAILED');
+    assert.deepEqual(failure.usage, { input_tokens: 51, output_tokens: 30 });
+    assert.equal(failure.responseId, 'story-3');
+    return true;
+  });
+  assert.equal(storyCalls, 3);
+  assert.equal(auditCalls, 3);
+});
+
+test('the approved plan supplies exact headings while printable punctuation is normalized before QA', async () => {
+  const {spec:base} = validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}});
+  const plan = planFixture(base);
+  const approved = {...base,plan,planConfirmed:true};
+  const draft = {...story,title:'Paraphrased title',introduction:'Paraphrased opening',ending:'The team’s journey ends.',stages:story.stages.map((stage,index)=>({...stage,title:`Wrong ${index}`,mechanic:'sequence'}))};
+  let calls = 0;
+  const result = await generateStory(approved,{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'test'},async(_,options)=>{
+    calls++;
+    const value = JSON.parse(options.body).text.format.name === 'story_audit' ? {pass:true,issues:[]} : draft;
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:5}});
+  });
+  assert.equal(calls,2);
+  assert.equal(result.story.title,plan.title);
+  assert.equal(result.story.introduction,plan.opening);
+  assert.equal(result.story.stages[0].title,plan.stages[0].title);
+  assert.equal(result.story.stages[0].mechanic,plan.stages[0].mechanic);
+  assert.equal(result.story.ending,"The team's journey ends.");
 });
 
 test('provider choice is explicit and cannot silently send a DeepSeek job to OpenAI', () => {

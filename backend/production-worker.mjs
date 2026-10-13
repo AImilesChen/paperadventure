@@ -1,5 +1,5 @@
 import { publicCatalog, offers, productRights, themes } from '../shared/catalog.mjs';
-import { ApiError, validatePurchase, validateSupportedRange } from './domain.mjs';
+import { ApiError, validateGeneratedStory, validatePurchase, validateSupportedRange } from './domain.mjs';
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage } from './openai.mjs';
@@ -13,6 +13,7 @@ const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(d
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
 const error = (status, code, message) => json({ error: { code, message } }, status);
 const nowSeconds = () => Math.floor(Date.now() / 1000);
+const nonRetryableStoryCodes = new Set(['GENERATION_INVALID','GENERATION_QA_FAILED','INVALID_SPEC','GENERATION_NOT_CONFIGURED']);
 const emailHash = (env, email) => sha256(`${env.SESSION_SECRET}|${email}`);
 function accessMonths(spec) {
   const months = spec?.onlineRedownloadMonths;
@@ -389,6 +390,26 @@ async function dispatchNotification(orderId, kind, env) {
   }
 }
 
+async function dispatchDeliveryIncident(orderId, env) {
+  if (!emailReady(env)) return;
+  const incident = await query(env.DB,"SELECT * FROM custom_delivery_incidents WHERE order_id = ? AND status = 'open' AND alert_status = 'pending' AND alert_attempts < 5",orderId).first();
+  if (!incident) return;
+  const recipient = normalizeEmail(env.OPERATIONS_EMAIL || 'support@paperadventure.app');
+  if (!recipient) return;
+  const text = `A paid custom order needs delivery recovery.\nOrder: ${orderId}\nStage: ${incident.phase}\nError: ${incident.error_code}\nReview the private generation record and the order at ${new URL(env.PUBLIC_ORIGIN).origin}/en/orders/${orderId}/. Do not ask the customer to pay again.`;
+  try {
+    if (cloudflareEmailReady(env)) await env.EMAIL.send({from:env.EMAIL_FROM,to:recipient,subject:`Paid custom delivery stopped · ${orderId.slice(0,8)}`,text});
+    else {
+      const response = await (env.FETCH || fetch)('https://api.resend.com/emails',{method:'POST',headers:{authorization:`Bearer ${env.RESEND_API_KEY}`,'content-type':'application/json','Idempotency-Key':`paw-delivery-incident-${orderId}`},body:JSON.stringify({from:env.EMAIL_FROM,to:[recipient],subject:`Paid custom delivery stopped · ${orderId.slice(0,8)}`,text})});
+      if (!response.ok) throw new Error('Operator delivery alert could not be sent');
+    }
+    await query(env.DB,"UPDATE custom_delivery_incidents SET alert_status = 'sent',alerted_at = CURRENT_TIMESTAMP,alert_attempts = alert_attempts + 1 WHERE order_id = ?",orderId).run();
+  } catch (caught) {
+    await query(env.DB,'UPDATE custom_delivery_incidents SET alert_attempts = alert_attempts + 1 WHERE order_id = ?',orderId).run();
+    throw caught;
+  }
+}
+
 async function proposals(request, env) {
   if (!env.DB || !env.SESSION_SECRET || env.LEGACY_PROPOSALS_ENABLED !== 'true' || !aiProvider(env)) throw new ApiError(410, 'PREPAYMENT_PLANS_CLOSED', 'Personal plans are created only after confirmed payment.');
   requireSameOrigin(request, env);
@@ -489,11 +510,13 @@ async function myOrders(request, env) {
       ? await query(env.DB,'SELECT status,confirmed_version FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
     const failedDelivery = order.product_kind === 'custom' && order.status === 'failed' && order.paid_at
       ? await query(env.DB,'SELECT status,delivery_retry_used FROM custom_activities WHERE order_id = ?',order.id).first() : null;
+    const lastPdfFailure = failedDelivery
+      ? await query(env.DB,"SELECT phase,error_code FROM generation_usage WHERE order_id = ? AND status = 'failed' ORDER BY attempt DESC LIMIT 1",order.id).first() : null;
     const { purchase_spec_json, ...safe } = order;
     return { ...safe, checkoutExpired: Boolean(expired), setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
       image: order.product_kind === 'ready' ? story?.image || world?.image : '/assets/custom-adventure-workshop-v1.jpg',
       paper: spec.paper, planStatus: paidPlan?.status || null,
-      deliveryRetryAvailable: Boolean(order.paid_at && paidPlan?.confirmed_version && failedDelivery?.status === 'failed' && !failedDelivery.delivery_retry_used),
+      deliveryRetryAvailable: Boolean(order.paid_at && paidPlan?.confirmed_version && failedDelivery?.status === 'failed' && !failedDelivery.delivery_retry_used && !(lastPdfFailure?.phase === 'story' && nonRetryableStoryCodes.has(lastPdfFailure.error_code)) && lastPdfFailure?.error_code !== 'STORY_CHECKPOINT_MISMATCH'),
       filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
   }));
   return json({ orders });
@@ -545,6 +568,7 @@ async function orderView(request, env, orderId) {
     GENERATION_EMPTY: 'The story generation service returned no usable content.',
     GENERATION_INVALID: 'The generated story did not pass validation.',
     GENERATION_QA_FAILED: 'The generated story did not pass quality checks.',
+    STORY_CHECKPOINT_MISMATCH: 'The approved story changed after it was checked; support must review this order.',
     AUDIT_UPSTREAM_FAILED: 'The independent story check could not complete.',
     AUDIT_INVALID: 'The independent story check returned an unusable result.',
     STORED_PDF_MISMATCH: 'The saved PDF files did not pass the integrity check.',
@@ -562,6 +586,8 @@ async function orderView(request, env, orderId) {
       detailsRecorded: Boolean(row.phase) };
   });
   const failedAttempts = pdfGenerationHistory.filter(item => item.status === 'failed').length;
+  const lastPdfFailure = pdfRows.filter(item => item.status === 'failed').at(-1);
+  const retryBlocked = (lastPdfFailure?.phase === 'story' && nonRetryableStoryCodes.has(lastPdfFailure.error_code)) || lastPdfFailure?.error_code === 'STORY_CHECKPOINT_MISMATCH';
   const spec = JSON.parse(order.purchase_spec_json);
   const paidPlan = order.product_kind === 'custom' && spec.creatorVersion === 3
     ? await query(env.DB,'SELECT * FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
@@ -574,7 +600,7 @@ async function orderView(request, env, orderId) {
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
     generationState: order.product_kind === 'custom' ? (activity?.status || (order.status === 'pending_payment' ? 'awaiting_payment' : 'pending')) : null,
     generationFailedAttempts: failedAttempts, pdfGenerationHistory,
-    deliveryRetryAvailable: Boolean(order.product_kind === 'custom' && order.status === 'failed' && order.paid_at && activity?.status === 'failed' && !activity.delivery_retry_used && paidPlan?.confirmed_version),
+    deliveryRetryAvailable: Boolean(order.product_kind === 'custom' && order.status === 'failed' && order.paid_at && activity?.status === 'failed' && !activity.delivery_retry_used && paidPlan?.confirmed_version && !retryBlocked),
     paper: order.product_kind === 'custom' ? spec.paper : null,
     variantId: order.product_kind === 'ready' ? spec.variantId || null : null,
     accessExpiresAt: entitlement?.access_expires_at || null,
@@ -595,6 +621,8 @@ async function retryCustomDelivery(request, env, orderId) {
   if (!plan?.confirmed_version) throw new ApiError(409,'PLAN_NOT_APPROVED','Approve a personal plan before creating PDFs.');
   const activity = await query(env.DB,'SELECT id,status,delivery_retry_used FROM custom_activities WHERE order_id = ?',orderId).first();
   if (activity?.status !== 'failed' || activity.delivery_retry_used) throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review.');
+  const lastPdfFailure = await query(env.DB,"SELECT phase,error_code FROM generation_usage WHERE order_id = ? AND status = 'failed' ORDER BY attempt DESC LIMIT 1",orderId).first();
+  if ((lastPdfFailure?.phase === 'story' && nonRetryableStoryCodes.has(lastPdfFailure.error_code)) || lastPdfFailure?.error_code === 'STORY_CHECKPOINT_MISMATCH') throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review before another model request.');
   const artifact = await query(env.DB,"SELECT id FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' LIMIT 1",activity.id).first();
   if (artifact) throw new ApiError(409,'FILES_ALREADY_CREATED','Files were already created. Refresh this order.');
   const failed = await query(env.DB,"SELECT COUNT(*) AS count FROM generation_usage WHERE order_id = ? AND status = 'failed'",orderId).first();
@@ -876,7 +904,8 @@ async function publishCustomOrder(orderId, env) {
   }
   const spec = purchaseSpec.creatorVersion === 3 ? JSON.parse(activity.story_spec_json) : purchaseSpec;
   if (purchaseSpec.creatorVersion === 3 && (!spec.planConfirmed || !spec.plan)) return;
-  const lease = await query(env.DB, `UPDATE custom_activities SET status = 'generating', lease_until = ? WHERE id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))`, nowSeconds() + 300, activity.id, nowSeconds()).run();
+  const specHash = await sha256(JSON.stringify(spec));
+  const lease = await query(env.DB, `UPDATE custom_activities SET status = 'generating', lease_until = ? WHERE id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))`, nowSeconds() + 900, activity.id, nowSeconds()).run();
   if (!lease.meta?.changes) return;
   await env.DB.batch([
     query(env.DB, "UPDATE orders SET status = 'fulfilling' WHERE id = ? AND status = 'paid'", orderId),
@@ -890,7 +919,15 @@ async function publishCustomOrder(orderId, env) {
   await query(env.DB, "INSERT INTO generation_usage (order_id,attempt,model,status,phase,round_number,trigger_kind) VALUES (?,?,?,'generating',?,?,?)",
     orderId,attempt,aiProvider(env)?.model || 'unconfigured',generationPhase,roundNumber,triggerKind).run();
   try {
-    const result = await generateStory(spec, env, env.FETCH || fetch);
+    const checkpoint = await query(env.DB,'SELECT spec_sha256,story_json FROM custom_story_checkpoints WHERE order_id = ?',orderId).first();
+    if (checkpoint && checkpoint.spec_sha256 !== specHash) throw Object.assign(new Error('Approved story specification changed after generation'),{code:'STORY_CHECKPOINT_MISMATCH'});
+    const result = checkpoint
+      ? {story:validateGeneratedStory(JSON.parse(checkpoint.story_json),spec),usage:null,responseId:null}
+      : await generateStory(spec, env, env.FETCH || fetch);
+    if (!checkpoint) {
+      await query(env.DB,'UPDATE generation_usage SET response_id = ?,input_tokens = ?,output_tokens = ? WHERE order_id = ? AND attempt = ?',result.responseId,result.usage?.input_tokens || 0,result.usage?.output_tokens || 0,orderId,attempt).run();
+      await query(env.DB,'INSERT INTO custom_story_checkpoints (order_id,spec_sha256,story_json,response_id) VALUES (?,?,?,?)',orderId,specHash,JSON.stringify(result.story),result.responseId).run();
+    }
     generationPhase = 'pdf';
     await query(env.DB, 'UPDATE generation_usage SET phase = ? WHERE order_id = ? AND attempt = ?',generationPhase,orderId,attempt).run();
     const player = buildGamePdf(result.story, spec, 'player');
@@ -923,16 +960,18 @@ async function publishCustomOrder(orderId, env) {
       query(env.DB, `UPDATE entitlements SET revision_expires_at = datetime('now','+30 days'), access_expires_at = datetime('now', ?) WHERE order_id = ?`,
         `+${accessMonths(spec)} months`, orderId),
       query(env.DB, "INSERT OR IGNORE INTO delivery_notifications (order_id,kind,status) VALUES (?,'files_ready','pending')", orderId),
-      query(env.DB, "UPDATE generation_usage SET status = 'published',phase = 'delivered',response_id = ?,input_tokens = ?,output_tokens = ?,completed_at = CURRENT_TIMESTAMP,error_code = NULL WHERE order_id = ? AND attempt = ?", result.responseId, result.usage?.input_tokens || null, result.usage?.output_tokens || null, orderId, attempt),
+      query(env.DB, "UPDATE generation_usage SET status = 'published',phase = 'delivered',completed_at = CURRENT_TIMESTAMP,error_code = NULL WHERE order_id = ? AND attempt = ?", orderId, attempt),
+      query(env.DB,"UPDATE custom_delivery_incidents SET status = 'resolved' WHERE order_id = ?",orderId),
     ]);
   } catch (caught) {
     const errorCode = typeof caught?.code === 'string' && /^[A-Z0-9_]{1,60}$/.test(caught.code) ? caught.code : 'UNEXPECTED';
-    await query(env.DB, "UPDATE generation_usage SET status = 'failed',phase = ?,error_code = ?,completed_at = CURRENT_TIMESTAMP WHERE order_id = ? AND attempt = ?", generationPhase,errorCode,orderId,attempt).run();
+    await query(env.DB, "UPDATE generation_usage SET status = 'failed',phase = ?,error_code = ?,error_detail = ?,response_id = COALESCE(?,response_id),input_tokens = COALESCE(?,input_tokens),output_tokens = COALESCE(?,output_tokens),completed_at = CURRENT_TIMESTAMP WHERE order_id = ? AND attempt = ?", generationPhase,errorCode,String(caught?.message || 'Unknown failure').slice(0,500),caught?.responseId || null,caught?.usage?.input_tokens ?? null,caught?.usage?.output_tokens ?? null,orderId,attempt).run();
     console.error('Custom PDF attempt failed',{orderId,attempt,roundNumber,phase:generationPhase,code:errorCode,message:caught?.message || 'Unknown failure'});
-    if (deliveryAttempt >= 2) await env.DB.batch([
+    if (deliveryAttempt >= 2 || (generationPhase === 'story' && nonRetryableStoryCodes.has(errorCode))) await env.DB.batch([
       query(env.DB, "UPDATE custom_activities SET status = 'failed', lease_until = NULL WHERE id = ?", activity.id),
       query(env.DB, "UPDATE orders SET status = 'failed' WHERE id = ?", orderId),
       query(env.DB, "INSERT INTO delivery_notifications (order_id,kind,status,attempts) VALUES (?,'generation_failed','pending',0) ON CONFLICT(order_id,kind) DO UPDATE SET status = 'pending',attempts = 0,sent_at = NULL", orderId),
+      query(env.DB,"INSERT INTO custom_delivery_incidents (order_id,phase,error_code) VALUES (?,?,?) ON CONFLICT(order_id) DO UPDATE SET phase = excluded.phase,error_code = excluded.error_code,status = 'open',alert_status = 'pending',alert_attempts = 0,alerted_at = NULL",orderId,generationPhase,errorCode),
     ]);
     else await query(env.DB, 'UPDATE custom_activities SET lease_until = 0 WHERE id = ?', activity.id).run();
     throw caught;
@@ -1011,6 +1050,11 @@ export default {
     for (const item of notices.results || []) {
       try { await dispatchNotification(item.order_id, item.kind, env); }
       catch (caught) { console.error('Notification retry failed', caught); }
+    }
+    const incidents = await query(env.DB,"SELECT order_id FROM custom_delivery_incidents WHERE status = 'open' AND alert_status = 'pending' AND alert_attempts < 5 LIMIT 20").all();
+    for (const item of incidents.results || []) {
+      try { await dispatchDeliveryIncident(item.order_id,env); }
+      catch (caught) { console.error('Operator delivery alert failed',caught); }
     }
     if (!env.GENERATION_QUEUE) return;
     const jobs = await query(env.DB, `SELECT c.order_id FROM custom_activities c JOIN orders o ON o.id = c.order_id

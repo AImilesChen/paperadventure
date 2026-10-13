@@ -1,1 +1,1 @@
-2026-10-13: deploy order package layout and PDF attempt history; apply migration 0010 before API release.
+2026-10-13: deploy private checked-story checkpoints, accurate failed token accounting, bounded retries and paid-delivery incident alerts; apply migration 0011 before API release.

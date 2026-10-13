@@ -19,6 +19,27 @@ const schema = { type: 'object', additionalProperties: false, required: ['title'
   stages: { type: 'array', items: stage },
 } };
 
+// These fields belong to the approved plan. Copying them locally avoids buying
+// another model response just to repair punctuation or a paraphrased heading.
+function restoreApprovedStoryFields(story, spec) {
+  if (!spec.plan || !story || typeof story !== 'object' || !Array.isArray(story.stages)) return story;
+  const printable = value => typeof value === 'string' ? value.normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g,'').replace(/[\u2018\u2019]/g,"'")
+    .replace(/[\u201c\u201d]/g,'"').replace(/[\u2013\u2014]/g,'-')
+    .replace(/\u2026/g,'...').replace(/[\u00a0\u202f]/g,' ') : value;
+  return {
+    ...story,title:spec.plan.title,introduction:spec.plan.opening,
+    ending:printable(story.ending),groupInstructions:printable(story.groupInstructions),
+    stages:story.stages.map((item,index)=>({
+      ...item,title:spec.plan.stages[index]?.title ?? item.title,
+      mechanic:spec.plan.stages[index]?.mechanic ?? item.mechanic,
+      clue:printable(item.clue),explanation:printable(item.explanation),hint:printable(item.hint),
+      options:Array.isArray(item.options)?item.options.map(printable):item.options,
+      prerequisite:printable(item.prerequisite),unlock:printable(item.unlock),
+    })),
+  };
+}
+
 async function auditStory(story, spec, env, fetcher) {
   const provider = aiProvider(env);
   if (!provider) throw new ApiError(503, 'GENERATION_NOT_CONFIGURED', 'Story generation is not configured.');
@@ -30,7 +51,11 @@ async function auditStory(story, spec, env, fetcher) {
   const body = await response.json();
   const output = body.output?.flatMap(item => item.content || []).find(item => item.type === 'output_text')?.text;
   let verdict;
-  try { verdict = JSON.parse(output); } catch { throw new ApiError(422, 'AUDIT_INVALID', 'The story quality check was unreadable.'); }
+  try { verdict = JSON.parse(output); } catch {
+    const failure = new ApiError(422, 'AUDIT_INVALID', 'The story quality check was unreadable.');
+    failure.usage = body.usage || null;
+    throw failure;
+  }
   if (verdict.pass !== true || !Array.isArray(verdict.issues) || verdict.issues.length) {
     const failure = new ApiError(422, 'GENERATION_QA_FAILED', 'The generated activity did not pass its quality check.');
     failure.issues = Array.isArray(verdict.issues) ? verdict.issues.slice(0, 5).map(issue => String(issue).slice(0, 200)) : [];
@@ -50,7 +75,8 @@ export async function generateStory(spec, env, fetcher = fetch) {
   const outputSchema = spec.plan ? {...schema,properties:{...schema.properties,stages:{type:'array',items:plannedStage}}} : schema;
   let previousStory = null;
   let qaIssues = [];
-  for (let attempt = 0; attempt < 3; attempt++) {
+  let lastResponseId = null;
+  try { for (let attempt = 0; attempt < 3; attempt++) {
     const input = attempt === 0 ? spec : { spec, previousStory, qaIssues };
     const response = await fetcher(provider.url, { method: 'POST', headers: { authorization: `Bearer ${provider.key}`, 'content-type': 'application/json' }, body: JSON.stringify({
       model: provider.model, ...(provider.name === 'deepseek' ? { reasoning: { effort: 'none' } } : {}), instructions:instructions+planInstructions, input: JSON.stringify(input), max_output_tokens: 5500,
@@ -58,12 +84,13 @@ export async function generateStory(spec, env, fetcher = fetch) {
     }) });
     if (!response.ok) throw new ApiError(502, 'GENERATION_UPSTREAM_FAILED', 'The story provider could not complete this activity.');
     const body = await response.json();
+    lastResponseId = body.id || lastResponseId;
+    usage.input_tokens += body.usage?.input_tokens || 0;
+    usage.output_tokens += body.usage?.output_tokens || 0;
     const output = body.output?.flatMap(item => item.content || []).find(item => item.type === 'output_text')?.text;
     if (!output) throw new ApiError(422, 'GENERATION_EMPTY', 'The story provider returned no usable activity.');
     let story;
-    try { story = JSON.parse(output); } catch { throw new ApiError(422, 'GENERATION_INVALID', 'The story was not valid structured data.'); }
-    usage.input_tokens += body.usage?.input_tokens || 0;
-    usage.output_tokens += body.usage?.output_tokens || 0;
+    try { story = restoreApprovedStoryFields(JSON.parse(output),spec); } catch { throw new ApiError(422, 'GENERATION_INVALID', 'The story was not valid structured data.'); }
     let validated;
     try { validated = validateGeneratedStory(story, spec); }
     catch (failure) {
@@ -81,12 +108,20 @@ export async function generateStory(spec, env, fetcher = fetch) {
       if (failure.code !== 'GENERATION_QA_FAILED') throw failure;
       usage.input_tokens += failure.usage?.input_tokens || 0;
       usage.output_tokens += failure.usage?.output_tokens || 0;
-      if (attempt === 2) throw failure;
+      if (attempt === 2) { failure.usage = null; throw failure; }
       previousStory = validated;
       qaIssues = failure.issues?.length ? failure.issues : ['The printed clues need clearer evidence and one objectively supported answer.'];
     }
   }
   throw new ApiError(422, 'GENERATION_QA_FAILED', 'The generated activity did not pass its quality check.');
+  } catch (failure) {
+    failure.responseId = lastResponseId;
+    failure.usage = {
+      input_tokens: usage.input_tokens + (failure.usage?.input_tokens || 0),
+      output_tokens: usage.output_tokens + (failure.usage?.output_tokens || 0),
+    };
+    throw failure;
+  }
 }
 
 export async function generateProposals(spec, env, fetcher = fetch) {
