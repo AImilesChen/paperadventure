@@ -64,13 +64,13 @@ export function validatePlan(value, spec) {
   const selected = [spec.gameplay?.primary || 'reasoning',...(spec.gameplay?.secondary || [])];
   if (!Array.isArray(value.stages) || value.stages.length !== 5) throw new Error('The preview must have five checkpoints.');
   const plan = {
-    id:value.id,title:text(value.title,'Title',80),summary:text(value.summary,'Summary',400),
-    opening:text(value.opening,'Opening',700),roles:text(value.roles,'Roles',260),goal:text(value.goal,'Goal',180),
-    preparation:text(value.preparation,'Preparation',350),
+    id:value.id,title:text(value.title,'Title',100),summary:text(value.summary,'Summary',600),
+    opening:text(value.opening,'Opening',900),roles:text(value.roles,'Roles',300),goal:text(value.goal,'Goal',260),
+    preparation:text(value.preparation,'Preparation',500),
     stages:value.stages.map((item,index) => {
       if (item.number !== index+1 || !selected.includes(item.mechanic)) throw new Error('A checkpoint has an unsupported number or play style.');
-      return {number:index+1,title:text(item.title,'Checkpoint title',80),mechanic:item.mechanic,
-        task:text(item.task,'Player task',240),teamwork:text(item.teamwork,'Team action',180),connection:text(item.connection,'Connection',180)};
+      return {number:index+1,title:text(item.title,'Checkpoint title',100),mechanic:item.mechanic,
+        task:text(item.task,'Player task',350),teamwork:text(item.teamwork,'Team action',260),connection:text(item.connection,'Connection',260)};
     }),
   };
   if (!['mystery','mission'].includes(plan.id)) throw new Error('Choose one of the two adventure plans.');
