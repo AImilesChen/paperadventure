@@ -65,7 +65,7 @@ export function validatePlan(value, spec) {
   if (!Array.isArray(value.stages) || value.stages.length !== 5) throw new Error('The preview must have five checkpoints.');
   const plan = {
     id:value.id,title:text(value.title,'Title',80),summary:text(value.summary,'Summary',400),
-    opening:text(value.opening,'Opening',700),roles:text(value.roles,'Roles',180),goal:text(value.goal,'Goal',180),
+    opening:text(value.opening,'Opening',700),roles:text(value.roles,'Roles',260),goal:text(value.goal,'Goal',180),
     preparation:text(value.preparation,'Preparation',350),
     stages:value.stages.map((item,index) => {
       if (item.number !== index+1 || !selected.includes(item.mechanic)) throw new Error('A checkpoint has an unsupported number or play style.');

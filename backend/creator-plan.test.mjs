@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {validatePurchase,validateGeneratedStory} from './domain.mjs';
 import {signPreview,confirmPreview} from './creator-preview.mjs';
 import {generateProposals,generateStory,reviseStage} from './openai.mjs';
+import {generateSinglePlan} from './plan-proposals.mjs';
 import {contextKey,storySuggestions,validatePlan} from '../shared/creator-plan.mjs';
 import {normalizeDraft,draftSpec,activePlans,readySetup,fromCloudDraft} from '../src/creatorDraft.mjs';
 import {planFixture} from '../tests/fixtures/creator-plan-fixture.mjs';
@@ -29,9 +30,21 @@ test('play selection is validated and separate venue/story settings survive',()=
 test('plan validation normalizes printable typography without accepting non-English text',()=>{
   const spec=base(),plan=planFixture(spec);
   plan.summary='A clock tower’s bell is missing—follow the clues…';
+  plan.roles='A'.repeat(220);
   assert.equal(validatePlan(plan,spec).summary,"A clock tower's bell is missing-follow the clues...");
   plan.summary='钟楼的谜题';
   assert.throws(()=>validatePlan(plan,spec));
+});
+test('paid plan parser accepts fenced provider JSON and audits the result',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec;
+  const plan=planFixture(spec);let calls=0;
+  const result=await generateSinglePlan(spec,env,async()=>{
+    calls++;
+    const value=calls===1?plan:{pass:true,issues:[]};
+    const fence=String.fromCharCode(96).repeat(3);
+    return Response.json({output:[{content:[{type:'output_text',text:fence+'json\n'+JSON.stringify(value)+'\n'+fence}]}]});
+  });
+  assert.equal(calls,2);assert.equal(result.plan.title,plan.title);
 });
 test('two full five-checkpoint plans are required from the proposal provider',async()=>{
   const spec=base();let sent;
