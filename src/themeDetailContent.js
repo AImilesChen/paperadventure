@@ -58,11 +58,11 @@ export const themeDetailContent = {
   },
   space: {
     home: {
-      hook: 'Restore contact with Pip by rebuilding a wave and operating a printable paper control centre.',
+      hook: 'An adult reads the scenes; your crew shares four jobs and keeps the evidence for a checked paper reply.',
       reasons: ['Three cut wave strips form one continuous received band.', 'Six reusable paper power cells move between receiving and sending configurations.', 'Separate crew clues, a picture-symbol key and a paper transmission make each discovery part of the finale.'],
       materials: ['Three wave strips and an intact receiver board', 'Five-device power board and six larger reusable cells', 'Crew clues, receive-settings board and three decoder strips', 'Transmission form, five pulse markers, record and held-back response'],
       stages: [
-        ['Rebuild the wave', 'Connect three printed signal strips from HIGH back to HIGH.', 'The MID receiver band'],
+        ['Rebuild the wave', 'Join three strips by matching OUT to IN, check the ends, then read the band and count wave marks.', 'A checked receiving band and wave count'],
         ['Power the receiver', 'Choose the three devices needed to catch, read and protect a signal; place six paper cells.', 'A working receiving console'],
         ['Tune the receive channel', 'Share three private clues to set band, phase and pictured badge.', 'The code for Pip’s message'],
         ['Decode the instruction', 'Match received picture icons to a differently ordered fixed key and one phase strip.', 'A decoded sending instruction'],

@@ -1,0 +1,78 @@
+import { useState } from 'react';
+import assets from './spaceHomePreviewAssets.json';
+import './spaceHomeExperience.css';
+
+function Preview({ name, eager = false }) {
+  const item = assets[name]; const src = `/assets/space-home-detail-${name}.jpg`;
+  return <figure><a href={src} target="_blank" rel="noopener noreferrer" aria-label={`Enlarge ${item.caption.toLowerCase()} (opens in a new tab)`}><img src={src} alt={item.caption} width={item.width} height={item.height} loading={eager ? undefined : 'lazy'} /></a><figcaption>Player Pack source · A4 page {item.page} excerpt · {item.caption}.</figcaption></figure>;
+}
+
+function WavePractice() {
+  const [joined, setJoined] = useState(false);
+  return <div className="space-practice"><h4>Match an OUT level to the next IN</h4><div className="space-controls" role="group" aria-label="Explore matching signal levels"><button type="button" aria-pressed={!joined} aria-controls="space-wave-status" onClick={() => setJoined(false)}>1 · Compare the ends</button><button type="button" aria-pressed={joined} aria-controls="space-wave-status" onClick={() => setJoined(true)}>2 · Join matching levels</button></div><div className={`space-wave-ends${joined ? ' joined' : ''}`}><Preview name="wave-out" eager /><Preview name="wave-in" eager /></div><p id="space-wave-status" role="status" aria-live="polite">{joined ? 'The OUT and IN details name the same level, so this join matches. The full three-strip chain must also satisfy the receiver’s start and end.' : 'Compare the previous strip’s OUT with the next strip’s IN before adding it to the chain.'}</p><p className="space-source-note">Anonymous details from Player page 5. Strip IDs, band letters and the full wave count stay inside the adventure.</p></div>;
+}
+
+const cellSteps = [
+  ['1 · Cell ready', 'One cell is beside an anonymous slot. This close-up uses one of the six printed cells.'],
+  ['2 · Place one cell', 'Place the same paper cell into the slot. In the game, your crew chooses devices and fills their required spaces.'],
+  ['3 · Take it back', 'Take that cell back. The same six cells are moved from receiving to sending later; no extra cells are added.'],
+];
+
+function CellPractice() {
+  const [step, setStep] = useState(0); const placed = step === 1;
+  return <div className="space-practice"><span className="eyebrow">ONE-CELL HANDLING EXAMPLE</span><h4>Place it, then use the same cell again</h4><div className="space-controls" role="group" aria-label="Explore handling one reusable cell">{cellSteps.map((item, i) => <button type="button" key={item[0]} aria-pressed={step === i} aria-controls="space-cell-status" onClick={() => setStep(i)}>{item[0]}</button>)}</div><div className="space-cell-example"><div className="space-slot"><Preview name="slot" eager />{placed && <div className="space-inserted-cell"><Preview name="cell" eager /></div>}</div>{!placed && <div className="space-loose-cell"><Preview name="cell" eager /></div>}</div><p id="space-cell-status" role="status" aria-live="polite" aria-atomic="true">{cellSteps[step][1]}</p><p className="space-source-note">Exact cell and slot details from Player page 7. The example leaves the device unidentified and does not show a complete power configuration.</p></div>;
+}
+
+const iconSteps = [
+  ['1 · Inspect the message', 'Look at one received icon. The received order is the order your crew follows when recording the message.'],
+  ['2 · Find its match', 'Find the identical icon in the fixed key. Its position in that row may differ from its position in the message.'],
+  ['3 · Read that column', 'Use the character under that key icon on the phase strip your crew selected, then record it in received order. Code characters remain in the game.'],
+];
+
+function IconPractice() {
+  const [step, setStep] = useState(0);
+  return <div className="space-practice"><h4>Match the drawing before taking its character</h4><div className="space-controls" role="group" aria-label="Explore icon-to-key matching">{iconSteps.map((item, i) => <button type="button" key={item[0]} aria-pressed={step === i} aria-controls="space-icon-status" onClick={() => setStep(i)}>{item[0]}</button>)}</div><div className="space-icon-pair"><div className={step !== 1 ? 'active' : ''}><span>RECEIVED DETAIL</span><Preview name="message-icon" eager /></div><div className={step > 0 ? 'active' : ''}><span>FIXED KEY DETAIL</span><Preview name="key-icon" eager /></div></div><p id="space-icon-status" role="status" aria-live="polite" aria-atomic="true">{iconSteps[step][1]}</p><p className="space-source-note">Two actual icon details from Player page 11. The preview does not select a phase strip or reveal its characters.</p></div>;
+}
+
+const demos = [
+  { label: 'Rebuild the signal', title: 'Make a signal chain that joins all the way through.', body: 'Lay three shuffled wave strips on the receiver board. Match OUT to IN, check the two ends, then read and record the discovery. The team keeps the strips as evidence.' },
+  { label: 'Move the power', title: 'Six cells for receiving. The same six for sending.', body: 'Inspect the named equipment and its empty cell spaces. Allocate the six paper cells for the receiving task; keep the whole board and those cells for the final sending task.' },
+  { label: 'Decode the message', title: 'Follow the received icons through a fixed key.', body: 'The crew’s shared settings choose a phase strip. Engineer aligns it beneath the fixed key, Communicator records one character at a time, and Verifier checks each icon match.' },
+];
+
+export function SpaceHeroMaterial() {
+  return <figure className="space-hero-material"><a href="/assets/space-home-detail-power-board.jpg" target="_blank" rel="noopener noreferrer" aria-label="Enlarge the blank paper power board (opens in a new tab)"><img src="/assets/space-home-detail-power-board.jpg" alt="Actual five-device paper power board with all cell spaces empty" width={assets['power-board'].width} height={assets['power-board'].height} /></a><figcaption>Your family operates a paper console.<br />Player Pack page 7 excerpt.</figcaption></figure>;
+}
+
+export function SpaceStoryOpening() {
+  return <section id="story-opening" className="theme-detail-section" aria-labelledby="space-story-heading"><div className="theme-detail-heading"><span className="eyebrow">PIP NEEDS A CONTROL CREW</span><h2 id="space-story-heading">A faint signal. Six cells. One reply to send.</h2><p>Pip the robot probe has lost contact with the control centre. Solar noise has split its wave, and the link is fading. Your family rebuilds the signal, powers the paper console and shares the settings needed to understand Pip’s message.</p></div><div className="space-opening-grid"><article><h3>Receive, understand, then reply</h3><p>Each discovery supports the next task. Keep the signal strips, settings and record visible, then move the same six cells to the sending equipment for your final paper transmission.</p><p>The adult releases one mission at a time and checks both the arrangement and record before giving the next pile.</p></article><article><h3>A control room at your table</h3><ul><li><strong>2–6 players per crew:</strong> share four practical jobs.</li><li><strong>One additional adult host:</strong> read scenes, prepare materials and help with hints.</li><li><strong>7–12 players:</strong> two crews with two complete sets, checked independently.</li></ul><p>Boards, clues, cells and pulse markers are printed in the pack. The equipment and transmission belong to the paper story; no real circuits or wireless equipment are required.</p></article></div></section>;
+}
+
+export function SpaceCooperativePlay() {
+  const [demo, setDemo] = useState(0); const current = demos[demo];
+  return <section id="crew-play" className="theme-detail-section" aria-labelledby="space-play-heading"><div className="theme-detail-heading"><span className="eyebrow">SEE THE PAPER CONTROL ROOM IN ACTION</span><h2 id="space-play-heading">Connect the signal. Move the energy. Work out the reply.</h2><p>Explore three paper actions from the five-mission adventure. These are real source excerpts with the game answers held back.</p></div><div className="space-demo"><div className="space-controls space-demo-controls" role="group" aria-label="Explore three control-room examples">{demos.map((item, i) => <button type="button" key={item.label} aria-pressed={demo === i} aria-controls="space-demo-description" onClick={() => setDemo(i)}><span>{i + 1}</span>{item.label}</button>)}</div><div className="space-demo-grid"><div className="space-demo-material">{demo === 0 ? <Preview name="receiver-board" eager /> : demo === 1 ? <><Preview name="power-board" eager /><Preview name="cells" eager /></> : <Preview name="decoder" eager />}</div><div><div id="space-demo-description" role="status" aria-live="polite" aria-atomic="true"><span className="eyebrow">PAPER PLAY · {current.label.toUpperCase()}</span><h3>{current.title}</h3><p>{current.body}</p></div>{demo === 0 ? <WavePractice /> : demo === 1 ? <CellPractice /> : <IconPractice />}</div></div></div></section>;
+}
+
+export function SpaceFamilyPlay() {
+  return <section id="family-play" className="theme-detail-section" aria-labelledby="space-family-heading"><div className="theme-detail-heading"><span className="eyebrow">FOUR WORKING JOBS</span><h2 id="space-family-heading">Everyone helps operate or check the console.</h2><p>The adult hosts the story, deals each task-and-prop pair and checks the physical setting beside the mission record. Players take the four crew jobs.</p></div><dl className="space-jobs">{[['Commander', 'Read the current scene and step. Invite every teammate’s fact and point to the required setting.'], ['Engineer', 'Move and align wave strips, cells and the code strip. Explain a placement.'], ['Communicator', 'Write or dictate agreed results and complete the outgoing transmission.'], ['Verifier', 'Check joins, the cell total and code columns. Show the board and record to the adult.']].map(([job, body]) => <div key={job}><dt>{job}</dt><dd>{body}</dd></div>)}</dl><div className="space-grouping"><h3>Share the jobs for your crew size</h3><ul><li><strong>2 players:</strong> Commander + Communicator and Engineer + Verifier; exchange the two bundles between missions.</li><li><strong>3 players:</strong> combine Commander + Communicator.</li><li><strong>4 players:</strong> one job each.</li><li><strong>5 players:</strong> pair Engineer. <strong>6 players:</strong> pair Engineer and Communicator. Partners alternate the lead action each mission.</li><li><strong>7–12 players:</strong> prepare two complete sets and keep each crew’s evidence together.</li></ul><p>With two players, split the three setting clues between them. Younger players may point or move a piece while an adult reads or writes. Other jobs may rotate if the group wants; there is no elimination.</p></div></section>;
+}
+
+export function SpaceCrewOutcome() {
+  return <section id="crew-finish" className="theme-detail-section" aria-labelledby="space-finish-heading"><div className="theme-detail-heading"><span className="eyebrow">WHAT YOUR FAMILY COMPLETES</span><h2 id="space-finish-heading">A paper transmission your crew can explain.</h2><p>The adult checks the changed power board, settings, decoded instruction and pulse count before revealing Pip’s response.</p></div><div className="space-outcome-grid"><article><span>KEEP THE EVIDENCE</span><h3>A five-mission record</h3><p>Write the results beside the actual strips, clues and console pieces that support them.</p></article><article><span>OPERATE &amp; SUBMIT</span><h3>A checked outgoing message</h3><p>Reuse the six cells, fill the transmission and place the pulse markers requested by the decoded instruction.</p></article><article><span>RESTORE CONTACT</span><h3>Pip’s held-back reply</h3><p>After acceptance, hear Pip’s response and share a contribution. Its page also offers an optional control-centre drawing.</p></article></div></section>;
+}
+
+export function SpaceDesignIntent() {
+  return <section className="theme-detail-section" aria-labelledby="space-intent-heading"><div className="theme-detail-heading"><span className="eyebrow">THE IDEA BEHIND THE ADVENTURE</span><h2 id="space-intent-heading">One shared console connects receiving and sending.</h2><p>The design turns a space communication story into paper actions: join a signal, share its settings, decode an instruction and use those results to author a reply.</p></div><div className="theme-reasons-grid"><article><span>HANDLE THE SIGNAL</span><p>Physical strips and a fixed icon key give the crew something to align and inspect.</p></article><article><span>REUSE THE ENERGY</span><p>A fixed pool of six cells ties the early receiving task to the final sending task.</p></article><article><span>CHECK TOGETHER</span><p>Separate clues and a visible record give the final submission an evidence trail.</p></article></div><p className="space-source-note">This is a fictional paper control room with fixed puzzle settings.</p></section>;
+}
+
+export function SpaceSourcePreviews() {
+  return <div className="space-pack-preview"><div><span className="eyebrow">REAL PLAYER PACK MATERIALS</span><h3>Record the discoveries. Prepare the outgoing message.</h3><p>Both forms are blank in this preview. The pulse slots are unfilled, and Pip’s final response stays with the adult until the crew’s work is checked.</p></div><div className="space-pack-page-grid"><Preview name="record" /><Preview name="transmission" /></div></div>;
+}
+
+export function SpaceHostFileCard() {
+  return <article className="theme-file-card"><span>FOR THE ADULT HOST</span><h3>Host Guide</h3><p>Read this separately to prepare and guide the five paper missions.</p><ul><li>Print-and-cut inventory and five task-and-prop piles</li><li>Read-aloud scenes, physical checks and graduated hints</li><li>Crew-size job sharing, reading support and recovery instructions</li><li>Final power and transmission check before Pip’s response</li></ul></article>;
+}
+
+export function SpacePreparation() {
+  return <section className="theme-detail-section theme-prep" aria-labelledby="theme-prep-heading"><div><span className="eyebrow">BEFORE YOU PLAY</span><h2 id="theme-prep-heading">Prepare a complete console for each crew.</h2></div><div><p>Choose A4 or US Letter. Print single-sided at Actual size / 100%, then use ordinary paper, two pencils and adult-handled scissors. Keep boards and task pages whole.</p><div className="theme-print-specs"><div><strong>14 Player pages + 10 Host Guide pages</strong><span>One complete Player Pack per crew of 2–6; two complete sets for 7–12. The adult can read the Guide on screen.</span></div><div><strong>24 cut pieces per crew</strong><span>Four jobs, three wave strips, six power cells, three private clue cards, three code strips and five pulse markers. Cut the marked outer rectangles and keep every label with its piece.</span></div><div><strong>Standard or reduced printing</strong><span>Standard: 14 Player sheets per crew, or 28 for two. Reduced: print pages 2–13 and read the cover and held-back response from screen, using 12 sheets per crew or 24 for two. These totals keep the Host Guide on screen.</span></div><div><strong>Five numbered missions and a hidden reply</strong><span>Sort pages 4–13 into five task-and-prop pairs. Keep the power board and all six cells after receiving. Hold page 14 back until the final transmission is accepted.</span></div></div><p>Everything operated by children is a paper prop. No real circuits, wireless equipment or purchased reward is needed.</p><p className="theme-prep-note">Preparation and play time will be added after physical print and real-family checks.</p></div></section>;
+}

@@ -1,0 +1,86 @@
+{
+  "receiver-board": {
+    "page": 5,
+    "caption": "Blank three-slot receiver board",
+    "excerpt": true,
+    "width": 1060,
+    "height": 450
+  },
+  "wave-out": {
+    "page": 5,
+    "caption": "Anonymous OUT level detail",
+    "excerpt": true,
+    "width": 210,
+    "height": 53
+  },
+  "wave-in": {
+    "page": 5,
+    "caption": "Anonymous matching IN level detail",
+    "excerpt": true,
+    "width": 170,
+    "height": 53
+  },
+  "power-board": {
+    "page": 7,
+    "caption": "Unfilled five-device power board",
+    "excerpt": true,
+    "width": 1060,
+    "height": 781
+  },
+  "cells": {
+    "page": 7,
+    "caption": "Six loose paper power cells",
+    "excerpt": true,
+    "width": 517,
+    "height": 267
+  },
+  "cell": {
+    "page": 7,
+    "caption": "One reusable paper cell",
+    "excerpt": true,
+    "width": 250,
+    "height": 197
+  },
+  "slot": {
+    "page": 7,
+    "caption": "Anonymous empty cell slot",
+    "excerpt": true,
+    "width": 280,
+    "height": 206
+  },
+  "decoder": {
+    "page": 11,
+    "caption": "Message icons and fixed key with blank answers",
+    "excerpt": true,
+    "width": 1060,
+    "height": 550
+  },
+  "message-icon": {
+    "page": 11,
+    "caption": "One received icon detail",
+    "excerpt": true,
+    "width": 320,
+    "height": 327
+  },
+  "key-icon": {
+    "page": 11,
+    "caption": "Matching icon in the fixed key",
+    "excerpt": true,
+    "width": 323,
+    "height": 220
+  },
+  "record": {
+    "page": 3,
+    "caption": "Blank five-mission control-room record",
+    "excerpt": true,
+    "width": 1060,
+    "height": 885
+  },
+  "transmission": {
+    "page": 13,
+    "caption": "Blank outgoing form and unfilled pulse slots",
+    "excerpt": true,
+    "width": 1060,
+    "height": 723
+  }
+}
