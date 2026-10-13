@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {validatePurchase,validateGeneratedStory} from './domain.mjs';
 import {signPreview,confirmPreview} from './creator-preview.mjs';
 import {generateProposals,generateStory,reviseStage} from './openai.mjs';
-import {contextKey,storySuggestions} from '../shared/creator-plan.mjs';
+import {contextKey,storySuggestions,validatePlan} from '../shared/creator-plan.mjs';
 import {normalizeDraft,draftSpec,activePlans,readySetup,fromCloudDraft} from '../src/creatorDraft.mjs';
 import {planFixture} from '../tests/fixtures/creator-plan-fixture.mjs';
 import {buildGamePdf} from './pdf.mjs';
@@ -25,6 +25,13 @@ test('play selection is validated and separate venue/story settings survive',()=
   assert.throws(()=>validatePurchase({...input,gameplay:{primary:'folding',secondary:[]}}));
   assert.throws(()=>validatePurchase({...input,gameplay:{primary:'reasoning',secondary:['reasoning']}}));
   assert.throws(()=>validatePurchase({...input,language:'zh'}));
+});
+test('plan validation normalizes printable typography without accepting non-English text',()=>{
+  const spec=base(),plan=planFixture(spec);
+  plan.summary='A clock tower’s bell is missing—follow the clues…';
+  assert.equal(validatePlan(plan,spec).summary,"A clock tower's bell is missing-follow the clues...");
+  plan.summary='钟楼的谜题';
+  assert.throws(()=>validatePlan(plan,spec));
 });
 test('two full five-checkpoint plans are required from the proposal provider',async()=>{
   const spec=base();let sent;

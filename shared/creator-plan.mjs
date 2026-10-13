@@ -43,8 +43,15 @@ export function planningContext(spec) {
 export const contextKey = spec => JSON.stringify(planningContext(spec));
 
 function text(value, label, limit) {
-  if (typeof value !== 'string' || !value.trim() || value.length > limit || /[^\x20-\x7e\n\r]/.test(value)) throw new Error(`${label} must be concise English printable text.`);
-  return value.trim();
+  const printable = typeof value === 'string' ? value
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/\u00a0/g, ' ')
+    .trim() : '';
+  if (!printable || printable.length > limit || /[^\x20-\x7e\n\r]/.test(printable)) throw new Error(`${label} must be concise English printable text.`);
+  return printable;
 }
 export function validatePlan(value, spec) {
   if (!value || typeof value !== 'object') throw new Error('An adventure plan is required.');
