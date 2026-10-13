@@ -32,11 +32,11 @@ export const themeDetailContent = {
   },
   dinosaur: {
     home: {
-      hook: 'Build Milo’s landscape, pack for a possible detour, then move him around a rain-closed bridge to camp.',
+      hook: 'One adult hosts the story; players share four rotating jobs and keep the journey at the table.',
       reasons: ['Children fit six shuffled landscape tiles by matching printed paths, then move Milo to a separate camp finish area.', 'A two-slot backpack makes the printed supplies matter when the weather changes.', 'A storm changes the plan: players block a crossing, test a safe detour and complete an arrival proof.'],
       materials: ['Six cut landscape tiles with matching paths and a whole-page map board with CAMP finish area', 'Six illustrated trail marks and four rotating explorer jobs', 'Two-slot backpack mat and four cut supply tokens', 'Storm notice, BLOCK and MILO markers, journey record, arrival proof and held-back welcome'],
       stages: [
-        ['Read the trail marks', 'Circle the three tracks that fit Milo’s print and read their start letters.', 'The SUN trailhead'],
+        ['Read the trail marks', 'Circle the three tracks that fit Milo’s print and read their start letters.', 'An evidence-backed starting place'],
         ['Rebuild the expedition map', 'Fit shuffled landscape tiles into the board by matching printed path ends.', 'Two possible paths toward camp'],
         ['Pack for the possible detour', 'Select two of four printed supplies for a route that still works if the weather changes.', 'A packed expedition kit'],
         ['Follow the changed route', 'Block a crossing after the storm, move Milo through another route and use the supplies.', 'A safe paper detour'],
@@ -161,5 +161,6 @@ export const themeDetailContent = {
     },
   },
 };
+
 
 
