@@ -57,6 +57,22 @@ test('an overlong paid plan is repaired before audit and usage includes the repa
   assert.equal(calls,3);assert.equal(result.plan.roles,valid.roles);
   assert.equal(result.usage.input_tokens,30);assert.equal(result.usage.output_tokens,60);
 });
+test('a paid plan rejected by audit is corrected and independently rechecked once',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec;
+  const first=planFixture(spec),corrected=planFixture(spec);
+  corrected.stages[1].task+=' Compare the printed clock hands.';
+  let calls=0;
+  const result=await generateSinglePlan(spec,env,async(_url,options)=>{
+    const sent=JSON.parse(options.body);
+    const value=[first,{pass:false,issues:['Checkpoint 2 needs clearer printed evidence.']},corrected,{pass:true,issues:[]}][calls++];
+    if(calls===3)assert.deepEqual(JSON.parse(sent.input).auditIssues,['Checkpoint 2 needs clearer printed evidence.']);
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
+  });
+  assert.equal(calls,4);
+  assert.equal(result.plan.stages[1].task,corrected.stages[1].task);
+  assert.equal(result.usage.input_tokens,40);
+  assert.equal(result.usage.output_tokens,80);
+});
 test('two full five-checkpoint plans are required from the proposal provider',async()=>{
   const spec=base();let sent;
   const result=await generateProposals(spec,env,async(_,options)=>{sent=JSON.parse(options.body);return response({proposals:[planFixture(spec),planFixture(spec,'mission')]});});
