@@ -321,19 +321,24 @@ test('custom checkout queues generation only after a verified paid webhook', asy
   seedReady(db);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('price-custom','custom_home','USD',1499,'price_custom_1','exclusive',1)").run();
   const queued = [];
+  let checkoutForm;
   const env = { ...config(binding), OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', GENERATION_QUEUE: { send: async item => queued.push(item) }, FETCH: async (_url, init) => {
     const form = new URLSearchParams(init.body);
+    checkoutForm = form;
     return Response.json({ id: 'cs_custom_001', url: 'https://checkout.stripe.com/custom', client_reference_id: form.get('client_reference_id') });
   } };
   const input = await approvedCustomInput(env,{ sku: 'custom_home', customIdea: 'A moon library', players: 4, age: '8-10', paper: 'A4', direction: 'mission', email: 'adult@example.com' });
   const sessionToken = await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:await sha256(`${env.SESSION_SECRET}|${input.email}`),exp:Math.floor(Date.now()/1000)+3600});
-  const checkout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', input, { 'Idempotency-Key': 'custom-attempt-001', origin: 'https://adventure.example', cookie:`paw_session=${sessionToken}` }), env);
+  const { email: _accountEmail, ...signedInPurchase } = input;
+  const checkout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', signedInPurchase, { 'Idempotency-Key': 'custom-attempt-001', origin: 'https://adventure.example', cookie:`paw_session=${sessionToken}` }), env);
   assert.equal(checkout.status, 201);
+  assert.equal(checkoutForm.get('customer_email'), null);
   const { orderId } = await checkout.json();
   assert.equal(db.prepare('SELECT status FROM orders WHERE id = ?').get(orderId).status, 'pending_payment');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_activities').get().n, 0);
   assert.equal(queued.length, 0);
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  assert.equal(order.purchaser_email_hash, await sha256(`${env.SESSION_SECRET}|adult@example.com`));
   const session = { id: 'cs_custom_001', client_reference_id: orderId, metadata: { order_id: orderId, spec_hash: order.purchase_spec_sha256 }, payment_status: 'paid', currency: 'usd', amount_subtotal: 1499, amount_total: 1499, payment_intent: 'pi_custom_001' };
   const raw = JSON.stringify({ id: 'evt_custom_001', type: 'checkout.session.completed', data: { object: session } });
   const timestamp = Math.floor(Date.now()/1000);
@@ -348,16 +353,19 @@ test('custom checkout queues generation only after a verified paid webhook', asy
 test('v3 checkout and duplicate webhook queue only the paid plan',async()=>{
   const {db,binding}=database();seedReady(db);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('v3-checkout-price','custom_home','USD',1499,'price_v3','exclusive',1)").run();
-  const queued=[];
+  const queued=[];let checkoutForm;
   const env={...config(binding),OPENAI_API_KEY:'test',OPENAI_MODEL:'test-model',GENERATION_QUEUE:{send:async value=>queued.push(value)},FETCH:async(_url,init)=>{
-    const form=new URLSearchParams(init.body);return Response.json({id:'cs_v3',url:'https://checkout.stripe.com/v3',client_reference_id:form.get('client_reference_id')});
+    const form=new URLSearchParams(init.body);checkoutForm=form;return Response.json({id:'cs_v3',url:'https://checkout.stripe.com/v3',client_reference_id:form.get('client_reference_id')});
   }};
   const input={sku:'custom_home',creatorVersion:3,customIdea:'A stopped clock tower',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:['discussion']},email:'adult@example.com'};
   const owner=await sha256(`${env.SESSION_SECRET}|${input.email}`);
   const sessionToken=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
-  const checkout=await handleProductionApi(request('/api/v1/checkout-intents','POST',input,{origin:env.PUBLIC_ORIGIN,cookie:`paw_session=${sessionToken}`,'Idempotency-Key':'v3-checkout-attempt-001'}),env);
+  const {email:_verifiedEmail,...signedInPurchase}=input;
+  const checkout=await handleProductionApi(request('/api/v1/checkout-intents','POST',signedInPurchase,{origin:env.PUBLIC_ORIGIN,cookie:`paw_session=${sessionToken}`,'Idempotency-Key':'v3-checkout-attempt-001'}),env);
   assert.equal(checkout.status,201,JSON.stringify(await checkout.clone().json()));
+  assert.equal(checkoutForm.get('customer_email'),null);
   const {orderId}=await checkout.json(),order=db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  assert.equal(order.purchaser_email_hash,owner);
   assert.equal(queued.length,0);
   const session={id:'cs_v3',client_reference_id:orderId,metadata:{order_id:orderId,spec_hash:order.purchase_spec_sha256},payment_status:'paid',currency:'usd',amount_subtotal:1499,amount_total:1499,payment_intent:'pi_v3'};
   const raw=JSON.stringify({id:'evt_v3',type:'checkout.session.completed',data:{object:session}}),time=Math.floor(Date.now()/1000);
@@ -501,11 +509,11 @@ test('free proposal endpoint returns two short directions and enforces an IP bud
 test('Stripe sandbox checkout accepts any matching Google account and uses inline test prices without legal release', async () => {
   const { db, binding } = database();
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('sandbox-home','custom_home','USD',1499,NULL,'exclusive',1)").run();
-  let form;
+  let form; let sessionCount = 0;
   const env = { ...config(binding), STAGE_PREVIEW: 'true', TEST_CHECKOUT_ENABLED: 'true', CHECKOUT_ENABLED: 'false',
     LEGAL_RELEASED: 'false', TAX_CONFIGURED: 'false',
     OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', GENERATION_QUEUE: { send: async () => {} },
-    FETCH: async (_url, init) => { form = new URLSearchParams(init.body); return Response.json({ id: 'cs_test_sandbox', url: 'https://checkout.stripe.com/test', client_reference_id: form.get('client_reference_id') }); } };
+    FETCH: async (_url, init) => { form = new URLSearchParams(init.body); return Response.json({ id: 'cs_test_sandbox_' + (++sessionCount), url: 'https://checkout.stripe.com/test', client_reference_id: form.get('client_reference_id') }); } };
   const health = await handleProductionApi(request('/api/v1/health'), env);
   assert.equal((await health.json()).checkoutMode, 'test');
   const input = await approvedCustomInput(env,{ sku: 'custom_home', customIdea: 'A moon library', players: 4, age: '8-10', paper: 'A4', direction: 'mission', email: 'adult@example.com' });
@@ -519,6 +527,11 @@ test('Stripe sandbox checkout accepts any matching Google account and uses inlin
   assert.equal(form.get('line_items[0][price_data][unit_amount]'), '1499');
   assert.equal(form.get('line_items[0][price]'), null);
   assert.equal(form.get('automatic_tax[enabled]'), 'false');
+  const { email: _sandboxEmail, ...signedInPurchase } = input;
+  const directCheckout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', signedInPurchase,
+    { ...headers, 'Idempotency-Key': 'sandbox-direct-with-session', cookie: `paw_session=${token}` }), env);
+  assert.equal(directCheckout.status, 201);
+  assert.equal(form.get('customer_email'), null);
   const otherToken = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: await sha256(`${env.SESSION_SECRET}|other@example.com`), exp: Math.floor(Date.now()/1000)+3600 });
   const mismatched = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', input,
     { ...headers, 'Idempotency-Key': 'sandbox-attempt-mismatch', cookie: `paw_session=${otherToken}` }), env);

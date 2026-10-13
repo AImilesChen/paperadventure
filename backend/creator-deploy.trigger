@@ -1,1 +1,1 @@
-2026-10-13: deploy creator v3 paid-plan review after private DeepSeek smoke 38391177279; apply migration 0008 before API release.
+2026-10-13: allow signed-in checkout without site email; bind orders to the authenticated account and let Stripe collect receipt email when needed.

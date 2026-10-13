@@ -163,21 +163,19 @@ async function checkout(request, env) {
   requireSameOrigin(request, env);
   const input = await requestBody(request);
   const email = normalizeEmail(input.email);
-  if (!email) throw new ApiError(400, 'INVALID_EMAIL', 'Enter an adult email address.');
   const testOnly = testCheckoutReady(env);
-  if (testOnly) {
-    const accountHash = await authenticatedEmailHash(request, env);
-    if (!accountHash || accountHash !== await emailHash(env, email))
-      throw new ApiError(403, 'ACCOUNT_EMAIL_MISMATCH', 'Sign in with Google and use the same email at checkout.');
-  }
   const { offer, spec } = validatePurchase(input);
+  const accountHash = await authenticatedEmailHash(request, env);
+  const accountRequired = testOnly || offer.kind === 'custom';
+  if (accountRequired && !accountHash) throw new ApiError(403, 'ACCOUNT_REQUIRED', 'Sign in with your adult account before checkout.');
+  if (!accountRequired && !email) throw new ApiError(400, 'INVALID_EMAIL', 'Enter an adult email address.');
+  if (accountRequired && email && accountHash !== await emailHash(env, email))
+    throw new ApiError(403, 'ACCOUNT_EMAIL_MISMATCH', 'Use the email linked to your adult account.');
   if (offer.kind === 'custom' && (!generationReady(env) || spec.creatorVersion===3 && !await paidPlanSchemaReady(env))) throw new ApiError(503, 'GENERATION_NOT_READY', 'Custom generation is not available.');
   if (offer.kind === 'custom') validateSupportedRange(spec, env);
   if (offer.kind === 'custom') {
-    const owner = await authenticatedEmailHash(request,env);
-    if (owner !== await emailHash(env,email)) throw new ApiError(403,'ACCOUNT_EMAIL_MISMATCH','Use the adult account that created this preview.');
     if (spec.creatorVersion === 2) {
-      await confirmPreview(spec,owner,env.SESSION_SECRET);
+      await confirmPreview(spec,accountHash,env.SESSION_SECRET);
       if (!spec.planConfirmed) throw new ApiError(409,'PREVIEW_CONFIRMATION_REQUIRED','Confirm your five-checkpoint plan before checkout.');
     } else if (spec.creatorVersion !== 3) throw new ApiError(409,'SETUP_UPDATE_REQUIRED','Update your custom setup before checkout.');
   }
@@ -198,7 +196,7 @@ async function checkout(request, env) {
       if (variantFiles.results?.length !== 4) throw new ApiError(503, 'PACK_VARIANT_NOT_READY', 'This classroom story wording is not available.');
     }
   }
-  const buyerHash = await emailHash(env, email);
+  const buyerHash = accountRequired ? accountHash : await emailHash(env, email);
   const legal = testOnly ? null : await publishedLegal(env);
   const legalVersions = testOnly ? { testMode: 'stripe-sandbox-2026-10-09' } : Object.fromEntries([...legal].map(([kind, item]) => [kind, item.version]));
   const specJson = JSON.stringify({ ...spec, readyPackId: readyPack?.id || null, priceVersionId: price.id, licenceVersion: readyPack?.licence_version || env.CUSTOM_LICENCE_VERSION,
@@ -931,4 +929,3 @@ export default {
     for (const item of revisions.results || []) await env.GENERATION_QUEUE.send({ type: 'revision', revisionId: item.id });
   },
 };
-
