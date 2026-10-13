@@ -110,12 +110,12 @@ export const themeDetailContent = {
   },
   halloween: {
     home: {
-      hook: 'A cooperative paper theatre: children discover the cast, make shadows, solve their stage places and reveal Pip’s glowing paper lantern.',
+      hook: 'Children share four rotating theatre jobs; an adult prepares the windows, handles scissors and guides the two performances.',
       reasons: ['Each mission starts with a short scene and produces something used later in the show.', 'The main actions are observing, folding, speaking clues, staging and performing rather than collecting a number code.', 'The four-window lantern reveal uses printed paper only; no real flame, lamp or special toy is needed.'],
       materials: ['Four rotating job cards, team record, eight-poster scene and cut-out viewer', 'Four fold-and-cut paper shadows, four private stage memories and rehearsal mat', 'A hinged four-window theatre and four clue-only cue cards', 'Adult-held lantern finale and a step-by-step Host Guide with read-aloud scripts'],
       stages: [
         ['Spot the torn posters', 'Use the paper viewer to find which four of eight posters share three zigzag tears.', 'Four actors to make'],
-        ['Make paper shadows', 'Fold and cut the bat, owl, pumpkin and star templates with adult help.', 'Four reusable stage figures'],
+        ['Make the paper actors', 'Fold the four templates identified in the first mission; an adult cuts through both layers, then children unfold the shapes.', 'Four reusable stage figures'],
         ['Arrange the stage together', 'Share four private spoken clues and place the figures on a two-by-two mat.', 'One complete stage arrangement'],
         ['Rehearse the windows', 'Match four spoken character clues to the stage places and lift the hinged windows.', 'A coordinated paper-theatre rehearsal'],
         ['Perform the festival ending', 'Follow a new story order and open all four windows over Pip’s held-back lantern scene.', 'One glowing pumpkin picture'],
@@ -161,4 +161,5 @@ export const themeDetailContent = {
     },
   },
 };
+
 
