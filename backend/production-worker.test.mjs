@@ -752,3 +752,36 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
   assert.equal(queued.at(-1).orderId,'v3-order');
   assert.equal((await post({action:'rework',feedback:'Try again after approval.'},'paid-plan-change-0003')).status,409);
 });
+
+test('a failed paid first plan offers one free recovery without another checkout or spending edits',async()=>{
+  const {db,binding}=database();
+  const owner=await sha256('test-session-secret|adult@example.com');
+  const spec=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  const stored=JSON.stringify(spec);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('recovery-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status) VALUES ('recovery-order','custom','custom_home',?,?,?,?,1499,'USD','paid')").run(stored,await sha256(stored),owner,'recovery-price');
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status) VALUES ('recovery-order','needs_help')").run();
+  db.prepare("INSERT INTO custom_plan_requests (id,order_id,kind,status,attempts) VALUES ('recovery-initial','recovery-order','initial','failed',3)").run();
+  const queued=[];
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture-model',GENERATION_QUEUE:{send:async job=>queued.push(job)},FETCH:async(_url,options)=>{
+    const payload=JSON.parse(options.body);
+    const value=payload.text.format.name==='paid_plan_audit'?{pass:true,issues:[]}:planFixture(spec);
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
+  }};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const get=()=>handleProductionApi(request('/api/v1/orders/recovery-order','GET',undefined,headers),env).then(response=>response.json());
+  const post=()=>handleProductionApi(request('/api/v1/orders/recovery-order/plan','POST',{action:'retry_initial'},headers),env);
+  assert.equal((await get()).planReview.retryAvailable,true);
+  assert.equal((await post()).status,202);
+  assert.equal((await post()).status,409,'a second click cannot queue another request');
+  assert.equal((await get()).planReview.status,'queued');
+  assert.equal(queued.length,1);
+  await productionWorker.queue({messages:[{body:queued[0],ack(){},retry(){throw Error('unexpected retry');}}]},env);
+  const viewed=await get();
+  assert.equal(viewed.planReview.status,'review');
+  assert.equal(viewed.planReview.versions.length,1);
+  assert.equal(viewed.planReview.fullUsed,0);
+  assert.equal(viewed.planReview.targetedUsed,0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM orders WHERE id='recovery-order'").get().count,1);
+});
