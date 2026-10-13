@@ -2,9 +2,9 @@ import { useState } from 'react';
 import assets from './christmasHomePreviewAssets.json';
 import './christmasHomeExperience.css';
 
-function Preview({ name, eager = false }) {
+function Preview({ name, eager = false, compact = false }) {
   const item = assets[name], src = `/assets/christmas-home-detail-${name}.jpg`;
-  return <figure><a href={src} target="_blank" rel="noopener noreferrer" aria-label={`Enlarge ${item.caption.toLowerCase()} (opens in a new tab)`}><img src={src} alt={item.caption} width={item.width} height={item.height} loading={eager ? undefined : 'lazy'} /></a><figcaption>Player Pack source · A4 page {item.page} excerpt · {item.caption}.</figcaption></figure>;
+  return <figure className={compact ? 'christmas-compact-preview' : undefined}><a href={src} target="_blank" rel="noopener noreferrer" aria-label={`Enlarge ${item.caption.toLowerCase()} (opens in a new tab)`}><img src={src} alt={item.caption} width={item.width} height={item.height} loading={eager ? undefined : 'lazy'} /></a><figcaption>{compact ? <>Player Pack · Page {item.page}</> : <>Player Pack source · A4 page {item.page} excerpt · {item.caption}.</>}</figcaption></figure>;
 }
 
 const foldSteps = [
@@ -13,9 +13,13 @@ const foldSteps = [
   ['3 · Open to draw', 'Open the gift flat again. Keep FRONT facing up to draw the icon, ribbon and seal from the shared clues. Stand it again after checking.', 'gift-front'],
 ];
 
+function PracticeLayout({ title, label, steps, step, setStep, statusId, children }) {
+  return <div className="christmas-practice"><div className="christmas-practice-guide"><h4>{title}</h4><div className="christmas-controls christmas-step-controls" role="group" aria-label={label}>{steps.map(([text], i) => <button type="button" key={text} aria-pressed={step === i} aria-controls={statusId} onClick={() => setStep(i)}>{text}</button>)}</div></div><div className="christmas-practice-visual">{children}</div><p id={statusId} className="christmas-step-summary" role="status" aria-live="polite" aria-atomic="true">{steps[step][1]}</p></div>;
+}
+
 function FoldPractice() {
   const [step, setStep] = useState(0);
-  return <div className="christmas-practice"><h4>Flat, folded, then open for drawing</h4><div className="christmas-controls" role="group" aria-label="Explore the gift fold">{foldSteps.map(([label], i) => <button type="button" key={label} aria-pressed={step === i} aria-controls="christmas-fold-status" onClick={() => setStep(i)}>{label}</button>)}</div><div className={`christmas-fold-example step-${step}`}><Preview name={foldSteps[step][2]} eager /></div><p id="christmas-fold-status" role="status" aria-live="polite" aria-atomic="true">{foldSteps[step][1]}</p></div>;
+  return <PracticeLayout title="Try the three folding steps" label="Explore the gift fold" steps={foldSteps} step={step} setStep={setStep} statusId="christmas-fold-status"><div className={`christmas-fold-example step-${step}`}><Preview name={foldSteps[step][2]} eager compact /></div></PracticeLayout>;
 }
 
 const patternSteps = [
@@ -26,7 +30,7 @@ const patternSteps = [
 
 function PatternPractice() {
   const [step, setStep] = useState(0);
-  return <div className="christmas-practice"><span className="eyebrow">PRINTED PRACTICE · NOT A GAME ANSWER</span><h4>Three features. Hear every clue.</h4><div className="christmas-controls" role="group" aria-label="Explore the practice wrapping pattern">{patternSteps.map(([label], i) => <button type="button" key={label} aria-pressed={step === i} aria-controls="christmas-pattern-status" onClick={() => setStep(i)}>{label}</button>)}</div><div className="christmas-pattern-example"><img src="/assets/christmas-home-detail-practice.jpg" alt="Separate practice gift with a triangle, ribbon line and circle seal" width={assets.practice.width} height={assets.practice.height} /><div className={`christmas-pattern-focus field-${step}`} aria-hidden="true" /></div><p id="christmas-pattern-status" role="status" aria-live="polite" aria-atomic="true">{patternSteps[step][1]}</p><p className="christmas-source-note">This independent example is printed on Player page 9. The three actual clue cards and their combined patterns stay in the game.</p></div>;
+  return <PracticeLayout title="Explore the three features" label="Explore the practice wrapping pattern" steps={patternSteps} step={step} setStep={setStep} statusId="christmas-pattern-status"><figure className="christmas-practice-figure"><div className="christmas-pattern-example"><img src="/assets/christmas-home-detail-practice.jpg" alt="Separate practice gift with a triangle, ribbon line and circle seal" width={assets.practice.width} height={assets.practice.height} /><div className={`christmas-pattern-focus field-${step}`} aria-hidden="true" /></div><figcaption>Printed practice · Page 9 · Not a game answer</figcaption></figure></PracticeLayout>;
 }
 
 const checkSteps = [
@@ -38,14 +42,23 @@ const checkSteps = [
 
 function CheckPractice() {
   const [step, setStep] = useState(0);
-  return <div className="christmas-practice"><span className="eyebrow">WINDOW PRACTICE · NOT A GAME ANSWER</span><h4>Look through one small window</h4><div className="christmas-controls" role="group" aria-label="Explore checking and repair">{checkSteps.map(([label], i) => <button type="button" key={label} aria-pressed={step === i} aria-controls="christmas-check-status" onClick={() => setStep(i)}>{label}</button>)}</div><div className={`christmas-check-stage field-${step}`}><img className="christmas-check-pattern" src="/assets/christmas-home-detail-practice.jpg" alt="Independent printed practice pattern beneath the check frame" width={assets.practice.width} height={assets.practice.height} /><img className="christmas-check-frame" src="/assets/christmas-home-detail-frame.jpg" alt="Actual quality frame, with its small inner window shown open" width={assets.frame.width} height={assets.frame.height} /></div><p id="christmas-check-status" role="status" aria-live="polite" aria-atomic="true">{checkSteps[step][1]}</p><p className="christmas-source-note">Player page 11 frame over the separate page 9 practice. The adult cuts the outer edge and inner window; the game’s answer table is outside this preview.</p></div>;
+  return <PracticeLayout title="Check one mark at a time" label="Explore checking and repair" steps={checkSteps} step={step} setStep={setStep} statusId="christmas-check-status"><figure className="christmas-practice-figure"><div className={`christmas-check-stage field-${step}`}><img className="christmas-check-pattern" src="/assets/christmas-home-detail-practice.jpg" alt="Independent printed practice pattern beneath the check frame" width={assets.practice.width} height={assets.practice.height} /><img className="christmas-check-frame" src="/assets/christmas-home-detail-frame.jpg" alt="Actual quality frame, with its small inner window shown open" width={assets.frame.width} height={assets.frame.height} /></div><figcaption>Frame: page 11 · Practice: page 9 · Not a game answer</figcaption></figure></PracticeLayout>;
 }
 
 const demos = [
-  { label: 'Fold the gifts', title: 'Three blanks become paper gift stands.', body: 'Maker folds one blank at a time while Checker tests the ridge and upright FRONT. Pass the next hand action to another child, then open each gift flat for decorating.' },
-  { label: 'Share the wrapping plan', title: 'Nobody holds the whole pattern.', body: 'Three separately held cards cover who receives each gift, ribbon direction and seal position. Every holder reads their whole clue aloud; the crew combines them before drawing.' },
-  { label: 'Check and repair', title: 'A small window helps you check one mark.', body: 'Move the quality frame across the flat gift: icon, ribbon, then seal. Compare with the clues and printed check list, repair only what differs and ask the adult to accept all three fronts.' },
+  { label: 'Fold the gifts', title: 'Fold a blank, then open it to draw.', body: 'Fold BACK behind FRONT, open flat to draw, then stand the gifts after checking. An adult handles the cutting.' },
+  { label: 'Share the wrapping plan', title: 'Share three clues to agree each pattern.', body: 'Read every clue aloud before drawing. Combine the recipient, ribbon and seal instructions for each gift.' },
+  { label: 'Check and repair', title: 'Check one mark, repair and recheck.', body: 'Move the frame over one mark at a time. Compare with the clues, repair what differs and check again.' },
 ];
+
+function MaterialLink({ name, label, thumbnail = false }) {
+  const item = assets[name];
+  return <a className="christmas-material-link" href={`/assets/christmas-home-detail-${name}.jpg`} target="_blank" rel="noopener noreferrer" aria-label={`View ${item.caption.toLowerCase()} (opens in a new tab)`}>{thumbnail && <img src={`/assets/christmas-home-detail-${name}.jpg`} alt="" width={item.width} height={item.height} loading="lazy" />}<span><strong>{label}</strong><small>Player Pack · Page {item.page}</small></span></a>;
+}
+
+function MaterialStrip({ demo }) {
+  return <aside className="christmas-material-strip" aria-label="Actual Player Pack materials"><span>REAL MATERIALS</span><div className="christmas-material-links">{demo === 0 ? <MaterialLink name="gifts" label="Three gift blanks" thumbnail /> : demo === 1 ? <><MaterialLink name="who-title" label="Who receives it" /><MaterialLink name="ribbon-title" label="Ribbon direction" /><MaterialLink name="seal-title" label="Seal position" /></> : <MaterialLink name="frame" label="Adult-cut quality frame" thumbnail />}</div></aside>;
+}
 
 export function ChristmasHeroMaterial() {
   return <figure className="christmas-hero-material"><a href="/assets/christmas-home-detail-gift-front.jpg" target="_blank" rel="noopener noreferrer" aria-label="Enlarge the undecorated gift front (opens in a new tab)"><img src="/assets/christmas-home-detail-gift-front.jpg" alt="Actual undecorated paper gift front" width={assets['gift-front'].width} height={assets['gift-front'].height} /></a><figcaption>Fold, decorate and check together.<br />Player Pack page 7 excerpt.</figcaption></figure>;
@@ -57,7 +70,7 @@ export function ChristmasStoryOpening() {
 
 export function ChristmasCooperativePlay() {
   const [demo, setDemo] = useState(0), current = demos[demo];
-  return <section id="crew-play" className="theme-detail-section" aria-labelledby="christmas-play-heading"><div className="theme-detail-heading"><span className="eyebrow">SEE THE PAPER GIFT WORKSHOP IN ACTION</span><h2 id="christmas-play-heading">Fold, share and check before the display.</h2><p>Explore three actions from the five-mission adventure. Actual Player Pack excerpts sit beside the pack’s separate practice example.</p></div><div className="christmas-demo"><div className="christmas-controls christmas-demo-controls" role="group" aria-label="Explore three gift workshop examples">{demos.map((item, i) => <button type="button" key={item.label} aria-pressed={demo === i} aria-controls="christmas-demo-description" onClick={() => setDemo(i)}><span>{i + 1}</span>{item.label}</button>)}</div><div className="christmas-demo-grid"><div className="christmas-demo-material">{demo === 0 ? <Preview name="gifts" eager /> : demo === 1 ? <><h4>THREE SEPARATELY HELD CLUE CARDS</h4><div className="christmas-clue-titles"><Preview name="who-title" eager /><Preview name="ribbon-title" eager /><Preview name="seal-title" eager /></div><p className="christmas-source-note">Only the headings are shown. The clues supply the actual recipient, ribbon and seal choices.</p></> : <Preview name="frame" eager />}</div><div><div id="christmas-demo-description" role="status" aria-live="polite" aria-atomic="true"><span className="eyebrow">PAPER PLAY · {current.label.toUpperCase()}</span><h3>{current.title}</h3><p>{current.body}</p></div>{demo === 0 ? <FoldPractice /> : demo === 1 ? <PatternPractice /> : <CheckPractice />}</div></div></div></section>;
+  return <section id="crew-play" className="theme-detail-section" aria-labelledby="christmas-play-heading"><div className="theme-detail-heading"><span className="eyebrow">SEE THE PAPER GIFT WORKSHOP IN ACTION</span><h2 id="christmas-play-heading">Fold, share and check before the display.</h2><p>Choose an action, explore its steps and see what changes. Real Player Pack materials are linked below each demonstration.</p></div><div className="christmas-demo"><div className="christmas-controls christmas-demo-controls" role="group" aria-label="Explore three gift workshop examples">{demos.map((item, i) => <button type="button" key={item.label} aria-pressed={demo === i} aria-controls="christmas-demo-description" onClick={() => setDemo(i)}><span>{i + 1}</span>{item.label}</button>)}</div><div id="christmas-demo-description" className="christmas-demo-intro" role="status" aria-live="polite" aria-atomic="true"><h3>{current.title}</h3><p>{current.body}</p></div>{demo === 0 ? <FoldPractice /> : demo === 1 ? <PatternPractice /> : <CheckPractice />}<MaterialStrip demo={demo} /></div></section>;
 }
 
 export function ChristmasFamilyPlay() {
