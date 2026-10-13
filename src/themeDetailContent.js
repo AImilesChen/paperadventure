@@ -136,12 +136,12 @@ export const themeDetailContent = {
   },
   christmas: {
     home: {
-      hook: 'Become the last gift crew in a winter delivery office: fold, draw, check and display three pretend paper gifts.',
+      hook: 'Children share four rotating workshop jobs; an adult cuts the materials, reads the scenes and checks each result.',
       reasons: ['Five linked messenger scenes each put the story beside numbered actions.', 'Children fold a star press and three standing paper gifts, then combine three separate wrapping clues to draw each pattern.', 'A cut-out quality frame helps them check and repair their work before the adult reveals the story friends’ paper reply.'],
       materials: ['One foldable star press and three standing paper gift blanks', 'Three separate wrapping clues and a whole-page icon drawing guide', 'One cut-out quality frame and a whole winter village display board', 'Four rotating job cards and an adult-held reply'],
       stages: [
-        ['Open the star press', 'Cut and fold one paper station piece until it stands on the table.', 'A working star press'],
-        ['Make three gifts', 'Cut and crease three different paper gift blanks, ready for their drawn patterns.', 'Three gift stands'],
+        ['Fold the star press', 'An adult cuts the paper stand; children fold its ridge and keep the printed star facing the team.', 'A folded paper workshop stand'],
+        ['Make three paper gifts', 'An adult cuts the three blanks; children crease each one, test the upright FRONT and open it flat to draw.', 'Three reusable gift blanks'],
         ['Share wrapping clues', 'Combine three spoken cards to draw an icon, ribbon and seal on each gift.', 'Three decorated paper gifts'],
         ['Check and repair', 'Slide the frame’s small window over each icon, ribbon and seal; erase and redraw an incorrect mark.', 'Three checked gifts'],
         ['Build the village display', 'Use the shared clue to match each gift to a friend, then stand or lay it in the village for the held-back reply.', 'A paper keepsake scene'],
@@ -161,5 +161,6 @@ export const themeDetailContent = {
     },
   },
 };
+
 
 
