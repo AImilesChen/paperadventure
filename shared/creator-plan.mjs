@@ -44,13 +44,19 @@ export const contextKey = spec => JSON.stringify(planningContext(spec));
 
 function text(value, label, limit) {
   const printable = typeof value === 'string' ? value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201c\u201d]/g, '"')
     .replace(/[\u2013\u2014]/g, '-')
     .replace(/\u2026/g, '...')
-    .replace(/\u00a0/g, ' ')
+    .replace(/[\u00a0\u202f]/g, ' ')
+    .replace(/\u2022/g, '-')
     .trim() : '';
-  if (!printable || printable.length > limit || /[^\x20-\x7e\n\r]/.test(printable)) throw new Error(`${label} must be concise English printable text.`);
+  if (!printable || printable.length > limit || /[^\x20-\x7e\n\r]/.test(printable)) {
+    const unsupported = [...printable].filter(char => /[^\x20-\x7e\n\r]/.test(char)).slice(0, 3).map(char => `U+${char.codePointAt(0).toString(16)}`);
+    throw new Error(`${label} must be concise English printable text (length ${printable.length}/${limit}${unsupported.length ? `; unsupported ${unsupported.join(',')}` : ''}).`);
+  }
   return printable;
 }
 export function validatePlan(value, spec) {

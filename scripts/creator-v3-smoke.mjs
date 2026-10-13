@@ -12,7 +12,14 @@ const { spec } = validatePurchase({
   players: 4, age: '8-10', paper: 'A4', place: 'Living room table',
   storyLocation: 'A fictional clock tower', gameplay: { primary: 'reasoning', secondary: ['discussion'] },
 });
-const planned = await generateSinglePlan(spec, env, fetch);
+let planned;
+for (let attempt = 1; attempt <= 3; attempt++) {
+  try { planned = await generateSinglePlan(spec, env, fetch); break; }
+  catch (error) {
+    console.warn(`Plan attempt ${attempt}: ${error.code || error.name}; ${error.cause?.message || error.message}`);
+    if (attempt === 3) throw error;
+  }
+}
 assert.equal(planned.plan.stages.length, 5);
 const approved = { ...spec, plan: planned.plan };
 const generated = await generateStory(approved, env);
