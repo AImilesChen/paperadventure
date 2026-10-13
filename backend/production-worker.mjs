@@ -575,6 +575,7 @@ async function retryCustomDelivery(request, env, orderId) {
   const reserved = await query(env.DB,"UPDATE custom_activities SET status = 'queued',lease_until = NULL,delivery_retry_used = 1,delivery_retry_baseline = ? WHERE id = ? AND status = 'failed' AND delivery_retry_used = 0",failed?.count || 0,activity.id).run();
   if (!reserved.meta?.changes) throw new ApiError(409,'DELIVERY_BUSY','The order changed. Refresh and try again.');
   await query(env.DB,"UPDATE orders SET status = 'fulfilling' WHERE id = ? AND status = 'failed'",orderId).run();
+  await query(env.DB,"UPDATE delivery_notifications SET status = 'blocked' WHERE order_id = ? AND kind = 'generation_failed' AND status = 'pending'",orderId).run();
   await env.GENERATION_QUEUE.send({orderId});
   return json({status:'fulfilling',retryQueued:true},202);
 }
@@ -885,7 +886,7 @@ async function publishCustomOrder(orderId, env) {
     if (deliveryAttempt >= 2) await env.DB.batch([
       query(env.DB, "UPDATE custom_activities SET status = 'failed', lease_until = NULL WHERE id = ?", activity.id),
       query(env.DB, "UPDATE orders SET status = 'failed' WHERE id = ?", orderId),
-      query(env.DB, "INSERT OR IGNORE INTO delivery_notifications (order_id,kind,status) VALUES (?,'generation_failed','pending')", orderId),
+      query(env.DB, "INSERT INTO delivery_notifications (order_id,kind,status,attempts) VALUES (?,'generation_failed','pending',0) ON CONFLICT(order_id,kind) DO UPDATE SET status = 'pending',attempts = 0,sent_at = NULL", orderId),
     ]);
     else await query(env.DB, 'UPDATE custom_activities SET lease_until = 0 WHERE id = ?', activity.id).run();
     throw caught;

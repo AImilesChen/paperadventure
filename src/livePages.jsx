@@ -172,7 +172,7 @@ function IssueForm({ orderId }) {
 function PaidPlanReview({order,refresh}) {
   const review=order.planReview;
   const [mode,setMode]=useState('edit'),[scope,setScope]=useState('stage1'),[feedback,setFeedback]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
-  if (!review || !['paid','fulfilling','published'].includes(order.status)) return null;
+  if (!review || !['paid','fulfilling','published','failed'].includes(order.status)) return null;
   async function action(body) {
     setBusy(true);setError('');setNotice('');
     try {
