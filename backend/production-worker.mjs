@@ -965,7 +965,8 @@ async function publishCustomOrder(orderId, env) {
     ]);
   } catch (caught) {
     const errorCode = typeof caught?.code === 'string' && /^[A-Z0-9_]{1,60}$/.test(caught.code) ? caught.code : 'UNEXPECTED';
-    await query(env.DB, "UPDATE generation_usage SET status = 'failed',phase = ?,error_code = ?,error_detail = ?,response_id = COALESCE(?,response_id),input_tokens = COALESCE(?,input_tokens),output_tokens = COALESCE(?,output_tokens),completed_at = CURRENT_TIMESTAMP WHERE order_id = ? AND attempt = ?", generationPhase,errorCode,String(caught?.message || 'Unknown failure').slice(0,500),caught?.responseId || null,caught?.usage?.input_tokens ?? null,caught?.usage?.output_tokens ?? null,orderId,attempt).run();
+    const errorDetail = [caught?.message || 'Unknown failure',...(Array.isArray(caught?.issues) ? caught.issues.slice(0,5) : [])].join(' | ').slice(0,1000);
+    await query(env.DB, "UPDATE generation_usage SET status = 'failed',phase = ?,error_code = ?,error_detail = ?,response_id = COALESCE(?,response_id),input_tokens = COALESCE(?,input_tokens),output_tokens = COALESCE(?,output_tokens),completed_at = CURRENT_TIMESTAMP WHERE order_id = ? AND attempt = ?", generationPhase,errorCode,errorDetail,caught?.responseId || null,caught?.usage?.input_tokens ?? null,caught?.usage?.output_tokens ?? null,orderId,attempt).run();
     console.error('Custom PDF attempt failed',{orderId,attempt,roundNumber,phase:generationPhase,code:errorCode,message:caught?.message || 'Unknown failure'});
     if (deliveryAttempt >= 2 || (generationPhase === 'story' && nonRetryableStoryCodes.has(errorCode))) await env.DB.batch([
       query(env.DB, "UPDATE custom_activities SET status = 'failed', lease_until = NULL WHERE id = ?", activity.id),

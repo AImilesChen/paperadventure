@@ -530,6 +530,7 @@ test('exhausted story quality repairs stop automatic retries and retain their bi
   assert.deepEqual({...db.prepare("SELECT phase,error_code,input_tokens,output_tokens FROM generation_usage WHERE order_id='qa-order'").get()},{
     phase:'story',error_code:'GENERATION_QA_FAILED',input_tokens:60,output_tokens:30,
   });
+  assert.match(db.prepare("SELECT error_detail FROM generation_usage WHERE order_id='qa-order'").get().error_detail,/Ambiguous clue/);
   await productionWorker.queue(job,env);
   assert.equal(calls,6,'a terminal QA failure must not trigger another full generation');
 });
