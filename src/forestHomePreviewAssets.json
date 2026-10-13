@@ -1,0 +1,107 @@
+{
+  "sorting-desk": {
+    "page": 5,
+    "caption": "Unfilled sorting desk and ordered checking rules",
+    "excerpt": true,
+    "width": 1072,
+    "height": 956
+  },
+  "seal-detail": {
+    "page": 6,
+    "caption": "Anonymous readable-address and torn-seal description",
+    "excerpt": true,
+    "width": 743,
+    "height": 47
+  },
+  "torn-seal": {
+    "page": 6,
+    "caption": "Anonymous envelope drawing with a torn seal",
+    "excerpt": true,
+    "width": 243,
+    "height": 183
+  },
+  "hold-rule": {
+    "page": 5,
+    "caption": "HOLD rule on the sorting desk",
+    "excerpt": true,
+    "width": 657,
+    "height": 56
+  },
+  "mailbag": {
+    "page": 11,
+    "caption": "Empty two-slot morning mailbag",
+    "excerpt": true,
+    "width": 1060,
+    "height": 412
+  },
+  "slot-priority": {
+    "page": 11,
+    "caption": "First mailbag slot marked PRIORITY",
+    "excerpt": true,
+    "width": 410,
+    "height": 60
+  },
+  "slot-ordinary": {
+    "page": 11,
+    "caption": "Second mailbag slot marked ORDINARY",
+    "excerpt": true,
+    "width": 397,
+    "height": 60
+  },
+  "interview-notes": {
+    "page": 12,
+    "caption": "Blank notes for all three neighbour interviews",
+    "excerpt": true,
+    "width": 1060,
+    "height": 204
+  },
+  "owl-front": {
+    "page": 13,
+    "caption": "Owl House card front title",
+    "excerpt": true,
+    "width": 623,
+    "height": 127
+  },
+  "fox-front": {
+    "page": 13,
+    "caption": "Fox Den card front title",
+    "excerpt": true,
+    "width": 633,
+    "height": 127
+  },
+  "beaver-front": {
+    "page": 13,
+    "caption": "Beaver Hut card front title",
+    "excerpt": true,
+    "width": 623,
+    "height": 126
+  },
+  "label": {
+    "page": 9,
+    "caption": "Blank replacement parcel label",
+    "excerpt": true,
+    "width": 1060,
+    "height": 650
+  },
+  "record": {
+    "page": 3,
+    "caption": "Blank five-station postal work record",
+    "excerpt": true,
+    "width": 1060,
+    "height": 987
+  },
+  "delivery": {
+    "page": 15,
+    "caption": "Blank delivery check and signature board",
+    "excerpt": true,
+    "width": 1060,
+    "height": 1071
+  },
+  "stamp": {
+    "page": 13,
+    "caption": "Paper DELIVERED stamp",
+    "excerpt": true,
+    "width": 450,
+    "height": 224
+  }
+}
