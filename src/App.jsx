@@ -26,7 +26,7 @@ const faq = [
 ];
 
 function path() { return window.location.pathname; }
-const isPrivateOrderRoute = route => /^\/en\/orders\/[A-Za-z0-9-]+\/$/.test(route) && route !== '/en/orders/demo/';
+const isPrivateOrderRoute = route => /^\/en\/orders\/[A-Za-z0-9-]+\/?$/.test(route) && !/^\/en\/orders\/demo\/?$/.test(route);
 let pendingNavigation = '';
 function navigate(to, approved = false) { const target = new URL(to, window.location.origin); if (!approved && target.pathname === '/en/create/' && (target.searchParams.has('theme') || target.searchParams.has('custom'))) { const saved = initialDraft(); const incoming = target.searchParams.get('theme') || ''; if ((saved.theme || saved.idea) && (target.searchParams.has('custom') || saved.theme !== incoming || Boolean(saved.custom))) { pendingNavigation = to; window.dispatchEvent(new Event('draft-conflict')); return; } } if (analyticsAvailable() && crossesAnalyticsBoundary(window.location.pathname, target.pathname)) { window.location.assign(target.href); return; } window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')); window.scrollTo({ top: 0, behavior: 'instant' }); }
 function Link({ to, children, className = '', ...props }) { return <a href={to} className={className} onClick={e => { if (!e.defaultPrevented && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); navigate(to); } }} {...props}>{children}</a>; }
@@ -240,10 +240,12 @@ export function App() {
   else if (route.startsWith('/en/help')) page = <HelpExperience Link={Link} topic={route.split('/')[3] || ''} />;
   else if (route.startsWith('/en/my-adventures')) page = runtime?.account ? <LiveShelf Link={Link} /> : <AdventuresShelf Link={Link} />;
   else if (route.startsWith('/en/checkout')) page = runtime?.checkout ? <LiveCheckout Link={Link} catalog={runtimeCatalog} checkoutMode={runtime.checkoutMode} /> : <CheckoutPreview key={routeLocation} Link={Link} />;
-  else if (route.startsWith('/en/orders')) page = runtime?.account && route.split('/')[3] && route.split('/')[3] !== 'demo' ? <LiveOrder Link={Link} orderId={route.split('/')[3]} /> : <OrderExperience Link={Link} />;
+  else if (isPrivateOrderRoute(route)) page = <LiveOrder Link={Link} orderId={route.split('/')[3]} />;
+  else if (route === '/en/orders/demo/') page = <OrderExperience Link={Link} />;
   else if (route.startsWith('/en/account')) page = runtime?.account ? <LiveAccount Link={Link} /> : <AccountPreview Link={Link} />;
   else if (route === '/en/privacy/') page = <CurrentPrivacyNotice />;
    else if (['/en/terms/', '/en/cookies/', '/en/refunds/'].includes(route)) page = runtime?.legal ? <LiveLegal kind={route.split('/')[2]} /> : <LegalExperience Link={Link} kind={route.split('/')[2]} />;
   else page = <NotFoundPage />;
   return <><Header route={route} />{page}<Footer runtime={runtime} />{conflictTo && <div className="modal-backdrop" role="presentation"><div ref={conflictDialogRef} tabIndex={-1} className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="draft-dialog-title"><span className="eyebrow">SAVED DRAFT</span><h2 id="draft-dialog-title">Start a new adventure?</h2><p>You already have an idea saved in this browser. Choosing the new world will replace that draft.</p><div className="modal-actions"><button className="button-quiet" onClick={dismissConflict}>Keep my draft</button><button className="button" onClick={() => { const to = conflictTo; pendingNavigation = ''; setConflictTo(''); navigate(to, true); }}>Use new world <ArrowRight size={18} /></button></div></div></div>}</>;
 }
+
