@@ -35,6 +35,24 @@ jobs:
           node scripts/write-stage-wrangler.mjs
           npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
           npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
+      - name: Continue the saved paid remake from checkpoint two
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "UPDATE custom_pack_remakes SET status='queued',recovery_round=2,recovery_count=1,failure_count=0,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND status='failed' AND phase='checkpoint' AND recovery_round=1 AND published_version IS NULL"
+          node --input-type=module <<'NODE'
+          const base = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/queues`;
+          const headers = {Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`};
+          const listed = await (await fetch(`${base}?per_page=100`, {headers})).json();
+          if (!listed.success) throw new Error('Could not list generation queues');
+          const queue = listed.result.find(item => item.queue_name === 'paper-adventure-stage-generation');
+          if (!queue?.queue_id) throw new Error('Generation queue is missing');
+          const response = await fetch(`${base}/${queue.queue_id}/messages`, {
+            method: 'POST', headers: {...headers, 'Content-Type': 'application/json'},
+            body: JSON.stringify({content_type:'json',body:{type:'pack_remake',orderId:'612a56bd-494a-4265-984f-f4ecb3eb7407'}}),
+          });
+          const result = await response.json();
+          if (!result.success) throw new Error(`Could not queue checkpoint recovery (${response.status})`);
+          console.log('Saved paid remake scheduled from checkpoint two.');
+          NODE
       - name: Verify configured runtime
         run: |
           for attempt in {1..12}; do

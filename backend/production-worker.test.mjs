@@ -20,7 +20,7 @@ async function approvedCustomInput(env,input) {
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -996,7 +996,7 @@ test('a paid legacy pack remakes on the same order and keeps the old download un
   assert.deepEqual(new Uint8Array(await originalDownload.arrayBuffer()),oldPdf,'the earlier pack can still be downloaded by its owner');
 });
 
-test('a failed paid remake can recover once without paying again or reusing exhausted model calls',async()=>{
+test('a failed paid remake can recover twice without paying again or reusing exhausted model calls',async()=>{
   const {db,binding}=database(),owner='recovery-owner';
   const purchase=JSON.stringify({...sampleSpec,gamePackVersion:1});
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('old-price','custom_home','USD',1499,'exclusive',1)").run();
@@ -1018,6 +1018,10 @@ test('a failed paid remake can recover once without paying again or reusing exha
   await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){throw Error('queue job should not retry');}}]},env);
   assert.equal(db.prepare("SELECT round_number,status FROM custom_pack_remake_calls WHERE order_id='remake-failed' ORDER BY round_number DESC LIMIT 1").get().round_number,2);
   assert.equal(db.prepare("SELECT status,phase FROM custom_pack_remakes WHERE order_id='remake-failed'").get().phase,'checkpoint');
+  db.prepare("UPDATE custom_pack_remakes SET status='failed',error_code='STAGE_INVALID' WHERE order_id='remake-failed'").run();
+  assert.equal((await retry()).status,202,'a later checkpoint validation failure can resume the same paid order');
+  assert.equal(db.prepare("SELECT recovery_round,status FROM custom_pack_remakes WHERE order_id='remake-failed'").get().recovery_round,2);
+  assert.equal((await retry()).status,409,'a queued recovery cannot be submitted twice');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
 });
 

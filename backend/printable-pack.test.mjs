@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validatePurchase, validateGeneratedStory } from './domain.mjs';
-import { validateBlueprint, generateBlueprint, generateStagedCheckpoint, assembleStagedStory, auditStagedStory } from './staged-story.mjs';
+import { validateBlueprint, generateBlueprint, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import { sampleSpec, sampleStory } from '../content/custom-paper-format-sample.mjs';
 
@@ -30,6 +30,28 @@ test('new blueprint rejects missing or repetitive paper materials',()=>{
   assert.equal(validateBlueprint(blueprint,sampleSpec).stages[0].material.type,'evidence_cards');
   assert.throws(()=>validateBlueprint({...blueprint,stages:blueprint.stages.map(stage=>({...stage,material:blueprint.stages[0].material}))},sampleSpec),/paper material does not support its approved play style|three different paper activities/);
   assert.throws(()=>validateGeneratedStory({...sampleStory,stages:sampleStory.stages.map((stage,index)=>index?stage:{...stage,material:null})},sampleSpec),/paper activity/);
+});
+
+test('a longer useful adult explanation fits, and an overlong checkpoint gets a targeted repair',async()=>{
+  const expanded='The printed marks identify the only fitting answer. '.repeat(6);
+  assert.ok(expanded.length>250 && expanded.length<400);
+  const valid=validateGeneratedStory({...sampleStory,stages:sampleStory.stages.map((stage,index)=>index?stage:{...stage,explanation:expanded})},sampleSpec);
+  assert.equal(valid.stages[0].explanation,expanded.trim());
+  const blueprint={stages:sampleStory.stages.map(stage=>({...stage}))};
+  const candidate={clue:sampleStory.stages[1].clue,explanation:'The printed marks identify the only fitting answer. '.repeat(10),hint:sampleStory.stages[1].hint};
+  const fetcher=async(_url,{body})=>{
+    const input=JSON.parse(JSON.parse(body).input);
+    const value=input.candidate?{...candidate,explanation:expanded}:candidate;
+    return Response.json({id:'checkpoint-repair',output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
+  };
+  const env={OPENAI_API_KEY:'mock-key',OPENAI_MODEL:'mock-model'};
+  let invalid;
+  try { await generateStagedCheckpoint(sampleSpec,blueprint,2,sampleStory.stages[0],env,fetcher); }
+  catch(error) { invalid=error; }
+  assert.match(invalid?.message||'',/Answer explanation/);
+  assert.equal(invalid.candidate.explanation,candidate.explanation);
+  const repaired=await repairStagedCheckpoint(sampleSpec,blueprint,2,sampleStory.stages[0],invalid.candidate,invalid.message,env,fetcher);
+  assert.equal(repaired.stage.explanation,expanded.trim());
 });
 
 test('the paid blueprint and five independently generated paper checkpoints assemble into printable PDFs',async()=>{

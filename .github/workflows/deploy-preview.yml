@@ -29,10 +29,6 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - name: Diagnose paid remake checkpoint validation
-        run: |
-          node scripts/write-stage-wrangler.mjs
-          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT round_number,phase,stage_number,status,error_code,error_detail FROM custom_pack_remake_calls WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND round_number=2 AND stage_number=2 ORDER BY id DESC LIMIT 2"
       - run: npm ci
       - run: npm run build
       - run: npm run test:static
