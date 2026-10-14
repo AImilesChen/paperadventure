@@ -17,7 +17,7 @@ const cases=[
 const summaries=[];
 for(const item of cases){
   let phase='plan',calls=0,blueprintRepairs=0;
-  const privateFetch=async(url,options)=>{calls++;return fetch(url,{...options,signal:AbortSignal.timeout(90000)});};
+  const privateFetch=async(url,options)=>{calls++;const response=await fetch(url,{...options,signal:AbortSignal.timeout(90000)});await writeFile(`${directory}/${item.id}-call-${calls}.json`,JSON.stringify({request:JSON.parse(options.body),response:await response.clone().json()},null,2));return response;};
   try{
     const {spec}=validatePurchase({sku:`custom_${item.setting}`,creatorVersion:3,customIdea:item.idea,setting:item.setting,players:item.players,age:item.age,paper:'A4',...(item.setting==='classroom'?{groups:Math.ceil(item.players/4)}:{}),gameplay:{primary:item.primary,secondary:item.secondary}});
     const planned=await generateSinglePlan(spec,env,privateFetch),approved={...spec,plan:planned.plan,planConfirmed:true};
