@@ -84,6 +84,20 @@ test('an overlong paid plan is repaired before audit and usage includes the repa
   assert.equal(calls,3);assert.match(result.plan.roles,/Reader, Paper Handler, Checker and Recorder/);
   assert.equal(result.usage.input_tokens,30);assert.equal(result.usage.output_tokens,60);
 });
+
+test('failed plan validation preserves usage from both paid provider responses',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec;
+  const invalid={...planFixture(spec),opening:'R'.repeat(400)};
+  let calls=0;
+  await assert.rejects(generateSinglePlan(spec,env,async()=>{
+    calls++;return Response.json({id:`failed-${calls}`,output:[{content:[{type:'output_text',text:JSON.stringify(invalid)}]}],usage:{input_tokens:10,output_tokens:20}});
+  }),error=>{
+    assert.equal(error.code,'PLAN_INVALID');
+    assert.deepEqual(error.usage,{input_tokens:20,output_tokens:40});
+    assert.equal(error.responseId,'failed-2');return true;
+  });
+  assert.equal(calls,2);
+});
 test('a paid plan rejected by audit is corrected and independently rechecked once',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const first=planFixture(spec),corrected=planFixture(spec);

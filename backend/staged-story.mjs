@@ -67,7 +67,7 @@ async function structuredResponse(spec, env, fetcher, {name,schema,instructions,
     throw failure;
   }
   const normalize=value=>typeof value==='string'?printable(value).replace(/\s+/g,' ').trim():Array.isArray(value)?value.map(normalize):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([key,item])=>[key,normalize(item)])):value;
-  return {data:normalize(data),usage:body.usage||null,responseId:body.id||null};
+  return {data:spec.packContractVersion===1?normalize(data):data,usage:body.usage||null,responseId:body.id||null};
 }
 
 function checkedText(value,label,max) {

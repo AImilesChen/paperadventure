@@ -56,6 +56,29 @@ test('reading revisions preserve all result digits and the final puzzle',async()
   assert.deepEqual(result.story.stages[4],story.stages[4]);
 });
 
+test('provider punctuation and plain label arrays normalize before puzzle checks',async()=>{
+  const raw=structuredClone(clockBlueprintContext);
+  raw.ending+=' Everyone’s notes match—nothing is missing.';
+  raw.stages[0].material.items=['Keeper’s bell','Signal gear','Clock cable'];
+  const {blueprint}=await generateBlueprint(clockSpec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>Response.json({output:[{content:[{type:'output_text',text:'```json\n'+JSON.stringify(raw)+'\n```'}]}]}));
+  assert.equal(blueprint.stages[0].material.items[0].label,"Keeper's bell");
+  assert.match(blueprint.ending,/Everyone's notes match-nothing is missing/);
+  assert.doesNotMatch(JSON.stringify(blueprint),/[^\x20-\x7e]/);
+});
+
+test('long complete action labels wrap and all adult text stays above the footer',async()=>{
+  const raw=structuredClone(clockBlueprintContext);
+  raw.stages[2].material.items=['Inspect the north rain collector tank','Reconnect the upper rain collector pipe','Replace the leaking rain collector seal','Test the final rain collector connection'].map(label=>({label}));
+  const blueprint=prepareContextualBlueprint(raw,clockSpec),stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(clockSpec,blueprint,number,stages.at(-1),{},()=>{})).stage);
+  const story=assembleStagedStory(clockSpec,blueprint,stages);
+  const guide=new TextDecoder().decode(buildGamePdf(story,{...clockSpec,paper:'Letter'},'guide'));
+  const textPositions=[...guide.matchAll(/1 0 0 1 [0-9.]+ (-?[0-9.]+) Tm/g)].map(match=>Number(match[1])).filter(y=>y!==30);
+  assert.ok(textPositions.every(y=>y>=65));
+  assert.match(guide,/collector connection/);
+  assert.ok(buildGamePdf(story,{...clockSpec,paper:'Letter'},'player').length>1000);
+});
+
 test('a rejected checkpoint context is repaired without regenerating the other four contexts',async()=>{
   const {blueprint}=await game();
   let calls=0;
