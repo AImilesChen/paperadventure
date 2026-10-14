@@ -9,7 +9,7 @@ import { verifyGoogleCredential } from './google-auth.mjs';
 import { signPreview, confirmPreview } from './creator-preview.mjs';
 import { generateSinglePlan } from './plan-proposals.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
-import { startPackRemake, packRemakeView, processPackRemake } from './pack-remake.mjs';
+import { startPackRemake, retryPackRemake, packRemakeView, processPackRemake } from './pack-remake.mjs';
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
@@ -807,6 +807,18 @@ async function requestPackRemake(request, env, orderId) {
   return json(result, result.queued ? 202 : 200);
 }
 
+async function requestPackRemakeRecovery(request, env, orderId) {
+  requireSameOrigin(request, env);
+  if (!env.DB || !env.SESSION_SECRET) throw new ApiError(503, 'REMAKE_NOT_READY', 'Order access is not configured.');
+  const owner = await authenticatedEmailHash(request, env);
+  if (!owner) throw new ApiError(401, 'SIGN_IN_REQUIRED', 'Sign in to recover your paid remake.');
+  const order = await query(env.DB, "SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ? AND product_kind = 'custom'", orderId, owner).first();
+  if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified custom order was found.');
+  const entitlement = await query(env.DB, "SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'", orderId).first();
+  if (!accessActive(entitlement)) throw new ApiError(403, 'ORDER_ACCESS_EXPIRED', 'Online order access has expired. Contact support about this order.');
+  return json(await retryPackRemake(order, env), 202);
+}
+
 async function supportCases(request, env, orderId) {
   if (!env.DB || !env.SESSION_SECRET) throw new ApiError(503, 'SUPPORT_NOT_READY', 'Support reporting is not configured.');
   const hash = await authenticatedEmailHash(request, env);
@@ -887,6 +899,8 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'POST' && deliveryRetry) return await retryCustomDelivery(request,env,deliveryRetry[1]);
     const remake = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/pack-remake$/);
     if (request.method === 'POST' && remake) return await requestPackRemake(request, env, remake[1]);
+    const remakeRecovery = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/pack-remake\/retry$/);
+    if (request.method === 'POST' && remakeRecovery) return await requestPackRemakeRecovery(request, env, remakeRecovery[1]);
     const revision = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revisions$/);
     if (request.method === 'POST' && revision) return await requestRevision(request, env, revision[1]);
     const cases = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/issues$/);

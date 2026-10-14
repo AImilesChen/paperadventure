@@ -18,6 +18,7 @@ const config = {
     producers: [{ binding: 'GENERATION_QUEUE', queue: 'paper-adventure-stage-generation' }],
     consumers: [{ queue: 'paper-adventure-stage-generation', max_batch_size: 1, max_retries: 2 }],
   },
+  triggers: { crons: ['*/5 * * * *'] },
   vars: {
     STAGE_PREVIEW: 'true',
     CHECKOUT_ENABLED: 'false',
