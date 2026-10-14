@@ -118,6 +118,9 @@ test('new pack rejects an early mission outcome before spending calls on later c
   const mismatched=structuredClone(clockBlueprintContext);
   mismatched.stages[1].material.items[0].label='Witness note left';
   assert.throws(()=>prepareContextualBlueprint(mismatched,spec),/candidates must name story objects/);
+  const worksheet=structuredClone(clockBlueprintContext);
+  worksheet.stages[2].material.items[1].label='Lay out four step tiles';
+  assert.throws(()=>prepareContextualBlueprint(worksheet,spec),/not instructions about the worksheet/);
 });
 
 test('an invalid new-plan checkpoint repairs only its own context',async()=>{
