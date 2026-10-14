@@ -6,7 +6,7 @@ import {generateBlueprint,repairBlueprint,generateStagedCheckpoint,assembleStage
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
-import {alignPaperPlan,paperContractTypes} from '../shared/paper-contract.mjs';
+import {alignPaperPlan,paperContractTypes,completePaperPlan} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
 
 async function game(spec=clockSpec){
@@ -76,6 +76,19 @@ test('independent solving rejects ambiguous printed facts and ordering constrain
   const ordering=structuredClone(story),last=ordering.stages[2].material.items[3].label;
   ordering.stages[2].material.items.forEach((item,index)=>{item.detail=index===3?'After every other step.':`Before ${last}.`;});
   assert.throws(()=>verifyPrintedPuzzles(ordering),/one solution/);
+});
+
+test('new plan descriptions and ending cannot invent dates, evidence or decoded exhibit names',()=>{
+  const plan=completePaperPlan(clockSpec.plan,clockSpec.gameplay),spec={...clockSpec,plan};
+  assert.ok(plan.stages.every(stage=>stage.scene));
+  assert.match(plan.stages[1].storyContext,/four printed steps/);
+  const raw=structuredClone(clockBlueprintContext);
+  raw.stages=[raw.stages[0],raw.stages[2],raw.stages[3],raw.stages[1],raw.stages[4]];
+  raw.celebration='Witness evidence proved a hidden date rule because three decoded words named the exhibit.';
+  const blueprint=prepareContextualBlueprint(raw,spec);
+  assert.match(blueprint.ending,/Restore noon bell/);
+  assert.match(blueprint.ending,/3223/);
+  assert.doesNotMatch(blueprint.ending,/Witness|hidden date|decoded words/);
 });
 
 test('long complete action labels wrap and all adult text stays above the footer',async()=>{

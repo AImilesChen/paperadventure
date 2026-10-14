@@ -846,7 +846,7 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
     if(name==='paid_plan_audit')return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:!failAudit,issues:failAudit?['Mismatch']:[]})}]}]});
     assert.equal(name,'paid_adventure_plan');
     const input=JSON.parse(sent.input),plan=input.kind==='targeted'?structuredClone(input.previousPlan):planFixture(input.spec);
-    if(input.kind==='full'){plan.stages[1].task+=' Check the clock face.';plan.stages[2].task+=' Ask the keeper.';plan.stages[1].storyContext='The clock face is missing its noon mark.';plan.stages[2].storyContext='The keeper has left a second set of clock clues.';}
+    if(input.kind==='full'){plan.stages[1].task+=' Check the clock face.';plan.stages[2].task+=' Ask the keeper.';plan.stages[1].scene='Beside the noon clock face';plan.stages[2].scene='At the second paper desk';}
     if(input.kind==='targeted')plan.opening+=' The clock has a paper dial.';
     return Response.json({id:'response-plan',output:[{content:[{type:'output_text',text:JSON.stringify(plan)}]}],usage:{input_tokens:100,output_tokens:150}});
   }};

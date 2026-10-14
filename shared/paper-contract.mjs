@@ -18,8 +18,21 @@ export function paperPlanMechanics(gameplay={}){
 export function completePaperPlan(candidate,gameplay){
   if(candidate?.stages?.length!==5)throw Error('Five planned checkpoints are required.');
   const mechanics=paperPlanMechanics(gameplay);
+  const types=paperContractTypes({stages:mechanics.map(mechanic=>({mechanic}))});
   return alignPaperPlan({...candidate,id:['mystery','mission'].includes(candidate.id)?candidate.id:'mission',stages:candidate.stages.map((stage,index)=>({...stage,
-    number:index+1,mechanic:mechanics[index],storyContext:stage.storyContext||stage.title}))});
+    number:index+1,mechanic:mechanics[index],scene:stage.scene||`At printed checkpoint ${index+1}`,storyContext:paperStoryMoment(stage.scene||`At printed checkpoint ${index+1}`,types[index],index+1)}))});
+}
+
+export function paperStoryMoment(scene,type,number){
+  if(typeof scene!=='string'||!scene.trim()||scene.length>80)throw Error('Each fictional location must be a short phrase under 80 characters.');
+  const operation=number===5?'Combine the four saved digits in order. Only one printed final action matches this code and completes the mission.':{
+    evidence_cards:'Three report cards offer two facts each. Match both printed conditions and save the chosen result digit.',
+    decision_record:"Two witness notes rule out two of three candidates. Save the remaining candidate's digit for the final code.",
+    order_tiles:'Arrange four printed steps using every rule on their tiles. Save the matching order and its result digit.',
+    symbol_key:'Use the four-row key to decode a four-letter word. Find its matching choice and save the result digit.',
+    route_board:'Three paper routes show two conditions each. Choose the route meeting both conditions and save its digit.',
+  }[type];
+  return `${scene.trim().replace(/[.!?]+$/,'')}. ${operation}`;
 }
 
 export function paperContractTypes(plan){

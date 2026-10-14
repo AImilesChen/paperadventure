@@ -102,7 +102,7 @@ test('a paid plan rejected by audit is corrected and independently rechecked onc
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const first=planFixture(spec),corrected=planFixture(spec);
   corrected.stages[1].task+=' Compare the printed clock hands.';
-  corrected.stages[1].storyContext='The clock hands have been changed since noon.';
+  corrected.stages[1].scene='Beside the noon clock face';
   let calls=0;
   const result=await generateSinglePlan(spec,env,async(_url,options)=>{
     const sent=JSON.parse(options.body);
@@ -111,7 +111,7 @@ test('a paid plan rejected by audit is corrected and independently rechecked onc
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
   });
   assert.equal(calls,4);
-  assert.equal(result.plan.stages[1].storyContext,corrected.stages[1].storyContext);
+  assert.equal(result.plan.stages[1].scene,corrected.stages[1].scene);
   assert.equal(result.usage.input_tokens,40);
   assert.equal(result.usage.output_tokens,80);
 });

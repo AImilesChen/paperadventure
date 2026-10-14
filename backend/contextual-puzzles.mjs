@@ -98,9 +98,11 @@ export function prepareContextualBlueprint(candidate,spec){
     stages.push(stage);if(i<4)digits.push(compiled.material.logic.resultDigit);
   }
   if(new Set(stages.slice(0,4).map(stage=>stage.material.logic.signature)).size!==4)throw Error('The first four activities repeat the same puzzle; distinct variations are required.');
-  const ending=text(candidate.ending,'Ending',1000);
+  const usePrintedEnding=spec.plan.stages.some(stage=>stage.scene)||candidate.celebration!==undefined;
+  const celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration)?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
+  const ending=usePrintedEnding?`The four checked results form the code ${digits.join('')}. This code matches "${stages[4].material.items[0].label}" on the final sheet. The team completes that action and reaches its mission goal. ${celebration}`:text(candidate.ending,'Ending',1000);
   if(!/[.!?]$/.test(ending))throw Error('The ending must be a complete sentence.');
-  return {ending,groupInstructions:spec.setting==='classroom'?'Each crew uses its own complete Player set and keeps its own four result digits. Rotate the four jobs after each checkpoint; the teacher checks each result before releasing the next pages.':'',stages};
+  return {ending,...(usePrintedEnding?{celebration}:{}),groupInstructions:spec.setting==='classroom'?'Each crew uses its own complete Player set and keeps its own four result digits. Rotate the four jobs after each checkpoint; the teacher checks each result before releasing the next pages.':'',stages};
 }
 
 export function validateContextualPuzzle(stage){
