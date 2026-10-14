@@ -1194,7 +1194,7 @@ async function publishRevision(revisionId, env) {
   const oldStory = JSON.parse(await new Response(storyObject.body).text());
   const purchaseSpec = JSON.parse(order.purchase_spec_json);
   const remade = previous.pack_format_version === 2 ? await query(env.DB, "SELECT spec_json FROM custom_pack_remakes WHERE order_id = ? AND status = 'ready'", order.id).first() : null;
-  if (previous.pack_format_version === 2 && !remade) throw new Error('Remade story specification is unavailable');
+  if (previous.pack_format_version === 2 && !remade && purchaseSpec.gamePackVersion !== 2) throw new Error('Remade story specification is unavailable');
   const spec = remade ? JSON.parse(remade.spec_json) : purchaseSpec.creatorVersion === 3 ? JSON.parse(activity.story_spec_json) : purchaseSpec;
   const lease = await query(env.DB, `UPDATE revision_requests SET status = 'generating', lease_until = ?, attempts = attempts + 1 WHERE id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))`, nowSeconds() + 300, revision.id, nowSeconds()).run();
   if (!lease.meta?.changes) return;

@@ -11,6 +11,7 @@ import { productRights } from '../shared/catalog.mjs';
 import { signPreview } from './creator-preview.mjs';
 import { planFixture } from '../tests/fixtures/creator-plan-fixture.mjs';
 import { sampleSpec, sampleStory } from '../content/custom-paper-format-sample.mjs';
+import { compileControlledPuzzle, controlledStageText } from './controlled-puzzles.mjs';
 async function approvedCustomInput(env,input) {
   const spec=validatePurchase({...input,creatorVersion:2,gameplay:{primary:'reasoning',secondary:[]}}).spec;
   spec.plan=planFixture(spec,spec.direction);spec.planConfirmed=true;
@@ -1001,6 +1002,33 @@ test('a paid legacy pack remakes on the same order and keeps the old download un
   assert.notDeepEqual(new Uint8Array(await (await download()).arrayBuffer()),oldPdf,'downloads switch only after checked publication');
   const originalDownload=await handleProductionApi(request('/api/v1/files/legacy-order/player?paper=A4&version=1','GET',undefined,headers),env);
   assert.deepEqual(new Uint8Array(await originalDownload.arrayBuffer()),oldPdf,'the earlier pack can still be downloaded by its owner');
+});
+
+test('an original checked pack can publish a checkpoint revision without a remake or model call',async()=>{
+  const {db,binding}=database(),owner='checked-original-owner';
+  const spec={...sampleSpec,creatorVersion:3,packLogicVersion:1};
+  const stored=JSON.stringify(spec);
+  const stages=sampleStory.stages.map((original,index)=>{
+    const puzzle=compileControlledPuzzle({number:index+1,title:original.title,material:original.material});
+    return {...original,...controlledStageText(puzzle),options:puzzle.options,answerIndex:puzzle.answerIndex,material:puzzle.material};
+  });
+  const story=validateGeneratedStory({...sampleStory,stages},spec),storyJson=JSON.stringify(story),storyHash=await sha256(storyJson);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('checked-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('checked-order','custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(stored,await sha256(stored),owner,'checked-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('checked-activity','checked-order','published',?)").run(stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit,revision_expires_at,access_expires_at) VALUES ('checked-entitlement','checked-order','checked-activity','active',2,datetime('now','+20 days'),datetime('now','+6 months'))").run();
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,story_r2_key,story_sha256,pack_format_version) VALUES ('checked-artifact','checked-activity',1,'published','original/story.json',?,2)").run(storyHash);
+  const queue=[],files=new Map([['original/story.json',{body:storyJson,customMetadata:{sha256:storyHash}}]]);
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},FETCH:async()=>{throw Error('Checked revisions cannot call a model');},PRIVATE_FILES:{get:async key=>files.get(key),put:async(key,body,options)=>files.set(key,{body,...options})}};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const response=await handleProductionApi(request('/api/v1/orders/checked-order/revisions','POST',{stageNumber:2,instruction:'Clarify the instructions and hint.'},{cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN}),env);
+  assert.equal(response.status,202,await response.text());
+  await productionWorker.queue({messages:[{body:queue[0],ack(){},retry(){throw Error('A valid checked revision must publish');}}]},env);
+  assert.equal(db.prepare("SELECT status FROM revision_requests WHERE order_id='checked-order'").get().status,'published');
+  assert.equal(db.prepare("SELECT revision_success_used FROM entitlements WHERE order_id='checked-order'").get().revision_success_used,1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_pack_remakes").get().n,0);
+  assert.ok(files.has('custom/checked-order/v2/player.pdf'));
+  assert.ok(files.has('custom/checked-order/v2/guide.pdf'));
 });
 
 test('a failed paid remake can recover twice without paying again or reusing exhausted model calls',async()=>{
