@@ -23,12 +23,20 @@ export default {
       return Response.redirect(url.toString(), 308);
     }
 
-    let response = await env.ASSETS.fetch(request);
-    if (response.status === 404 && ['GET', 'HEAD'].includes(request.method) && request.headers.get('accept')?.includes('text/html')) {
+    const isPrivateOrder = /^\/en\/orders\/[A-Za-z0-9-]+\/?$/.test(url.pathname) && url.pathname !== '/en/orders/demo/';
+    const canServeShell = ['GET', 'HEAD'].includes(request.method);
+    let response = isPrivateOrder && canServeShell ? null : await env.ASSETS.fetch(request);
+    if ((isPrivateOrder && canServeShell) || (response?.status === 404 && canServeShell && request.headers.get('accept')?.includes('text/html'))) {
       const fallback = new URL(request.url);
-      fallback.pathname = '/index.html';
+      fallback.pathname = '/app-shell.txt';
       fallback.search = '';
       response = await env.ASSETS.fetch(new Request(fallback, request));
+      if (response.ok) {
+        const shellHeaders = new Headers(response.headers);
+        shellHeaders.set('content-type', 'text/html; charset=utf-8');
+        shellHeaders.set('cache-control', 'no-cache');
+        response = new Response(request.method === 'HEAD' ? null : response.body, { status: response.status, headers: shellHeaders });
+      }
     }
     const headers = new Headers(response.headers);
     if (isPublicHost && response.ok && pageFor(url.pathname)?.indexable) headers.delete('x-robots-tag');

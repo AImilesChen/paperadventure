@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from './preview-deploy-worker.mjs';
 
-const env = { ASSETS: { fetch: async request => new Response(new URL(request.url).pathname === '/index.html' ? '<html>Preview</html>' : '', { status: new URL(request.url).pathname === '/index.html' ? 200 : 404, headers: { 'content-type': 'text/html' } }) } };
+const env = { ASSETS: { fetch: async request => new Response(new URL(request.url).pathname === '/app-shell.txt' ? '<html>Preview</html>' : '', { status: new URL(request.url).pathname === '/app-shell.txt' ? 200 : 404, headers: { 'content-type': 'text/plain' } }) } };
 
 test('preview aliases stay noindex while canonical content pages are crawlable', async () => {
   const preview = await worker.fetch(new Request('https://preview.paperadventure.app/en/themes/dinosaur/', { headers: { accept: 'text/html' } }), env);
@@ -25,6 +25,27 @@ test('the root URL redirects to the English homepage', async () => {
   const response = await worker.fetch(new Request('https://paperadventure.app/'), env);
   assert.equal(response.status, 308);
   assert.equal(response.headers.get('location'), 'https://paperadventure.app/en/');
+});
+
+test('a refreshed private order stays on its URL and receives the app shell', async () => {
+  const calls = [];
+  const orderUrl = 'https://paperadventure.app/en/orders/00000000-0000-4000-8000-000000000001/';
+  const orderEnv = { ASSETS: { fetch: async request => {
+    const path = new URL(request.url).pathname;
+    calls.push(path);
+    if (path === '/index.html') return Response.redirect('https://paperadventure.app/', 307);
+    return new Response(path === '/app-shell.txt' ? '<html>Order app</html>' : '', {
+      status: path === '/app-shell.txt' ? 200 : 404,
+      headers: { 'content-type': 'text/plain' },
+    });
+  } } };
+  const response = await worker.fetch(new Request(orderUrl, { headers: { accept: 'text/html', 'sec-fetch-mode': 'navigate' } }), orderEnv);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('location'), null);
+  assert.match(response.headers.get('content-type'), /text\/html/);
+  assert.equal(response.headers.get('x-robots-tag'), 'noindex');
+  assert.equal(await response.text(), '<html>Order app</html>');
+  assert.deepEqual(calls, ['/app-shell.txt']);
 });
 
 

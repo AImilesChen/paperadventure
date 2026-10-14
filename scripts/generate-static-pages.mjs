@@ -17,6 +17,10 @@ if (!/^https:\/\/[^/]+$/.test(origin)) throw new Error('SITE_ORIGIN must be an H
 // Private, transactional and unfinished legal-review routes retain noindex.
 const escape = value => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 const template = await readFile(path.join(out, 'index.html'), 'utf8');
+// Cloudflare canonicalizes requests for /index.html to /. Keep an identical
+// non-HTML asset for dynamic client routes so an asset-binding fallback does
+// not redirect the browser away from the original order URL.
+await writeFile(path.join(out, 'app-shell.txt'), template);
 const server = await createServer({ root, server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
 globalThis.localStorage = { getItem: () => null };
 

@@ -86,6 +86,17 @@ jobs:
               curl --fail --silent --show-error --head https://preview.paperadventure.app/en/ | grep -iq "x-robots-tag: noindex"
               curl --fail --silent --show-error --head https://paperadventure.app/en/account/ | grep -iq "x-robots-tag: noindex"
               curl --fail --silent --show-error https://paperadventure.app/robots.txt | grep -Fq "Sitemap: https://paperadventure.app/sitemap.xml"
+              order_url="https://paperadventure.app/en/orders/00000000-0000-4000-8000-000000000001/"
+              curl --fail --silent --show-error --dump-header "$RUNNER_TEMP/paperadventure-order.headers" \
+                --output "$RUNNER_TEMP/paperadventure-order.html" "$order_url"
+              grep -Eiq '^content-type: text/html' "$RUNNER_TEMP/paperadventure-order.headers"
+              grep -Eiq '^x-robots-tag: noindex' "$RUNNER_TEMP/paperadventure-order.headers"
+              if grep -Eiq '^location:' "$RUNNER_TEMP/paperadventure-order.headers"; then
+                echo "::error::Refreshing a private order redirected away from the order URL."
+                exit 1
+              fi
+              grep -Fq 'id="root"' "$RUNNER_TEMP/paperadventure-order.html"
+              echo "Verified direct order refresh keeps the route and serves the app shell"
               curl --fail --silent --show-error https://paperadventure.app/sitemap.xml | grep -Fq "https://paperadventure.app/en/for-home/"
               for api_attempt in {1..36}; do
                 if curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.status!=='configured_runtime'||(v.checkout&&v.checkoutMode!=='test')||!v.generation||v.proposals!==false||!v.paidPlanReview)throw Error('Apex paid creator API mismatch: '+s);console.log('Apex forwards to the paid creator API')})"; then break; fi

@@ -52,6 +52,8 @@ test('homepage explains the printable product and links to both ways to play', a
 
 test('root fallback retains a local redirect without exposing stale preview claims', async () => {
   const html = await read('index.html');
+  const shell = await read('app-shell.txt');
+  assert.equal(shell, html);
   assert.match(html, /location\.pathname === '\/'\) location\.replace\('\/en\/'/);
   assert.doesNotMatch(html, /Purchases, downloads and generated adventures are not available yet/);
 });
