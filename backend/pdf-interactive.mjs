@@ -27,11 +27,19 @@ function makePage(width,height,label){
     commands.push(`${fill} rg ${x} ${y} ${w} ${h} re f ${stroke} RG 1 w ${x} ${y} ${w} ${h} re S`);
   };
   const rule=(x1,y1,x2,y2,color='0.64 0.76 0.82')=>commands.push(`${color} RG 1 w ${x1} ${y1} m ${x2} ${y2} l S`);
+  const circle=(x,y,r,fill='1 1 1',stroke='0.08 0.19 0.31')=>{
+    const c=.55228475*r;
+    commands.push(`${fill} rg ${stroke} RG 1.4 w ${x+r} ${y} m ${x+r} ${y+c} ${x+c} ${y+r} ${x} ${y+r} c ${x-c} ${y+r} ${x-r} ${y+c} ${x-r} ${y} c ${x-r} ${y-c} ${x-c} ${y-r} ${x} ${y-r} c ${x+c} ${y-r} ${x+r} ${y-c} ${x+r} ${y} c B`);
+  };
+  const star=(x,y,r)=>{
+    const points=Array.from({length:10},(_,index)=>{const angle=-Math.PI/2+index*Math.PI/5,rad=index%2?r*.44:r;return [x+Math.cos(angle)*rad,y+Math.sin(angle)*rad];});
+    commands.push(`0.08 0.19 0.31 RG 1.6 w ${points.map(([px,py],index)=>`${px.toFixed(1)} ${py.toFixed(1)} ${index?'l':'m'}`).join(' ')} h S`);
+  };
   commands.push(`0.88 0.95 0.98 rg 0 ${height-42} ${width} 42 re f`);
   text('PAPER ADVENTURE / CUSTOM PAPER GAME',48,height-25,9,true);
   rule(48,45,width-48,45);
   text(label,48,30,8);
-  return {commands,text,block,box,rule,width,height};
+  return {commands,text,block,box,rule,circle,star,width,height};
 }
 
 function heading(page,kicker,title){
@@ -81,6 +89,11 @@ function challenge(stage,spec){
   if(y<120)throw new Error(`Checkpoint ${stage.number} challenge exceeds the printable page`);
   page.text('OUR CHOICE AND EVIDENCE:',48,y-25,10,true);
   page.rule(48,y-48,page.width-48,y-48);
+  if(y>=205){
+    page.text('TWO PRINTED FACTS THAT SUPPORT OUR CHOICE:',48,y-82,10,true);
+    page.rule(48,y-111,page.width-48,y-111);
+    page.rule(48,y-143,page.width-48,y-143);
+  }
   return page;
 }
 
@@ -123,13 +136,24 @@ function materialSheet(stage,spec){
       page.box(x,top-h,col,h,'0.97 0.99 1');
       page.text(item.label,x+12,top-22,11,true);
       page.rule(x+12,top-30,x+col-12,top-30);
-      page.block(item.detail,x+12,top-47,32,9,14);
+      if(material.type==='evidence_cards'&&index<3&&material.logic?.version===1){
+        page.circle(x+31,top-76,14,index===2?'0.85 0.24 0.17':'0.20 0.48 0.70');
+        if(index===0)page.circle(x+93,top-76,14,'1 1 1');
+        else page.star(x+93,top-76,15);
+        page.text('MARK',x+12,top-108,7,true);page.text('SEAL',x+73,top-108,7,true);
+        page.block(item.detail,x+12,top-128,32,9,14);
+      } else if(material.type==='order_tiles'&&material.logic?.version===1){
+        page.circle(x+25,top-94,15);
+        page.text('?',x+21,top-99,13,true);
+        page.block(item.detail,x+52,top-82,27,9,14);
+      } else page.block(item.detail,x+12,top-47,32,9,14);
     });
   }
-  page.box(48,58,page.width-96,78,'0.93 0.97 0.99');
-  page.text('RECORD YOUR RESULT',60,112,10,true);
-  page.block(material.recordPrompt,60,93,75,9,13);
-  page.rule(60,70,page.width-60,70);
+  page.box(48,58,page.width-96,108,'0.93 0.97 0.99');
+  page.text('RECORD YOUR RESULT',60,143,10,true);
+  page.block(material.recordPrompt,60,125,75,9,13);
+  page.rule(60,98,page.width-60,98);
+  page.rule(60,72,page.width-60,72);
   return page;
 }
 

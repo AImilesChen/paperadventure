@@ -2,6 +2,7 @@ import { offers, themes } from '../shared/catalog.mjs';
 import { creatorFields } from './creator-preview.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
 import { validatePrintableMaterial, validateMaterialSet } from './printable-material.mjs';
+import { validateControlledPuzzle } from './controlled-puzzles.mjs';
 
 export class ApiError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code; }
@@ -45,7 +46,7 @@ export function validatePurchase(input) {
   if (Boolean(proposalTitle) !== Boolean(proposalSummary)) throw new ApiError(400, 'INVALID_SPEC', 'The selected proposal is incomplete.');
   if (input.creatorVersion === 3 && (input.plan || input.previewToken || input.planConfirmed || proposalTitle || proposalSummary)) throw new ApiError(400,'INVALID_SPEC','The personal plan is created after payment.');
   return { offer, spec: { sku: offer.sku, kind: 'custom', setting: offer.setting, themeId, customIdea: idea, players, groups, age, paper, direction, proposalTitle, proposalSummary,
-    ...(input.creatorVersion === 3 ? {gamePackVersion:2} : {}),
+    ...(input.creatorVersion === 3 ? {gamePackVersion:2,packLogicVersion:1} : {}),
     preferences: Object.fromEntries(['characters','goal','include','avoid'].map(key => [key, input.preferences?.[key] ? requireText(input.preferences[key], `Preference ${key}`, 180) : ''])),
     place: String(input.place || '').trim().slice(0, 180), reading: String(input.reading || '').trim().slice(0, 40), materials: String(input.materials || '').trim().slice(0, 180), ...creatorFields(input) } };
 }
@@ -65,7 +66,7 @@ export function validateSupportedRange(spec, env) {
   if (spec.players > playerMax) throw new ApiError(400, 'UNSUPPORTED_GROUP_SIZE', `The current ${spec.setting} limit is ${playerMax} players.`);
 }
 
-function validateStoryStage(stage, index, plan, previousUnlock, gamePackVersion = 1) {
+function validateStoryStage(stage, index, plan, previousUnlock, gamePackVersion = 1, packLogicVersion = 0) {
   if (!stage || typeof stage !== 'object') throw new ApiError(422, 'GENERATION_INVALID', 'A stage is missing.');
   const number = index + 1;
   if (plan && (stage.title !== plan.stages[index].title || stage.mechanic !== plan.stages[index].mechanic)) throw new ApiError(422,'GENERATION_INVALID',`Checkpoint ${number} changed the approved title or play style.`);
@@ -81,10 +82,16 @@ function validateStoryStage(stage, index, plan, previousUnlock, gamePackVersion 
     try { material=validatePrintableMaterial(stage.material); }
     catch (cause) { throw new ApiError(422,'GENERATION_INVALID',`Checkpoint ${number}: ${cause.message}`); }
   }
-  return { number, title: requireText(stage.title, 'Stage title', 100), clue: requireText(stage.clue, 'Clue', gamePackVersion===2?400:1200), options: options.map((value, i) => requireText(value, `Option ${i+1}`, gamePackVersion===2?100:240)), answerIndex,
+  const checked={ number, title: requireText(stage.title, 'Stage title', 100), clue: requireText(stage.clue, 'Clue', gamePackVersion===2?400:1200), options: options.map((value, i) => requireText(value, `Option ${i+1}`, gamePackVersion===2?100:240)), answerIndex,
     explanation: requireText(stage.explanation, 'Answer explanation', gamePackVersion===2?400:600), hint: requireText(stage.hint, 'Hint', gamePackVersion===2?120:400), prerequisite, unlock,
     ...(plan ? {mechanic:stage.mechanic,task:plan.stages[index].task,teamwork:plan.stages[index].teamwork} : {}),
-    ...(material ? {material} : {}) };
+    ...(material ? {material} : {}),
+    ...(stage.logicStyle ? {logicStyle:requireText(stage.logicStyle,'Checkpoint wording',20)} : {}) };
+  if (gamePackVersion===2 && packLogicVersion===1) {
+    try { validateControlledPuzzle(checked,{withText:true}); }
+    catch (cause) { throw new ApiError(422,'GENERATION_INVALID',`Checkpoint ${number}: ${cause.message}`); }
+  }
+  return checked;
 }
 
 export function validateGeneratedStage(stage, spec, stageNumber, previousUnlock) {
@@ -92,7 +99,7 @@ export function validateGeneratedStage(stage, spec, stageNumber, previousUnlock)
   let plan;
   try { plan=validatePlan(spec.plan,spec); } catch { throw new ApiError(422,'GENERATION_INVALID','The approved plan is unavailable.'); }
   if (/[^\x20-\x7e\n\r]/.test(JSON.stringify(stage))) throw new ApiError(422,'GENERATION_INVALID','Use English printable language.');
-  return validateStoryStage(stage,stageNumber-1,plan,previousUnlock,spec.gamePackVersion);
+  return validateStoryStage(stage,stageNumber-1,plan,previousUnlock,spec.gamePackVersion,spec.packLogicVersion);
 }
 
 export function validateGeneratedStory(story, spec) {
@@ -106,7 +113,7 @@ export function validateGeneratedStory(story, spec) {
     if (title !== plan.title || introduction !== plan.opening || /[^\x20-\x7e\n\r]/.test(JSON.stringify(story))) throw new ApiError(422,'GENERATION_INVALID','Keep the approved title, opening and English printable language.');
   }
   if (!Array.isArray(story.stages) || story.stages.length !== 5) throw new ApiError(422, 'GENERATION_INVALID', 'Exactly five connected stages are required.');
-  const stages = story.stages.map((stage,index)=>validateStoryStage(stage,index,plan,index ? story.stages[index-1].unlock : 'START',spec.gamePackVersion));
+  const stages = story.stages.map((stage,index)=>validateStoryStage(stage,index,plan,index ? story.stages[index-1].unlock : 'START',spec.gamePackVersion,spec.packLogicVersion));
   if (spec.gamePackVersion === 2) {
     try { validateMaterialSet(stages); }
     catch (cause) { throw new ApiError(422,'GENERATION_INVALID',cause.message); }

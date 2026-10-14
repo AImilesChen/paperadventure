@@ -1,2 +1,1 @@
-2026-10-14: repair paper-material answer leaks after quality review, then resume the saved paid order at no charge.
-
+2026-10-14: deploy checked paper-puzzle contracts, migration 0016 and free recovery for older paid packs to the existing Stripe test environment.

@@ -18,7 +18,8 @@ export function validatePrintableMaterial(value) {
   if (new Set(items.map(item=>item.label.toLowerCase())).size !== items.length) throw new Error('Paper pieces need different labels.');
   return {type:value.type,title:limit(value.title,'Paper activity title',60),
     instruction:limit(value.instruction,'Paper activity instruction',200),
-    recordPrompt:limit(value.recordPrompt,'Paper activity record prompt',100),items};
+    recordPrompt:limit(value.recordPrompt,'Paper activity record prompt',100),items,
+    ...(value.logic ? {logic:value.logic} : {})};
 }
 
 export function validateMaterialSet(stages) {

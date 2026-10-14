@@ -20,7 +20,7 @@ async function approvedCustomInput(env,input) {
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -960,7 +960,7 @@ test('a paid legacy pack remakes on the same order and keeps the old download un
     FETCH:async(_url,init)=>{
       const payload=JSON.parse(init.body),name=payload.text.format.name,input=JSON.parse(payload.input);
       calls.push([name,input.stageNumber||0]);
-      const value=name==='game_blueprint'?{ending:sampleStory.ending,groupInstructions:'',stages:sampleStory.stages.map((stage,index)=>({question:stage.clue,evidence:stage.clue,options:stage.options,answerIndex:stage.answerIndex,unlock:stage.unlock,material:index===1&&!input.candidate?{...stage.material,type:'evidence_cards'}:stage.material}))}
+      const value=name==='game_blueprint'?{ending:sampleStory.ending,groupInstructions:'',stages:sampleStory.stages.map((stage,index)=>({question:stage.clue,evidence:stage.clue,options:stage.options,answerIndex:stage.answerIndex,unlock:stage.unlock,material:index===1&&!input.candidate?{...stage.material,type:'evidence_cards'}:{...stage.material,items:stage.material.items.slice(0,['order_tiles','symbol_key'].includes(stage.material.type)?4:3)}}))}
         :name==='game_checkpoint'?{clue:sampleStory.stages[input.stageNumber-1].clue,explanation:sampleStory.stages[input.stageNumber-1].explanation,hint:sampleStory.stages[input.stageNumber-1].hint}
         :failFirstAudit?(failFirstAudit=false,{pass:false,issues:[{stageNumber:1,reason:'Stage 1 answer leaks because an option repeats a printed card.'}]}):{pass:true,issues:[]};
       return Response.json({id:`remake-${calls.length}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
@@ -976,21 +976,28 @@ test('a paid legacy pack remakes on the same order and keeps the old download un
   assert.equal((await handleProductionApi(request('/api/v1/orders/legacy-order/pack-remake','POST',undefined,headers),env)).status,200);
   assert.equal(queue.length,1,'repeat clicks do not start another model run');
   assert.equal((await view()).remake.status,'queued');
-  for(let step=0;step<17;step++) {
+  for(let step=0;step<17 && (await view()).remake.status!=='ready';step++) {
     const job=queue.shift();assert.equal(job?.type,'pack_remake');
     let retries=0;await productionWorker.queue({messages:[{body:job,ack(){},retry(){retries++;}}]},env);
     assert.equal(retries,0);
-    if(step<16) assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),oldPdf,'old PDF stays available until replacement is complete');
+    if((await view()).remake.status!=='ready') assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),oldPdf,'old PDF stays available until replacement is complete');
   }
   const completed=await view();
   assert.equal(completed.remake.status,'ready');
   assert.equal(completed.gamePackVersion,2);
+  assert.equal(completed.checkedPuzzleRevision,true);
+  const unsupportedChange=await handleProductionApi(request('/api/v1/orders/legacy-order/revisions','POST',{stageNumber:1,instruction:'Replace this puzzle with a maze.'},headers),env);
+  assert.equal(unsupportedChange.status,422,'unsupported changes fail before queueing or consuming a revision');
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM revision_requests WHERE order_id='legacy-order'").get().n,0);
+  const supportedChange=await handleProductionApi(request('/api/v1/orders/legacy-order/revisions','POST',{stageNumber:1,instruction:'Clarify the printed instructions and hint without changing the story.'},headers),env);
+  assert.equal(supportedChange.status,202);
+  assert.equal(queue.at(-1).type,'revision');
   assert.equal(completed.amountTotal,1499,'remake does not create a second charge');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,2);
   assert.equal(db.prepare("SELECT pack_format_version FROM artifact_versions WHERE version_number=1").get().pack_format_version,1);
   assert.equal(db.prepare("SELECT pack_format_version FROM artifact_versions WHERE version_number=2").get().pack_format_version,2);
-  assert.equal(calls.length,15,'a rejected blueprint and answer-leaking audit repair only the saved paid remake');
+  assert.equal(calls.length,2,'a rejected blueprint gets one repair; checked puzzle steps and PDF retries use no more model calls');
   assert.notDeepEqual(new Uint8Array(await (await download()).arrayBuffer()),oldPdf,'downloads switch only after checked publication');
   const originalDownload=await handleProductionApi(request('/api/v1/files/legacy-order/player?paper=A4&version=1','GET',undefined,headers),env);
   assert.deepEqual(new Uint8Array(await originalDownload.arrayBuffer()),oldPdf,'the earlier pack can still be downloaded by its owner');
@@ -1003,12 +1010,12 @@ test('a failed paid remake can recover twice without paying again or reusing exh
   db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('remake-failed','custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(purchase,await sha256(purchase),owner,'old-price');
   db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('old-activity','remake-failed','published',?)").run(purchase);
   db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,access_expires_at) VALUES ('old-entitlement','remake-failed','old-activity','active',datetime('now','+6 months'))").run();
-  const specJson=JSON.stringify(sampleSpec);
+  const specJson=JSON.stringify({...sampleSpec,packLogicVersion:1});
   db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,error_code,failure_count) VALUES ('remake-failed','failed','blueprint',?,?,'BLUEPRINT_INVALID',2)").run(specJson,await sha256(specJson));
   for(let i=1;i<=2;i++) db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,error_code) VALUES (?, 'remake-failed','blueprint',0,'failed','fixture','BLUEPRINT_INVALID')").run(`old-blueprint-${i}`);
   const queued=[];
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture-model',GENERATION_QUEUE:{send:async job=>queued.push(job)},PRIVATE_FILES:{get:async()=>null},
-    FETCH:async()=>Response.json({id:'recovered-blueprint',output:[{content:[{type:'output_text',text:JSON.stringify({ending:sampleStory.ending,groupInstructions:'',stages:sampleStory.stages.map(stage=>({question:stage.clue,evidence:stage.clue,options:stage.options,answerIndex:stage.answerIndex,unlock:stage.unlock,material:stage.material}))})}]}],usage:{input_tokens:10,output_tokens:20}})};
+    FETCH:async()=>Response.json({id:'recovered-blueprint',output:[{content:[{type:'output_text',text:JSON.stringify({ending:sampleStory.ending,groupInstructions:'',stages:sampleStory.stages.map(stage=>({question:stage.clue,evidence:stage.clue,options:stage.options,answerIndex:stage.answerIndex,unlock:stage.unlock,material:{...stage.material,items:stage.material.items.slice(0,['order_tiles','symbol_key'].includes(stage.material.type)?4:3)}}))})}]}],usage:{input_tokens:10,output_tokens:20}})};
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
   const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
   const retry=()=>handleProductionApi(request('/api/v1/orders/remake-failed/pack-remake/retry','POST',undefined,headers),env);
@@ -1022,6 +1029,33 @@ test('a failed paid remake can recover twice without paying again or reusing exh
   assert.equal((await retry()).status,202,'a later checkpoint validation failure can resume the same paid order');
   assert.equal(db.prepare("SELECT recovery_round,status FROM custom_pack_remakes WHERE order_id='remake-failed'").get().recovery_round,2);
   assert.equal((await retry()).status,409,'a queued recovery cannot be submitted twice');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
+});
+
+test('an exhausted old paid remake can restart once with checked puzzles and no second payment',async()=>{
+  const {db,binding}=database(),owner='upgrade-owner';
+  const purchase=JSON.stringify({...sampleSpec,gamePackVersion:1});
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('upgrade-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('upgrade-order','custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(purchase,await sha256(purchase),owner,'upgrade-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('upgrade-activity','upgrade-order','published',?)").run(purchase);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,access_expires_at) VALUES ('upgrade-entitlement','upgrade-order','upgrade-activity','active',datetime('now','+6 months'))").run();
+  const oldSpec=JSON.stringify({...sampleSpec,gamePackVersion:2});
+  db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,blueprint_json,blueprint_sha256,stages_json,error_code,recovery_round) VALUES ('upgrade-order','failed','audit',?,?,?,?,'[]','GENERATION_QA_FAILED',2)").run(oldSpec,await sha256(oldSpec),'{"old":"blueprint"}','old-hash');
+  db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,result_json,generation_round) VALUES ('old-upgrade-call','upgrade-order','blueprint',0,'passed','fixture',?,3)").run(JSON.stringify({old:'result'}));
+  const queued=[];
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture-model',GENERATION_QUEUE:{send:async job=>queued.push(job)},PRIVATE_FILES:{get:async()=>null}};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const retry=()=>handleProductionApi(request('/api/v1/orders/upgrade-order/pack-remake/retry','POST',undefined,headers),env);
+  const upgradedResponse=await retry();
+  assert.equal(upgradedResponse.status,202,await upgradedResponse.text());
+  const saved=db.prepare("SELECT status,phase,spec_json,blueprint_json,recovery_round,logic_epoch FROM custom_pack_remakes WHERE order_id='upgrade-order'").get();
+  assert.equal(saved.status,'queued');assert.equal(saved.phase,'blueprint');assert.equal(saved.blueprint_json,null);
+  assert.equal(saved.recovery_round,0);assert.equal(saved.logic_epoch,1);assert.equal(JSON.parse(saved.spec_json).packLogicVersion,1);
+  assert.equal(db.prepare("SELECT result_json,logic_epoch FROM custom_pack_remake_calls WHERE id='old-upgrade-call'").get().logic_epoch,0);
+  assert.ok(db.prepare("SELECT result_json FROM custom_pack_remake_calls WHERE id='old-upgrade-call'").get().result_json,'older call history remains available for support');
+  assert.deepEqual(queued,[{type:'pack_remake',orderId:'upgrade-order'}]);
+  assert.equal((await retry()).status,409);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
 });
 
@@ -1057,4 +1091,3 @@ test('a failed paid first plan offers one free recovery without another checkout
   assert.equal(viewed.planReview.targetedUsed,0);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM orders WHERE id='recovery-order'").get().count,1);
 });
-

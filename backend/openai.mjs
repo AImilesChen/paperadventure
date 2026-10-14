@@ -1,4 +1,5 @@
 import { ApiError, validateGeneratedStory } from './domain.mjs';
+import { controlledStageText, controlledRevisionStyle } from './controlled-puzzles.mjs';
 import { mechanics } from '../shared/creator-plan.mjs';
 import { generatePlanProposals } from './plan-proposals.mjs';
 
@@ -144,6 +145,15 @@ export async function generateProposals(spec, env, fetcher = fetch) {
 }
 
 export async function reviseStage(story, spec, stageNumber, instruction, env, fetcher = fetch) {
+  if (spec.gamePackVersion===2 && spec.packLogicVersion===1) {
+    const original=story.stages[stageNumber-1];
+    if (!original) throw new ApiError(400,'INVALID_STAGE','Choose a checkpoint from 1 to 5.');
+    const style=controlledRevisionStyle(instruction);
+    if (!style) throw new ApiError(422,'REVISION_UNSUPPORTED','Choose a reading, difficulty, hint or instruction change for this checked puzzle. A different game mechanic needs personal support.');
+    const revised={...original,logicStyle:style,...controlledStageText(original,style)};
+    const combined={...story,stages:story.stages.map((item,index)=>index===stageNumber-1?revised:item)};
+    return {story:validateGeneratedStory(combined,spec),usage:null,responseId:null};
+  }
   const provider = aiProvider(env);
   if (!provider) throw new ApiError(503, 'GENERATION_NOT_CONFIGURED', 'Story revision is not configured.');
   const original = story.stages[stageNumber - 1];

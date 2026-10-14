@@ -3,11 +3,51 @@ import assert from 'node:assert/strict';
 import { validatePurchase, validateGeneratedStory } from './domain.mjs';
 import { validateBlueprint, generateBlueprint, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
+import { reviseStage } from './openai.mjs';
 import { sampleSpec, sampleStory } from '../content/custom-paper-format-sample.mjs';
 
 test('new custom checkouts request the interactive paper-pack format',()=>{
   const result=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A paper lighthouse',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:['sequence','code']}});
   assert.equal(result.spec.gamePackVersion,2);
+  assert.equal(result.spec.packLogicVersion,1);
+});
+
+test('controlled paper puzzles keep material, choices, answer and both PDFs in one checked contract',async()=>{
+  const spec={...sampleSpec,packLogicVersion:1};
+  const modelBlueprint={ending:sampleStory.ending,groupInstructions:'',stages:sampleStory.stages.map(stage=>({
+    question:stage.clue,evidence:stage.clue,options:stage.options,answerIndex:stage.answerIndex,unlock:stage.unlock,
+    material:{...stage.material,items:stage.material.items.slice(0,['order_tiles','symbol_key'].includes(stage.material.type)?4:3)},
+  }))};
+  let modelCalls=0;
+  const fetcher=async(_url,{body})=>{
+    modelCalls++;
+    assert.equal(JSON.parse(body).text.format.name,'game_blueprint');
+    return Response.json({id:'story-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(modelBlueprint)}]}]});
+  };
+  const env={OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
+  const {blueprint}=await generateBlueprint(spec,env,fetcher);
+  const stages=[];
+  for(let number=1;number<=5;number++){
+    const {stage}=await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),env,fetcher);
+    stages.push(stage);
+  }
+  const story=assembleStagedStory(spec,blueprint,stages);
+  await auditStagedStory(story,spec,blueprint,env,fetcher);
+  assert.equal(modelCalls,1,'a single model call provides story context; checked puzzle text and QA are deterministic');
+  assert.deepEqual(story.stages.map(stage=>stage.answerIndex),[0,2,1,0,2]);
+  assert.equal(new Set(story.stages.map(stage=>stage.material.type)).size,5);
+  const player=new TextDecoder().decode(buildGamePdf(story,spec,'player'));
+  const guide=new TextDecoder().decode(buildGamePdf(story,spec,'guide'));
+  assert.match(player,/Rule slip/);assert.match(player,/1-2-3-4/);
+  assert.match(guide,/The rules require/);
+  assert.doesNotMatch(player,/The rules require/);
+  assert.throws(()=>validateGeneratedStory({...story,stages:story.stages.map((stage,index)=>index?stage:{...stage,answerIndex:1})},spec),/checked rules/);
+  assert.throws(()=>validateGeneratedStory({...story,stages:story.stages.map((stage,index)=>index?stage:{...stage,material:{...stage.material,items:stage.material.items.map((item,i)=>i?item:{...item,detail:'Answer is B.'})}})},spec),/checked rules/);
+  const revised=await reviseStage(story,spec,2,'Simplify the reading in this checkpoint',{},fetcher);
+  assert.equal(revised.story.stages[1].logicStyle,'simple');
+  assert.equal(revised.story.stages[1].answerIndex,story.stages[1].answerIndex);
+  assert.equal(modelCalls,1,'a wording revision cannot spend another model call or change the fixed puzzle');
+  await assert.rejects(()=>reviseStage(story,spec,2,'Add a new movement game',{},fetcher),/needs personal support/);
 });
 
 test('checked paper materials create separate playable sheets and adult-only answers',()=>{

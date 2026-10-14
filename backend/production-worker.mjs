@@ -10,6 +10,7 @@ import { signPreview, confirmPreview } from './creator-preview.mjs';
 import { generateSinglePlan } from './plan-proposals.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
 import { startPackRemake, retryPackRemake, packRemakeView, processPackRemake } from './pack-remake.mjs';
+import { controlledRevisionStyle } from './controlled-puzzles.mjs';
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
@@ -566,6 +567,8 @@ async function orderView(request, env, orderId) {
   const activity = order.product_kind === 'custom' ? await query(env.DB, 'SELECT status,delivery_retry_used,delivery_retry_baseline,generation_version FROM custom_activities WHERE order_id = ?', order.id).first() : null;
   const latestArtifact = activity && entitlement?.custom_activity_id ? await query(env.DB, "SELECT pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", entitlement.custom_activity_id).first() : null;
   const remake = order.product_kind === 'custom' && order.paid_at ? await packRemakeView(env.DB, order.id) : null;
+  const readyRemakeSpec = latestArtifact?.pack_format_version === 2 && remake?.status === 'ready'
+    ? await query(env.DB, "SELECT spec_json FROM custom_pack_remakes WHERE order_id = ? AND status = 'ready'", order.id).first() : null;
   const pdfRows = order.product_kind === 'custom' ? (await query(env.DB, "SELECT attempt,status,phase,round_number,trigger_kind,created_at,completed_at,error_code FROM generation_usage WHERE order_id = ? AND status IN ('generating','published','failed') ORDER BY attempt", order.id).all()).results || [] : [];
   const failureMessages = {
     GENERATION_UPSTREAM_FAILED: 'The story generation service did not complete.',
@@ -628,6 +631,7 @@ async function orderView(request, env, orderId) {
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
     revisionExpiresAt: entitlement?.revision_expires_at || null,
     gamePackVersion: order.product_kind === 'custom' ? Math.max(latestArtifact?.pack_format_version || 1, spec.gamePackVersion || 1) : null,
+    checkedPuzzleRevision: Boolean(latestArtifact && (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packLogicVersion === 1 : spec.packLogicVersion === 1)),
     remake,
     revisionRequests: revisionRows.map(item=>({id:item.id,stageNumber:item.stage_number,status:item.status,version:item.version_number||null,createdAt:item.created_at,completedAt:item.completed_at||null})),
     plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
@@ -782,6 +786,14 @@ async function requestRevision(request, env, orderId) {
   if (!Number.isInteger(stageNumber) || stageNumber < 1 || stageNumber > 5) throw new ApiError(400, 'INVALID_STAGE', 'Choose a stage from 1 to 5.');
   const instruction = String(body.instruction || '').trim();
   if (instruction.length < 10 || instruction.length > 350) throw new ApiError(400, 'INVALID_REVISION', 'Describe one local change in 10–350 characters.');
+  const purchaseSpec = JSON.parse(order.purchase_spec_json);
+  const activity = await query(env.DB, 'SELECT id,story_spec_json FROM custom_activities WHERE order_id = ?', orderId).first();
+  const latestArtifact = activity && await query(env.DB, "SELECT pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", activity.id).first();
+  const readyRemake = latestArtifact?.pack_format_version === 2
+    ? await query(env.DB, "SELECT spec_json FROM custom_pack_remakes WHERE order_id = ? AND status = 'ready'", orderId).first() : null;
+  const revisionSpec = readyRemake ? JSON.parse(readyRemake.spec_json) : purchaseSpec.creatorVersion === 3 ? JSON.parse(activity.story_spec_json) : purchaseSpec;
+  if (revisionSpec.packLogicVersion === 1 && !controlledRevisionStyle(instruction))
+    throw new ApiError(422, 'REVISION_UNSUPPORTED', 'Choose a reading, difficulty, hint or instruction change. For a wrong answer, new mechanic or full-pack issue, request a quality review on this order.');
   const pending = await query(env.DB, "SELECT id FROM revision_requests WHERE order_id = ? AND status IN ('queued','generating')", orderId).first();
   if (pending) {
     await env.GENERATION_QUEUE.send({ type: 'revision', revisionId: pending.id });
@@ -972,10 +984,11 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     }
     if (await countCalls(kind,number)>=STAGED_STEP_CALL_LIMIT || await totalCalls()>=STAGED_AI_CALL_LIMIT)
       throw new ApiError(422,'STAGED_BUDGET_EXHAUSTED','The safe generation limit was reached.');
-    const provider=aiProvider(env);
-    if (!provider) throw new ApiError(503,'GENERATION_NOT_CONFIGURED','Story generation is not configured.');
+    const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&kind!=='blueprint';
+    const provider=deterministic?null:aiProvider(env);
+    if (!deterministic&&!provider) throw new ApiError(503,'GENERATION_NOT_CONFIGURED','Story generation is not configured.');
     const id=crypto.randomUUID();
-    await query(env.DB,"INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model) VALUES (?,?,?,?,'started',?)",id,order.id,kind,number,provider.model).run();
+    await query(env.DB,"INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model) VALUES (?,?,?,?,'started',?)",id,order.id,kind,number,deterministic?'checked-rules-v1':provider.model).run();
     try {
       const result=await produce();
       try { await query(env.DB,"UPDATE custom_generation_calls SET status = 'passed',result_json = ?,response_id = ?,input_tokens = ?,output_tokens = ?,completed_at = CURRENT_TIMESTAMP WHERE id = ?",JSON.stringify(result.value),result.responseId,result.usage?.input_tokens??null,result.usage?.output_tokens??null,id).run(); }

@@ -35,6 +35,14 @@ test('plan validation normalizes printable typography without accepting non-Engl
   plan.summary='钟楼的谜题';
   assert.throws(()=>validatePlan(plan,spec));
 });
+test('a code-led paid plan may use two reasoning support tasks so printable material types remain possible',()=>{
+  const spec=validatePurchase({...input,creatorVersion:3,gameplay:{primary:'code',secondary:[],request:''}}).spec;
+  const plan=planFixture({...spec,gameplay:{primary:'reasoning',secondary:[]}});
+  plan.stages.forEach((stage,index)=>{stage.mechanic=index<3?'code':'reasoning';});
+  assert.equal(validatePlan(plan,spec).stages[4].mechanic,'reasoning');
+  const impossible={...plan,stages:plan.stages.map(stage=>({...stage,mechanic:'code'}))};
+  assert.throws(()=>validatePlan(impossible,spec),/evidence and an ordering or route-compatible checkpoint/);
+});
 test('paid plan parser accepts fenced provider JSON and audits the result',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const plan=planFixture(spec);let calls=0;
