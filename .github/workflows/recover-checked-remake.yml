@@ -1,0 +1,51 @@
+name: Recover approved checked remake on its existing paid order
+on:
+  push:
+    branches: [codex-controlled-pack-20261014]
+    paths: [.github/workflows/recover-checked-remake.yml, scripts/recover-checked-remake.mjs]
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DEEPSEEK_MODEL: deepseek-flash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Read only the failed paid remake into private temporary storage
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT order_id,status,phase,spec_json,spec_sha256,logic_epoch,recovery_round,blueprint_json FROM custom_pack_remakes WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407'" > "$RUNNER_TEMP/paid-remake-private.json"
+      - name: Validate one real provider blueprint, every checkpoint and both PDFs
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
+        run: node scripts/recover-checked-remake.mjs "$RUNNER_TEMP/paid-remake-private.json" "$RUNNER_TEMP/private-calls.sql" "$RUNNER_TEMP/private-recovery.sql"
+      - name: Preserve provider usage even if validation stops
+        if: always()
+        run: |
+          if [ -s "$RUNNER_TEMP/private-calls.sql" ]; then
+            npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --file "$RUNNER_TEMP/private-calls.sql" > "$RUNNER_TEMP/private-calls-result.json"
+            echo 'Provider usage retained privately on the existing order.'
+          fi
+      - name: Save the checked blueprint for the existing resumable generator
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --file "$RUNNER_TEMP/private-recovery.sql" > "$RUNNER_TEMP/private-recovery-result.json"
+          echo 'Same-order recovery requested; existing PDF artifacts preserved.'
+      - name: Follow only safe delivery status fields
+        run: |
+          for attempt in {1..16}; do
+            npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status,phase,published_version,json_array_length(stages_json) AS saved_checkpoints FROM custom_pack_remakes WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407'" > "$RUNNER_TEMP/private-status.json"
+            state=$(node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const r=d.flatMap(v=>v.results||[])[0];console.log(r.status+' '+r.phase+' '+r.saved_checkpoints+' '+(r.published_version||0))" "$RUNNER_TEMP/private-status.json")
+            echo "Delivery status: $state"
+            if [[ "$state" == ready* ]]; then exit 0; fi
+            if [[ "$state" == failed* ]]; then exit 1; fi
+            sleep 30
+          done
+          exit 1
