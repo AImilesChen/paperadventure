@@ -86,11 +86,11 @@ export function prepareContextualBlueprint(candidate,spec){
   const types=paperContractTypes(spec.plan),digits=[],stages=[];
   for(let i=0;i<5;i++){
     const raw=candidate.stages[i],type=types[i],count=i===4?3:type==='order_tiles'?4:type==='symbol_key'?4:3;
-    const labels=raw.material?.items?.map(piece=>text(piece.label,'Piece label',18));
+    const labels=raw.material?.items?.slice(0,count).map(piece=>text(piece.label,'Piece label',24));
     if(labels?.length!==count||!unique(labels)||labels.some(label=>/^(?:plain fact|rule clue|witness|final action|journey clue)\s+[a-z0-9]+$/i.test(label)))throw Error(`Checkpoint ${i+1} needs ${count} distinct story-specific labels, not placeholder names.`);
-    const features=raw.features?.map(value=>text(value,'Printed feature',18));
+    const features=['evidence_cards','route_board'].includes(type)&&i<4?raw.features?.map(value=>text(value,'Printed feature',24)):['Checked fact','Matching fact'];
     if(features?.length!==2||!unique(features))throw Error('Each activity needs two distinct story-specific feature names.');
-    const word=text(raw.word,'Printed key word',4).toUpperCase();
+    const word=type==='symbol_key'?text(raw.word,'Printed key word',4).toUpperCase():'NOTE';
     if(!/^[A-Z]{4}$/.test(word))throw Error('The printed word must contain four ASCII letters.');
     const context={labels,features,word,title:text(raw.material.title,'Material title',45)};
     const compiled=buildContextPuzzle(i+1,type,context,digits.slice());
@@ -100,7 +100,7 @@ export function prepareContextualBlueprint(candidate,spec){
   if(new Set(stages.slice(0,4).map(stage=>stage.material.logic.signature)).size!==4)throw Error('The first four activities repeat the same puzzle; distinct variations are required.');
   const ending=text(candidate.ending,'Ending',1000);
   if(!/[.!?]$/.test(ending))throw Error('The ending must be a complete sentence.');
-  return {ending,groupInstructions:spec.setting==='classroom'?text(candidate.groupInstructions,'Group instructions',600):'',stages};
+  return {ending,groupInstructions:spec.setting==='classroom'?'Each crew uses its own complete Player set and keeps its own four result digits. Rotate the four jobs after each checkpoint; the teacher checks each result before releasing the next pages.':'',stages};
 }
 
 export function validateContextualPuzzle(stage){

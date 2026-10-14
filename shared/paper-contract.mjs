@@ -18,7 +18,7 @@ export function paperPlanMechanics(gameplay={}){
 export function completePaperPlan(candidate,gameplay){
   if(candidate?.stages?.length!==5)throw Error('Five planned checkpoints are required.');
   const mechanics=paperPlanMechanics(gameplay);
-  return alignPaperPlan({...candidate,stages:candidate.stages.map((stage,index)=>({...stage,
+  return alignPaperPlan({...candidate,id:['mystery','mission'].includes(candidate.id)?candidate.id:'mission',stages:candidate.stages.map((stage,index)=>({...stage,
     number:index+1,mechanic:mechanics[index],storyContext:stage.storyContext||stage.title}))});
 }
 
