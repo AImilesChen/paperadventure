@@ -953,7 +953,7 @@ test('a paid legacy pack remakes on the same order and keeps the old download un
     if(role==='player') db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,player_sha256) VALUES ('legacy-artifact','legacy-activity',1,'published',?,?)").run(`custom/legacy-order/v1/${role}.pdf`,sha);
     else db.prepare("UPDATE artifact_versions SET guide_r2_key = ?,guide_sha256 = ? WHERE id = 'legacy-artifact'").run(`custom/legacy-order/v1/${role}.pdf`,sha);
   }
-  const queue=[];const calls=[];let failFirstNewPdf=true;
+  const queue=[];const calls=[];let failFirstNewPdf=true,failFirstAudit=true;
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture-model',
     GENERATION_QUEUE:{send:async job=>queue.push(job)},
     PRIVATE_FILES:{put:async(key,body,options)=>{if(key.includes('paper-remake/player.pdf')&&failFirstNewPdf){failFirstNewPdf=false;throw new Error('Temporary replacement storage failure');}files.set(key,{bytes:typeof body==='string'?new TextEncoder().encode(body):body,sha:options.customMetadata.sha256});},get:async key=>{const file=files.get(key);return file&&{body:file.bytes,customMetadata:{sha256:file.sha}};}},
@@ -962,7 +962,7 @@ test('a paid legacy pack remakes on the same order and keeps the old download un
       calls.push([name,input.stageNumber||0]);
       const value=name==='game_blueprint'?{ending:sampleStory.ending,groupInstructions:'',stages:sampleStory.stages.map((stage,index)=>({question:stage.clue,evidence:stage.clue,options:stage.options,answerIndex:stage.answerIndex,unlock:stage.unlock,material:index===1&&!input.candidate?{...stage.material,type:'evidence_cards'}:stage.material}))}
         :name==='game_checkpoint'?{clue:sampleStory.stages[input.stageNumber-1].clue,explanation:sampleStory.stages[input.stageNumber-1].explanation,hint:sampleStory.stages[input.stageNumber-1].hint}
-        :{pass:true,issues:[]};
+        :failFirstAudit?(failFirstAudit=false,{pass:false,issues:[{stageNumber:1,reason:'Stage 1 answer leaks because an option repeats a printed card.'}]}):{pass:true,issues:[]};
       return Response.json({id:`remake-${calls.length}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
     }};
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
@@ -976,11 +976,11 @@ test('a paid legacy pack remakes on the same order and keeps the old download un
   assert.equal((await handleProductionApi(request('/api/v1/orders/legacy-order/pack-remake','POST',undefined,headers),env)).status,200);
   assert.equal(queue.length,1,'repeat clicks do not start another model run');
   assert.equal((await view()).remake.status,'queued');
-  for(let step=0;step<10;step++) {
+  for(let step=0;step<17;step++) {
     const job=queue.shift();assert.equal(job?.type,'pack_remake');
     let retries=0;await productionWorker.queue({messages:[{body:job,ack(){},retry(){retries++;}}]},env);
     assert.equal(retries,0);
-    if(step<9) assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),oldPdf,'old PDF stays available until replacement is complete');
+    if(step<16) assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),oldPdf,'old PDF stays available until replacement is complete');
   }
   const completed=await view();
   assert.equal(completed.remake.status,'ready');
@@ -990,7 +990,7 @@ test('a paid legacy pack remakes on the same order and keeps the old download un
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,2);
   assert.equal(db.prepare("SELECT pack_format_version FROM artifact_versions WHERE version_number=1").get().pack_format_version,1);
   assert.equal(db.prepare("SELECT pack_format_version FROM artifact_versions WHERE version_number=2").get().pack_format_version,2);
-  assert.equal(calls.length,8,'the rejected blueprint is repaired once before five checkpoints and one audit');
+  assert.equal(calls.length,15,'a rejected blueprint and answer-leaking audit repair only the saved paid remake');
   assert.notDeepEqual(new Uint8Array(await (await download()).arrayBuffer()),oldPdf,'downloads switch only after checked publication');
   const originalDownload=await handleProductionApi(request('/api/v1/files/legacy-order/player?paper=A4&version=1','GET',undefined,headers),env);
   assert.deepEqual(new Uint8Array(await originalDownload.arrayBuffer()),oldPdf,'the earlier pack can still be downloaded by its owner');
@@ -1057,3 +1057,4 @@ test('a failed paid first plan offers one free recovery without another checkout
   assert.equal(viewed.planReview.targetedUsed,0);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM orders WHERE id='recovery-order'").get().count,1);
 });
+

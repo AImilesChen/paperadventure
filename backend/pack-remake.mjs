@@ -7,8 +7,11 @@ import { buildGamePdf } from './pdf.mjs';
 
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
 const nowSeconds = () => Math.floor(Date.now() / 1000);
-const MAX_CALLS = 14;
+const MAX_CALLS = 20;
 const MAX_STEP_CALLS = 2;
+const MAX_BLUEPRINT_CALLS = 3;
+const MAX_AUDIT_CALLS = 4;
+const stepLimit = phase => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
 
@@ -112,7 +115,7 @@ async function recordCall(remake, phase, stageNumber, produce, env) {
   if (cached) return JSON.parse(cached.result_json);
   const stepCount = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND phase = ? AND stage_number = ? AND generation_round = ?', remake.order_id, phase, stageNumber, round).first();
   const total = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND generation_round = ?', remake.order_id, round).first();
-  if (stepCount.n >= MAX_STEP_CALLS || total.n >= MAX_CALLS)
+  if (stepCount.n >= stepLimit(phase) || total.n >= MAX_CALLS)
     throw new ApiError(422, 'REMAKE_BUDGET_EXHAUSTED', 'The safe generation limit was reached. Your original game remains available.');
   const id = crypto.randomUUID();
   await query(db, "INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,round_number,generation_round) VALUES (?,?,?,?,'started',?,?,?)", id, remake.order_id, phase, stageNumber, aiProvider(env).model, Math.min(round,2), round).run();
@@ -199,7 +202,7 @@ export async function processPackRemake(orderId, env) {
   try {
     if (!remake.blueprint_json) {
       const blueprint = validateBlueprint(await recordCall(remake, 'blueprint', 0, async () => {
-        const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND phase = 'blueprint' AND stage_number = 0 AND generation_round = ? AND status = 'failed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1", orderId, remake.recovery_round + 1).first();
+        const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", orderId).first();
         const result = prior ? await repairBlueprint(spec, JSON.parse(prior.result_json), prior.error_detail, env, env.FETCH || fetch) : await generateBlueprint(spec, env, env.FETCH || fetch);
         return { value: result.blueprint, usage: result.usage, responseId: result.responseId };
       }, env), spec);
@@ -245,17 +248,27 @@ export async function processPackRemake(orderId, env) {
     const code = typeof caught?.code === 'string' && /^[A-Z0-9_]{1,60}$/.test(caught.code) ? caught.code : 'UNEXPECTED';
     const total = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND generation_round = ?', orderId, remake.recovery_round + 1).first();
     const step = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND phase = ? AND stage_number = ? AND generation_round = ?', orderId, phase, stageNumber, remake.recovery_round + 1).first();
-    let retry = total.n < MAX_CALLS && step.n < MAX_STEP_CALLS && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING'].includes(code);
+    let retry = total.n < MAX_CALLS && step.n < stepLimit(phase) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING'].includes(code);
     if (code === 'GENERATION_QA_FAILED') {
       const failedStage = caught.stageNumber;
       retry = retry && failedStage >= 1 && failedStage <= 5;
       if (retry) {
-        const stages = JSON.parse(remake.stages_json || '[]').slice(0, failedStage - 1);
-        await db.batch([
-          query(db, 'UPDATE custom_pack_remakes SET stages_json = ? WHERE order_id = ?', JSON.stringify(stages), orderId),
-          query(db, "UPDATE custom_pack_remake_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND phase = 'checkpoint' AND stage_number >= ? AND status = 'passed'", orderId, failedStage),
-        ]);
-        phase = 'checkpoint';
+        const blueprintIssue = /material|card|option|choice|answer leak|printed piece/i.test(caught.message);
+        if (blueprintIssue) {
+          await db.batch([
+            query(db, "UPDATE custom_pack_remake_calls SET status = 'failed',error_code = 'AUDIT_REJECTED',error_detail = ? WHERE id = (SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND phase = 'blueprint' AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1)", String(caught.message).slice(0,500), orderId),
+            query(db, "UPDATE custom_pack_remake_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND phase = 'checkpoint' AND status = 'passed'", orderId),
+            query(db, "UPDATE custom_pack_remakes SET blueprint_json = NULL,blueprint_sha256 = NULL,stages_json = '[]',story_json = NULL,story_sha256 = NULL WHERE order_id = ?", orderId),
+          ]);
+          phase = 'blueprint';
+        } else {
+          const stages = JSON.parse(remake.stages_json || '[]').slice(0, failedStage - 1);
+          await db.batch([
+            query(db, 'UPDATE custom_pack_remakes SET stages_json = ? WHERE order_id = ?', JSON.stringify(stages), orderId),
+            query(db, "UPDATE custom_pack_remake_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND phase = 'checkpoint' AND stage_number >= ? AND status = 'passed'", orderId, failedStage),
+          ]);
+          phase = 'checkpoint';
+        }
       }
     }
     console.error('Paid pack remake step stopped', { orderId, phase, stageNumber, code, retry, message: caught?.message });
@@ -263,3 +276,4 @@ export async function processPackRemake(orderId, env) {
     if (retry) await queueNext(orderId, env);
   }
 }
+

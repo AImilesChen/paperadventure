@@ -35,10 +35,11 @@ jobs:
           node scripts/write-stage-wrangler.mjs
           npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
           npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
-      - name: Continue the saved paid remake quality review
+      - name: Repair the saved paid remake blueprint after quality review
         run: |
-          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "UPDATE custom_pack_remakes SET status='queued',recovery_round=2,recovery_count=1,failure_count=0,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND status='failed' AND phase='checkpoint' AND recovery_round=1 AND published_version IS NULL"
-          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "UPDATE custom_pack_remakes SET status='queued',phase='audit',failure_count=0,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND status='failed' AND phase='audit' AND recovery_round=2 AND published_version IS NULL"
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "UPDATE custom_pack_remake_calls SET status='failed',error_code='AUDIT_REJECTED',error_detail=(SELECT error_detail FROM custom_pack_remakes WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407') WHERE id=(SELECT id FROM custom_pack_remake_calls WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND phase='blueprint' AND status='passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1) AND EXISTS(SELECT 1 FROM custom_pack_remakes WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND status='failed' AND phase='audit' AND recovery_round=2 AND published_version IS NULL)"
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "UPDATE custom_pack_remake_calls SET result_json=NULL,error_code='AUDIT_REJECTED' WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND phase='checkpoint' AND status='passed' AND EXISTS(SELECT 1 FROM custom_pack_remakes WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND status='failed' AND phase='audit' AND recovery_round=2 AND published_version IS NULL)"
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "UPDATE custom_pack_remakes SET status='queued',phase='blueprint',blueprint_json=NULL,blueprint_sha256=NULL,stages_json='[]',story_json=NULL,story_sha256=NULL,failure_count=0,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND status='failed' AND phase='audit' AND recovery_round=2 AND published_version IS NULL"
           node --input-type=module <<'NODE'
           const base = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/queues`;
           const headers = {Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`};
@@ -61,4 +62,5 @@ jobs:
             sleep 5
           done
           exit 1
+
 

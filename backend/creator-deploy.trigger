@@ -1,1 +1,2 @@
-2026-10-14: preserve and show actionable quality-review feedback, then resume the saved paid order for one checked review and any identified checkpoint repair.
+2026-10-14: repair paper-material answer leaks after quality review, then resume the saved paid order at no charge.
+
