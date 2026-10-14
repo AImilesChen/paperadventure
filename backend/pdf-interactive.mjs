@@ -85,9 +85,9 @@ function challenge(stage,spec){
   page.text('READ THE CLUE AND USE THE NEXT MATERIAL SHEET',48,y,11,true);y-=24;
   y=page.block(stage.clue,48,y,78,11,18)-17;
   for(let i=0;i<stage.options.length;i++){
-    const option=stage.options[i],lines=wrap(option,70),height=Math.max(42,lines.length*16+17);
+    const option=stage.options[i],display=`${String.fromCharCode(65+i)}. ${option}`,lines=wrap(display,70),height=Math.max(42,lines.length*16+17);
     page.box(48,y-height,page.width-96,height,'0.97 0.99 1');
-    page.block(`${String.fromCharCode(65+i)}. ${option}`,60,y-17,70,11,16);
+    page.block(display,60,y-17,70,11,16);
     y-=height+9;
   }
   if(y<120)throw new Error(`Checkpoint ${stage.number} challenge exceeds the printable page`);
@@ -249,3 +249,4 @@ export function buildInteractiveGamePdf(story,spec,role){
   pages.forEach((page,index)=>page.text(`Page ${index+1} of ${pages.length}`,page.width-126,30,9));
   return serialize(pages);
 }
+
