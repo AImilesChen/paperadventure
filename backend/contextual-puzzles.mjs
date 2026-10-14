@@ -1,4 +1,4 @@
-import {paperContractTypes,paperActions,validatePaperPlan} from '../shared/paper-contract.mjs';
+import {paperContractTypes,paperActions,paperAction,validatePaperPlan} from '../shared/paper-contract.mjs';
 
 const text=(value,label,max)=>{
   if(typeof value!=='string'||!value.trim()||value.length>max||/[^\x20-\x7e]/.test(value))throw Error(`${label} must be concise printable English (maximum ${max}).`);
@@ -74,7 +74,7 @@ export function buildContextPuzzle(number,type,context,previousDigits=[]){
   if(number!==5 && ['order_tiles','symbol_key'].includes(type))options=options.map((option,i)=>`${option} / digit ${i+1}`);
   const material={type,title:context.title,instruction,recordPrompt:number===5?'Record your final action and the four earlier results that prove it.':'Record the chosen result and its digit. Keep this sheet for checkpoint 5.',items,
     logic:{version:1,contractVersion:1,context,number,previousDigits,signature,resultDigit:number===5?null:digit}};
-  const task=paperActions[number===5?'finale':type].task;
+  const task=paperAction(type,number).task;
   return {number,question:task,evidence:clue,options:rotate(options,shift),answerIndex:(answer-shift+3)%3,material,
     clue,hint,explanation,task,teamwork:number===5?'Each explorer checks one earlier result. Compare all four before agreeing on the final action.':'One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.',
     unlock:number===5?'The four discoveries identify the final action. Read the ending together.':`Keep result digit ${digit}. Hand out checkpoint ${number+1}, Player pages ${number*2+2}-${number*2+3}.`};

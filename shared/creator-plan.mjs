@@ -68,7 +68,7 @@ export function validatePlan(value, spec) {
   const plan = {
     id:value.id,title:text(value.title,'Title',100),summary:text(value.summary,'Summary',600),
     opening:text(value.opening,'Opening',900),roles:text(value.roles,'Roles',300),goal:text(value.goal,'Goal',260),
-    preparation:text(value.preparation,'Preparation',500),
+    preparation:text(value.preparation,'Preparation',500),...(spec.packContractVersion===1&&value.premise?{premise:text(value.premise,'Premise',200)}:{}),
     stages:value.stages.map((item,index) => {
       if (item.number !== index+1 || !selected.includes(item.mechanic)) throw new Error('A checkpoint has an unsupported number or play style.');
       return {number:index+1,title:text(item.title,'Checkpoint title',100),mechanic:item.mechanic,

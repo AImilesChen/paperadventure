@@ -63,7 +63,7 @@ test('new paid plans generate narrative only; setup and selected main-style allo
   const result=await generateSinglePlan(spec,env,async(url,request)=>{
     const body=JSON.parse(request.body);
     if(!calls){
-      assert.deepEqual(body.text.format.schema.required,['id','title','summary','opening','goal','stages']);
+      assert.deepEqual(body.text.format.schema.required,['id','title','summary','premise','goal','stages']);
       assert.equal(body.text.format.schema.properties.stages.items.properties.mechanic,undefined);
     }
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(calls++?{pass:true,issues:[]}:candidate)}]}]});
@@ -75,7 +75,7 @@ test('new paid plans generate narrative only; setup and selected main-style allo
 });
 test('an overlong paid plan is repaired before audit and usage includes the repair',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
-  const valid=planFixture(spec),overlong={...valid,opening:'R'.repeat(400)};
+  const valid=planFixture(spec),overlong={...valid,premise:'R'.repeat(400)};
   let calls=0;
   const result=await generateSinglePlan(spec,env,async()=>{
     const value=[overlong,valid,{pass:true,issues:[]}][calls++];
@@ -87,7 +87,7 @@ test('an overlong paid plan is repaired before audit and usage includes the repa
 
 test('failed plan validation preserves usage from both paid provider responses',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
-  const invalid={...planFixture(spec),opening:'R'.repeat(400)};
+  const invalid={...planFixture(spec),premise:'R'.repeat(400)};
   let calls=0;
   await assert.rejects(generateSinglePlan(spec,env,async()=>{
     calls++;return Response.json({id:`failed-${calls}`,output:[{content:[{type:'output_text',text:JSON.stringify(invalid)}]}],usage:{input_tokens:10,output_tokens:20}});

@@ -9,6 +9,22 @@ export const paperActions={
   finale:{title:'Combine the four discoveries',task:'Copy your result digits from checkpoints 1-4 in order. Compare this code with the three final actions and choose the matching action.'},
 };
 
+export function paperAction(type,number){
+  if(number===5)return paperActions.finale;
+  if(type==='order_tiles')return [
+    {title:'Arrange the linked repair steps',task:'Arrange the four printed steps using every before-and-after link. Record the matching order and result digit.'},
+    {title:'Arrange first, last and neighbours',task:'Arrange the four printed steps using the first, last and neighbouring-step rules. Record the matching order and result digit.'},
+    {title:'Arrange the earlier and later steps',task:'Arrange the four printed steps using every earlier/later rule. Record the matching order and result digit.'},
+  ][number%3];
+  if(type==='symbol_key')return {title:`Decode printed message ${number}`,task:`Decode printed message ${number} with its complete four-row key. Record the decoded word and its result digit.`};
+  return paperActions[type];
+}
+
+function paperOpening(premise){
+  if(typeof premise!=='string'||!premise.trim()||premise.length>200||!/[.!?]$/.test(premise.trim()))throw Error('The fictional premise needs complete sentences under 200 characters.');
+  return `${premise.trim()} Complete four printed checks to collect four result digits. Their combined code identifies the final action that completes this mission.`;
+}
+
 export function paperPlanMechanics(gameplay={}){
   const primary=gameplay.primary||'reasoning';
   const support=gameplay.secondary||[];
@@ -19,7 +35,7 @@ export function completePaperPlan(candidate,gameplay){
   if(candidate?.stages?.length!==5)throw Error('Five planned checkpoints are required.');
   const mechanics=paperPlanMechanics(gameplay);
   const types=paperContractTypes({stages:mechanics.map(mechanic=>({mechanic}))});
-  return alignPaperPlan({...candidate,id:['mystery','mission'].includes(candidate.id)?candidate.id:'mission',stages:candidate.stages.map((stage,index)=>({...stage,
+  return alignPaperPlan({...candidate,...(candidate.premise?{opening:paperOpening(candidate.premise)}:{}),id:['mystery','mission'].includes(candidate.id)?candidate.id:'mission',stages:candidate.stages.map((stage,index)=>({...stage,
     number:index+1,mechanic:mechanics[index],scene:stage.scene||`At printed checkpoint ${index+1}`,storyContext:paperStoryMoment(stage.scene||`At printed checkpoint ${index+1}`,types[index],index+1)}))});
 }
 
@@ -28,7 +44,7 @@ export function paperStoryMoment(scene,type,number){
   const operation=number===5?'Combine the four saved digits in order. Only one printed final action matches this code and completes the mission.':{
     evidence_cards:'Three report cards offer two facts each. Match both printed conditions and save the chosen result digit.',
     decision_record:"Two witness notes rule out two of three candidates. Save the remaining candidate's digit for the final code.",
-    order_tiles:'Arrange four printed steps using every rule on their tiles. Save the matching order and its result digit.',
+    order_tiles:number%3===1?'Arrange four printed steps using first, last and neighbouring-step rules. Save the matching result digit.':number%3===2?'Arrange four printed steps using the earlier/later rules. Save the matching result digit.':'Arrange four printed steps using the before-and-after links. Save the matching result digit.',
     symbol_key:'Use the four-row key to decode a four-letter word. Find its matching choice and save the result digit.',
     route_board:'Three paper routes show two conditions each. Choose the route meeting both conditions and save its digit.',
   }[type];
@@ -58,7 +74,7 @@ export function paperContractTypes(plan){
 export function alignPaperPlan(plan){
   const types=paperContractTypes(plan);
   const stages=plan.stages.map((stage,index)=>{
-    const action=paperActions[index===4?'finale':types[index]];
+    const action=paperAction(types[index],index+1);
     return {...stage,storyContext:stage.storyContext||stage.title,title:action.title,task:action.task,
       teamwork:index===4?'Each explorer checks one earlier result. Compare all four before agreeing on the final action.':'One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.',
       connection:index===4?'The four recorded discoveries identify the final action.':`Save this result digit for checkpoint 5, then continue to checkpoint ${index+2}.`};

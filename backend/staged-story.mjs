@@ -3,7 +3,7 @@ import { aiProvider } from './openai.mjs';
 import { materialTypes, validatePrintableMaterial, validateMaterialSet } from './printable-material.mjs';
 import { compileControlledPuzzle, controlledStageText, validateControlledPuzzle, controlledMaterialTypes } from './controlled-puzzles.mjs';
 import {prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {paperContractTypes,paperActions} from '../shared/paper-contract.mjs';
+import {paperContractTypes,paperActions,paperAction} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
 
 const string = {type:'string'};
@@ -142,7 +142,7 @@ function preparedBlueprint(candidate,spec) {
 }
 
 function controlledPaperActivities(spec) {
-  if(spec.packContractVersion===1)return paperContractTypes(spec.plan).map((type,index)=>({checkpoint:index+1,type,pieceCount:index===4?3:['order_tiles','symbol_key'].includes(type)?4:3,action:paperActions[index===4?'finale':type].task}));
+  if(spec.packContractVersion===1)return paperContractTypes(spec.plan).map((type,index)=>({checkpoint:index+1,type,pieceCount:index===4?3:['order_tiles','symbol_key'].includes(type)?4:3,action:paperAction(type,index+1).task}));
   return controlledMaterialTypes(spec.plan).map((type,index)=>({checkpoint:index+1,type,pieceCount:type==='order_tiles'||type==='symbol_key'?4:3}));
 }
 
