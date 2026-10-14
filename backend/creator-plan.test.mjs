@@ -54,6 +54,25 @@ test('paid plan parser accepts fenced provider JSON and audits the result',async
   });
   assert.equal(calls,2);assert.equal(result.plan.title,plan.title);
 });
+
+test('new paid plans generate narrative only; setup and selected main-style allocation cannot drift',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3,gameplay:{primary:'sequence',secondary:['reasoning']}}).spec;
+  const candidate=planFixture({...spec,gameplay:{primary:'reasoning',secondary:[]}});
+  candidate.roles='R'.repeat(501);candidate.preparation='P'.repeat(502);
+  let calls=0;
+  const result=await generateSinglePlan(spec,env,async(url,request)=>{
+    const body=JSON.parse(request.body);
+    if(!calls){
+      assert.deepEqual(body.text.format.schema.required,['id','title','summary','opening','goal','stages']);
+      assert.equal(body.text.format.schema.properties.stages.items.properties.mechanic,undefined);
+    }
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(calls++?{pass:true,issues:[]}:candidate)}]}]});
+  });
+  assert.equal(calls,2);
+  assert.deepEqual(result.plan.stages.map(stage=>stage.mechanic),['sequence','sequence','sequence','reasoning','reasoning']);
+  assert.match(result.plan.roles,/Reader, Paper Handler, Checker and Recorder/);
+  assert.match(result.plan.preparation,/Keep the adult guide and ending private/);
+});
 test('an overlong paid plan is repaired before audit and usage includes the repair',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const valid=planFixture(spec),overlong={...valid,opening:'R'.repeat(400)};
