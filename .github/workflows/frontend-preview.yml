@@ -21,6 +21,15 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Inspect safe quality issue counts
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PAPER_ADVENTURE_STAGE_D1_ID: 'b7d51f25-4c7f-4e51-84e5-52459376e9f9'
+        run: |
+          node scripts/write-stage-wrangler.mjs
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT generation_round,status,CASE WHEN result_json IS NULL THEN 0 ELSE 1 END AS review_saved,COALESCE(json_array_length(json_extract(result_json,'$.issues')),0) AS issue_count,json_extract(result_json,'$.issues[0].stageNumber') AS first_stage FROM custom_pack_remake_calls WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND phase='audit' ORDER BY created_at DESC,id DESC LIMIT 2"
       - run: npm ci
       - run: npm run build
       - run: npm run test:static
