@@ -30,6 +30,15 @@ export function verifyPrintedPuzzles(story){
       const matches=items.slice(0,3).filter(item=>item.detail===`Final action code: ${code}`);
       if(matches.length!==1)throw Error('The final printed record does not have one matching action.');
       expected=`${matches[0].label} / ${code}`;
+    }else if(type==='route_board'&&stage.material.logic?.experienceVersion>=2){
+      if(items.length!==4||items[3].label!=='Route rule'||!items[3].detail.includes('Both links must be OPEN'))throw Error('The printed route rule is missing.');
+      const matches=items.slice(0,3).filter(item=>{
+        const match=item.detail.match(/^START > .+ > END\. First link: (OPEN|CLOSED)\. Second link: (OPEN|CLOSED)\. Digit: ([1-3])\.$/);
+        if(!match)throw Error('A route is missing a printed link or result digit.');
+        return match[1]==='OPEN'&&match[2]==='OPEN';
+      });
+      if(matches.length!==1)throw Error('Printed route links must leave exactly one continuous path.');
+      expected=matches[0].label;digit=matches[0].detail.match(/Digit: ([1-3])\.$/)?.[1];
     }else if(type==='evidence_cards'||type==='route_board'){
       const rule=items[3];
       if(!rule||!/^Choose a (piece|route) with YES for both /.test(rule.detail))throw Error('A separate printed comparison rule is required.');
@@ -39,6 +48,18 @@ export function verifyPrintedPuzzles(story){
       });
       if(matches.length!==1)throw Error('Printed comparison facts must identify one candidate.');
       expected=matches[0].label;digit=matches[0].detail.match(/Digit: ([1-3])\./)?.[1];
+    }else if(type==='decision_record'&&stage.material.logic?.experienceVersion>=2){
+      const candidates=items.slice(0,3),witnesses=items.slice(3);
+      if(candidates.length!==3||witnesses.length!==2)throw Error('The witness record is incomplete.');
+      const required=witnesses.map(witness=>{
+        const match=witness.detail.match(/^The right choice has (.+): YES\.$/);
+        if(!match)throw Error('A witness property is missing.');
+        return match[1];
+      });
+      if(new Set(required).size!==2)throw Error('The two witness properties must differ.');
+      const matches=candidates.filter(item=>required.every(feature=>item.detail.includes(`${feature}: YES.`)));
+      if(matches.length!==1)throw Error('The printed witness properties must identify one candidate.');
+      expected=matches[0].label;digit=matches[0].detail.match(/Result digit: ([1-3])\.$/)?.[1];
     }else if(type==='decision_record'){
       const candidates=items.slice(0,3),witnesses=items.slice(3);
       if(witnesses.length!==2)throw Error('Two printed witness statements are required.');

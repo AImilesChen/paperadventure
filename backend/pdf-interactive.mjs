@@ -52,20 +52,29 @@ const kindLabel={evidence_cards:'Evidence cards',order_tiles:'Order tiles',symbo
 
 function cover(story,spec){
   const page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,'Player Pack / Start');
+  const compact=spec.paper==='Letter';
   let y=heading(page,'A game to print and play',story.title);
-  y=page.block(story.introduction,48,y,75,11,18)-20;
-  page.text('YOUR MISSION',48,y,12,true);y-=23;
-  y=page.block(spec.plan.goal,48,y,75,11,18)-15;
-  if(spec.packContractVersion===1)y=page.block('Collect one result digit at each of the first four checkpoints. Keep your sheets: all four digits are needed to choose the final story action.',48,y,75,11,18)-15;
-  page.text('PLAY AS A TEAM',48,y,12,true);y-=23;
-  y=page.block(spec.plan.roles,48,y,75,11,18)-20;
-  page.text('FIVE PAPER CHECKPOINTS',48,y,12,true);y-=22;
-  for(const stage of story.stages){
-    y=page.block(`${stage.number}. ${stage.title} - ${kindLabel[stage.material.type]}`,56,y,70,11,16,true)-12;
-  }
-  if(y<145)throw new Error('The opening, roles and checkpoint list do not fit the cover.');
-  page.box(48,65,page.width-96,60,'0.93 0.97 0.99');
-  page.block('Print single-sided. Use pencils. An adult holds the guide and releases one checkpoint at a time. Cards and tiles may be cut by an adult, or used whole by pointing and writing.',60,105,77,9,14);
+  y=page.block(story.introduction,48,y,75,11,18)-(compact?13:20);
+  page.text('YOUR MISSION',48,y,12,true);y-=compact?20:23;
+  y=page.block(spec.plan.goal,48,y,75,11,18)-(compact?12:15);
+  if(spec.packContractVersion===1)y=page.block('Collect one result digit at each of the first four checkpoints. Keep your sheets: all four digits are needed to choose the final story action.',48,y,75,11,18)-(compact?12:15);
+  page.text('PLAY AS A TEAM',48,y,12,true);y-=compact?20:23;
+  y=page.block(spec.plan.roles,48,y,75,11,18)-(compact?14:20);
+  page.text('FIVE PAPER CHECKPOINTS',48,y,12,true);y-=compact?19:22;
+  const checkpointLines=story.stages.map(stage=>`${stage.number}. ${stage.title} - ${kindLabel[stage.material.type]}`);
+  const minY=compact?128:145;
+  const oneColumnBottom=y-checkpointLines.reduce((height,label)=>height+wrap(label,70).length*16+(compact?9:12),0);
+  if(spec.packExperienceVersion>=2&&oneColumnBottom<minY){
+    const columnX=[56,Math.round(page.width/2)+5],columnBottom=[y,y];
+    checkpointLines.forEach((label,index)=>{
+      const column=index<3?0:1;
+      columnBottom[column]=page.block(label,columnX[column],columnBottom[column],38,10,14,true)-11;
+    });
+    y=Math.min(...columnBottom);
+  }else for(const label of checkpointLines)y=page.block(label,56,y,70,11,16,true)-(compact?9:12);
+  if(y<minY)throw new Error('The opening, roles and checkpoint list do not fit the cover.');
+  page.box(48,compact?55:65,page.width-96,60,'0.93 0.97 0.99');
+  page.block('Print single-sided. Use pencils. An adult holds the guide and releases one checkpoint at a time. Cards and tiles may be cut by an adult, or used whole by pointing and writing.',60,compact?95:105,77,9,14);
   return page;
 }
 
@@ -94,7 +103,8 @@ function challenge(stage,spec){
   page.text('OUR CHOICE AND EVIDENCE:',48,y-25,10,true);
   page.rule(48,y-48,page.width-48,y-48);
   if(y>=205){
-    page.text(stage.material?.logic?.contractVersion===1&&stage.number===5?'THE FOUR SAVED RESULTS THAT SUPPORT OUR CHOICE:':'TWO PRINTED FACTS THAT SUPPORT OUR CHOICE:',48,y-82,10,true);
+    const proofLabel=stage.number===5?'THE FOUR SAVED RESULTS THAT SUPPORT OUR CHOICE:':stage.material?.type==='order_tiles'?'THE PRINTED ORDER RULES THAT SUPPORT OUR CHOICE:':stage.material?.type==='symbol_key'?'THE KEY ROWS THAT SUPPORT OUR CHOICE:':stage.material?.type==='route_board'?'THE TWO ROUTE LINKS THAT SUPPORT OUR CHOICE:':stage.material?.type==='decision_record'?'THE WITNESS FACTS THAT SUPPORT OUR CHOICE:':'TWO PRINTED FACTS THAT SUPPORT OUR CHOICE:';
+    page.text(proofLabel,48,y-82,10,true);
     page.rule(48,y-111,page.width-48,y-111);
     page.rule(48,y-143,page.width-48,y-143);
   }
@@ -112,7 +122,29 @@ function materialSheet(stage,spec){
   }
   page.text('PRINTED PIECES',48,y,11,true);y-=20;
   const items=material.items;
-  if(material.type==='route_board'){
+  if(material.type==='route_board'&&material.logic?.experienceVersion>=2){
+    const top=y,graphBottom=top-330;
+    if(graphBottom<180)throw new Error(`Checkpoint ${stage.number} route map does not fit.`);
+    page.box(48,graphBottom,page.width-96,330,'0.97 0.99 1');
+    const startX=89,midX=Math.round(page.width/2),endX=page.width-89,center=top-165;
+    page.circle(startX,center,18);page.circle(endX,center,18);
+    page.text('START',startX-19,center-32,8,true);page.text('END',endX-10,center-32,8,true);
+    for(const [index,item] of items.slice(0,3).entries()){
+      const pointY=top-61-index*103;
+      const match=item.detail.match(/First link: (OPEN|CLOSED)\. Second link: (OPEN|CLOSED)\. Digit: ([1-3])\./);
+      if(!match)throw new Error(`Checkpoint ${stage.number} route links are incomplete.`);
+      page.rule(startX+18,center,midX-22,pointY,match[1]==='OPEN'?'0.08 0.39 0.57':'0.77 0.19 0.13');
+      page.rule(midX+22,pointY,endX-18,center,match[2]==='OPEN'?'0.08 0.39 0.57':'0.77 0.19 0.13');
+      page.circle(midX,pointY,19);
+      page.text(item.label,midX-44,pointY+26,9,true);
+      page.text(`LINK 1 ${match[1]}`,startX+35,pointY+12,8,true);
+      page.text(`LINK 2 ${match[2]}`,endX-98,pointY+12,8,true);
+      page.text(`DIGIT ${match[3]}`,midX-20,pointY-36,8,true);
+      if(match[1]==='CLOSED')page.text('X',Math.round((startX+midX)/2),Math.round((center+pointY)/2),18,true,'0.77 0.19 0.13');
+      if(match[2]==='CLOSED')page.text('X',Math.round((endX+midX)/2),Math.round((center+pointY)/2),18,true,'0.77 0.19 0.13');
+    }
+    y=page.block(items[3].detail,48,graphBottom-24,76,10,15)-14;
+  }else if(material.type==='route_board'){
     const routeCount=material.logic?.contractVersion===1?3:items.length;
     const routeHeight=Math.min(110,Math.floor((y-178-(material.logic?.contractVersion?73:0))/routeCount)-8);
     if(routeHeight<80)throw new Error(`Checkpoint ${stage.number} route rows do not fit.`);
@@ -173,6 +205,22 @@ function materialSheet(stage,spec){
 function guideStart(story,spec){
   const page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,'Adult guide / Preparation');
   let y=heading(page,'Keep this guide with the adult',story.title);
+  if(spec.packExperienceVersion>=2){
+    const sections=[
+      ['THE MISSION',spec.plan.goal],
+      ['PRINT AND PREPARE',`${spec.setting==='classroom'?`Print ${spec.groups} complete Player sets, one per crew.`:`Print one complete Player Pack for ${spec.players} players.`} Use ${spec.paper} paper and pencils. Keep this guide and the ending page private. Cutting cards or tiles is optional; pointing and writing always work.`],
+      ['RELEASE THE PAGES','Start with Player pages 2-3. After each correct result, release only the next challenge and material pair: 4-5, 6-7, 8-9, then 10-11. Give out Player page 12 only after the final answer is checked.'],
+      ['FOUR JOBS','Reader reads the clue aloud. Paper Handler points to or arranges pieces. Checker tests the printed rule and explains why another choice fails. Recorder writes the choice and its result digit. Rotate jobs after each checkpoint.'],
+      ['IF THE TEAM GETS STUCK','Ask them to show which printed fact supports their choice. Use Hint 1, then Hint 2 on the checkpoint guide page. Let them change their answer. Give the adult answer only after they have tried the materials.'],
+      ['SUCCESS CHECK','The first four checkpoint digits must be recorded in order. Check each answer and digit before moving on. The fifth checkpoint combines all four digits; it does not give a new digit.'],
+    ];
+    for(const [label,value] of sections){
+      page.text(label,48,y,10,true,'0.77 0.19 0.13');y-=18;
+      y=page.block(value,48,y,77,10,16)-18;
+    }
+    if(y<68)throw new Error('Adult preparation guide does not fit.');
+    return page;
+  }
   y=page.block(spec.plan.preparation,48,y,78,11,18)-22;
   page.text('BEFORE PLAY',48,y,12,true);y-=24;
   y=page.block(`${spec.setting==='classroom'?`Print ${spec.groups} complete Player sets, one per crew.`:`Print one Player Pack for your ${spec.players} players.`} Paper size: ${spec.paper}. Use pencils. An adult may cut cards or tiles before play, or leave every sheet whole and let children point and write. Release each challenge and its material sheet only after checking the previous result.`,48,y,77,11,18)-22;
@@ -182,10 +230,70 @@ function guideStart(story,spec){
   return page;
 }
 
+function wrongChoiceNotes(stage){
+  const correct=stage.options[stage.answerIndex];
+  const type=stage.material.type;
+  const items=stage.material.items;
+  const notes=[];
+  for(const [index,option] of stage.options.entries()){
+    if(index===stage.answerIndex)continue;
+    const marker=String.fromCharCode(65+index);
+    let reason='Compare this choice against every printed rule.';
+    if(stage.number===5){
+      const expected=correct.match(/\/ ([1-3]{4})$/)?.[1],found=option.match(/\/ ([1-3]{4})$/)?.[1];
+      const at=expected&&found?[...expected].findIndex((digit,i)=>digit!==found[i]):-1;
+      if(at>=0)reason=`Its code differs from saved checkpoint ${at+1}.`;
+    }else if(type==='route_board'){
+      const item=items.find(piece=>piece.label===option);
+      const closed=item?.detail.match(/(First|Second) link: CLOSED/);
+      if(closed)reason=`The ${closed[1].toLowerCase()} link is CLOSED, so the path cannot reach END.`;
+    }else if(type==='evidence_cards'||type==='decision_record'){
+      const item=items.find(piece=>piece.label===option);
+      const missing=item?.detail.match(/([A-Za-z][A-Za-z ]+): NO\./);
+      if(missing)reason=`The printed ${missing[1].trim()} property is NO, but the rule requires YES.`;
+    }else if(type==='symbol_key'){
+      const expected=correct.replace(/ \/ digit [1-3]$/,''),found=option.replace(/ \/ digit [1-3]$/,'');
+      const at=[...expected].findIndex((letter,i)=>letter!==found[i]);
+      if(at>=0)reason=`Letter ${at+1} disagrees with key row ${at+1}.`;
+    }else if(type==='order_tiles'){
+      const expected=correct.replace(/ \/ digit [1-3]$/,'').split(' > '),found=option.replace(/ \/ digit [1-3]$/,'').split(' > ');
+      const at=expected.findIndex((label,i)=>label!==found[i]);
+      if(at>=0)reason=`The step at position ${at+1} disagrees with the printed order rules.`;
+    }
+    notes.push(`${marker}: ${reason}`);
+  }
+  return `Let the team compare and correct its answer. ${notes.join(' ')}`;
+}
+
 function guideStage(stage,spec){
   let page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,`Adult guide / Checkpoint ${stage.number}`);
   const pages=[page];
   let y=heading(page,`Guide / checkpoint ${stage.number}`,stage.title);
+  if(spec.packExperienceVersion>=2){
+    const option=stage.options[stage.answerIndex];
+    const prompt=stage.material.type==='order_tiles'?'Which printed before/after rule fixes the first and last step?':stage.material.type==='symbol_key'?'What letter does each row of the key give?':stage.material.type==='route_board'?'Can you trace both links without crossing a CLOSED mark?':stage.material.type==='decision_record'?'Which candidate satisfies both witness properties?':stage.number===5?'Do all four saved digits match this action in order?':'Which piece satisfies both parts of the printed rule?';
+    const sections=[
+      ['STORY BEFORE THIS CHECK',stage.storyContext||`The team reaches checkpoint ${stage.number}. The mission is still open.`],
+      ['HAND OUT',`Player pages ${stage.number*2}-${stage.number*2+1}: the challenge and ${kindLabel[stage.material.type].toLowerCase()} sheet. Keep all later pages and this answer private.`],
+      ['RUN THE PAPER ACTION',`${stage.material.instruction} Ask each player to explain one printed fact before the team records a choice.`],
+      ['HINT 1 - REDIRECT',prompt],
+      ['HINT 2 - NARROW THE CHECK',stage.hint],
+      ['CHECK THE ANSWER',`Correct choice: ${String.fromCharCode(65+stage.answerIndex)}. ${option}. ${stage.explanation}`],
+      ...(stage.material.logic?.resultDigit?[['RECORD BEFORE CONTINUING',`The team must save result digit ${stage.material.logic.resultDigit} on its material sheet. Keep that sheet for checkpoint 5.`]]:[]),
+      ['IF THEY CHOSE DIFFERENTLY',wrongChoiceNotes(stage)],
+      ['STORY AND NEXT PAGE',stage.number===5?'The four earlier results identify the final action. After the team explains the code, release Player page 12 and read the ending.':`This check gives the next discovery, but the mission is not finished yet. Release checkpoint ${stage.number+1}, Player pages ${stage.number*2+2}-${stage.number*2+3}.`],
+    ];
+    for(const [label,value] of sections){
+      const height=wrap(value,77).length*14+26;
+      if(y-height<67){
+        page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,`Adult guide / Checkpoint ${stage.number} / Continued`);
+        pages.push(page);y=heading(page,`Guide / checkpoint ${stage.number} continued`,stage.title);
+      }
+      page.text(label,48,y,9,true,'0.77 0.19 0.13');y-=16;
+      y=page.block(value,48,y,77,10,14)-10;
+    }
+    return pages;
+  }
   const sections=[['HAND OUT',`Player pages ${stage.number*2}-${stage.number*2+1}: checkpoint ${stage.number} challenge and ${kindLabel[stage.material.type].toLowerCase()} sheet: ${stage.material.title}.`],
     ['PLAYER ACTION',`${stage.task} ${stage.material.instruction}`],
     ['GENTLE HINT',stage.hint],
@@ -214,6 +322,19 @@ function finish(story,spec,role){
   if(role==='player'){
     page.text('WHAT DID YOUR TEAM DISCOVER?',48,y,12,true);y-=26;
     for(let i=0;i<5;i++){page.text(`${i+1}.`,48,y,10,true);page.rule(70,y-2,page.width-48,y-2);y-=50;}
+  } else if(spec.packExperienceVersion>=2){
+    page.text('FINAL HOST CHECK',48,y,12,true);y-=26;
+    for(const [label,value] of [
+      ['1. Four recorded results','Each of checkpoints 1-4 has one checked digit. Read them in checkpoint order; do not reorder them.'],
+      ['2. Matching action','The final action is the only one whose printed code matches all four digits. Ask the team to name the matching action and show its record.'],
+      ['3. Story ending','Read the ending after the final choice. Invite each player to share one discovery or paper action that helped the team.'],
+      ['4. If a rule seems unclear','Use the corresponding adult checkpoint page to compare the printed clue, answer and explanation. Do not invent an extra clue or require outside knowledge.'],
+      ['5. Keep answers private','Keep this guide separate from the Player Pack if the group wants to play again. The Player Pack can be printed again within your purchase rights.'],
+    ]){
+      page.text(label.toUpperCase(),48,y,10,true,'0.77 0.19 0.13');y-=20;
+      y=page.block(value,48,y,77,11,18)-22;
+    }
+    if(y<65)throw new Error('Adult ending guide does not fit.');
   } else page.block('Check all five results against the printed materials before sharing the ending. Keep this guide separate from the children\'s pages.',48,y,77,11,18);
   return page;
 }
@@ -249,4 +370,3 @@ export function buildInteractiveGamePdf(story,spec,role){
   pages.forEach((page,index)=>page.text(`Page ${index+1} of ${pages.length}`,page.width-126,30,9));
   return serialize(pages);
 }
-

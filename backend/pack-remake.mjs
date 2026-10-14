@@ -11,7 +11,7 @@ const MAX_CALLS = 20;
 const MAX_STEP_CALLS = 2;
 const MAX_BLUEPRINT_CALLS = 3;
 const MAX_AUDIT_CALLS = 4;
-const stepLimit = phase => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
+const stepLimit = (phase,spec) => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? spec?.packExperienceVersion>=2?5:MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
 
@@ -31,6 +31,7 @@ export function remakeSpec(original) {
     ...original,
     gamePackVersion: 2,
     packLogicVersion: 1,
+    ...(original.packContractVersion===1?{packExperienceVersion:2}:{}),
     plan: {
       ...plan,
       title: shorten(plan.title, 70),
@@ -127,15 +128,15 @@ export async function packRemakeView(db, orderId) {
 
 async function recordCall(remake, phase, stageNumber, produce, env) {
   const db = env.DB;
+  const spec=JSON.parse(remake.spec_json);
   const round = remake.recovery_round + 1;
   const cached = await query(db, "SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", remake.order_id, remake.logic_epoch, phase, stageNumber).first();
   if (cached) return JSON.parse(cached.result_json);
   const stepCount = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', remake.order_id, remake.logic_epoch, phase, stageNumber, round).first();
   const total = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND generation_round = ?', remake.order_id, remake.logic_epoch, round).first();
-  if (stepCount.n >= stepLimit(phase) || total.n >= MAX_CALLS)
+  if (stepCount.n >= stepLimit(phase,spec) || total.n >= MAX_CALLS)
     throw new ApiError(422, 'REMAKE_BUDGET_EXHAUSTED', 'The safe generation limit was reached. Your original game remains available.');
   const id = crypto.randomUUID();
-  const spec=JSON.parse(remake.spec_json);
   const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&phase!=='blueprint'&&!(spec.packContractVersion===1&&phase==='audit');
   await query(db, "INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,round_number,generation_round,logic_epoch) VALUES (?,?,?,?,'started',?,?,?,?)", id, remake.order_id, phase, stageNumber, deterministic?'checked-rules-v1':aiProvider(env).model, Math.min(round,2), round, remake.logic_epoch).run();
   try {
@@ -270,7 +271,7 @@ export async function processPackRemake(orderId, env) {
     const code = typeof caught?.code === 'string' && /^[A-Z0-9_]{1,60}$/.test(caught.code) ? caught.code : 'UNEXPECTED';
     const total = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND generation_round = ?', orderId, remake.logic_epoch, remake.recovery_round + 1).first();
     const step = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', orderId, remake.logic_epoch, phase, stageNumber, remake.recovery_round + 1).first();
-    let retry = total.n < MAX_CALLS && step.n < stepLimit(phase) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING'].includes(code);
+    let retry = total.n < MAX_CALLS && step.n < stepLimit(phase,spec) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING'].includes(code);
     if (code === 'GENERATION_QA_FAILED') {
       const failedStage = caught.stageNumber;
       retry = retry && failedStage >= 1 && failedStage <= 5;

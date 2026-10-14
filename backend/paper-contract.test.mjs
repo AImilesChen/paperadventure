@@ -78,6 +78,112 @@ test('independent solving rejects ambiguous printed facts and ordering constrain
   assert.throws(()=>verifyPrintedPuzzles(ordering),/one solution/);
 });
 
+test('new pack contract prints a traceable route, evidence-based witnesses and fuller adult instructions',async()=>{
+  const spec={...clockSpec,packExperienceVersion:2};
+  const raw=structuredClone(clockBlueprintContext);
+  raw.stages[2].material.items=['Inspect the idle signal','Align the spare wheel','Check the noon marker','Record the test result'].map(label=>({label}));
+  const blueprint=prepareContextualBlueprint(raw,spec),stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected provider request');})).stage);
+  const story=assembleStagedStory(spec,blueprint,stages);
+  assert.equal(verifyPrintedPuzzles(story).length,5);
+  const route=story.stages.find(stage=>stage.material.type==='route_board');
+  assert.match(route.material.items[0].detail,/First link: (OPEN|CLOSED).*Second link:/);
+  const witness=story.stages.find(stage=>stage.material.type==='decision_record');
+  assert.match(witness.material.items[3].detail,/right choice has/);
+  assert.doesNotMatch(witness.material.items[3].detail,/rules out/);
+  const broken=structuredClone(story);
+  const routeIndex=broken.stages.findIndex(stage=>stage.material.type==='route_board');
+  broken.stages[routeIndex].material.items[0].detail='A route with no printed links.';
+  assert.throws(()=>verifyPrintedPuzzles(broken),/route is missing/);
+  for(const paper of ['A4','Letter']){
+    const player=new TextDecoder().decode(buildGamePdf(story,{...spec,paper},'player'));
+    const guide=new TextDecoder().decode(buildGamePdf(story,{...spec,paper},'guide'));
+    assert.match(player,/LINK 1/);assert.match(guide,/HINT 2 - NARROW THE CHECK/);
+    assert.match(guide,/IF THEY CHOSE DIFFERENTLY/);
+  }
+  const longStory=structuredClone(story);
+  longStory.title='The Museum of Lost Words: Restore the Hidden Exhibit Label';
+  longStory.introduction='The museum display has lost its exhibit label. Three coded messages and an archive record are the only clues left behind. The team of junior curators must complete four printed checks, record their results, and use the combined code to choose the final action that restores the display. '.repeat(1);
+  longStory.stages.forEach((stage,index)=>{stage.title=`Investigate the ${['front desk message','archive clue','garden record','curator report','final exhibit action'][index]} and compare the printed findings`;});
+  const longSpec={...spec,plan:{...spec.plan,goal:'Restore the lost exhibit label so the museum display is complete again after the storm.',roles:'Reader, Paper Handler, Checker and Recorder rotate after every checkpoint. For two players, combine jobs in pairs and explain each printed fact together.'}};
+  assert.doesNotThrow(()=>buildGamePdf(longStory,{...longSpec,paper:'Letter'},'player'));
+  await auditStagedStory(story,spec,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+    const body=JSON.parse(request.body),outline=JSON.parse(body.input);
+    assert.equal(outline.goal,spec.plan.goal);
+    assert.equal(outline.checkpoints.length,5);
+    assert.equal('story' in outline,false,'the narrative critic must not reinterpret checked paper rules');
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:true,issues:[]})}]}]});
+  });
+});
+
+test('new pack rejects an early mission outcome before spending calls on later checkpoints',()=>{
+  const spec={...clockSpec,packExperienceVersion:2};
+  const raw=structuredClone(clockBlueprintContext);
+  raw.stages[2].material.items[3].label='Hear noon chime';
+  assert.throws(()=>prepareContextualBlueprint(raw,spec),/Checkpoint 3 names a completed mission outcome/);
+  assert.doesNotThrow(()=>prepareContextualBlueprint(clockBlueprintContext,clockSpec),'legacy paid specifications still validate');
+  const premature=structuredClone(clockSpec.plan);
+  premature.stages[1].scene='Hear the noon bell';
+  assert.throws(()=>completePaperPlan(premature,clockSpec.gameplay),/Checkpoint 2 names a completed mission outcome/);
+  const abstract=structuredClone(clockBlueprintContext);
+  abstract.stages[1].features=['Two ruled out','One remains'];
+  assert.throws(()=>prepareContextualBlueprint(abstract,spec),/concrete story properties/);
+  const mismatched=structuredClone(clockBlueprintContext);
+  mismatched.stages[1].material.items[0].label='Candidate A';
+  assert.throws(()=>prepareContextualBlueprint(mismatched,spec),/candidates must name story objects/);
+  const storyCard=structuredClone(clockBlueprintContext);
+  storyCard.stages[0].material.items[0].label='Shell facts card';
+  assert.doesNotThrow(()=>prepareContextualBlueprint(storyCard,spec));
+  const worksheet=structuredClone(clockBlueprintContext);
+  worksheet.stages[2].material.items[1].label='Lay out four step tiles';
+  assert.throws(()=>prepareContextualBlueprint(worksheet,spec),/not instructions about the worksheet/);
+  const genericCard=structuredClone(clockBlueprintContext);
+  genericCard.stages[0].material.items[0].label='Compare card one facts';
+  assert.throws(()=>prepareContextualBlueprint(genericCard,spec),/not instructions about the worksheet/);
+});
+
+test('an invalid new-plan checkpoint repairs only its own context',async()=>{
+  const spec={...clockSpec,packExperienceVersion:2};
+  const raw=structuredClone(clockBlueprintContext);
+  raw.stages[2].material.items[3].label='Hear noon chime';
+  let calls=0;
+  const result=await repairBlueprint(spec,raw,'Checkpoint 3 names a completed mission outcome before the final action.',
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+      calls++;
+      assert.equal(JSON.parse(request.body).text.format.name,'paper_context_repair');
+      const corrected=structuredClone(clockBlueprintContext.stages[2]);
+      corrected.material.items[3].label='Record the test result';
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(corrected)}]}]});
+    });
+  assert.equal(calls,1);
+  assert.match(result.blueprint.stages[2].material.items[3].label,/Record the test result/);
+  assert.equal(result.blueprint.stages[0].material.items[0].label,clockBlueprintContext.stages[0].material.items[0].label);
+});
+
+test('a second story works for Home and Classroom without changing the printed answer contract',async()=>{
+  const raw=structuredClone(clockBlueprintContext);
+  raw.stages[0].material={title:'Archive record cards',items:['Tide chart','Compass page','Library map'].map(label=>({label}))};
+  raw.stages[0].features=['Seal intact','Index visible'];
+  raw.stages[1].material={title:'Two keeper reports',items:['North shelf','Reading desk','Window cabinet'].map(label=>({label}))};
+  raw.stages[1].features=['Dry storage','Blue mark'];
+  raw.stages[2].material={title:'Map search steps',items:['Inspect the catalogue','Compare the symbols','Check the drawer','Record the map mark'].map(label=>({label}))};
+  raw.stages[3].material={title:'Library return paths',items:['Coral hallway','Quiet stair','Window bridge'].map(label=>({label}))};
+  raw.stages[4].material={title:'Guide home actions',items:['Follow the marked map','Close the bookcase','Polish the compass'].map(label=>({label}))};
+  for(const setting of ['home','classroom']){
+    const plan={...clockSpec.plan,title:'The Underwater Library Map',opening:'The explorers need the missing map to guide a visitor home. Four paper discoveries reveal the final action.',goal:'Find the missing library map and guide the visitor home.'};
+    const spec={...clockSpec,packExperienceVersion:2,setting,players:setting==='home'?4:24,groups:setting==='home'?null:6,plan};
+    const blueprint=prepareContextualBlueprint(raw,spec),stages=[];
+    for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected model call');})).stage);
+    const story=assembleStagedStory(spec,blueprint,stages);
+    assert.equal(verifyPrintedPuzzles(story).length,5);
+    for(const paper of ['A4','Letter'])for(const role of ['player','guide']){
+      const pdf=new TextDecoder().decode(buildGamePdf(story,{...spec,paper},role));
+      assert.match(pdf,/The Underwater Library Map/);
+      assert.match(pdf,new RegExp(`/Count ${role==='player'?12:7}`));
+    }
+  }
+});
+
 test('new plan descriptions and ending cannot invent dates, evidence or decoded exhibit names',()=>{
   const plan=completePaperPlan(clockSpec.plan,clockSpec.gameplay),spec={...clockSpec,plan};
   assert.ok(plan.stages.every(stage=>stage.scene));

@@ -975,6 +975,8 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
   if (!lease.meta?.changes) return;
   await query(env.DB,"UPDATE orders SET status = 'fulfilling' WHERE id = ? AND status = 'paid'",order.id).run();
   let phase='blueprint',stageNumber=0;
+  const stepLimit=kind=>spec.packExperienceVersion>=2?(kind==='blueprint'?5:kind==='audit'?3:STAGED_STEP_CALL_LIMIT):STAGED_STEP_CALL_LIMIT;
+  const totalLimit=spec.packExperienceVersion>=2?18:STAGED_AI_CALL_LIMIT;
   const fetcher=env.FETCH||fetch;
   const countCalls=async (kind,number)=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ?',order.id,kind,number).first())?.count||0);
   const totalCalls=async()=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ?',order.id).first())?.count||0);
@@ -984,7 +986,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
       const value=JSON.parse(cached.result_json);
       if (!expectedHash || value.storySha256===expectedHash) return value;
     }
-    if (await countCalls(kind,number)>=STAGED_STEP_CALL_LIMIT || await totalCalls()>=STAGED_AI_CALL_LIMIT)
+    if (await countCalls(kind,number)>=stepLimit(kind) || await totalCalls()>=totalLimit)
       throw new ApiError(422,'STAGED_BUDGET_EXHAUSTED','The safe generation limit was reached.');
     const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&kind!=='blueprint'&&!(spec.packContractVersion===1&&kind==='audit');
     const provider=deterministic?null:aiProvider(env);
@@ -1064,9 +1066,9 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     const code=typeof caught?.code==='string' && /^[A-Z0-9_]{1,60}$/.test(caught.code)?caught.code:'UNEXPECTED';
     const phaseCalls=await countCalls(phase,stageNumber),calls=await totalCalls();
     const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
-    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<STAGED_AI_CALL_LIMIT && phaseCalls<STAGED_STEP_CALL_LIMIT;
+    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<totalLimit && phaseCalls<stepLimit(phase);
     if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
-    if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&canRetry&&await countCalls('blueprint',0)<STAGED_STEP_CALL_LIMIT){
+    if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&canRetry&&await countCalls('blueprint',0)<stepLimit('blueprint')){
       await env.DB.batch([
         query(env.DB,"UPDATE custom_generation_calls SET status = 'failed',error_code = 'AUDIT_REJECTED',error_detail = ? WHERE order_id = ? AND phase = 'blueprint' AND status = 'passed'",String(caught.message).slice(0,1000),order.id),
         query(env.DB,"UPDATE custom_generation_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND phase = 'checkpoint' AND status = 'passed'",order.id),
