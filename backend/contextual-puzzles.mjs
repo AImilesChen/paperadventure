@@ -110,9 +110,9 @@ export function prepareContextualBlueprint(candidate,spec){
     const labels=raw.material?.items?.slice(0,count).map(piece=>text(typeof piece==='string'?piece:piece.label,'Piece label',40));
     if(labels?.length!==count||!unique(labels)||labels.some(label=>/^(?:plain fact|rule clue|witness|final action|journey clue)\s+[a-z0-9]+$/i.test(label)))throw Error(`Checkpoint ${i+1} needs ${count} distinct story-specific labels, not placeholder names.`);
     if(spec.packExperienceVersion>=2&&i<4)assertGoalStillOpen(labels,spec.plan.goal,i+1);
-    if(spec.packExperienceVersion>=2&&i<4&&type!=='symbol_key'&&labels.some(label=>/\b(?:checkpoint|digit|digits|tile|tiles|printed|rule|rules|choice|choices|option|options|answer|answers|facts|conditions|matching|decoded word|report cards)\b/i.test(label)))
+    if(spec.packExperienceVersion>=2&&i<4&&type!=='symbol_key'&&labels.some(label=>/\b(?:checkpoint|digit|digits|tile|tiles|printed|rule|rules|choice|choices|option|options|answer|answers|decoded word|report cards)\b/i.test(label)||/^(?:compare|match|select|record)\s+(?:card|facts|conditions|the printed)\b/i.test(label)))
       throw Error(`Checkpoint ${i+1} labels must name fictional story pieces or actions, not instructions about the worksheet.`);
-    if(spec.packExperienceVersion>=2&&i<4&&type==='decision_record'&&labels.some(label=>/^(?:witness|statement|clue|candidate|option|answer|result|rule)\b/i.test(label)))
+    if(spec.packExperienceVersion>=2&&i<4&&type==='decision_record'&&labels.some(label=>/^(?:candidate|option|answer|result|rule)\b/i.test(label)))
       throw Error(`Checkpoint ${i+1} witness candidates must name story objects or actions, not the witness notes or answer roles.`);
     const features=(['evidence_cards','route_board'].includes(type)||spec.packExperienceVersion>=2&&type==='decision_record')&&i<4?raw.features?.map(value=>text(value,`Checkpoint ${i+1} printed feature`,32)):['Checked fact','Matching fact'];
     if(features?.length!==2||!unique(features))throw Error(`Checkpoint ${i+1} needs two distinct story-specific feature names.`);

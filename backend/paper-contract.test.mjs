@@ -123,8 +123,11 @@ test('new pack rejects an early mission outcome before spending calls on later c
   abstract.stages[1].features=['Two ruled out','One remains'];
   assert.throws(()=>prepareContextualBlueprint(abstract,spec),/concrete story properties/);
   const mismatched=structuredClone(clockBlueprintContext);
-  mismatched.stages[1].material.items[0].label='Witness note left';
+  mismatched.stages[1].material.items[0].label='Candidate A';
   assert.throws(()=>prepareContextualBlueprint(mismatched,spec),/candidates must name story objects/);
+  const storyCard=structuredClone(clockBlueprintContext);
+  storyCard.stages[0].material.items[0].label='Shell facts card';
+  assert.doesNotThrow(()=>prepareContextualBlueprint(storyCard,spec));
   const worksheet=structuredClone(clockBlueprintContext);
   worksheet.stages[2].material.items[1].label='Lay out four step tiles';
   assert.throws(()=>prepareContextualBlueprint(worksheet,spec),/not instructions about the worksheet/);
