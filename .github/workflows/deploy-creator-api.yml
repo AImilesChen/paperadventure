@@ -35,7 +35,6 @@ jobs:
           node scripts/write-stage-wrangler.mjs
           npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
           npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
-          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "UPDATE custom_pack_remakes SET status='queued',failure_count=0,recovery_count=recovery_count+1,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND status='failed' AND error_code='BLUEPRINT_INVALID' AND recovery_count=0 AND published_version IS NULL"
       - name: Verify configured runtime
         run: |
           for attempt in {1..12}; do
