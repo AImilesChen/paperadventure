@@ -12,7 +12,7 @@ export function validatePrintableMaterial(value) {
   if (!value || !materialTypes.includes(value.type) || !Array.isArray(value.items) || value.items.length < 3 || value.items.length > (value.type==='route_board'?4:6))
     throw new Error('A supported paper activity needs three to six pieces; route boards fit up to four.');
   const items = value.items.map((item, index) => ({
-    label:limit(item?.label,`Paper piece ${index+1} label`,30),
+    label:limit(item?.label,`Paper piece ${index+1} label`,value.logic?.contractVersion===1?40:30),
     detail:limit(item?.detail,`Paper piece ${index+1} detail`,120),
   }));
   if (new Set(items.map(item=>item.label.toLowerCase())).size !== items.length) throw new Error('Paper pieces need different labels.');

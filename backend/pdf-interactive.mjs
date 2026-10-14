@@ -147,8 +147,8 @@ function materialSheet(stage,spec){
     items.forEach((item,index)=>{
       const x=48+(index%2)*(col+gap),top=y-Math.floor(index/2)*(h+gap);
       page.box(x,top-h,col,h,'0.97 0.99 1');
-      page.text(item.label,x+12,top-22,11,true);
-      page.rule(x+12,top-30,x+col-12,top-30);
+      const labelBottom=page.block(item.label,x+12,top-22,30,11,16,true);
+      page.rule(x+12,labelBottom+8,x+col-12,labelBottom+8);
       if(material.type==='evidence_cards'&&index<3&&material.logic?.version===1&&!material.logic?.contractVersion){
         page.circle(x+31,top-76,14,index===2?'0.85 0.24 0.17':'0.20 0.48 0.70');
         if(index===0)page.circle(x+93,top-76,14,'1 1 1');
@@ -159,7 +159,7 @@ function materialSheet(stage,spec){
         page.circle(x+25,top-94,15);
         page.text('?',x+21,top-99,13,true);
         page.block(item.detail,x+52,top-82,24,11,16);
-      } else page.block(item.detail,x+12,top-47,29,11,16);
+      } else page.block(item.detail,x+12,labelBottom-9,29,11,16);
     });
   }
   page.box(48,58,page.width-96,108,'0.93 0.97 0.99');

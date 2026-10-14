@@ -84,7 +84,7 @@ function validateStoryStage(stage, index, plan, previousUnlock, gamePackVersion 
     catch (cause) { throw new ApiError(422,'GENERATION_INVALID',`Checkpoint ${number}: ${cause.message}`); }
   }
   if(material?.logic?.contractVersion===1&&(!plan||stage.task!==plan.stages[index].task||stage.teamwork!==plan.stages[index].teamwork))throw new ApiError(422,'GENERATION_INVALID',`Checkpoint ${number} task or teamwork does not match its approved paper action.`);
-  const checked={ number, title: requireText(stage.title, 'Stage title', 100), clue: requireText(stage.clue, 'Clue', gamePackVersion===2?400:1200), options: options.map((value, i) => requireText(value, `Option ${i+1}`, gamePackVersion===2?130:240)), answerIndex,
+  const checked={ number, title: requireText(stage.title, 'Stage title', 100), clue: requireText(stage.clue, 'Clue', gamePackVersion===2?400:1200), options: options.map((value, i) => requireText(value, `Option ${i+1}`, gamePackVersion===2?200:240)), answerIndex,
     explanation: requireText(stage.explanation, 'Answer explanation', gamePackVersion===2?400:600), hint: requireText(stage.hint, 'Hint', gamePackVersion===2?120:400), prerequisite, unlock,
     ...(plan ? {mechanic:stage.mechanic,task:plan.stages[index].task,teamwork:plan.stages[index].teamwork,...(plan.stages[index].storyContext?{storyContext:plan.stages[index].storyContext}:{})} : {}),
     ...(material ? {material} : {}),

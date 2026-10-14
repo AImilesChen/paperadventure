@@ -44,8 +44,8 @@ async function structuredResponse(spec, env, fetcher, {name,schema,instructions,
   let response;
   try {
     response=await fetcher(provider.url,{method:'POST',signal:AbortSignal.timeout(90000),headers:{authorization:`Bearer ${provider.key}`,'content-type':'application/json'},body:JSON.stringify({
-      model:provider.model,...(provider.name==='deepseek'?{reasoning:{effort:'none'}}:{}),instructions,
-      input:JSON.stringify(input),max_output_tokens:maxOutput,text:{format:{type:'json_schema',name,strict:true,schema}},
+      model:provider.model,...(provider.name==='deepseek'?{reasoning:{effort:spec.packContractVersion===1?'low':'none'}}:{}),instructions,
+      input:JSON.stringify(input),max_output_tokens:maxOutput+(spec.packContractVersion===1&&provider.name==='deepseek'?2000:0),text:{format:{type:'json_schema',name,strict:true,schema}},
     })});
   } catch (cause) {
     throw new ApiError(502,'GENERATION_UPSTREAM_FAILED','The story provider could not complete this step.',{cause});
@@ -82,7 +82,7 @@ export function validateBlueprint(input,spec) {
   const stages=input.stages.map((item,index)=>{
     if (!item || typeof item!=='object' || !Array.isArray(item.options) || item.options.length!==3)
       throw new ApiError(422,'BLUEPRINT_INVALID',`Checkpoint ${index+1} needs three choices.`);
-    const options=item.options.map((value,i)=>checkedText(value,`Checkpoint ${index+1} choice ${i+1}`,spec.gamePackVersion===2?100:240));
+    const options=item.options.map((value,i)=>checkedText(value,`Checkpoint ${index+1} choice ${i+1}`,spec.gamePackVersion===2?200:240));
     if (new Set(options.map(value=>value.toLowerCase())).size!==3 || !Number.isInteger(item.answerIndex) || item.answerIndex<0 || item.answerIndex>2)
       throw new ApiError(422,'BLUEPRINT_INVALID',`Checkpoint ${index+1} needs one distinct answer.`);
     let material;

@@ -73,7 +73,7 @@ export function validatePlan(value, spec) {
       if (item.number !== index+1 || !selected.includes(item.mechanic)) throw new Error('A checkpoint has an unsupported number or play style.');
       return {number:index+1,title:text(item.title,'Checkpoint title',100),mechanic:item.mechanic,
         task:text(item.task,'Player task',350),teamwork:text(item.teamwork,'Team action',260),connection:text(item.connection,'Connection',260),
-        ...(spec.packContractVersion===1?{storyContext:text(item.storyContext||item.title,'Story context',150)}:{})};
+        ...(spec.packContractVersion===1?{storyContext:text(item.storyContext||item.title,'Story context',200)}:{})};
     }),
   };
   if (!['mystery','mission'].includes(plan.id)) throw new Error('Choose one of the two adventure plans.');
