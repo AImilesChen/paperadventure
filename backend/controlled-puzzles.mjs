@@ -23,6 +23,25 @@ const uniqueAnswer = (choices, accepts) => {
   return matches[0];
 };
 
+export function controlledMaterialTypes(plan) {
+  const allowed={reasoning:['evidence_cards','route_board','decision_record'],discussion:['decision_record','evidence_cards'],sequence:['order_tiles'],code:['symbol_key']};
+  if(!plan || plan.stages?.length!==5 || plan.stages.some(stage=>!allowed[stage.mechanic])) throw new Error('A supported five-checkpoint plan is required.');
+  let best=null,bestScore=-Infinity;
+  function visit(types){
+    if(types.length===5){
+      const kinds=new Set(types);
+      if(kinds.size<3 || !kinds.has('evidence_cards') || !types.some(type=>type==='route_board'||type==='order_tiles'))return;
+      const score=kinds.size*10-types.filter((type,index)=>index>0&&types[index-1]===type).length;
+      if(score>bestScore){bestScore=score;best=types;}
+      return;
+    }
+    for(const type of allowed[plan.stages[types.length].mechanic])visit([...types,type]);
+  }
+  visit([]);
+  if(!best)throw new Error('The approved mechanics cannot support three paper activity types, including evidence and a route or ordering task.');
+  return best;
+}
+
 function puzzle(type, labels) {
   const [a, b, c, d] = labels;
   switch (type) {

@@ -4,12 +4,41 @@ import { validatePurchase, validateGeneratedStory } from './domain.mjs';
 import { validateBlueprint, generateBlueprint, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import { reviseStage } from './openai.mjs';
+import {controlledMaterialTypes} from './controlled-puzzles.mjs';
 import { sampleSpec, sampleStory } from '../content/custom-paper-format-sample.mjs';
 
 test('new custom checkouts request the interactive paper-pack format',()=>{
   const result=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A paper lighthouse',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:['sequence','code']}});
   assert.equal(result.spec.gamePackVersion,2);
   assert.equal(result.spec.packLogicVersion,1);
+});
+
+test('reasoning and discussion packs fix activity types before AI and fit long narrative unlocks',async()=>{
+  const mechanics=['reasoning','discussion','reasoning','reasoning','discussion'];
+  const spec={...sampleSpec,packLogicVersion:1,gameplay:{primary:'reasoning',secondary:['discussion']},plan:{...sampleSpec.plan,stages:sampleSpec.plan.stages.map((stage,index)=>({...stage,mechanic:mechanics[index]}))}};
+  const types=controlledMaterialTypes(spec.plan);
+  assert.equal(new Set(types).size,3);
+  assert.ok(types.includes('evidence_cards'));assert.ok(types.includes('route_board'));
+  assert.ok(types.every((type,index)=>mechanics[index]!=='discussion'||['evidence_cards','decision_record'].includes(type)));
+  let calls=0;
+  const result=await generateBlueprint(spec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,{body})=>{
+    calls++;
+    const request=JSON.parse(body),input=JSON.parse(request.input);
+    assert.deepEqual(input.paperActivities.map(item=>item.type),types);
+    assert.equal(request.text.format.schema.properties.stages.items.properties.material.properties.type,undefined);
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({ending:sampleStory.ending,groupInstructions:'',stages:input.paperActivities.map((activity,index)=>({
+      unlock:`Checkpoint ${index+1} opens the next scene. `+'The explorers compare their paper findings. '.repeat(3),
+      material:{type:'symbol_key',title:`Clock puzzle ${index+1}`,items:Array.from({length:activity.pieceCount},(_,piece)=>({label:['Morning marker','Noon marker','Evening marker','Night marker'][piece]}))},
+    }))})}]}]});
+  });
+  assert.equal(calls,1,'length fitting and activity allocation cannot require a repair model call');
+  assert.deepEqual(result.blueprint.stages.map(stage=>stage.material.type),types);
+  assert.ok(result.blueprint.stages.every(stage=>stage.unlock.length<=100));
+  const stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,result.blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected model call');})).stage);
+  const story=assembleStagedStory(spec,result.blueprint,stages);
+  assert.match(new TextDecoder().decode(buildGamePdf(story,spec,'player')),/\/Count 12/);
+  assert.match(new TextDecoder().decode(buildGamePdf(story,spec,'guide')),/\/Count 7/);
 });
 
 test('controlled paper puzzles keep material, choices, answer and both PDFs in one checked contract',async()=>{

@@ -961,7 +961,7 @@ test('a paid legacy pack remakes on the same order and keeps the old download un
     FETCH:async(_url,init)=>{
       const payload=JSON.parse(init.body),name=payload.text.format.name,input=JSON.parse(payload.input);
       calls.push([name,input.stageNumber||0]);
-      const value=name==='game_blueprint'?{ending:sampleStory.ending,groupInstructions:'',stages:sampleStory.stages.map((stage,index)=>({question:stage.clue,evidence:stage.clue,options:stage.options,answerIndex:stage.answerIndex,unlock:stage.unlock,material:index===1&&!input.candidate?{...stage.material,type:'evidence_cards'}:{...stage.material,items:stage.material.items.slice(0,['order_tiles','symbol_key'].includes(stage.material.type)?4:3)}}))}
+      const value=name==='game_blueprint'?{ending:sampleStory.ending,groupInstructions:'',stages:sampleStory.stages.map((stage,index)=>({question:stage.clue,evidence:stage.clue,options:stage.options,answerIndex:stage.answerIndex,unlock:stage.unlock,material:{...stage.material,items:stage.material.items.slice(0,index===1&&!input.candidate?3:['order_tiles','symbol_key'].includes(stage.material.type)?4:3)}}))}
         :name==='game_checkpoint'?{clue:sampleStory.stages[input.stageNumber-1].clue,explanation:sampleStory.stages[input.stageNumber-1].explanation,hint:sampleStory.stages[input.stageNumber-1].hint}
         :failFirstAudit?(failFirstAudit=false,{pass:false,issues:[{stageNumber:1,reason:'Stage 1 answer leaks because an option repeats a printed card.'}]}):{pass:true,issues:[]};
       return Response.json({id:`remake-${calls.length}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
