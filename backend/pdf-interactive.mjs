@@ -183,7 +183,8 @@ function guideStart(story,spec){
 }
 
 function guideStage(stage,spec){
-  const page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,`Adult guide / Checkpoint ${stage.number}`);
+  let page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,`Adult guide / Checkpoint ${stage.number}`);
+  const pages=[page];
   let y=heading(page,`Guide / checkpoint ${stage.number}`,stage.title);
   const sections=[['HAND OUT',`Player pages ${stage.number*2}-${stage.number*2+1}: checkpoint ${stage.number} challenge and ${kindLabel[stage.material.type].toLowerCase()} sheet: ${stage.material.title}.`],
     ['PLAYER ACTION',`${stage.task} ${stage.material.instruction}`],
@@ -192,13 +193,18 @@ function guideStage(stage,spec){
     ['WHY IT FOLLOWS',stage.explanation],
     ...(stage.material.logic?.resultDigit?[['RECORD CHECK',`Check that the team recorded digit ${stage.material.logic.resultDigit}. Keep their sheet for the final combined record.`]]:[]),
     ['NEXT STEP',stage.number===5?'After checking all four earlier results and the chosen final action, hand out Player page 12 and read the ending.':`After checking this result, hand out checkpoint ${stage.number+1}, Player pages ${stage.number*2+2}-${stage.number*2+3}.`],
-    ['STORY TRANSITION',stage.unlock]];
+    ...(stage.material.logic?.contractVersion===1?[]:[['STORY TRANSITION',stage.unlock]])];
   for(const [label,value] of sections){
+    const height=wrap(value,77).length*18+37;
+    if(y-height<70){
+      page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,`Adult guide / Checkpoint ${stage.number} / Continued`);
+      pages.push(page);y=heading(page,`Guide / checkpoint ${stage.number} continued`,stage.title);
+    }
     page.text(label,48,y,10,true,'0.77 0.19 0.13');y-=20;
     y=page.block(value,48,y,77,11,18)-17;
   }
   if(y<65)throw new Error(`Checkpoint ${stage.number} adult guide does not fit.`);
-  return page;
+  return pages;
 }
 
 function finish(story,spec,role){
@@ -239,7 +245,7 @@ export function buildInteractiveGamePdf(story,spec,role){
   if(!story.stages?.every(stage=>stage.material))throw new Error('The paper materials are incomplete');
   const pages=role==='player'
     ? [cover(story,spec),...story.stages.flatMap(stage=>[challenge(stage,spec),materialSheet(stage,spec)]),finish(story,spec,role)]
-    : [guideStart(story,spec),...story.stages.map(stage=>guideStage(stage,spec)),finish(story,spec,role)];
+    : [guideStart(story,spec),...story.stages.flatMap(stage=>guideStage(stage,spec)),finish(story,spec,role)];
   pages.forEach((page,index)=>page.text(`Page ${index+1} of ${pages.length}`,page.width-126,30,9));
   return serialize(pages);
 }

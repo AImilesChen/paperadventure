@@ -44,7 +44,7 @@ async function structuredResponse(spec, env, fetcher, {name,schema,instructions,
   let response;
   try {
     response=await fetcher(provider.url,{method:'POST',signal:AbortSignal.timeout(90000),headers:{authorization:`Bearer ${provider.key}`,'content-type':'application/json'},body:JSON.stringify({
-      model:provider.model,...(provider.name==='deepseek'?{reasoning:{effort:spec.packContractVersion===1?'low':'none'}}:{}),instructions,
+      model:provider.model,...(provider.name==='deepseek'?{reasoning:{effort:'none'}}:{}),instructions,
       input:JSON.stringify(input),max_output_tokens:maxOutput+(spec.packContractVersion===1&&provider.name==='deepseek'?2000:0),text:{format:{type:'json_schema',name,strict:true,schema}},
     })});
   } catch (cause) {
@@ -60,13 +60,14 @@ async function structuredResponse(spec, env, fetcher, {name,schema,instructions,
   }
   const output=body.output?.flatMap(item=>item.content||[]).find(item=>item.type==='output_text')?.text;
   let data;
-  try { data=JSON.parse(output); }
+  try { data=JSON.parse(String(output||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'')); }
   catch {
     const failure=new ApiError(422,invalidCode,'The story provider returned unusable structured data.');
     failure.usage=body.usage||null; failure.responseId=body.id||null;
     throw failure;
   }
-  return {data,usage:body.usage||null,responseId:body.id||null};
+  const normalize=value=>typeof value==='string'?printable(value).replace(/\s+/g,' ').trim():Array.isArray(value)?value.map(normalize):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([key,item])=>[key,normalize(item)])):value;
+  return {data:normalize(data),usage:body.usage||null,responseId:body.id||null};
 }
 
 function checkedText(value,label,max) {
