@@ -1,0 +1,26 @@
+name: Inspect checked remake validation without story logs
+on:
+  push:
+    branches: [codex-controlled-pack-20261014]
+    paths: [.github/workflows/diagnose-checked-remake.yml, scripts/diagnose-controlled-remake.mjs]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Read private failure metadata into runner temporary storage
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT r.status,r.phase,r.spec_json,r.logic_epoch,r.recovery_round,c.error_code,c.status AS call_status,c.result_json FROM custom_pack_remakes r LEFT JOIN custom_pack_remake_calls c ON c.order_id=r.order_id AND c.logic_epoch=r.logic_epoch AND c.phase='blueprint' WHERE r.order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' ORDER BY c.created_at,c.id" > "$RUNNER_TEMP/remake-private.json"
+      - name: Report only validated rules and field lengths
+        run: node scripts/diagnose-controlled-remake.mjs "$RUNNER_TEMP/remake-private.json"
