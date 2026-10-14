@@ -1,1 +1,1 @@
-2026-10-13: deploy private checked-story checkpoints, accurate failed token accounting with QA issues, bounded retries and paid-delivery incident alerts; apply migration 0011 before API release.
+2026-10-14: deploy resumable paid custom game blueprint and per-checkpoint generation, safe progress reporting, and PDF reuse; apply migration 0012 before API release.

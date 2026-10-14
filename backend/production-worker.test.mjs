@@ -19,7 +19,7 @@ async function approvedCustomInput(env,input) {
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -871,6 +871,61 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
   assert.equal(JSON.parse(db.prepare("SELECT story_spec_json FROM custom_activities WHERE order_id='v3-order'").get().story_spec_json).plan.title,viewed.planReview.versions[0].plan.title);
   assert.equal(queued.at(-1).orderId,'v3-order');
   assert.equal((await post({action:'rework',feedback:'Try again after approval.'},'paid-plan-change-0003')).status,409);
+});
+
+test('staged paid generation resumes at a failed checkpoint without regenerating saved work',async()=>{
+  const {db,binding}=database();
+  const purchase=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  const plan=planFixture(purchase);
+  const spec={...purchase,plan,planConfirmed:true,onlineRedownloadMonths:12};
+  const stored=JSON.stringify(purchase),storySpec=JSON.stringify(spec);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('staged-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('staged-order','custom','custom_home',?,?,?,?,1499,'USD','paid',CURRENT_TIMESTAMP)").run(stored,await sha256(stored),'owner-hash','staged-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version) VALUES ('staged-activity','staged-order','queued',?,2)").run(storySpec);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit) VALUES ('staged-entitlement','staged-order','staged-activity','active',2)").run();
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,confirmed_version) VALUES ('staged-order','confirmed',1)").run();
+  const calls=[];const queued=[];const saved=new Map();let failThird=true,rejectFourth=true,failFirstPdf=true,queueRetries=0;
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture-model',GENERATION_QUEUE:{send:async job=>queued.push(job)},
+    PRIVATE_FILES:{put:async(key,bytes,options)=>{if(key.endsWith('/player.pdf')&&failFirstPdf){failFirstPdf=false;throw new Error('Temporary PDF storage failure');}saved.set(key,{bytes,options});},head:async key=>saved.get(key)&&{customMetadata:saved.get(key).options.customMetadata}},
+    FETCH:async(_url,init)=>{
+      const payload=JSON.parse(init.body),name=payload.text.format.name;
+      const input=JSON.parse(payload.input);calls.push([name,input.stageNumber||0]);
+      if(name==='game_checkpoint'&&input.stageNumber===3&&failThird){failThird=false;return new Response('Temporary failure',{status:502});}
+      const value=name==='game_blueprint'?{ending:'The team repairs the paper clock and celebrates together.',groupInstructions:'',stages:Array.from({length:5},(_,index)=>({question:`Which record completes checkpoint ${index+1}?`,evidence:`The correct record has symbol ${index+1}.`,options:[`Symbol ${index+1}`,`Old symbol ${index+1}`,`Other symbol ${index+1}`],answerIndex:0,unlock:`CLOCK-${index+1}`}))}
+        :name==='game_checkpoint'?{clue:`${input.blueprintCheckpoint.question} ${input.blueprintCheckpoint.evidence} The other records have old or other symbols.`,explanation:'The first choice matches the numbered symbol in the printed evidence.',hint:'Compare the symbols in the records.'}
+        :rejectFourth?(rejectFourth=false,{pass:false,issues:[{stageNumber:4,reason:'The fourth clue needs a clearer printed fact.'}]}):{pass:true,issues:[]};
+      return Response.json({id:`response-${calls.length}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
+    }};
+  const process=()=>productionWorker.queue({messages:[{body:{orderId:'staged-order'},ack(){},retry(){queueRetries++;}}]},env);
+  await process();
+  assert.deepEqual(db.prepare('SELECT stage_number FROM custom_game_stages WHERE order_id = ? ORDER BY stage_number').all('staged-order').map(row=>row.stage_number),[1,2]);
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id='staged-order'").get().status,'fulfilling');
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:'owner-hash',exp:Math.floor(Date.now()/1000)+3600});
+  const view=await handleProductionApi(request('/api/v1/orders/staged-order','GET',undefined,{cookie:`paw_session=${token}`}),env).then(response=>response.json());
+  assert.equal(view.generationProgress.phase,'checkpoint');assert.equal(view.generationProgress.currentStage,3);
+  await process();
+  assert.deepEqual(db.prepare('SELECT stage_number FROM custom_game_stages WHERE order_id = ? ORDER BY stage_number').all('staged-order').map(row=>row.stage_number),[1,2,3,5]);
+  assert.equal(db.prepare("SELECT status FROM custom_activities WHERE id='staged-activity'").get().status,'generating');
+  await process();
+  assert.equal(db.prepare("SELECT status FROM custom_activities WHERE id='staged-activity'").get().status,'queued');
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM custom_story_checkpoints WHERE order_id='staged-order'").get().count,1);
+  const storyCalls=calls.length;
+  await process();
+  assert.equal(queueRetries,1,'a temporary PDF storage failure should retry delivery');
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id='staged-order'").get().status,'fulfilling');
+  assert.equal(calls.length,storyCalls,'PDF retry cannot ask the model to regenerate the saved game');
+  await process();
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id='staged-order'").get().status,'published');
+  assert.equal(calls.filter(([name])=>name==='game_blueprint').length,1);
+  assert.equal(calls.filter(([name,number])=>name==='game_checkpoint'&&number===1).length,1);
+  assert.equal(calls.filter(([name,number])=>name==='game_checkpoint'&&number===2).length,1);
+  assert.equal(calls.filter(([name,number])=>name==='game_checkpoint'&&number===3).length,2);
+  assert.equal(calls.filter(([name,number])=>name==='game_checkpoint'&&number===4).length,2);
+  assert.equal(calls.filter(([name,number])=>name==='game_checkpoint'&&number===5).length,1);
+  assert.equal(calls.filter(([name])=>name==='staged_story_audit').length,2);
+  assert.equal(saved.size,3);
+  const callCount=calls.length;await process();assert.equal(calls.length,callCount,'a duplicate queue message cannot spend more tokens');
+  assert.equal(queued.length,3);
 });
 
 test('a failed paid first plan offers one free recovery without another checkout or spending edits',async()=>{

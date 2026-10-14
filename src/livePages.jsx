@@ -202,7 +202,7 @@ function OrderNextStep({order,refresh,Link}) {
   const ready = order.filesReady;
   return <section className={'order-next-step ' + (ready ? 'is-ready' : '')} aria-live="polite">
     <span className="eyebrow">{ready ? 'NEXT STEP · DOWNLOAD' : 'NEXT STEP · WAIT FOR DELIVERY'}</span>
-    <h3>{ready ? 'Your game package is ready' : 'Your PDFs are being created and checked'}</h3>
+    <h3>{ready ? 'Your game package is ready' : order.generationProgress && !order.generationProgress.storyReady ? 'Your game is being built one checkpoint at a time' : 'Your PDFs are being created and checked'}</h3>
     <p>{ready ? 'Download the Player Pack and separate adult guide. Your finished game is also saved under My games.' : 'Your plan is approved. Nothing else needs to be filled in or paid for. This page checks the order automatically every 10 seconds; you can leave and return from My adventures.'}</p>
     <div className="order-next-actions">{ready ? <a className="button" href="#download-game">Go to PDF downloads <DownloadSimple size={18}/></a> : <button type="button" className="button" onClick={refresh}>Check PDF status now <ArrowRight size={18}/></button>}<Link className="button-quiet" to="/en/my-adventures/">Open My adventures</Link></div>
   </section>;
@@ -220,12 +220,21 @@ function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
   const ready = order.filesReady;
   const guide = order.sku.includes('classroom') ? 'Teacher Guide' : 'Host Guide';
   const approved = order.kind === 'ready' || Boolean(order.planReview?.confirmedVersion || order.plan?.planConfirmed);
-  const state = ready ? 'Ready to download' : order.status === 'failed' ? 'PDF creation stopped' : !approved ? 'Waiting for plan approval' : order.status === 'pending_payment' ? 'Waiting for payment confirmation' : order.status === 'fulfilling' ? 'Creating and checking your PDFs' : 'PDF creation is queued';
+  const state = ready ? 'Ready to download' : order.status === 'failed' ? 'Game package creation stopped' : !approved ? 'Waiting for plan approval' : order.status === 'pending_payment' ? 'Waiting for payment confirmation' : order.generationProgress && !order.generationProgress.storyReady ? 'Creating and checking your game' : order.status === 'fulfilling' ? 'Creating and checking your PDFs' : 'PDF creation is queued';
   const paper = order.kind === 'ready' ? selectedPaper : order.paper;
+  const progress = order.generationProgress;
+  const progressLabel = progress?.phase === 'delivered' ? 'Complete' : progress?.phase === 'pdf' ? 'Building and checking PDFs' : progress?.phase === 'audit' ? 'Checking the complete game' : progress?.phase === 'checkpoint' ? `Creating checkpoint ${progress.currentStage} of 5` : 'Creating the game blueprint';
+  const progressValue = progress?.phase === 'delivered' ? 8 : progress?.phase === 'pdf' ? 7 : (progress?.blueprintReady ? 1 : 0) + (progress?.completedStages.length || 0);
   return <section className={'order-package' + (order.status === 'failed' ? ' order-package-failed' : '')} aria-labelledby="order-package-title">
     <span className="eyebrow">YOUR GAME PACKAGE</span>
     <h2 id="order-package-title">{state}</h2>
     <p>{ready ? 'Your complete printable adventure is ready below.' : order.status === 'failed' ? 'No complete game package was delivered. There are no files to download at the moment.' : order.status === 'pending_payment' ? 'Payment has not been confirmed for this order.' : approved ? 'The full game package is being prepared. You can return to this order later.' : 'Approve a personal plan before the full game package can be created.'}</p>
+    {progress && approved && <div className="order-game-progress" aria-label="Game creation progress">
+      <strong>{order.status === 'failed' ? 'Stopped while ' + progressLabel.toLowerCase() : progressLabel}</strong>
+      <div className="order-game-progress-track" role="progressbar" aria-valuenow={progressValue} aria-valuemin="0" aria-valuemax="8" aria-label="Game creation steps completed"><span style={{width:`${Math.round(progressValue / 8 * 100)}%`}}/></div>
+      <p>{progress.blueprintReady ? 'Blueprint saved' : 'Blueprint pending'} · {progress.completedStages.length} of 5 checkpoints saved · {progress.auditPassed ? 'Game check passed' : 'Game check pending'} · {ready ? 'PDFs ready' : 'PDFs pending'}</p>
+      {order.status === 'failed' && <p>Completed steps are saved on this paid order. The history below shows what stopped; support can review this order without another purchase.</p>}
+    </div>}
     <div className="order-package-files" aria-label="Files in your package">
       <div><strong>Player Pack</strong><span>Children’s activities · PDF</span><small>{ready ? 'Ready' : 'Not ready'}</small></div>
       <div><strong>{guide}</strong><span>Adult instructions and answers · PDF</span><small>{ready ? 'Ready' : 'Not ready'}</small></div>
@@ -245,7 +254,7 @@ function PdfGenerationHistory({order}) {
   const rounds = [...new Set(attempts.map(item=>item.round))];
   return <section className="order-generation-history" aria-labelledby="order-history-title">
     <span className="eyebrow">PDF PROGRESS</span><h2 id="order-history-title">Generation history</h2>
-    <p>{attempts.length ? 'A round can contain an automatic retry. These are PDF attempts after plan approval, not plan edits.' : 'Your approved plan is saved. The first PDF attempt has not been recorded yet.'}</p>
+    <p>{attempts.length ? 'A round can contain an automatic retry. These are delivery attempts after plan approval, not plan edits.' : order.generationProgress && !order.generationProgress.storyReady ? 'The game blueprint and checkpoints are being saved first. PDF creation begins after the complete game passes its check.' : 'Your approved plan is saved. The first PDF attempt has not been recorded yet.'}</p>
     {rounds.map(round=><div className="order-generation-round" key={round}>
       <h3>{round === 1 ? 'First PDF build' : 'Included delivery retry'}</h3>
       <ol>{attempts.filter(item=>item.round===round).map(item=>{

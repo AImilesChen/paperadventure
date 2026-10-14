@@ -1,8 +1,9 @@
 import { publicCatalog, offers, productRights, themes } from '../shared/catalog.mjs';
-import { ApiError, validateGeneratedStory, validatePurchase, validateSupportedRange } from './domain.mjs';
+import { ApiError, validateGeneratedStage, validateGeneratedStory, validatePurchase, validateSupportedRange } from './domain.mjs';
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage } from './openai.mjs';
+import { assembleStagedStory, auditStagedStory, generateBlueprint, generateStagedCheckpoint, validateBlueprint } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import { verifyGoogleCredential } from './google-auth.mjs';
 import { signPreview, confirmPreview } from './creator-preview.mjs';
@@ -13,7 +14,7 @@ const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(d
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
 const error = (status, code, message) => json({ error: { code, message } }, status);
 const nowSeconds = () => Math.floor(Date.now() / 1000);
-const nonRetryableStoryCodes = new Set(['GENERATION_INVALID','GENERATION_QA_FAILED','INVALID_SPEC','GENERATION_NOT_CONFIGURED']);
+const nonRetryableStoryCodes = new Set(['GENERATION_INVALID','GENERATION_QA_FAILED','INVALID_SPEC','GENERATION_NOT_CONFIGURED','STAGED_GENERATION_STOPPED']);
 const emailHash = (env, email) => sha256(`${env.SESSION_SECRET}|${email}`);
 function accessMonths(spec) {
   const months = spec?.onlineRedownloadMonths;
@@ -561,7 +562,7 @@ async function orderView(request, env, orderId) {
   const order = await query(env.DB, 'SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ?', orderId, hash).first();
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified order was found.');
   const entitlement = await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first();
-  const activity = order.product_kind === 'custom' ? await query(env.DB, 'SELECT status,delivery_retry_used,delivery_retry_baseline FROM custom_activities WHERE order_id = ?', order.id).first() : null;
+  const activity = order.product_kind === 'custom' ? await query(env.DB, 'SELECT status,delivery_retry_used,delivery_retry_baseline,generation_version FROM custom_activities WHERE order_id = ?', order.id).first() : null;
   const pdfRows = order.product_kind === 'custom' ? (await query(env.DB, "SELECT attempt,status,phase,round_number,trigger_kind,created_at,completed_at,error_code FROM generation_usage WHERE order_id = ? AND status IN ('generating','published','failed') ORDER BY attempt", order.id).all()).results || [] : [];
   const failureMessages = {
     GENERATION_UPSTREAM_FAILED: 'The story generation service did not complete.',
@@ -572,6 +573,7 @@ async function orderView(request, env, orderId) {
     AUDIT_UPSTREAM_FAILED: 'The independent story check could not complete.',
     AUDIT_INVALID: 'The independent story check returned an unusable result.',
     STORED_PDF_MISMATCH: 'The saved PDF files did not pass the integrity check.',
+    STAGED_GENERATION_STOPPED: 'Game creation stopped at a saved step. Your payment and completed work remain on this order.',
   };
   let firstRoundAttempts = 0;
   let retryRoundAttempts = 0;
@@ -596,10 +598,23 @@ async function orderView(request, env, orderId) {
   const initialRequests = paidPlan?.status === 'needs_help' && !paidPlan.active_version
     ? await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'initial'",order.id).first() : null;
   const activePlan = planVersions.find(item=>item.version_number===paidPlan?.active_version);
+  let generationProgress = null;
+  if (activity?.generation_version === 2) {
+    const [blueprint,stageRows,audit,story] = await Promise.all([
+      query(env.DB,'SELECT order_id FROM custom_game_blueprints WHERE order_id = ?',order.id).first(),
+      query(env.DB,'SELECT stage_number FROM custom_game_stages WHERE order_id = ? ORDER BY stage_number',order.id).all(),
+      query(env.DB,'SELECT order_id FROM custom_game_audits WHERE order_id = ?',order.id).first(),
+      query(env.DB,'SELECT order_id FROM custom_story_checkpoints WHERE order_id = ?',order.id).first(),
+    ]);
+    const completedStages=(stageRows.results||[]).map(row=>row.stage_number);
+    const nextStage=[1,2,3,4,5].find(number=>!completedStages.includes(number))||null;
+    generationProgress={phase:order.status==='published'?'delivered':story?'pdf':nextStage?'checkpoint':blueprint?'audit':'blueprint',
+      blueprintReady:Boolean(blueprint),completedStages,currentStage:nextStage,auditPassed:Boolean(audit),storyReady:Boolean(story)};
+  }
   return json({ id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
     generationState: order.product_kind === 'custom' ? (activity?.status || (order.status === 'pending_payment' ? 'awaiting_payment' : 'pending')) : null,
-    generationFailedAttempts: failedAttempts, pdfGenerationHistory,
+    generationFailedAttempts: failedAttempts, pdfGenerationHistory, generationProgress,
     deliveryRetryAvailable: Boolean(order.product_kind === 'custom' && order.status === 'failed' && order.paid_at && activity?.status === 'failed' && !activity.delivery_retry_used && paidPlan?.confirmed_version && !retryBlocked),
     paper: order.product_kind === 'custom' ? spec.paper : null,
     variantId: order.product_kind === 'ready' ? spec.variantId || null : null,
@@ -692,7 +707,7 @@ async function changePaidPlan(request, env, orderId) {
     const updatedSpec = {...spec,plan,direction:plan.id,proposalTitle:plan.title,proposalSummary:plan.summary,planConfirmed:true};
     const locked = await env.DB.batch([
       query(env.DB,"UPDATE custom_plan_orders SET status = 'confirmed',confirmed_version = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'review' AND active_version = ?",version,orderId,version),
-      query(env.DB,"UPDATE custom_activities SET story_spec_json = ? WHERE order_id = ? AND status = 'queued'",JSON.stringify(updatedSpec),orderId),
+      query(env.DB,"UPDATE custom_activities SET story_spec_json = ?,generation_version = 2 WHERE order_id = ? AND status = 'queued'",JSON.stringify(updatedSpec),orderId),
     ]);
     if (!locked[0].meta?.changes || !locked[1].meta?.changes) throw new ApiError(409,'PLAN_CHANGED','The plan changed. Refresh and contact support if the status does not update.');
     await env.GENERATION_QUEUE.send({orderId});
@@ -891,8 +906,128 @@ async function publishPlanRequest(requestId,env) {
   }
 }
 
+const STAGED_AI_CALL_LIMIT = 14;
+const STAGED_STEP_CALL_LIMIT = 2;
+
+async function publishStagedStory(order,activity,spec,specHash,env) {
+  const lease=await query(env.DB,"UPDATE custom_activities SET status = 'generating',lease_until = ? WHERE id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))",nowSeconds()+900,activity.id,nowSeconds()).run();
+  if (!lease.meta?.changes) return;
+  await query(env.DB,"UPDATE orders SET status = 'fulfilling' WHERE id = ? AND status = 'paid'",order.id).run();
+  let phase='blueprint',stageNumber=0;
+  const fetcher=env.FETCH||fetch;
+  const countCalls=async (kind,number)=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ?',order.id,kind,number).first())?.count||0);
+  const totalCalls=async()=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ?',order.id).first())?.count||0);
+  const call=async (kind,number,produce,expectedHash=null)=>{
+    const cached=await query(env.DB,"SELECT result_json FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id,kind,number).first();
+    if (cached) {
+      const value=JSON.parse(cached.result_json);
+      if (!expectedHash || value.storySha256===expectedHash) return value;
+    }
+    if (await countCalls(kind,number)>=STAGED_STEP_CALL_LIMIT || await totalCalls()>=STAGED_AI_CALL_LIMIT)
+      throw new ApiError(422,'STAGED_BUDGET_EXHAUSTED','The safe generation limit was reached.');
+    const provider=aiProvider(env);
+    if (!provider) throw new ApiError(503,'GENERATION_NOT_CONFIGURED','Story generation is not configured.');
+    const id=crypto.randomUUID();
+    await query(env.DB,"INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model) VALUES (?,?,?,?,'started',?)",id,order.id,kind,number,provider.model).run();
+    try {
+      const result=await produce();
+      try { await query(env.DB,"UPDATE custom_generation_calls SET status = 'passed',result_json = ?,response_id = ?,input_tokens = ?,output_tokens = ?,completed_at = CURRENT_TIMESTAMP WHERE id = ?",JSON.stringify(result.value),result.responseId,result.usage?.input_tokens??null,result.usage?.output_tokens??null,id).run(); }
+      catch (caught) { caught.persistence=true; caught.persistenceUncertain=true; throw caught; }
+      return result.value;
+    } catch (caught) {
+      const code=typeof caught?.code==='string' && /^[A-Z0-9_]{1,60}$/.test(caught.code)?caught.code:'UNEXPECTED';
+      const detail=[caught?.message||'Unknown failure',...(Array.isArray(caught?.issues)?caught.issues.slice(0,5):[])].join(' | ').slice(0,1000);
+      await query(env.DB,"UPDATE custom_generation_calls SET status = 'failed',response_id = ?,input_tokens = ?,output_tokens = ?,error_code = ?,error_detail = ?,completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'started'",caught?.responseId||null,caught?.usage?.input_tokens??null,caught?.usage?.output_tokens??null,code,detail,id).run();
+      throw caught;
+    }
+  };
+  try {
+    for (;;) {
+      await query(env.DB,"UPDATE custom_activities SET lease_until = ? WHERE id = ? AND status = 'generating'",nowSeconds()+900,activity.id).run();
+      const blueprintRow=await query(env.DB,'SELECT spec_sha256,blueprint_sha256,blueprint_json FROM custom_game_blueprints WHERE order_id = ?',order.id).first();
+      if (!blueprintRow) {
+        phase='blueprint';stageNumber=0;
+        const blueprint=validateBlueprint(await call('blueprint',0,async()=>{
+          const result=await generateBlueprint(spec,env,fetcher);
+          return {value:result.blueprint,usage:result.usage,responseId:result.responseId};
+        }),spec);
+        const blueprintJson=JSON.stringify(blueprint),blueprintHash=await sha256(blueprintJson);
+        try { await query(env.DB,'INSERT OR IGNORE INTO custom_game_blueprints (order_id,spec_sha256,blueprint_sha256,blueprint_json) VALUES (?,?,?,?)',order.id,specHash,blueprintHash,blueprintJson).run(); }
+        catch (caught) { caught.persistence=true; throw caught; }
+        await query(env.DB,'UPDATE custom_activities SET pipeline_failures = 0 WHERE id = ?',activity.id).run();
+        continue;
+      }
+      if (blueprintRow.spec_sha256!==specHash) throw new ApiError(422,'STORY_CHECKPOINT_MISMATCH','The approved plan changed after its blueprint was saved.');
+      const blueprint=validateBlueprint(JSON.parse(blueprintRow.blueprint_json),spec);
+      const stages=(await query(env.DB,'SELECT stage_number,blueprint_sha256,stage_json FROM custom_game_stages WHERE order_id = ? ORDER BY stage_number',order.id).all()).results||[];
+      if (stages.some(row=>row.blueprint_sha256!==blueprintRow.blueprint_sha256)) throw new ApiError(422,'STORY_CHECKPOINT_MISMATCH','A saved checkpoint belongs to another blueprint.');
+      const next=[1,2,3,4,5].find(number=>!stages.some(row=>row.stage_number===number));
+      if (next) {
+        phase='checkpoint';stageNumber=next;
+        const previous=next===1?null:JSON.parse(stages.find(row=>row.stage_number===next-1)?.stage_json||'null');
+        if (next>1&&!previous) throw new ApiError(422,'STORY_CHECKPOINT_MISMATCH','The previous checkpoint is missing.');
+        const generated=await call('checkpoint',next,async()=>{
+          const result=await generateStagedCheckpoint(spec,blueprint,next,previous,env,fetcher);
+          return {value:result.stage,usage:result.usage,responseId:result.responseId};
+        });
+        const stage=validateGeneratedStage(generated,spec,next,previous?.unlock||'START');
+        try { await query(env.DB,'INSERT OR IGNORE INTO custom_game_stages (order_id,stage_number,blueprint_sha256,stage_json) VALUES (?,?,?,?)',order.id,next,blueprintRow.blueprint_sha256,JSON.stringify(stage)).run(); }
+        catch (caught) { caught.persistence=true; throw caught; }
+        await query(env.DB,'UPDATE custom_activities SET pipeline_failures = 0 WHERE id = ?',activity.id).run();
+        continue;
+      }
+      phase='audit';stageNumber=0;
+      const story=assembleStagedStory(spec,blueprint,stages.map(row=>JSON.parse(row.stage_json)));
+      const storyJson=JSON.stringify(story),storyHash=await sha256(storyJson);
+      const audited=await query(env.DB,'SELECT story_sha256 FROM custom_game_audits WHERE order_id = ?',order.id).first();
+      if (audited && audited.story_sha256!==storyHash) throw new ApiError(422,'STORY_CHECKPOINT_MISMATCH','The checked story changed after approval.');
+      if (!audited) {
+        await call('audit',0,async()=>{
+          const result=await auditStagedStory(story,spec,blueprint,env,fetcher);
+          return {value:{storySha256:storyHash},usage:result.usage,responseId:result.responseId};
+        },storyHash);
+        try { await query(env.DB,'INSERT OR IGNORE INTO custom_game_audits (order_id,story_sha256) VALUES (?,?)',order.id,storyHash).run(); }
+        catch (caught) { caught.persistence=true; throw caught; }
+      }
+      try { await query(env.DB,'INSERT OR IGNORE INTO custom_story_checkpoints (order_id,spec_sha256,story_json,response_id) VALUES (?,?,?,NULL)',order.id,specHash,storyJson).run(); }
+      catch (caught) { caught.persistence=true; throw caught; }
+      await query(env.DB,"UPDATE custom_activities SET status = 'queued',lease_until = NULL,pipeline_failures = 0 WHERE id = ? AND status = 'generating'",activity.id).run();
+      try { await env.GENERATION_QUEUE.send({orderId:order.id}); }
+      catch (caught) { console.error('Checked story saved; PDF queue send failed, scheduled recovery will continue',{orderId:order.id,message:caught?.message}); }
+      return;
+    }
+  } catch (caught) {
+    const code=typeof caught?.code==='string' && /^[A-Z0-9_]{1,60}$/.test(caught.code)?caught.code:'UNEXPECTED';
+    const phaseCalls=await countCalls(phase,stageNumber),calls=await totalCalls();
+    const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
+    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='GENERATION_NOT_CONFIGURED' && calls<STAGED_AI_CALL_LIMIT && phaseCalls<STAGED_STEP_CALL_LIMIT;
+    if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
+    if (code==='GENERATION_QA_FAILED' && caught.stageNumber>=1 && caught.stageNumber<=5 && canRetry && await countCalls('checkpoint',caught.stageNumber)<STAGED_STEP_CALL_LIMIT) {
+      await env.DB.batch([
+        query(env.DB,'DELETE FROM custom_game_stages WHERE order_id = ? AND stage_number = ?',order.id,caught.stageNumber),
+        query(env.DB,"UPDATE custom_generation_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED',error_detail = ? WHERE order_id = ? AND phase = 'checkpoint' AND stage_number = ? AND status = 'passed'",(caught.issues||[]).join(' | ').slice(0,1000),order.id,caught.stageNumber),
+      ]);
+    } else if (code==='GENERATION_QA_FAILED') canRetry=false;
+    console.error('Staged custom generation stopped',{orderId:order.id,phase,stageNumber,code,message:caught?.message||'Unknown failure',retrying:canRetry});
+    if (canRetry) {
+      await query(env.DB,'UPDATE custom_activities SET lease_until = 0,pipeline_failures = ? WHERE id = ?',persistenceFailures,activity.id).run();
+      try { await env.GENERATION_QUEUE.send({orderId:order.id}); }
+      catch (queueFailure) { console.error('Staged retry queue send failed; scheduled recovery will continue',{orderId:order.id,message:queueFailure?.message}); }
+      return;
+    }
+    const attempt=(await query(env.DB,'SELECT COALESCE(MAX(attempt),0)+1 AS next FROM generation_usage WHERE order_id = ?',order.id).first()).next;
+    await env.DB.batch([
+      query(env.DB,"UPDATE custom_activities SET status = 'failed',lease_until = NULL WHERE id = ?",activity.id),
+      query(env.DB,"UPDATE orders SET status = 'failed' WHERE id = ?",order.id),
+      query(env.DB,"INSERT INTO generation_usage (order_id,attempt,model,status,phase,round_number,trigger_kind,error_code,error_detail,completed_at) VALUES (?,?,?,'failed','story',1,'initial','STAGED_GENERATION_STOPPED',?,CURRENT_TIMESTAMP)",order.id,attempt,aiProvider(env)?.model||'unconfigured',`${phase}${stageNumber?` ${stageNumber}`:''}: ${code} ${caught?.message||''}`.slice(0,1000)),
+      query(env.DB,"INSERT INTO delivery_notifications (order_id,kind,status,attempts) VALUES (?,'generation_failed','pending',0) ON CONFLICT(order_id,kind) DO UPDATE SET status = 'pending',attempts = 0,sent_at = NULL",order.id),
+      query(env.DB,"INSERT INTO custom_delivery_incidents (order_id,phase,error_code) VALUES (?,?,?) ON CONFLICT(order_id) DO UPDATE SET phase = excluded.phase,error_code = excluded.error_code,status = 'open',alert_status = 'pending',alert_attempts = 0,alerted_at = NULL",order.id,phase,code),
+    ]);
+  }
+}
+
 async function publishCustomOrder(orderId, env) {
-  if (!env.DB || !env.PRIVATE_FILES || !aiProvider(env)) throw new Error('Generation bindings are missing');
+  if (!env.DB || !env.PRIVATE_FILES) throw new Error('Generation bindings are missing');
   const order = await query(env.DB, "SELECT * FROM orders WHERE id = ? AND product_kind = 'custom' AND status IN ('paid','fulfilling')", orderId).first();
   if (!order) return;
   const activity = await query(env.DB, 'SELECT * FROM custom_activities WHERE order_id = ?', orderId).first();
@@ -905,6 +1040,10 @@ async function publishCustomOrder(orderId, env) {
   const spec = purchaseSpec.creatorVersion === 3 ? JSON.parse(activity.story_spec_json) : purchaseSpec;
   if (purchaseSpec.creatorVersion === 3 && (!spec.planConfirmed || !spec.plan)) return;
   const specHash = await sha256(JSON.stringify(spec));
+  if (activity.generation_version===2) {
+    const existing=await query(env.DB,'SELECT order_id FROM custom_story_checkpoints WHERE order_id = ?',orderId).first();
+    if (!existing) return publishStagedStory(order,activity,spec,specHash,env);
+  }
   const lease = await query(env.DB, `UPDATE custom_activities SET status = 'generating', lease_until = ? WHERE id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))`, nowSeconds() + 900, activity.id, nowSeconds()).run();
   if (!lease.meta?.changes) return;
   await env.DB.batch([

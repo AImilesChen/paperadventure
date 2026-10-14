@@ -63,6 +63,30 @@ export function validateSupportedRange(spec, env) {
   if (spec.players > playerMax) throw new ApiError(400, 'UNSUPPORTED_GROUP_SIZE', `The current ${spec.setting} limit is ${playerMax} players.`);
 }
 
+function validateStoryStage(stage, index, plan, previousUnlock) {
+  if (!stage || typeof stage !== 'object') throw new ApiError(422, 'GENERATION_INVALID', 'A stage is missing.');
+  const number = index + 1;
+  if (plan && (stage.title !== plan.stages[index].title || stage.mechanic !== plan.stages[index].mechanic)) throw new ApiError(422,'GENERATION_INVALID',`Checkpoint ${number} changed the approved title or play style.`);
+  const options = stage.options;
+  if (!Array.isArray(options) || options.length !== 3 || new Set(options.map(x => String(x).trim().toLowerCase())).size !== 3) throw new ApiError(422, 'GENERATION_INVALID', `Stage ${number} needs three distinct options.`);
+  const answerIndex = Number(stage.answerIndex);
+  if (!Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex > 2) throw new ApiError(422, 'GENERATION_INVALID', `Stage ${number} has no valid answer.`);
+  const unlock = requireText(stage.unlock, `Stage ${number} unlock`, 100);
+  const prerequisite = number === 1 ? 'START' : requireText(stage.prerequisite, `Stage ${number} prerequisite`, 100);
+  if (number > 1 && prerequisite !== previousUnlock) throw new ApiError(422, 'GENERATION_INVALID', `Stage ${number} does not follow the previous clue.`);
+  return { number, title: requireText(stage.title, 'Stage title', 100), clue: requireText(stage.clue, 'Clue', 1200), options: options.map((value, i) => requireText(value, `Option ${i+1}`, 240)), answerIndex,
+    explanation: requireText(stage.explanation, 'Answer explanation', 600), hint: requireText(stage.hint, 'Hint', 400), prerequisite, unlock,
+    ...(plan ? {mechanic:stage.mechanic,task:plan.stages[index].task,teamwork:plan.stages[index].teamwork} : {}) };
+}
+
+export function validateGeneratedStage(stage, spec, stageNumber, previousUnlock) {
+  if (!Number.isInteger(stageNumber) || stageNumber < 1 || stageNumber > 5) throw new ApiError(422,'GENERATION_INVALID','Choose a checkpoint from 1 to 5.');
+  let plan;
+  try { plan=validatePlan(spec.plan,spec); } catch { throw new ApiError(422,'GENERATION_INVALID','The approved plan is unavailable.'); }
+  if (/[^\x20-\x7e\n\r]/.test(JSON.stringify(stage))) throw new ApiError(422,'GENERATION_INVALID','Use English printable language.');
+  return validateStoryStage(stage,stageNumber-1,plan,previousUnlock);
+}
+
 export function validateGeneratedStory(story, spec) {
   if (!story || typeof story !== 'object') throw new ApiError(422, 'GENERATION_INVALID', 'The generated story was empty.');
   const title = requireText(story.title, 'Story title', 100);
@@ -74,21 +98,7 @@ export function validateGeneratedStory(story, spec) {
     if (title !== plan.title || introduction !== plan.opening || /[^\x20-\x7e\n\r]/.test(JSON.stringify(story))) throw new ApiError(422,'GENERATION_INVALID','Keep the approved title, opening and English printable language.');
   }
   if (!Array.isArray(story.stages) || story.stages.length !== 5) throw new ApiError(422, 'GENERATION_INVALID', 'Exactly five connected stages are required.');
-  const stages = story.stages.map((stage, index) => {
-    if (!stage || typeof stage !== 'object') throw new ApiError(422, 'GENERATION_INVALID', 'A stage is missing.');
-    const number = index + 1;
-    if (plan && (stage.title !== plan.stages[index].title || stage.mechanic !== plan.stages[index].mechanic)) throw new ApiError(422,'GENERATION_INVALID',`Checkpoint ${number} changed the approved title or play style.`);
-    const options = stage.options;
-    if (!Array.isArray(options) || options.length !== 3 || new Set(options.map(x => String(x).trim().toLowerCase())).size !== 3) throw new ApiError(422, 'GENERATION_INVALID', `Stage ${number} needs three distinct options.`);
-    const answerIndex = Number(stage.answerIndex);
-    if (!Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex > 2) throw new ApiError(422, 'GENERATION_INVALID', `Stage ${number} has no valid answer.`);
-    const unlock = requireText(stage.unlock, `Stage ${number} unlock`, 100);
-    const prerequisite = number === 1 ? 'START' : requireText(stage.prerequisite, `Stage ${number} prerequisite`, 100);
-    if (number > 1 && prerequisite !== story.stages[index - 1].unlock) throw new ApiError(422, 'GENERATION_INVALID', `Stage ${number} does not follow the previous clue.`);
-    return { number, title: requireText(stage.title, 'Stage title', 100), clue: requireText(stage.clue, 'Clue', 1200), options: options.map((value, i) => requireText(value, `Option ${i+1}`, 240)), answerIndex,
-      explanation: requireText(stage.explanation, 'Answer explanation', 600), hint: requireText(stage.hint, 'Hint', 400), prerequisite, unlock,
-      ...(plan ? {mechanic:stage.mechanic,task:plan.stages[index].task,teamwork:plan.stages[index].teamwork} : {}) };
-  });
+  const stages = story.stages.map((stage,index)=>validateStoryStage(stage,index,plan,index ? story.stages[index-1].unlock : 'START'));
   if (spec.setting === 'classroom' && !story.groupInstructions) throw new ApiError(422, 'GENERATION_INVALID', 'Classroom group instructions are required.');
   return { title, introduction, ending, stages, groupInstructions: story.groupInstructions ? requireText(story.groupInstructions, 'Group instructions', 700) : null };
 }
