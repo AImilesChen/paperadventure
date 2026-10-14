@@ -136,7 +136,7 @@ async function recordCall(remake, phase, stageNumber, produce, env) {
     throw new ApiError(422, 'REMAKE_BUDGET_EXHAUSTED', 'The safe generation limit was reached. Your original game remains available.');
   const id = crypto.randomUUID();
   const spec=JSON.parse(remake.spec_json);
-  const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&phase!=='blueprint';
+  const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&phase!=='blueprint'&&!(spec.packContractVersion===1&&phase==='audit');
   await query(db, "INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,round_number,generation_round,logic_epoch) VALUES (?,?,?,?,'started',?,?,?,?)", id, remake.order_id, phase, stageNumber, deterministic?'checked-rules-v1':aiProvider(env).model, Math.min(round,2), round, remake.logic_epoch).run();
   try {
     const result = await produce();
@@ -202,6 +202,7 @@ async function publishRemadeFiles(remake, order, env) {
   await db.batch([
     query(db, "INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,guide_r2_key,player_sha256,guide_sha256,story_r2_key,story_sha256,pack_format_version) VALUES (?, ?, ?, 'published', ?, ?, ?, ?, ?, ?, 2)", `artifact-${order.id}-${version}`, activity.id, version, `${prefix}/player.pdf`, `${prefix}/guide.pdf`, playerHash, guideHash, `${prefix}/story.json`, storyHash),
     query(db, "UPDATE custom_pack_remakes SET status = 'ready',phase = 'delivered',published_version = ?,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = CURRENT_TIMESTAMP,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'", version, order.id),
+    query(db,"UPDATE custom_delivery_incidents SET status = 'resolved' WHERE order_id = ?",order.id),
     query(db, "UPDATE entitlements SET access_expires_at = CASE WHEN access_expires_at < datetime('now','+12 months') THEN datetime('now','+12 months') ELSE access_expires_at END, revision_expires_at = datetime('now','+30 days') WHERE order_id = ? AND status = 'active'", order.id),
     query(db, "INSERT INTO delivery_notifications (order_id,kind,status,attempts) VALUES (?,'files_ready','pending',0) ON CONFLICT(order_id,kind) DO UPDATE SET status = 'pending',attempts = 0,sent_at = NULL", order.id),
   ]);
@@ -272,7 +273,7 @@ export async function processPackRemake(orderId, env) {
       const failedStage = caught.stageNumber;
       retry = retry && failedStage >= 1 && failedStage <= 5;
       if (retry) {
-        const blueprintIssue = /material|card|option|choice|answer leak|printed piece/i.test(caught.message);
+        const blueprintIssue = spec.packContractVersion===1 || /material|card|option|choice|answer leak|printed piece/i.test(caught.message);
         if (blueprintIssue) {
           await db.batch([
             query(db, "UPDATE custom_pack_remake_calls SET status = 'failed',error_code = 'AUDIT_REJECTED',error_detail = ? WHERE id = (SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND phase = 'blueprint' AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1)", String(caught.message).slice(0,500), orderId,remake.logic_epoch),
@@ -292,6 +293,7 @@ export async function processPackRemake(orderId, env) {
     }
     console.error('Paid pack remake step stopped', { orderId, phase, stageNumber, code, retry, message: caught?.message });
     await query(db, "UPDATE custom_pack_remakes SET status = ?,phase = ?,lease_until = NULL,failure_count = failure_count + 1,error_code = ?,error_detail = ?,updated_at = CURRENT_TIMESTAMP,completed_at = CASE WHEN ? = 'failed' THEN CURRENT_TIMESTAMP ELSE completed_at END WHERE order_id = ?", retry ? 'queued' : 'failed', phase, code, String(caught?.message || 'Unknown failure').slice(0, 1000), retry ? 'queued' : 'failed', orderId).run();
+    if(!retry)await query(db,"INSERT INTO custom_delivery_incidents (order_id,phase,error_code) VALUES (?,?,?) ON CONFLICT(order_id) DO UPDATE SET phase = excluded.phase,error_code = excluded.error_code,status = 'open',alert_status = 'pending',alert_attempts = 0,alerted_at = NULL",orderId,phase,code).run();
     if (retry) await queueNext(orderId, env);
   }
 }

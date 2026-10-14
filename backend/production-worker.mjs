@@ -3,7 +3,7 @@ import { ApiError, validateGeneratedStage, validateGeneratedStory, validatePurch
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage } from './openai.mjs';
-import { assembleStagedStory, auditStagedStory, generateBlueprint, generateStagedCheckpoint, validateBlueprint } from './staged-story.mjs';
+import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import { verifyGoogleCredential } from './google-auth.mjs';
 import { signPreview, confirmPreview } from './creator-preview.mjs';
@@ -631,6 +631,7 @@ async function orderView(request, env, orderId) {
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
     revisionExpiresAt: entitlement?.revision_expires_at || null,
     gamePackVersion: order.product_kind === 'custom' ? Math.max(latestArtifact?.pack_format_version || 1, spec.gamePackVersion || 1) : null,
+    packContractVersion: spec.packContractVersion || (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packContractVersion || 0 : 0),
     checkedPuzzleRevision: Boolean(latestArtifact && (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packLogicVersion === 1 : spec.packLogicVersion === 1)),
     remake,
     revisionRequests: revisionRows.map(item=>({id:item.id,stageNumber:item.stage_number,status:item.status,version:item.version_number||null,createdAt:item.created_at,completedAt:item.completed_at||null})),
@@ -730,6 +731,7 @@ async function changePaidPlan(request, env, orderId) {
   if (kind==='full' && state.full_used>=2 || kind==='targeted' && state.targeted_used>=3) throw new ApiError(403,'PLAN_CHANGE_LIMIT','Included plan changes are used. Contact support if the plan still does not fit.');
   if (scope && !['title','summary','opening','roles','goal','preparation','stage1','stage2','stage3','stage4','stage5'].includes(scope)) throw new ApiError(400,'INVALID_PLAN_SCOPE','Choose the part to change.');
   if (kind==='targeted' && !scope) throw new ApiError(400,'INVALID_PLAN_SCOPE','Choose the part to change.');
+  if(kind==='targeted'&&JSON.parse(order.purchase_spec_json).packContractVersion===1&&['roles','preparation'].includes(scope))throw new ApiError(400,'FIXED_PAPER_SETUP','The checked job rotation and paper-only preparation are fixed. Edit the story, goal or a checkpoint story moment instead.');
   if (feedback.length<10 || feedback.length>500) throw new ApiError(400,'INVALID_PLAN_FEEDBACK','Describe the change in 10–500 characters.');
   const reserved=await query(env.DB,`UPDATE custom_plan_orders SET status = 'queued',updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'review' AND active_version = ? AND ${kind==='full'?'full_used < 2':'targeted_used < 3'}`,orderId,state.active_version).run();
   if (!reserved.meta?.changes) throw new ApiError(409,'PLAN_BUSY','The plan changed. Refresh and try again.');
@@ -984,7 +986,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     }
     if (await countCalls(kind,number)>=STAGED_STEP_CALL_LIMIT || await totalCalls()>=STAGED_AI_CALL_LIMIT)
       throw new ApiError(422,'STAGED_BUDGET_EXHAUSTED','The safe generation limit was reached.');
-    const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&kind!=='blueprint';
+    const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&kind!=='blueprint'&&!(spec.packContractVersion===1&&kind==='audit');
     const provider=deterministic?null:aiProvider(env);
     if (!deterministic&&!provider) throw new ApiError(503,'GENERATION_NOT_CONFIGURED','Story generation is not configured.');
     const id=crypto.randomUUID();
@@ -997,7 +999,8 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     } catch (caught) {
       const code=typeof caught?.code==='string' && /^[A-Z0-9_]{1,60}$/.test(caught.code)?caught.code:'UNEXPECTED';
       const detail=[caught?.message||'Unknown failure',...(Array.isArray(caught?.issues)?caught.issues.slice(0,5):[])].join(' | ').slice(0,1000);
-      await query(env.DB,"UPDATE custom_generation_calls SET status = 'failed',response_id = ?,input_tokens = ?,output_tokens = ?,error_code = ?,error_detail = ?,completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'started'",caught?.responseId||null,caught?.usage?.input_tokens??null,caught?.usage?.output_tokens??null,code,detail,id).run();
+      const candidate=caught?.candidate?JSON.stringify(caught.candidate):null;
+      await query(env.DB,"UPDATE custom_generation_calls SET status = 'failed',response_id = ?,input_tokens = ?,output_tokens = ?,error_code = ?,error_detail = ?,result_json = ?,completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'started'",caught?.responseId||null,caught?.usage?.input_tokens??null,caught?.usage?.output_tokens??null,code,detail,candidate?.length<=40000?candidate:null,id).run();
       throw caught;
     }
   };
@@ -1008,7 +1011,8 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
       if (!blueprintRow) {
         phase='blueprint';stageNumber=0;
         const blueprint=validateBlueprint(await call('blueprint',0,async()=>{
-          const result=await generateBlueprint(spec,env,fetcher);
+          const prior=spec.packContractVersion===1?await query(env.DB,"SELECT result_json,error_detail FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint' AND status = 'failed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id).first():null;
+          const result=prior?await repairBlueprint(spec,JSON.parse(prior.result_json),prior.error_detail,env,fetcher):await generateBlueprint(spec,env,fetcher);
           return {value:result.blueprint,usage:result.usage,responseId:result.responseId};
         }),spec);
         const blueprintJson=JSON.stringify(blueprint),blueprintHash=await sha256(blueprintJson);
@@ -1062,7 +1066,14 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
     let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='GENERATION_NOT_CONFIGURED' && calls<STAGED_AI_CALL_LIMIT && phaseCalls<STAGED_STEP_CALL_LIMIT;
     if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
-    if (code==='GENERATION_QA_FAILED' && caught.stageNumber>=1 && caught.stageNumber<=5 && canRetry && await countCalls('checkpoint',caught.stageNumber)<STAGED_STEP_CALL_LIMIT) {
+    if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&canRetry&&await countCalls('blueprint',0)<STAGED_STEP_CALL_LIMIT){
+      await env.DB.batch([
+        query(env.DB,"UPDATE custom_generation_calls SET status = 'failed',error_code = 'AUDIT_REJECTED',error_detail = ? WHERE order_id = ? AND phase = 'blueprint' AND status = 'passed'",String(caught.message).slice(0,1000),order.id),
+        query(env.DB,"UPDATE custom_generation_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND phase = 'checkpoint' AND status = 'passed'",order.id),
+        query(env.DB,'DELETE FROM custom_game_blueprints WHERE order_id = ?',order.id),
+        query(env.DB,'DELETE FROM custom_game_stages WHERE order_id = ?',order.id),
+      ]);
+    } else if (code==='GENERATION_QA_FAILED' && spec.packContractVersion!==1 && caught.stageNumber>=1 && caught.stageNumber<=5 && canRetry && await countCalls('checkpoint',caught.stageNumber)<STAGED_STEP_CALL_LIMIT) {
       await env.DB.batch([
         query(env.DB,'DELETE FROM custom_game_stages WHERE order_id = ? AND stage_number = ?',order.id,caught.stageNumber),
         query(env.DB,"UPDATE custom_generation_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED',error_detail = ? WHERE order_id = ? AND phase = 'checkpoint' AND stage_number = ? AND status = 'passed'",(caught.issues||[]).join(' | ').slice(0,1000),order.id,caught.stageNumber),

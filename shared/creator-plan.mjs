@@ -1,3 +1,4 @@
+import {paperContractTypes} from './paper-contract.mjs';
 export const CREATOR_VERSION = 2;
 export const mechanics = [
   {id:'reasoning', title:'Clue detective', description:'Compare printed facts and find the one answer that fits.', action:'Compare the clues', sample:{clue:'The parcel has a round seal and two stripes. Which label fits?',options:['Round seal, two stripes','Square seal, two stripes','Round seal, three stripes'],answer:0,explanation:'Both printed features must match.'}},
@@ -71,14 +72,16 @@ export function validatePlan(value, spec) {
     stages:value.stages.map((item,index) => {
       if (item.number !== index+1 || !selected.includes(item.mechanic)) throw new Error('A checkpoint has an unsupported number or play style.');
       return {number:index+1,title:text(item.title,'Checkpoint title',100),mechanic:item.mechanic,
-        task:text(item.task,'Player task',350),teamwork:text(item.teamwork,'Team action',260),connection:text(item.connection,'Connection',260)};
+        task:text(item.task,'Player task',350),teamwork:text(item.teamwork,'Team action',260),connection:text(item.connection,'Connection',260),
+        ...(spec.packContractVersion===1?{storyContext:text(item.storyContext||item.title,'Story context',150)}:{})};
     }),
   };
   if (!['mystery','mission'].includes(plan.id)) throw new Error('Choose one of the two adventure plans.');
   if (plan.stages.filter(item=>item.mechanic===requested[0]).length < 3 || requested.some(id=>!plan.stages.some(item=>item.mechanic===id))) throw new Error('The plan must use the main style at least three times and every selected supporting style.');
-  if (spec.gamePackVersion===2 && spec.packLogicVersion===1 &&
+  if (!spec.packContractVersion && spec.gamePackVersion===2 && spec.packLogicVersion===1 &&
       (!plan.stages.some(item=>['reasoning','discussion'].includes(item.mechanic)) || !plan.stages.some(item=>['reasoning','sequence'].includes(item.mechanic))))
     throw new Error('The checked paper game needs both evidence and an ordering or route-compatible checkpoint.');
+  if(spec.packContractVersion===1)paperContractTypes(plan);
   if (spec.gamePackVersion===2 && (plan.title.length>70 || plan.opening.length>350 || plan.roles.length>180 || plan.goal.length>180 || plan.stages.some(item=>item.title.length>60 || item.task.length>180 || item.teamwork.length>150)))
     throw new Error('The paper-pack plan needs concise headings, roles and player tasks that fit the printed sheets.');
   return plan;

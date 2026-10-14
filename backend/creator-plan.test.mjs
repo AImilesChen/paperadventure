@@ -41,7 +41,7 @@ test('a code-led paid plan may use two reasoning support tasks so printable mate
   plan.stages.forEach((stage,index)=>{stage.mechanic=index<3?'code':'reasoning';});
   assert.equal(validatePlan(plan,spec).stages[4].mechanic,'reasoning');
   const impossible={...plan,stages:plan.stages.map(stage=>({...stage,mechanic:'code'}))};
-  assert.throws(()=>validatePlan(impossible,spec),/evidence and an ordering or route-compatible checkpoint/);
+  assert.throws(()=>validatePlan(impossible,spec),/varied paper actions/);
 });
 test('paid plan parser accepts fenced provider JSON and audits the result',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
@@ -62,13 +62,14 @@ test('an overlong paid plan is repaired before audit and usage includes the repa
     const value=[overlong,valid,{pass:true,issues:[]}][calls++];
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
   });
-  assert.equal(calls,3);assert.equal(result.plan.roles,valid.roles);
+  assert.equal(calls,3);assert.match(result.plan.roles,/Reader, Paper Handler, Checker and Recorder/);
   assert.equal(result.usage.input_tokens,30);assert.equal(result.usage.output_tokens,60);
 });
 test('a paid plan rejected by audit is corrected and independently rechecked once',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const first=planFixture(spec),corrected=planFixture(spec);
   corrected.stages[1].task+=' Compare the printed clock hands.';
+  corrected.stages[1].storyContext='The clock hands have been changed since noon.';
   let calls=0;
   const result=await generateSinglePlan(spec,env,async(_url,options)=>{
     const sent=JSON.parse(options.body);
@@ -77,7 +78,7 @@ test('a paid plan rejected by audit is corrected and independently rechecked onc
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
   });
   assert.equal(calls,4);
-  assert.equal(result.plan.stages[1].task,corrected.stages[1].task);
+  assert.equal(result.plan.stages[1].storyContext,corrected.stages[1].storyContext);
   assert.equal(result.usage.input_tokens,40);
   assert.equal(result.usage.output_tokens,80);
 });

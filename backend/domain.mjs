@@ -3,6 +3,7 @@ import { creatorFields } from './creator-preview.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
 import { validatePrintableMaterial, validateMaterialSet } from './printable-material.mjs';
 import { validateControlledPuzzle } from './controlled-puzzles.mjs';
+import {validatePaperPlan} from '../shared/paper-contract.mjs';
 
 export class ApiError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code; }
@@ -46,7 +47,7 @@ export function validatePurchase(input) {
   if (Boolean(proposalTitle) !== Boolean(proposalSummary)) throw new ApiError(400, 'INVALID_SPEC', 'The selected proposal is incomplete.');
   if (input.creatorVersion === 3 && (input.plan || input.previewToken || input.planConfirmed || proposalTitle || proposalSummary)) throw new ApiError(400,'INVALID_SPEC','The personal plan is created after payment.');
   return { offer, spec: { sku: offer.sku, kind: 'custom', setting: offer.setting, themeId, customIdea: idea, players, groups, age, paper, direction, proposalTitle, proposalSummary,
-    ...(input.creatorVersion === 3 ? {gamePackVersion:2,packLogicVersion:1} : {}),
+    ...(input.creatorVersion === 3 ? {gamePackVersion:2,packLogicVersion:1,packContractVersion:1} : {}),
     preferences: Object.fromEntries(['characters','goal','include','avoid'].map(key => [key, input.preferences?.[key] ? requireText(input.preferences[key], `Preference ${key}`, 180) : ''])),
     place: String(input.place || '').trim().slice(0, 180), reading: String(input.reading || '').trim().slice(0, 40), materials: String(input.materials || '').trim().slice(0, 180), ...creatorFields(input) } };
 }
@@ -82,9 +83,10 @@ function validateStoryStage(stage, index, plan, previousUnlock, gamePackVersion 
     try { material=validatePrintableMaterial(stage.material); }
     catch (cause) { throw new ApiError(422,'GENERATION_INVALID',`Checkpoint ${number}: ${cause.message}`); }
   }
+  if(material?.logic?.contractVersion===1&&(!plan||stage.task!==plan.stages[index].task||stage.teamwork!==plan.stages[index].teamwork))throw new ApiError(422,'GENERATION_INVALID',`Checkpoint ${number} task or teamwork does not match its approved paper action.`);
   const checked={ number, title: requireText(stage.title, 'Stage title', 100), clue: requireText(stage.clue, 'Clue', gamePackVersion===2?400:1200), options: options.map((value, i) => requireText(value, `Option ${i+1}`, gamePackVersion===2?100:240)), answerIndex,
     explanation: requireText(stage.explanation, 'Answer explanation', gamePackVersion===2?400:600), hint: requireText(stage.hint, 'Hint', gamePackVersion===2?120:400), prerequisite, unlock,
-    ...(plan ? {mechanic:stage.mechanic,task:plan.stages[index].task,teamwork:plan.stages[index].teamwork} : {}),
+    ...(plan ? {mechanic:stage.mechanic,task:plan.stages[index].task,teamwork:plan.stages[index].teamwork,...(plan.stages[index].storyContext?{storyContext:plan.stages[index].storyContext}:{})} : {}),
     ...(material ? {material} : {}),
     ...(stage.logicStyle ? {logicStyle:requireText(stage.logicStyle,'Checkpoint wording',20)} : {}) };
   if (gamePackVersion===2 && packLogicVersion===1) {
@@ -113,12 +115,18 @@ export function validateGeneratedStory(story, spec) {
     if (title !== plan.title || introduction !== plan.opening || /[^\x20-\x7e\n\r]/.test(JSON.stringify(story))) throw new ApiError(422,'GENERATION_INVALID','Keep the approved title, opening and English printable language.');
   }
   if (!Array.isArray(story.stages) || story.stages.length !== 5) throw new ApiError(422, 'GENERATION_INVALID', 'Exactly five connected stages are required.');
+  if(spec.gamePackVersion===2&&spec.packContractVersion===1)validatePaperPlan(plan);
   const stages = story.stages.map((stage,index)=>validateStoryStage(stage,index,plan,index ? story.stages[index-1].unlock : 'START',spec.gamePackVersion,spec.packLogicVersion));
   if (spec.gamePackVersion === 2) {
-    try { validateMaterialSet(stages); }
+    try { validateMaterialSet(stages,spec.packContractVersion); }
     catch (cause) { throw new ApiError(422,'GENERATION_INVALID',cause.message); }
   }
   if (spec.setting === 'classroom' && !story.groupInstructions) throw new ApiError(422, 'GENERATION_INVALID', 'Classroom group instructions are required.');
+  if(spec.gamePackVersion===2&&spec.packContractVersion===1){
+    const digits=stages.slice(0,4).map(stage=>stage.material.logic.resultDigit);
+    if(stages.some(stage=>stage.material.logic.contractVersion!==1)||JSON.stringify(stages[4].material.logic.previousDigits)!==JSON.stringify(digits))throw new ApiError(422,'GENERATION_INVALID','The final action must use all four earlier result digits.');
+    if(!/[.!?]$/.test(introduction)||!/[.!?]$/.test(ending))throw new ApiError(422,'GENERATION_INVALID','Story paragraphs must end with complete sentences.');
+  }
   return { title, introduction, ending, stages, groupInstructions: story.groupInstructions ? requireText(story.groupInstructions, 'Group instructions', 700) : null };
 }
 

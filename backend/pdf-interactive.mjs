@@ -56,12 +56,14 @@ function cover(story,spec){
   y=page.block(story.introduction,48,y,75,11,18)-20;
   page.text('YOUR MISSION',48,y,12,true);y-=23;
   y=page.block(spec.plan.goal,48,y,75,11,18)-15;
+  if(spec.packContractVersion===1)y=page.block('Collect one result digit at each of the first four checkpoints. Keep your sheets: all four digits are needed to choose the final story action.',48,y,75,11,18)-15;
   page.text('PLAY AS A TEAM',48,y,12,true);y-=23;
   y=page.block(spec.plan.roles,48,y,75,11,18)-20;
   page.text('FIVE PAPER CHECKPOINTS',48,y,12,true);y-=22;
   for(const stage of story.stages){
-    page.text(`${stage.number}. ${stage.title} - ${kindLabel[stage.material.type]}`,56,y,10,true);y-=28;
+    y=page.block(`${stage.number}. ${stage.title} - ${kindLabel[stage.material.type]}`,56,y,70,11,16,true)-12;
   }
+  if(y<145)throw new Error('The opening, roles and checkpoint list do not fit the cover.');
   page.box(48,65,page.width-96,60,'0.93 0.97 0.99');
   page.block('Print single-sided. Use pencils. An adult holds the guide and releases one checkpoint at a time. Cards and tiles may be cut by an adult, or used whole by pointing and writing.',60,105,77,9,14);
   return page;
@@ -70,20 +72,22 @@ function cover(story,spec){
 function challenge(stage,spec){
   const page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,`Player Pack / Checkpoint ${stage.number} / Challenge`);
   let y=heading(page,`Checkpoint ${stage.number} of 5`,stage.title);
+  if(stage.storyContext)y=page.block(stage.storyContext,48,y,75,11,16)-14;
   const gap=10,col=(page.width-96-gap)/2;
-  page.box(48,y-117,col,117,'0.93 0.97 0.99');
-  page.box(48+col+gap,y-117,col,117,'0.93 0.97 0.99');
+  const panelHeight=Math.max(117,Math.max(wrap(stage.task,33).length,wrap(stage.teamwork,33).length)*16+53);
+  page.box(48,y-panelHeight,col,panelHeight,'0.93 0.97 0.99');
+  page.box(48+col+gap,y-panelHeight,col,panelHeight,'0.93 0.97 0.99');
   page.text('YOUR TASK',60,y-20,10,true);
-  page.block(stage.task,60,y-39,33,10,13);
+  page.block(stage.task,60,y-39,33,11,16);
   page.text('WORK TOGETHER',60+col+gap,y-20,10,true);
-  page.block(stage.teamwork,60+col+gap,y-39,33,10,13);
-  y-=137;
+  page.block(stage.teamwork,60+col+gap,y-39,33,11,16);
+  y-=panelHeight+20;
   page.text('READ THE CLUE AND USE THE NEXT MATERIAL SHEET',48,y,11,true);y-=24;
   y=page.block(stage.clue,48,y,78,11,18)-17;
   for(let i=0;i<stage.options.length;i++){
     const option=stage.options[i],lines=wrap(option,70),height=Math.max(42,lines.length*16+17);
     page.box(48,y-height,page.width-96,height,'0.97 0.99 1');
-    page.block(`${String.fromCharCode(65+i)}. ${option}`,60,y-17,74,10,16);
+    page.block(`${String.fromCharCode(65+i)}. ${option}`,60,y-17,70,11,16);
     y-=height+9;
   }
   if(y<120)throw new Error(`Checkpoint ${stage.number} challenge exceeds the printable page`);
@@ -109,23 +113,32 @@ function materialSheet(stage,spec){
   page.text('PRINTED PIECES',48,y,11,true);y-=20;
   const items=material.items;
   if(material.type==='route_board'){
+    const routeCount=material.logic?.contractVersion===1?3:items.length;
+    const routeHeight=Math.min(110,Math.floor((y-178-(material.logic?.contractVersion?73:0))/routeCount)-8);
+    if(routeHeight<80)throw new Error(`Checkpoint ${stage.number} route rows do not fit.`);
     for(const [index,item] of items.entries()){
-      const h=Math.min(105,Math.floor((y-170)/items.length)-8);
+      if(material.logic?.contractVersion===1&&index===3){
+        page.box(48,y-65,page.width-96,65,'0.93 0.97 0.99');
+        page.text(item.label,60,y-19,11,true);page.block(item.detail,60,y-38,70,11,16);y-=73;continue;
+      }
+      const h=routeHeight;
       page.box(48,y-h,page.width-96,h,'0.97 0.99 1');
       page.text('START',60,y-23,8,true);
       page.text(item.label,130,y-23,11,true);
       page.text('END',page.width-82,y-23,8,true);
       page.rule(60,y-38,page.width-60,y-38,'0.77 0.19 0.13');
-      page.block(item.detail,60,y-56,75,9,13);
+      page.block(item.detail,60,y-52,70,11,15);
       y-=h+8;
     }
   } else if(material.type==='symbol_key' || material.type==='decision_record'){
-    for(const item of items){
-      const h=Math.min(135,Math.max(54,Math.floor((y-170)/items.length)-7));
+    const rowHeight=Math.min(110,Math.floor((y-178)/items.length)-7);
+    if(rowHeight<65)throw new Error(`Checkpoint ${stage.number} record rows do not fit.`);
+    for(const [index,item] of items.entries()){
+      const h=rowHeight;
       page.box(48,y-h,page.width-96,h,'0.97 0.99 1');
-      if(material.type==='decision_record')page.box(60,y-28,13,13);
+      if(material.type==='decision_record'&&(!material.logic?.contractVersion||index<3))page.box(60,y-28,13,13);
       page.text(item.label,material.type==='decision_record'?83:61,y-24,11,true);
-      page.block(item.detail,material.type==='decision_record'?83:61,y-42,69,9,13);
+      page.block(item.detail,material.type==='decision_record'?83:61,y-39,63,11,15);
       y-=h+7;
     }
   } else {
@@ -136,7 +149,7 @@ function materialSheet(stage,spec){
       page.box(x,top-h,col,h,'0.97 0.99 1');
       page.text(item.label,x+12,top-22,11,true);
       page.rule(x+12,top-30,x+col-12,top-30);
-      if(material.type==='evidence_cards'&&index<3&&material.logic?.version===1){
+      if(material.type==='evidence_cards'&&index<3&&material.logic?.version===1&&!material.logic?.contractVersion){
         page.circle(x+31,top-76,14,index===2?'0.85 0.24 0.17':'0.20 0.48 0.70');
         if(index===0)page.circle(x+93,top-76,14,'1 1 1');
         else page.star(x+93,top-76,15);
@@ -145,13 +158,13 @@ function materialSheet(stage,spec){
       } else if(material.type==='order_tiles'&&material.logic?.version===1){
         page.circle(x+25,top-94,15);
         page.text('?',x+21,top-99,13,true);
-        page.block(item.detail,x+52,top-82,27,9,14);
-      } else page.block(item.detail,x+12,top-47,32,9,14);
+        page.block(item.detail,x+52,top-82,24,11,16);
+      } else page.block(item.detail,x+12,top-47,29,11,16);
     });
   }
   page.box(48,58,page.width-96,108,'0.93 0.97 0.99');
   page.text('RECORD YOUR RESULT',60,143,10,true);
-  page.block(material.recordPrompt,60,125,75,9,13);
+  page.block(material.recordPrompt,60,125,70,11,16);
   page.rule(60,98,page.width-60,98);
   page.rule(60,72,page.width-60,72);
   return page;
@@ -162,25 +175,29 @@ function guideStart(story,spec){
   let y=heading(page,'Keep this guide with the adult',story.title);
   y=page.block(spec.plan.preparation,48,y,78,11,18)-22;
   page.text('BEFORE PLAY',48,y,12,true);y-=24;
-  y=page.block(`Print one Player Pack for your ${spec.players} players. Paper size: ${spec.paper}. Use pencils. An adult may cut cards or tiles before play, or leave every sheet whole and let children point and write. Release each challenge and its material sheet only after checking the previous result.`,48,y,77,11,18)-22;
+  y=page.block(`${spec.setting==='classroom'?`Print ${spec.groups} complete Player sets, one per crew.`:`Print one Player Pack for your ${spec.players} players.`} Paper size: ${spec.paper}. Use pencils. An adult may cut cards or tiles before play, or leave every sheet whole and let children point and write. Release each challenge and its material sheet only after checking the previous result.`,48,y,77,11,18)-22;
   page.text('HOW TO GUIDE',48,y,12,true);y-=24;
-  page.block('The five checkpoint sheets contain the players\' clues and paper pieces. Keep the answers below private. Read one unlock aloud after the team proves its choice. If the team is stuck, use the gentle hint before revealing the answer.',48,y,77,11,18);
+  y=page.block('The five checkpoint sheets contain the players\' clues and paper pieces. Keep the answers and Player page 12 private until the ending. Hand out the first challenge and material on Player pages 2-3. Check the choice and saved result digit before handing out the next pair. If the team is stuck, use the gentle hint before revealing the answer.',48,y,77,11,18)-20;
+  if(spec.setting==='classroom')page.block(`Prepare ${spec.groups} complete Player sets, one per crew. ${story.groupInstructions||''} Each crew keeps its own four result digits.`,48,y,77,11,18);
   return page;
 }
 
 function guideStage(stage,spec){
   const page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,`Adult guide / Checkpoint ${stage.number}`);
   let y=heading(page,`Guide / checkpoint ${stage.number}`,stage.title);
-  const sections=[['HAND OUT',`Player checkpoint ${stage.number} challenge and ${kindLabel[stage.material.type].toLowerCase()} sheet: ${stage.material.title}.`],
+  const sections=[['HAND OUT',`Player pages ${stage.number*2}-${stage.number*2+1}: checkpoint ${stage.number} challenge and ${kindLabel[stage.material.type].toLowerCase()} sheet: ${stage.material.title}.`],
     ['PLAYER ACTION',`${stage.task} ${stage.material.instruction}`],
     ['GENTLE HINT',stage.hint],
     ['ANSWER',`${String.fromCharCode(65+stage.answerIndex)}. ${stage.options[stage.answerIndex]}`],
     ['WHY IT FOLLOWS',stage.explanation],
-    ['NEXT UNLOCK',stage.unlock]];
+    ...(stage.material.logic?.resultDigit?[['RECORD CHECK',`Check that the team recorded digit ${stage.material.logic.resultDigit}. Keep their sheet for the final combined record.`]]:[]),
+    ['NEXT STEP',stage.number===5?'After checking all four earlier results and the chosen final action, hand out Player page 12 and read the ending.':`After checking this result, hand out checkpoint ${stage.number+1}, Player pages ${stage.number*2+2}-${stage.number*2+3}.`],
+    ['STORY TRANSITION',stage.unlock]];
   for(const [label,value] of sections){
     page.text(label,48,y,10,true,'0.77 0.19 0.13');y-=20;
     y=page.block(value,48,y,77,11,18)-17;
   }
+  if(y<65)throw new Error(`Checkpoint ${stage.number} adult guide does not fit.`);
   return page;
 }
 
@@ -223,5 +240,6 @@ export function buildInteractiveGamePdf(story,spec,role){
   const pages=role==='player'
     ? [cover(story,spec),...story.stages.flatMap(stage=>[challenge(stage,spec),materialSheet(stage,spec)]),finish(story,spec,role)]
     : [guideStart(story,spec),...story.stages.map(stage=>guideStage(stage,spec)),finish(story,spec,role)];
+  pages.forEach((page,index)=>page.text(`Page ${index+1} of ${pages.length}`,page.width-126,30,9));
   return serialize(pages);
 }

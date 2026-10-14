@@ -12,6 +12,7 @@ import { signPreview } from './creator-preview.mjs';
 import { planFixture } from '../tests/fixtures/creator-plan-fixture.mjs';
 import { sampleSpec, sampleStory } from '../content/custom-paper-format-sample.mjs';
 import { compileControlledPuzzle, controlledStageText } from './controlled-puzzles.mjs';
+import { clockSpec,clockBlueprintContext } from '../content/paper-contract-qa.mjs';
 async function approvedCustomInput(env,input) {
   const spec=validatePurchase({...input,creatorVersion:2,gameplay:{primary:'reasoning',secondary:[]}}).spec;
   spec.plan=planFixture(spec,spec.direction);spec.planConfirmed=true;
@@ -474,6 +475,7 @@ test('a failed PDF write resumes from the checked story without paying for anoth
   const { db, binding } = database();
   const base = validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
   base.gamePackVersion=1; // Simulate a legacy paid order already in delivery.
+  delete base.packContractVersion;
   const plan = planFixture(base);
   const purchase = {...base,onlineRedownloadMonths:productRights.onlineRedownloadMonths,accessPolicyVersion:productRights.version};
   const confirmed = {...purchase,plan,planConfirmed:true};
@@ -844,7 +846,7 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
     if(name==='paid_plan_audit')return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:!failAudit,issues:failAudit?['Mismatch']:[]})}]}]});
     assert.equal(name,'paid_adventure_plan');
     const input=JSON.parse(sent.input),plan=input.kind==='targeted'?structuredClone(input.previousPlan):planFixture(input.spec);
-    if(input.kind==='full'){plan.stages[1].task+=' Check the clock face.';plan.stages[2].task+=' Ask the keeper.';}
+    if(input.kind==='full'){plan.stages[1].task+=' Check the clock face.';plan.stages[2].task+=' Ask the keeper.';plan.stages[1].storyContext='The clock face is missing its noon mark.';plan.stages[2].storyContext='The keeper has left a second set of clock clues.';}
     if(input.kind==='targeted')plan.opening+=' The clock has a paper dial.';
     return Response.json({id:'response-plan',output:[{content:[{type:'output_text',text:JSON.stringify(plan)}]}],usage:{input_tokens:100,output_tokens:150}});
   }};
@@ -883,6 +885,7 @@ test('staged paid generation resumes at a failed checkpoint without regenerating
   const {db,binding}=database();
   const purchase=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
   purchase.gamePackVersion=1; // Resume an order approved before interactive paper materials existed.
+  delete purchase.packContractVersion;
   const plan=planFixture(purchase);
   const spec={...purchase,plan,planConfirmed:true,onlineRedownloadMonths:12};
   const stored=JSON.stringify(purchase),storySpec=JSON.stringify(spec);
@@ -1118,4 +1121,38 @@ test('a failed paid first plan offers one free recovery without another checkout
   assert.equal(viewed.planReview.fullUsed,0);
   assert.equal(viewed.planReview.targetedUsed,0);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM orders WHERE id='recovery-order'").get().count,1);
+});
+
+
+test('contract delivery repairs one rejected context, then retries PDF storage without more AI calls',async()=>{
+  const {db,binding}=database();
+  const stored=JSON.stringify({...clockSpec,onlineRedownloadMonths:12,accessPolicyVersion:productRights.version});
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('contract-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('contract-order','custom','custom_home',?,?,?,?,1499,'USD','paid',CURRENT_TIMESTAMP)").run(stored,await sha256(stored),'contract-owner','contract-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version) VALUES ('contract-activity','contract-order','queued',?,2)").run(stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit) VALUES ('contract-entitlement','contract-order','contract-activity','active',2)").run();
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,confirmed_version) VALUES ('contract-order','confirmed',1)").run();
+  const calls=[],files=new Map();let reject=true,storageFails=true;
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async()=>{}},
+    PRIVATE_FILES:{put:async(key,bytes,options)=>{if(storageFails){storageFails=false;throw Error('Temporary storage failure');}files.set(key,{bytes,options});},head:async key=>files.has(key)?{customMetadata:files.get(key).options.customMetadata}:null},
+    FETCH:async(url,request)=>{
+      const body=JSON.parse(request.body),name=body.text.format.name;calls.push(name);
+      let value;
+      if(name==='game_blueprint')value=clockBlueprintContext;
+      else if(name==='paper_context_repair'){
+        assert.equal(JSON.parse(body.input).checkpoint.number,3);
+        value=structuredClone(clockBlueprintContext.stages[2]);value.material.items[0].label='Pause noon signal';
+      }else if(name==='staged_story_audit')value=reject?(reject=false,{pass:false,issues:[{stageNumber:3,reason:'Clarify the first clock repair step.'}]}):{pass:true,issues:[]};
+      else throw Error('Unexpected model request: '+name);
+      return Response.json({id:'contract-'+calls.length,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
+    }};
+  const process=()=>productionWorker.queue({messages:[{body:{orderId:'contract-order'},ack(){},retry(){}}]},env);
+  for(let i=0;i<8&&db.prepare("SELECT status FROM orders WHERE id='contract-order'").get().status!=='published';i++)await process();
+  assert.equal(db.prepare("SELECT status FROM orders WHERE id='contract-order'").get().status,'published');
+  assert.deepEqual(calls,['game_blueprint','staged_story_audit','paper_context_repair','staged_story_audit']);
+  assert.equal(files.size,3);
+  const stages=db.prepare("SELECT stage_json FROM custom_game_stages WHERE order_id='contract-order' ORDER BY stage_number").all().map(row=>JSON.parse(row.stage_json));
+  assert.equal(stages.length,5);assert.equal(stages[2].material.items[0].label,'Pause noon signal');
+  assert.deepEqual(stages[4].material.logic.previousDigits,['3','1','2','3']);
+  const count=calls.length;await process();assert.equal(calls.length,count);
 });

@@ -22,8 +22,12 @@ export function validatePrintableMaterial(value) {
     ...(value.logic ? {logic:value.logic} : {})};
 }
 
-export function validateMaterialSet(stages) {
+export function validateMaterialSet(stages,contractVersion=0) {
   const kinds = new Set(stages.map(stage=>stage.material?.type));
+  if(contractVersion===1){
+    if(kinds.size<3||stages[4]?.material.type!=='decision_record')throw new Error('The unified game needs three material types and a combined final record.');
+    return;
+  }
   if (kinds.size < 3 || !kinds.has('evidence_cards') || ![...kinds].some(kind=>kind==='order_tiles' || kind==='route_board'))
     throw new Error('The five checkpoints need at least three different paper activities, including evidence and an ordering or route task.');
 }

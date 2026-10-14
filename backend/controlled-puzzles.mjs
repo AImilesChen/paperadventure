@@ -1,6 +1,7 @@
 // The model may name a scene and its paper pieces. The printable facts, choices,
 // answer and player instructions below are one deterministic puzzle contract.
 // This keeps an answer change from silently disagreeing with the PDF material.
+import {contextualStageText,validateContextualPuzzle} from './contextual-puzzles.mjs';
 const short = (value, fallback) => {
   const words = String(value || '').replace(/[^\x20-\x7e]/g, ' ').replace(/\s+/g, ' ').trim();
   return (words.length > 18 ? words.slice(0, 18).replace(/\s+\S*$/, '') : words) || fallback;
@@ -127,6 +128,7 @@ export function compileControlledPuzzle(stage) {
 }
 
 export function controlledStageText(stage,style=stage.logicStyle||'base') {
+  if(stage.material?.logic?.contractVersion===1)return contextualStageText(stage,style);
   const {clue,hint,explanation}=puzzle(stage.material.type,stage.material.logic.labels);
   if (!['base','simple','guided','clear'].includes(style)) throw new Error('Unknown checked checkpoint wording.');
   if (style==='simple') return {clue:`Read the printed rule. Check one piece at a time. ${clue}`,explanation,hint:'Read the rule aloud, then check each printed piece.'};
@@ -144,6 +146,7 @@ export function controlledRevisionStyle(instruction) {
 }
 
 export function validateControlledPuzzle(stage, {withText=false}={}) {
+  if(stage.material?.logic?.contractVersion===1)return validateContextualPuzzle(stage);
   const logic=stage.material?.logic;
   if (logic?.version!==1 || !Number.isInteger(logic.optionShift) || logic.optionShift<0 || logic.optionShift>2 ||
       Number.isInteger(stage.number)&&logic.optionShift!==stage.number%3 ||
