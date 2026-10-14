@@ -35,11 +35,11 @@ for(const item of cases){
       catch(error){if(attempt===2||blueprintRepairs>=4)throw error;blueprintRepairs++;blueprint=(await repairBlueprint(approved,blueprint,error.message,env,privateFetch)).blueprint;}
     }
     phase='pdf';
+    await writeFile(`${directory}/${item.id}.json`,JSON.stringify({spec:approved,story},null,2));
     for(const paper of ['A4','Letter'])for(const role of ['player','guide'])await writeFile(`${directory}/${item.id}-${role}-${paper}.pdf`,buildGamePdf(story,{...approved,paper},role));
     // All fixtures are invented for this workflow. Never read customer orders here.
-    await writeFile(`${directory}/${item.id}.json`,JSON.stringify({spec:approved,story},null,2));
     summaries.push({id:item.id,passed:true,calls,blueprintRepairs,stages:story.stages.length});
-  }catch(error){summaries.push({id:item.id,passed:false,phase,calls,blueprintRepairs,code:error.code||'CHECK_FAILED'});}
+  }catch(error){summaries.push({id:item.id,passed:false,phase,calls,blueprintRepairs,code:error.code||'CHECK_FAILED',detail:String(error.message).slice(0,160)});}
   console.log(JSON.stringify(summaries.at(-1)));
 }
 await writeFile(`${directory}/summary.json`,JSON.stringify(summaries,null,2));

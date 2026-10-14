@@ -52,20 +52,29 @@ const kindLabel={evidence_cards:'Evidence cards',order_tiles:'Order tiles',symbo
 
 function cover(story,spec){
   const page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,'Player Pack / Start');
+  const compact=spec.paper==='Letter';
   let y=heading(page,'A game to print and play',story.title);
-  y=page.block(story.introduction,48,y,75,11,18)-20;
-  page.text('YOUR MISSION',48,y,12,true);y-=23;
-  y=page.block(spec.plan.goal,48,y,75,11,18)-15;
-  if(spec.packContractVersion===1)y=page.block('Collect one result digit at each of the first four checkpoints. Keep your sheets: all four digits are needed to choose the final story action.',48,y,75,11,18)-15;
-  page.text('PLAY AS A TEAM',48,y,12,true);y-=23;
-  y=page.block(spec.plan.roles,48,y,75,11,18)-20;
-  page.text('FIVE PAPER CHECKPOINTS',48,y,12,true);y-=22;
-  for(const stage of story.stages){
-    y=page.block(`${stage.number}. ${stage.title} - ${kindLabel[stage.material.type]}`,56,y,70,11,16,true)-12;
-  }
-  if(y<145)throw new Error('The opening, roles and checkpoint list do not fit the cover.');
-  page.box(48,65,page.width-96,60,'0.93 0.97 0.99');
-  page.block('Print single-sided. Use pencils. An adult holds the guide and releases one checkpoint at a time. Cards and tiles may be cut by an adult, or used whole by pointing and writing.',60,105,77,9,14);
+  y=page.block(story.introduction,48,y,75,11,18)-(compact?13:20);
+  page.text('YOUR MISSION',48,y,12,true);y-=compact?20:23;
+  y=page.block(spec.plan.goal,48,y,75,11,18)-(compact?12:15);
+  if(spec.packContractVersion===1)y=page.block('Collect one result digit at each of the first four checkpoints. Keep your sheets: all four digits are needed to choose the final story action.',48,y,75,11,18)-(compact?12:15);
+  page.text('PLAY AS A TEAM',48,y,12,true);y-=compact?20:23;
+  y=page.block(spec.plan.roles,48,y,75,11,18)-(compact?14:20);
+  page.text('FIVE PAPER CHECKPOINTS',48,y,12,true);y-=compact?19:22;
+  const checkpointLines=story.stages.map(stage=>`${stage.number}. ${stage.title} - ${kindLabel[stage.material.type]}`);
+  const minY=compact?128:145;
+  const oneColumnBottom=y-checkpointLines.reduce((height,label)=>height+wrap(label,70).length*16+(compact?9:12),0);
+  if(spec.packExperienceVersion>=2&&oneColumnBottom<minY){
+    const columnX=[56,Math.round(page.width/2)+5],columnBottom=[y,y];
+    checkpointLines.forEach((label,index)=>{
+      const column=index<3?0:1;
+      columnBottom[column]=page.block(label,columnX[column],columnBottom[column],38,10,14,true)-11;
+    });
+    y=Math.min(...columnBottom);
+  }else for(const label of checkpointLines)y=page.block(label,56,y,70,11,16,true)-(compact?9:12);
+  if(y<minY)throw new Error('The opening, roles and checkpoint list do not fit the cover.');
+  page.box(48,compact?55:65,page.width-96,60,'0.93 0.97 0.99');
+  page.block('Print single-sided. Use pencils. An adult holds the guide and releases one checkpoint at a time. Cards and tiles may be cut by an adult, or used whole by pointing and writing.',60,compact?95:105,77,9,14);
   return page;
 }
 

@@ -101,6 +101,12 @@ test('new pack contract prints a traceable route, evidence-based witnesses and f
     assert.match(player,/LINK 1/);assert.match(guide,/HINT 2 - NARROW THE CHECK/);
     assert.match(guide,/IF THEY CHOSE DIFFERENTLY/);
   }
+  const longStory=structuredClone(story);
+  longStory.title='The Museum of Lost Words: Restore the Hidden Exhibit Label';
+  longStory.introduction='The museum display has lost its exhibit label. Three coded messages and an archive record are the only clues left behind. The team of junior curators must complete four printed checks, record their results, and use the combined code to choose the final action that restores the display. '.repeat(1);
+  longStory.stages.forEach((stage,index)=>{stage.title=`Investigate the ${['front desk message','archive clue','garden record','curator report','final exhibit action'][index]} and compare the printed findings`;});
+  const longSpec={...spec,plan:{...spec.plan,goal:'Restore the lost exhibit label so the museum display is complete again after the storm.',roles:'Reader, Paper Handler, Checker and Recorder rotate after every checkpoint. For two players, combine jobs in pairs and explain each printed fact together.'}};
+  assert.doesNotThrow(()=>buildGamePdf(longStory,{...longSpec,paper:'Letter'},'player'));
   await auditStagedStory(story,spec,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
     const body=JSON.parse(request.body),outline=JSON.parse(body.input);
     assert.equal(outline.goal,spec.plan.goal);

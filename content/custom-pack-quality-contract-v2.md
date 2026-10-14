@@ -18,4 +18,6 @@ This contract applies to new creator v3 purchases and new remakes of a checked p
 4. Render both PDFs in the selected A4 or Letter size. Verify required pages, answer separation and print fit before publishing replacement files. Keep the existing download available until that publication succeeds.
 5. If a bounded repair cannot pass, keep the paid order open for recovery or support review. A failed version is not a delivered replacement and must not request another purchase.
 
+The newer format allows up to five blueprint attempts and targeted context repair within an overall call budget. Long Letter covers use tighter spacing or two columns for checkpoint names without shrinking the body copy. A failed provider call or PDF fit check cannot publish incomplete files.
+
 Automated checks prove structural playability and print geometry, not story appeal, age fit, unfamiliar-family comprehension or physical printer results. Those still need representative provider outputs and human play-tests before claiming the custom pack matches a curated theme.
