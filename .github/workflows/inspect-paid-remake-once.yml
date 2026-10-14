@@ -25,4 +25,22 @@ jobs:
         run: |
           npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT status,phase,error_code,recovery_count,json_array_length(stages_json) AS saved_stages,CASE WHEN blueprint_json IS NULL THEN 0 ELSE 1 END AS blueprint_ready,CASE WHEN story_json IS NULL THEN 0 ELSE 1 END AS story_ready,published_version FROM custom_pack_remakes WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407'"
           npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT round_number,phase,stage_number,status,error_code,COUNT(*) AS calls FROM custom_pack_remake_calls WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' GROUP BY round_number,phase,stage_number,status,error_code ORDER BY round_number,phase,stage_number"
+      - name: Start this recovered paid remake immediately
+        run: |
+          node --input-type=module <<'NODE'
+          const base = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/queues`;
+          const headers = {Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`};
+          const listed = await (await fetch(`${base}?per_page=100`, {headers})).json();
+          if (!listed.success) throw new Error('Could not list queues');
+          const queue = listed.result.find(item => item.queue_name === 'paper-adventure-stage-generation');
+          if (!queue?.queue_id) throw new Error('Generation queue is missing');
+          const response = await fetch(`${base}/${queue.queue_id}/messages`, {
+            method: 'POST',
+            headers: {...headers, 'Content-Type': 'application/json'},
+            body: JSON.stringify({content_type: 'json', body: {type: 'pack_remake', orderId: '612a56bd-494a-4265-984f-f4ecb3eb7407'}}),
+          });
+          const result = await response.json();
+          if (!result.success) throw new Error(`Could not enqueue recovered remake (${response.status})`);
+          console.log('Recovered paid remake queued for immediate processing.');
+          NODE
 
