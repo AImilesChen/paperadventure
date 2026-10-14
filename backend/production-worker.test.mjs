@@ -10,6 +10,7 @@ import { buildGamePdf } from './pdf.mjs';
 import { productRights } from '../shared/catalog.mjs';
 import { signPreview } from './creator-preview.mjs';
 import { planFixture } from '../tests/fixtures/creator-plan-fixture.mjs';
+import { sampleSpec, sampleStory } from '../content/custom-paper-format-sample.mjs';
 async function approvedCustomInput(env,input) {
   const spec=validatePurchase({...input,creatorVersion:2,gameplay:{primary:'reasoning',secondary:[]}}).spec;
   spec.plan=planFixture(spec,spec.direction);spec.planConfirmed=true;
@@ -19,7 +20,7 @@ async function approvedCustomInput(env,input) {
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -933,6 +934,66 @@ test('staged paid generation resumes at a failed checkpoint without regenerating
   assert.equal(saved.size,3);
   const callCount=calls.length;await process();assert.equal(calls.length,callCount,'a duplicate queue message cannot spend more tokens');
   assert.equal(queued.length,3);
+});
+
+test('a paid legacy pack remakes on the same order and keeps the old download until the new files pass',async()=>{
+  const {db,binding}=database();
+  const owner='paid-legacy-owner';
+  const original={...sampleSpec,gamePackVersion:1};
+  const purchase=JSON.stringify(original);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('remake-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('legacy-order','custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(purchase,await sha256(purchase),owner,'remake-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('legacy-activity','legacy-order','published',?)").run(purchase);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit,revision_expires_at,access_expires_at) VALUES ('legacy-entitlement','legacy-order','legacy-activity','active',2,datetime('now','+20 days'),datetime('now','+6 months'))").run();
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,confirmed_version) VALUES ('legacy-order','confirmed',1)").run();
+  const files=new Map();
+  for(const role of ['player','guide']) {
+    const bytes=buildGamePdf(sampleStory,original,role),sha=createHash('sha256').update(bytes).digest('hex');
+    files.set(`custom/legacy-order/v1/${role}.pdf`,{bytes,sha});
+    if(role==='player') db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,player_sha256) VALUES ('legacy-artifact','legacy-activity',1,'published',?,?)").run(`custom/legacy-order/v1/${role}.pdf`,sha);
+    else db.prepare("UPDATE artifact_versions SET guide_r2_key = ?,guide_sha256 = ? WHERE id = 'legacy-artifact'").run(`custom/legacy-order/v1/${role}.pdf`,sha);
+  }
+  const queue=[];const calls=[];let failFirstNewPdf=true;
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture-model',
+    GENERATION_QUEUE:{send:async job=>queue.push(job)},
+    PRIVATE_FILES:{put:async(key,body,options)=>{if(key.includes('paper-remake/player.pdf')&&failFirstNewPdf){failFirstNewPdf=false;throw new Error('Temporary replacement storage failure');}files.set(key,{bytes:typeof body==='string'?new TextEncoder().encode(body):body,sha:options.customMetadata.sha256});},get:async key=>{const file=files.get(key);return file&&{body:file.bytes,customMetadata:{sha256:file.sha}};}},
+    FETCH:async(_url,init)=>{
+      const payload=JSON.parse(init.body),name=payload.text.format.name,input=JSON.parse(payload.input);
+      calls.push([name,input.stageNumber||0]);
+      const value=name==='game_blueprint'?{ending:sampleStory.ending,groupInstructions:'',stages:sampleStory.stages.map(stage=>({question:stage.clue,evidence:stage.clue,options:stage.options,answerIndex:stage.answerIndex,unlock:stage.unlock,material:stage.material}))}
+        :name==='game_checkpoint'?{clue:sampleStory.stages[input.stageNumber-1].clue,explanation:sampleStory.stages[input.stageNumber-1].explanation,hint:sampleStory.stages[input.stageNumber-1].hint}
+        :{pass:true,issues:[]};
+      return Response.json({id:`remake-${calls.length}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
+    }};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const view=()=>handleProductionApi(request('/api/v1/orders/legacy-order','GET',undefined,headers),env).then(response=>response.json());
+  const download=()=>handleProductionApi(request('/api/v1/files/legacy-order/player?paper=A4','GET',undefined,headers),env);
+  assert.equal((await view()).gamePackVersion,1);
+  const oldPdf=new Uint8Array(await (await download()).arrayBuffer());
+  assert.equal((await handleProductionApi(request('/api/v1/orders/legacy-order/pack-remake','POST',undefined,{origin:env.PUBLIC_ORIGIN}),env)).status,401);
+  assert.equal((await handleProductionApi(request('/api/v1/orders/legacy-order/pack-remake','POST',undefined,headers),env)).status,202);
+  assert.equal((await handleProductionApi(request('/api/v1/orders/legacy-order/pack-remake','POST',undefined,headers),env)).status,200);
+  assert.equal(queue.length,1,'repeat clicks do not start another model run');
+  assert.equal((await view()).remake.status,'queued');
+  for(let step=0;step<9;step++) {
+    const job=queue.shift();assert.equal(job?.type,'pack_remake');
+    let retries=0;await productionWorker.queue({messages:[{body:job,ack(){},retry(){retries++;}}]},env);
+    assert.equal(retries,0);
+    if(step<8) assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),oldPdf,'old PDF stays available until replacement is complete');
+  }
+  const completed=await view();
+  assert.equal(completed.remake.status,'ready');
+  assert.equal(completed.gamePackVersion,2);
+  assert.equal(completed.amountTotal,1499,'remake does not create a second charge');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,2);
+  assert.equal(db.prepare("SELECT pack_format_version FROM artifact_versions WHERE version_number=1").get().pack_format_version,1);
+  assert.equal(db.prepare("SELECT pack_format_version FROM artifact_versions WHERE version_number=2").get().pack_format_version,2);
+  assert.equal(calls.length,7,'one blueprint, five checkpoints and one independent audit');
+  assert.notDeepEqual(new Uint8Array(await (await download()).arrayBuffer()),oldPdf,'downloads switch only after checked publication');
+  const originalDownload=await handleProductionApi(request('/api/v1/files/legacy-order/player?paper=A4&version=1','GET',undefined,headers),env);
+  assert.deepEqual(new Uint8Array(await originalDownload.arrayBuffer()),oldPdf,'the earlier pack can still be downloaded by its owner');
 });
 
 test('a failed paid first plan offers one free recovery without another checkout or spending edits',async()=>{

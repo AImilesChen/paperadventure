@@ -9,6 +9,7 @@ import { verifyGoogleCredential } from './google-auth.mjs';
 import { signPreview, confirmPreview } from './creator-preview.mjs';
 import { generateSinglePlan } from './plan-proposals.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
+import { startPackRemake, packRemakeView, processPackRemake } from './pack-remake.mjs';
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
@@ -563,6 +564,8 @@ async function orderView(request, env, orderId) {
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified order was found.');
   const entitlement = await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first();
   const activity = order.product_kind === 'custom' ? await query(env.DB, 'SELECT status,delivery_retry_used,delivery_retry_baseline,generation_version FROM custom_activities WHERE order_id = ?', order.id).first() : null;
+  const latestArtifact = activity && entitlement?.custom_activity_id ? await query(env.DB, "SELECT pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", entitlement.custom_activity_id).first() : null;
+  const remake = order.product_kind === 'custom' && order.paid_at ? await packRemakeView(env.DB, order.id) : null;
   const pdfRows = order.product_kind === 'custom' ? (await query(env.DB, "SELECT attempt,status,phase,round_number,trigger_kind,created_at,completed_at,error_code FROM generation_usage WHERE order_id = ? AND status IN ('generating','published','failed') ORDER BY attempt", order.id).all()).results || [] : [];
   const failureMessages = {
     GENERATION_UPSTREAM_FAILED: 'The story generation service did not complete.',
@@ -624,7 +627,8 @@ async function orderView(request, env, orderId) {
     accessExpiresAt: entitlement?.access_expires_at || null,
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
     revisionExpiresAt: entitlement?.revision_expires_at || null,
-    gamePackVersion: order.product_kind === 'custom' ? spec.gamePackVersion || 1 : null,
+    gamePackVersion: order.product_kind === 'custom' ? Math.max(latestArtifact?.pack_format_version || 1, spec.gamePackVersion || 1) : null,
+    remake,
     revisionRequests: revisionRows.map(item=>({id:item.id,stageNumber:item.stage_number,status:item.status,version:item.version_number||null,createdAt:item.created_at,completedAt:item.completed_at||null})),
     plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
     ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
@@ -748,7 +752,13 @@ async function fileDownload(request, env, orderId, role) {
     : await query(env.DB, 'SELECT r2_key, sha256, bytes FROM ready_pack_files WHERE ready_pack_id = ? AND paper = ? AND role = ?', entitlement.ready_pack_id, paper, role).first();
   else {
     if (paper !== spec.paper) throw new ApiError(404, 'FILE_NOT_FOUND', 'This paper size was not generated.');
-    const artifact = await query(env.DB, "SELECT * FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", entitlement.custom_activity_id).first();
+    const requestedVersion = new URL(request.url).searchParams.get('version');
+    if (requestedVersion && requestedVersion !== '1') throw new ApiError(404, 'FILE_NOT_FOUND', 'This file version is unavailable.');
+    const remake = requestedVersion === '1' ? await query(env.DB, "SELECT status FROM custom_pack_remakes WHERE order_id = ?", order.id).first() : null;
+    if (requestedVersion === '1' && remake?.status !== 'ready') throw new ApiError(404, 'FILE_NOT_FOUND', 'The original file version is unavailable.');
+    const artifact = requestedVersion === '1'
+      ? await query(env.DB, "SELECT * FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' AND version_number = 1", entitlement.custom_activity_id).first()
+      : await query(env.DB, "SELECT * FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", entitlement.custom_activity_id).first();
     file = artifact && { r2_key: role === 'player' ? artifact.player_r2_key : artifact.guide_r2_key, sha256: role === 'player' ? artifact.player_sha256 : artifact.guide_sha256 };
   }
   if (!file?.r2_key) throw new ApiError(404, 'FILE_NOT_FOUND', 'The file is not ready.');
@@ -763,6 +773,8 @@ async function requestRevision(request, env, orderId) {
   if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google using your purchase email first.');
   const order = await query(env.DB, "SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ? AND product_kind = 'custom' AND status = 'published'", orderId, hash).first();
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No eligible custom order was found.');
+  const remake = await query(env.DB, 'SELECT status FROM custom_pack_remakes WHERE order_id = ?', orderId).first();
+  if (remake && ['queued','generating'].includes(remake.status)) throw new ApiError(409, 'REMAKE_IN_PROGRESS', 'Wait for the full-pack remake before changing a checkpoint.');
   const entitlement = await query(env.DB, "SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'", orderId).first();
   if (!entitlement || entitlement.revision_success_used >= entitlement.revision_success_limit || !entitlement.revision_expires_at || Date.parse(`${entitlement.revision_expires_at}Z`) <= Date.now()) throw new ApiError(403, 'REVISION_LIMIT', 'No included revision remains for this order.');
   const body = await requestBody(request);
@@ -779,6 +791,20 @@ async function requestRevision(request, env, orderId) {
   await query(env.DB, "INSERT INTO revision_requests (id,order_id,stage_number,instruction,status) VALUES (?,?,?,?,'queued')", id, orderId, stageNumber, instruction).run();
   await env.GENERATION_QUEUE.send({ type: 'revision', revisionId: id });
   return json({ revisionId: id, status: 'queued' }, 202);
+}
+
+async function requestPackRemake(request, env, orderId) {
+  requireSameOrigin(request, env);
+  if (!env.DB || !env.SESSION_SECRET) throw new ApiError(503, 'REMAKE_NOT_READY', 'Order access is not configured.');
+  const owner = await authenticatedEmailHash(request, env);
+  if (!owner) throw new ApiError(401, 'SIGN_IN_REQUIRED', 'Sign in to remake your paid order.');
+  const order = await query(env.DB, "SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ? AND product_kind = 'custom'", orderId, owner).first();
+  if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified custom order was found.');
+  const entitlement = await query(env.DB, "SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'", orderId).first();
+  if (!accessActive(entitlement)) throw new ApiError(403, 'ORDER_ACCESS_EXPIRED', 'Online order access has expired. Contact support about a quality remake.');
+  const activity = await query(env.DB, 'SELECT id,status,story_spec_json FROM custom_activities WHERE order_id = ?', orderId).first();
+  const result = await startPackRemake(order, activity, env);
+  return json(result, result.queued ? 202 : 200);
 }
 
 async function supportCases(request, env, orderId) {
@@ -859,6 +885,8 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'POST' && paidPlan) return await changePaidPlan(request,env,paidPlan[1]);
     const deliveryRetry = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/retry-delivery$/);
     if (request.method === 'POST' && deliveryRetry) return await retryCustomDelivery(request,env,deliveryRetry[1]);
+    const remake = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/pack-remake$/);
+    if (request.method === 'POST' && remake) return await requestPackRemake(request, env, remake[1]);
     const revision = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revisions$/);
     if (request.method === 'POST' && revision) return await requestRevision(request, env, revision[1]);
     const cases = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/issues$/);
@@ -1098,7 +1126,7 @@ async function publishCustomOrder(orderId, env) {
         throw Object.assign(new Error('Stored PDF verification failed'),{code:'STORED_PDF_MISMATCH'});
     }
     await env.DB.batch([
-      query(env.DB, `INSERT OR IGNORE INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,guide_r2_key,player_sha256,guide_sha256,story_r2_key,story_sha256) VALUES (?,?,1,'published',?,?,?,?,?,?)`, `artifact-${orderId}-1`, activity.id, `${prefix}/player.pdf`, `${prefix}/guide.pdf`, playerHash, guideHash, `${prefix}/story.json`, storyHash),
+      query(env.DB, `INSERT OR IGNORE INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,guide_r2_key,player_sha256,guide_sha256,story_r2_key,story_sha256,pack_format_version) VALUES (?,?,1,'published',?,?,?,?,?,?,?)`, `artifact-${orderId}-1`, activity.id, `${prefix}/player.pdf`, `${prefix}/guide.pdf`, playerHash, guideHash, `${prefix}/story.json`, storyHash, spec.gamePackVersion || 1),
       query(env.DB, "UPDATE custom_activities SET status = 'published', lease_until = NULL, generated_at = CURRENT_TIMESTAMP, published_at = CURRENT_TIMESTAMP WHERE id = ?", activity.id),
       query(env.DB, "UPDATE orders SET status = 'published' WHERE id = ? AND status IN ('paid','fulfilling')", orderId),
       query(env.DB, `UPDATE entitlements SET revision_expires_at = datetime('now','+30 days'), access_expires_at = datetime('now', ?) WHERE order_id = ?`,
@@ -1138,7 +1166,9 @@ async function publishRevision(revisionId, env) {
   if (!storyObject || storyObject.customMetadata?.sha256 !== previous.story_sha256) throw new Error('Story data failed integrity check');
   const oldStory = JSON.parse(await new Response(storyObject.body).text());
   const purchaseSpec = JSON.parse(order.purchase_spec_json);
-  const spec = purchaseSpec.creatorVersion === 3 ? JSON.parse(activity.story_spec_json) : purchaseSpec;
+  const remade = previous.pack_format_version === 2 ? await query(env.DB, "SELECT spec_json FROM custom_pack_remakes WHERE order_id = ? AND status = 'ready'", order.id).first() : null;
+  if (previous.pack_format_version === 2 && !remade) throw new Error('Remade story specification is unavailable');
+  const spec = remade ? JSON.parse(remade.spec_json) : purchaseSpec.creatorVersion === 3 ? JSON.parse(activity.story_spec_json) : purchaseSpec;
   const lease = await query(env.DB, `UPDATE revision_requests SET status = 'generating', lease_until = ?, attempts = attempts + 1 WHERE id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))`, nowSeconds() + 300, revision.id, nowSeconds()).run();
   if (!lease.meta?.changes) return;
   const revisionAttempt = (await query(env.DB, 'SELECT attempts FROM revision_requests WHERE id = ?', revision.id).first()).attempts;
@@ -1155,7 +1185,7 @@ async function publishRevision(revisionId, env) {
       env.PRIVATE_FILES.put(`${prefix}/story.json`, storyJson, { httpMetadata: { contentType: 'application/json' }, customMetadata: { sha256: storyHash } }),
     ]);
     await env.DB.batch([
-      query(env.DB, `INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,guide_r2_key,player_sha256,guide_sha256,story_r2_key,story_sha256) VALUES (?, ?, ?, 'published', ?, ?, ?, ?, ?, ?)`, `artifact-${order.id}-${version}`, activity.id, version, `${prefix}/player.pdf`, `${prefix}/guide.pdf`, playerHash, guideHash, `${prefix}/story.json`, storyHash),
+      query(env.DB, `INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,guide_r2_key,player_sha256,guide_sha256,story_r2_key,story_sha256,pack_format_version) VALUES (?, ?, ?, 'published', ?, ?, ?, ?, ?, ?, ?)`, `artifact-${order.id}-${version}`, activity.id, version, `${prefix}/player.pdf`, `${prefix}/guide.pdf`, playerHash, guideHash, `${prefix}/story.json`, storyHash, previous.pack_format_version || 1),
       query(env.DB, `UPDATE entitlements SET revision_success_used = revision_success_used + 1 WHERE order_id = ? AND revision_success_used < revision_success_limit`, order.id),
       query(env.DB, "UPDATE revision_requests SET status = 'published', lease_until = NULL, version_number = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?", version, revision.id),
       query(env.DB, 'INSERT INTO generation_usage (order_id,attempt,response_id,model,input_tokens,output_tokens,status) VALUES (?,?,?,?,?,?,?)', order.id, attempt, result.responseId, aiProvider(env)?.model, result.usage?.input_tokens || null, result.usage?.output_tokens || null, 'revision-published'),
@@ -1181,7 +1211,7 @@ export default {
   },
   async queue(batch, env) {
     for (const message of batch.messages) {
-      try { if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else if (message.body?.type === 'plan') await publishPlanRequest(message.body.requestId,env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
+      try { if (message.body?.type === 'pack_remake') await processPackRemake(message.body.orderId, env); else if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else if (message.body?.type === 'plan') await publishPlanRequest(message.body.requestId,env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
       catch (failure) { console.error('Generation job failed', failure); message.retry(); }
     }
   },
@@ -1207,9 +1237,11 @@ export default {
       WHERE c.status IN ('queued','generating') AND COALESCE(c.lease_until,0) < ? AND o.status IN ('paid','fulfilling') AND (p.order_id IS NULL OR p.confirmed_version IS NOT NULL) LIMIT 20`, nowSeconds()).all();
     const plans = await query(env.DB,"SELECT r.id FROM custom_plan_requests r JOIN orders o ON o.id = r.order_id WHERE r.status IN ('queued','generating') AND COALESCE(r.lease_until,0) < ? AND o.status = 'paid' LIMIT 20",nowSeconds()).all();
     const revisions = await query(env.DB, "SELECT id FROM revision_requests WHERE status IN ('queued','generating') AND COALESCE(lease_until,0) < ? LIMIT 20", nowSeconds()).all();
+    const remakes = await query(env.DB, "SELECT order_id FROM custom_pack_remakes WHERE status IN ('queued','generating') AND COALESCE(lease_until,0) < ? LIMIT 20", nowSeconds()).all();
     for (const item of jobs.results || []) await env.GENERATION_QUEUE.send({ orderId: item.order_id });
     for (const item of plans.results || []) await env.GENERATION_QUEUE.send({type:'plan',requestId:item.id});
     for (const item of revisions.results || []) await env.GENERATION_QUEUE.send({ type: 'revision', revisionId: item.id });
+    for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
 };
 
