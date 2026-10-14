@@ -34,12 +34,12 @@ function Brand() { return <Link to="/en/" className="brand"><span className="bra
 
 function Header({ route }) {
   const [open, setOpen] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
+  const [authenticated, setAuthenticated] = useState(null);
   useEffect(() => setOpen(false), [route]);
   useEffect(() => {
     let active = true;
     fetch('/api/v1/auth/session', { credentials: 'same-origin' }).then(response => response.ok ? response.json() : null)
-      .then(session => { if (active) setAuthenticated(Boolean(session?.authenticated)); }).catch(() => {});
+      .then(session => { if (active) setAuthenticated(Boolean(session?.authenticated)); }).catch(() => { if (active) setAuthenticated(false); });
     return () => { active = false; };
   }, []);
   async function signOut() {
@@ -54,7 +54,7 @@ function Header({ route }) {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, []);
   const accountPath = authenticated ? '/en/my-adventures/' : '/en/account/';
-  const accountLabel = authenticated ? 'My adventures' : 'Sign in';
+  const accountLabel = authenticated === null ? 'Account' : authenticated ? 'My adventures' : 'Sign in';
   return <header className="site-header"><div className="nav-shell"><Brand /><nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label="Main navigation"><Link to="/en/for-home/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-home") || /^\/en\/themes\/[^/]+\/home\/$/.test(route)) ? "page" : undefined}>For home</Link><Link to="/en/for-classroom/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-classroom") || /^\/en\/themes\/[^/]+\/classroom\/$/.test(route)) ? "page" : undefined}>For classrooms</Link><Link to="/en/create/" className="nav-primary-link" aria-current={route.startsWith("/en/create") ? "page" : undefined}>AI custom adventure</Link><Link to="/en/how-it-works/" className="nav-primary-link" aria-current={route.startsWith("/en/how-it-works") ? "page" : undefined}>How it works</Link><Link to="/en/pricing/" className="nav-primary-link" aria-current={route.startsWith("/en/pricing") ? "page" : undefined}>Pricing</Link><Link className="nav-account-mobile" to={accountPath}>{accountLabel}</Link>{authenticated && <button type="button" className="nav-signout nav-account-mobile" onClick={signOut}>Sign out</button>}</nav><div className="nav-actions"><Link className="nav-login" to={accountPath}>{accountLabel}</Link>{authenticated && <button type="button" className="nav-signout" onClick={signOut}>Sign out</button>}<Link className="button button-small" to="/en/create/">Create with AI <ArrowUpRight size={16} /></Link></div><button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X size={25} /> : <List size={25} />}</button></div></header>;
 }
 function Footer({ runtime }) { return <footer className="site-footer"><div className="footer-main"><div><Brand /><p>Made for curious minds and the people who bring them together.</p></div><div className="footer-links"><div><strong>Explore</strong><Link to="/en/for-home/">Home adventures</Link><Link to="/en/for-classroom/">Classroom adventures</Link><Link to="/en/themes/">All themes</Link><Link to="/en/create/">AI custom adventures</Link><Link to="/en/pricing/">Pricing</Link></div><div><strong>Support</strong><Link to="/en/help/">Help</Link><Link to="/en/samples/home/">Free sample</Link><Link to="/en/account/">Sign in</Link></div><div><strong>Legal</strong><Link to="/en/privacy/">Privacy</Link><Link to="/en/terms/">Terms</Link><Link to="/en/cookies/">Cookies</Link><Link to="/en/refunds/">Refunds</Link></div></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Paper Adventure Workshop {runtime?.checkout ? '' : runtime?.sample ? '· Free trial available' : '· Design preview'}</span><span>For grown-ups planning playful adventures.</span></div></footer>; }
