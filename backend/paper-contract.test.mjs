@@ -101,6 +101,13 @@ test('new pack contract prints a traceable route, evidence-based witnesses and f
     assert.match(player,/LINK 1/);assert.match(guide,/HINT 2 - NARROW THE CHECK/);
     assert.match(guide,/IF THEY CHOSE DIFFERENTLY/);
   }
+  await auditStagedStory(story,spec,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+    const body=JSON.parse(request.body),outline=JSON.parse(body.input);
+    assert.equal(outline.goal,spec.plan.goal);
+    assert.equal(outline.checkpoints.length,5);
+    assert.equal('story' in outline,false,'the narrative critic must not reinterpret checked paper rules');
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:true,issues:[]})}]}]});
+  });
 });
 
 test('new pack rejects an early mission outcome before spending calls on later checkpoints',()=>{

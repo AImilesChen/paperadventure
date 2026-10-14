@@ -114,13 +114,13 @@ export function prepareContextualBlueprint(candidate,spec){
       throw Error(`Checkpoint ${i+1} labels must name fictional story pieces or actions, not instructions about the worksheet.`);
     if(spec.packExperienceVersion>=2&&i<4&&type==='decision_record'&&labels.some(label=>/^(?:witness|statement|clue|candidate|option|answer|result|rule)\b/i.test(label)))
       throw Error(`Checkpoint ${i+1} witness candidates must name story objects or actions, not the witness notes or answer roles.`);
-    const features=(['evidence_cards','route_board'].includes(type)||spec.packExperienceVersion>=2&&type==='decision_record')&&i<4?raw.features?.map(value=>text(value,'Printed feature',32)):['Checked fact','Matching fact'];
-    if(features?.length!==2||!unique(features))throw Error('Each activity needs two distinct story-specific feature names.');
+    const features=(['evidence_cards','route_board'].includes(type)||spec.packExperienceVersion>=2&&type==='decision_record')&&i<4?raw.features?.map(value=>text(value,`Checkpoint ${i+1} printed feature`,32)):['Checked fact','Matching fact'];
+    if(features?.length!==2||!unique(features))throw Error(`Checkpoint ${i+1} needs two distinct story-specific feature names.`);
     if(spec.packExperienceVersion>=2&&i<4&&['evidence_cards','decision_record'].includes(type)&&features.some(value=>/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i.test(value)))
       throw Error(`Checkpoint ${i+1} needs two concrete story properties, not answer or puzzle-state labels.`);
-    const word=type==='symbol_key'?text(raw.word,'Printed key word',4).toUpperCase():'NOTE';
-    if(!/^[A-Z]{4}$/.test(word))throw Error('The printed word must contain four ASCII letters.');
-    const context={labels,features,word,title:text(raw.material.title,'Material title',45)};
+    const word=type==='symbol_key'?text(raw.word,`Checkpoint ${i+1} printed key word`,4).toUpperCase():'NOTE';
+    if(!/^[A-Z]{4}$/.test(word))throw Error(`Checkpoint ${i+1} printed word must contain four ASCII letters.`);
+    const context={labels,features,word,title:text(raw.material.title,`Checkpoint ${i+1} material title`,45)};
     const compiled=buildContextPuzzle(i+1,type,context,digits.slice(),spec.packExperienceVersion||1);
     const stage={...compiled,title:spec.plan.stages[i].title,mechanic:spec.plan.stages[i].mechanic};
     stages.push(stage);if(i<4)digits.push(compiled.material.logic.resultDigit);
