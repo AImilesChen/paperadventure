@@ -1,4 +1,4 @@
-name: Inspect one paid remake recovery
+name: Inspect one paid remake recovery 2
 on:
   push:
     branches: [frontend-prd-v13-2026-10-08]
@@ -25,3 +25,4 @@ jobs:
         run: |
           npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT status,phase,error_code,recovery_count,json_array_length(stages_json) AS saved_stages,CASE WHEN blueprint_json IS NULL THEN 0 ELSE 1 END AS blueprint_ready,CASE WHEN story_json IS NULL THEN 0 ELSE 1 END AS story_ready,published_version FROM custom_pack_remakes WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407'"
           npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT round_number,phase,stage_number,status,error_code,COUNT(*) AS calls FROM custom_pack_remake_calls WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' GROUP BY round_number,phase,stage_number,status,error_code ORDER BY round_number,phase,stage_number"
+
