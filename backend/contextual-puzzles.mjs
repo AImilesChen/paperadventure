@@ -1,4 +1,4 @@
-import {paperContractTypes,paperActions,paperAction,validatePaperPlan} from '../shared/paper-contract.mjs';
+import {paperContractTypes,paperActions,paperAction,validatePaperPlan,assertGoalStillOpen} from '../shared/paper-contract.mjs';
 
 const text=(value,label,max)=>{
   if(typeof value!=='string'||!value.trim()||value.length>max||/[^\x20-\x7e]/.test(value))throw Error(`${label} must be concise printable English (maximum ${max}).`);
@@ -6,7 +6,7 @@ const text=(value,label,max)=>{
 };
 const unique=values=>new Set(values.map(value=>value.toLowerCase())).size===values.length;
 const rotate=(values,shift)=>values.map((_,i)=>values[(i+shift)%values.length]);
-export function buildContextPuzzle(number,type,context,previousDigits=[]){
+export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1){
   const labels=context.labels;
   const shift=number%3;
   let items,options,answer,clue,hint,explanation,instruction,signature;
@@ -48,6 +48,17 @@ export function buildContextPuzzle(number,type,context,previousDigits=[]){
     hint='Keep the message order. A key row tells you one letter, not the whole answer.';
     explanation=`The four key rows decode 1-2-3-4 as ${word}. Every other choice changes the printed order.`;
     signature=`decode-${word}`;
+  }else if(type==='decision_record'&&experienceVersion>=2){
+    const [feature1,feature2]=context.features;
+    const patterns=rotate([[true,true],[true,false],[false,true]],(3-winning)%3);
+    items=labels.map((label,i)=>({label,detail:`${feature1}: ${patterns[i][0]?'YES':'NO'}. ${feature2}: ${patterns[i][1]?'YES':'NO'}. Result digit: ${i+1}.`}));
+    items.push({label:'Witness record 1',detail:`The right choice has ${feature1}: YES.`},{label:'Witness record 2',detail:`The right choice has ${feature2}: YES.`});
+    options=labels;answer=patterns.findIndex(value=>value.every(Boolean));
+    instruction='Read the two witness records, then mark both properties on each candidate. Compare the remaining candidate with the three choices.';
+    clue='Each witness gives one required property. Use both records and the candidate details to find the only match; save its result digit.';
+    hint='One witness leaves two possible candidates. Check the second property before choosing.';
+    explanation=`Only ${labels[answer]} matches both witness properties: ${feature1} and ${feature2}.`;
+    signature=`combine-witness-properties-${context.features.join('-')}`;
   }else if(type==='decision_record'){
     const rejected=[0,1,2].filter(i=>i!==winning);
     items=labels.map((label,i)=>({label,detail:`Candidate ${i+1}. Result digit: ${i+1}.`}));
@@ -58,6 +69,16 @@ export function buildContextPuzzle(number,type,context,previousDigits=[]){
     hint='One witness leaves two candidates. You need the other witness before choosing.';
     explanation=`Witness 1 excludes ${labels[rejected[0]]}; witness 2 excludes ${labels[rejected[1]]}. Only ${labels[winning]} remains.`;
     signature=`combine-two-exclusions-${winning}`;
+  }else if(type==='route_board'&&experienceVersion>=2){
+    const routes=rotate([['OPEN','OPEN'],['CLOSED','OPEN'],['OPEN','CLOSED']],(3-winning)%3);
+    items=labels.map((label,i)=>({label,detail:`START > ${label} > END. First link: ${routes[i][0]}. Second link: ${routes[i][1]}. Digit: ${i+1}.`}));
+    items.push({label:'Route rule',detail:'Trace from START to END. Both links must be OPEN. A CLOSED link stops the route.'});
+    options=labels;answer=routes.findIndex(value=>value.every(state=>state==='OPEN'));
+    instruction='Trace each branch from START through its named stop to END. Cross out a branch when either printed link is CLOSED.';
+    clue='Only a continuous route reaches END. Trace the first and second link of each branch and record the open route\'s digit.';
+    hint='Start at the left of each branch. A CLOSED link prevents you from reaching END.';
+    explanation=`Only ${labels[answer]} has two OPEN links from START to END. The other branches stop at a CLOSED link.`;
+    signature='trace-open-two-link-path';
   }else{
     const [feature1,feature2]=context.features;
     const patterns=rotate([[true,true],[true,false],[false,true]],(3-winning)%3);
@@ -73,7 +94,7 @@ export function buildContextPuzzle(number,type,context,previousDigits=[]){
   const digit=String(answer+1);
   if(number!==5 && ['order_tiles','symbol_key'].includes(type))options=options.map((option,i)=>`${option} / digit ${i+1}`);
   const material={type,title:context.title,instruction,recordPrompt:number===5?'Record your final action and the four earlier results that prove it.':'Record the chosen result and its digit. Keep this sheet for checkpoint 5.',items,
-    logic:{version:1,contractVersion:1,context,number,previousDigits,signature,resultDigit:number===5?null:digit}};
+    logic:{version:1,contractVersion:1,...(experienceVersion>=2?{experienceVersion:2}:{}),context,number,previousDigits,signature,resultDigit:number===5?null:digit}};
   const task=paperAction(type,number).task;
   return {number,question:task,evidence:clue,options:rotate(options,shift),answerIndex:(answer-shift+3)%3,material,
     clue,hint,explanation,task,teamwork:number===5?'Each explorer checks one earlier result. Compare all four before agreeing on the final action.':'One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.',
@@ -88,12 +109,13 @@ export function prepareContextualBlueprint(candidate,spec){
     const raw=candidate.stages[i],type=types[i],count=i===4?3:type==='order_tiles'?4:type==='symbol_key'?4:3;
     const labels=raw.material?.items?.slice(0,count).map(piece=>text(typeof piece==='string'?piece:piece.label,'Piece label',40));
     if(labels?.length!==count||!unique(labels)||labels.some(label=>/^(?:plain fact|rule clue|witness|final action|journey clue)\s+[a-z0-9]+$/i.test(label)))throw Error(`Checkpoint ${i+1} needs ${count} distinct story-specific labels, not placeholder names.`);
-    const features=['evidence_cards','route_board'].includes(type)&&i<4?raw.features?.map(value=>text(value,'Printed feature',32)):['Checked fact','Matching fact'];
+    if(spec.packExperienceVersion>=2&&i<4)assertGoalStillOpen(labels,spec.plan.goal,i+1);
+    const features=(['evidence_cards','route_board'].includes(type)||spec.packExperienceVersion>=2&&type==='decision_record')&&i<4?raw.features?.map(value=>text(value,'Printed feature',32)):['Checked fact','Matching fact'];
     if(features?.length!==2||!unique(features))throw Error('Each activity needs two distinct story-specific feature names.');
     const word=type==='symbol_key'?text(raw.word,'Printed key word',4).toUpperCase():'NOTE';
     if(!/^[A-Z]{4}$/.test(word))throw Error('The printed word must contain four ASCII letters.');
     const context={labels,features,word,title:text(raw.material.title,'Material title',45)};
-    const compiled=buildContextPuzzle(i+1,type,context,digits.slice());
+    const compiled=buildContextPuzzle(i+1,type,context,digits.slice(),spec.packExperienceVersion||1);
     const stage={...compiled,title:spec.plan.stages[i].title,mechanic:spec.plan.stages[i].mechanic};
     stages.push(stage);if(i<4)digits.push(compiled.material.logic.resultDigit);
   }
@@ -108,7 +130,7 @@ export function prepareContextualBlueprint(candidate,spec){
 export function validateContextualPuzzle(stage){
   const logic=stage.material?.logic;
   if(logic?.contractVersion!==1||logic.number!==stage.number)throw Error('The unified paper contract is missing.');
-  const expected=buildContextPuzzle(stage.number,stage.material.type,logic.context,logic.previousDigits);
+  const expected=buildContextPuzzle(stage.number,stage.material.type,logic.context,logic.previousDigits,logic.experienceVersion||1);
   for(const field of ['options','answerIndex','material','task','teamwork','unlock'])if(JSON.stringify(stage[field])!==JSON.stringify(expected[field]))throw Error(`Checkpoint ${stage.number} ${field} differs from its unified paper contract.`);
   for(const field of ['question','evidence'])if(stage[field]!=null&&stage[field]!==expected[field])throw Error(`Checkpoint ${stage.number} ${field} differs from its unified paper contract.`);
   const style=stage.logicStyle||'base';
@@ -118,7 +140,7 @@ export function validateContextualPuzzle(stage){
 }
 
 export function contextualStageText(stage,style='base'){
-  const expected=buildContextPuzzle(stage.number||stage.material.logic.number,stage.material.type,stage.material.logic.context,stage.material.logic.previousDigits);
+  const expected=buildContextPuzzle(stage.number||stage.material.logic.number,stage.material.type,stage.material.logic.context,stage.material.logic.previousDigits,stage.material.logic.experienceVersion||1);
   const {clue,hint,explanation}=expected;
   if(style==='simple')return {clue:`Read the rule aloud. ${clue}`,hint:'Check one printed piece at a time.',explanation};
   if(style==='guided')return {clue,hint:`${hint} Point to the printed proof.`,explanation};

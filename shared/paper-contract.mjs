@@ -9,6 +9,16 @@ export const paperActions={
   finale:{title:'Combine the four discoveries',task:'Copy your result digits from checkpoints 1-4 in order. Compare this code with the three final actions and choose the matching action.'},
 };
 
+const earlyOutcome=/\b(?:hear|heard|ring|rings|rang|sound|sounds|sounded|restore|restored|repair|repaired|rescue|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
+const goalWords=goal=>new Set(String(goal||'').toLowerCase().match(/[a-z]{4,}/g)?.filter(word=>!['find','with','that','from','their','they','then','will','into','before','after','again','help','make','complete','finish','restore','repair','rescue','return','deliver','missing','story','journey'].includes(word))||[]);
+export function assertGoalStillOpen(texts,goal,number){
+  const terms=goalWords(goal);
+  for(const value of texts){
+    if(earlyOutcome.test(value)&&[...terms].some(term=>new RegExp(`\\b${term}\\b`,'i').test(value)))
+      throw Error(`Checkpoint ${number} names a completed mission outcome before the final action.`);
+  }
+}
+
 export function paperAction(type,number){
   if(number===5)return paperActions.finale;
   if(type==='order_tiles')return [
@@ -33,6 +43,7 @@ export function paperPlanMechanics(gameplay={}){
 
 export function completePaperPlan(candidate,gameplay){
   if(candidate?.stages?.length!==5)throw Error('Five planned checkpoints are required.');
+  for(let index=0;index<4;index++)assertGoalStillOpen([candidate.stages[index]?.scene||''],candidate.goal,index+1);
   const mechanics=paperPlanMechanics(gameplay);
   const types=paperContractTypes({stages:mechanics.map(mechanic=>({mechanic}))});
   return alignPaperPlan({...candidate,...(candidate.premise?{opening:paperOpening(candidate.premise)}:{}),id:['mystery','mission'].includes(candidate.id)?candidate.id:'mission',stages:candidate.stages.map((stage,index)=>({...stage,

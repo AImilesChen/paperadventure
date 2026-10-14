@@ -127,7 +127,56 @@
 .order-sidebar p{font-size:.85rem;color:#496c7c;line-height:1.6}
 .order-sidebar button{margin-top:10px}
 .order-approved-plan summary,.order-plan-review summary{cursor:pointer;color:#153d5a;font-weight:900}
-.order-approved-plan>.paid-plan-review{margin:22px 0 0}
+.paid-plan-review{min-width:0;padding:28px;border:1px solid #bdd9e4;border-radius:14px;background:#fffdf9;box-shadow:0 5px 0 #b7dbe766}
+.paid-plan-review h2,.paid-plan-review h3,.paid-plan-review h4{color:#0d294f}
+.paid-plan-heading h2{margin:8px 0 12px;font-size:clamp(1.5rem,2.3vw,2rem);line-height:1.25}
+.paid-plan-heading>p,.paid-plan-versions>p,.paid-plan-change>p,.paid-plan-approval>p{margin:0;color:#41657a;line-height:1.6}
+.paid-plan-allowances{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.paid-plan-allowances span{padding:8px 11px;border:1px solid #bdd7e2;border-radius:8px;background:#edf8fc;color:#254c63;font-size:.83rem;font-weight:800}
+.paid-plan-allowances strong{color:#0d294f;font-size:1rem}
+.paid-plan-skip{display:inline-flex;margin-top:14px;color:#155576;font-size:.86rem;font-weight:900;text-underline-offset:3px}
+.paid-plan-pending,.paid-plan-recovery,.paid-plan-notice{margin:20px 0 0;padding:16px;border:1px solid #b7d7e5;border-radius:10px;background:#edf8fc;color:#254c63;line-height:1.6}
+.paid-plan-recovery .button{margin-top:14px}
+.paid-plan-versions{margin-top:27px;padding-top:24px;border-top:1px solid #cbdfe6}
+.paid-plan-versions h3{margin:0 0 8px;font-size:1.2rem}
+.paid-plan-versions .creator-plan-options{margin:14px 0 0}
+.paid-plan-versions .creator-plan-options article{margin-top:12px}
+.paid-plan-versions .creator-plan-options h4{margin:0 0 8px;font-size:1.06rem;line-height:1.4}
+.paid-plan-versions .creator-plan-options details{margin-bottom:0}
+.paid-plan-next{display:grid;gap:22px;margin-top:28px;padding-top:28px;border-top:1px solid #bdd7e2;scroll-margin-top:90px}
+.paid-plan-change,.paid-plan-approval{min-width:0;padding:24px;border:1px solid #bdd7e2;border-radius:12px}
+.paid-plan-change{background:#edf8fc}
+.paid-plan-change h3,.paid-plan-approval h3{margin:8px 0 10px;font-size:1.35rem;line-height:1.3}
+.paid-plan-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:20px 0}
+.paid-plan-modes button{min-width:0;min-height:100px;padding:16px;border:1px solid #a8cbd8;border-radius:10px;background:#fff;text-align:left;color:#173b54;font:inherit;cursor:pointer}
+.paid-plan-modes button[aria-pressed=true]{border-color:#155576;box-shadow:inset 0 0 0 1px #155576;background:#f6fbfd}
+.paid-plan-modes strong,.paid-plan-modes span{display:block}
+.paid-plan-modes strong{margin-bottom:6px;font-size:.98rem}
+.paid-plan-modes span{color:#496c7c;font-size:.83rem;line-height:1.45}
+.paid-plan-change-form{display:grid;gap:19px;padding-top:20px;border-top:1px solid #bdd7e2}
+.paid-plan-field{display:grid;gap:8px;min-width:0}
+.paid-plan-field label{color:#173b54;font-weight:900}
+.paid-plan-field select,.paid-plan-field textarea{box-sizing:border-box;width:100%;padding:13px 14px;border:1px solid #96bac9;border-radius:9px;background:#fff;color:#173b54;font:inherit;line-height:1.5}
+.paid-plan-field select{min-height:48px}
+.paid-plan-field textarea{min-height:160px;resize:vertical}
+.paid-plan-field textarea::placeholder{color:#607989;opacity:1}
+.paid-plan-selected{display:grid;gap:5px;padding:14px 16px;border:1px solid #c5dce5;border-radius:9px;background:#fff}
+.paid-plan-selected span{color:#547486;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.paid-plan-selected strong{overflow-wrap:anywhere;font-size:.91rem}
+.paid-plan-selected p{margin:0;color:#41657a;font-size:.86rem;line-height:1.55;overflow-wrap:anywhere}
+.paid-plan-field-meta{display:flex;justify-content:space-between;gap:12px;color:#547486;font-size:.79rem;line-height:1.45}
+.paid-plan-field-meta span:last-child{flex:none;font-weight:800}
+.paid-plan-clear{margin-left:10px;padding:0;border:0;background:none;color:#155576;font:inherit;font-weight:900;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.paid-plan-submit{display:inline-flex;align-items:center;justify-content:center;gap:12px;justify-self:start;min-height:48px;padding:11px 17px;border:1px solid #155576;border-radius:9px;background:#fff;color:#155576;font:inherit;font-weight:900;cursor:pointer}
+.paid-plan-submit:hover{background:#dff1f8}
+.paid-plan-submit:disabled,.paid-plan-modes button:disabled{opacity:.65;cursor:default}
+.paid-plan-limit{margin:0;padding:14px 16px;border:1px solid #c5dce5;border-radius:9px;background:#fff;color:#41657a;line-height:1.55}
+.paid-plan-approval{background:#fff8ee;border-color:#ebd3b7}
+.paid-plan-approval .button{display:flex;justify-content:center;width:100%;margin-top:20px;min-height:52px;padding:13px 15px;text-align:center;white-space:normal;line-height:1.3}
+.paid-plan-approval .button:disabled{opacity:.6;cursor:default}
+.paid-plan-approval .paid-plan-approval-note{margin-top:11px;font-size:.82rem;line-height:1.5}
+.paid-plan-review button:focus-visible,.paid-plan-review a:focus-visible,.paid-plan-review select:focus-visible,.paid-plan-review textarea:focus-visible{outline:3px solid #155576;outline-offset:3px}
+.order-approved-plan>.paid-plan-review{margin:22px 0 0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
 .order-help-footer{max-width:calc((100% - 28px)*1.75/2.55);margin-top:42px;padding-top:26px;border-top:1px solid #aacbd9}
 .order-help-footer .delivery-failed{margin:0 0 20px;padding:20px;border:1px solid #d8c9c0;background:#f8f5f0}
 .order-help-footer .delivery-failed h3{font-size:1.12rem}
@@ -140,7 +189,7 @@
 .order-help-footer .order-feedback textarea{min-height:100px}
 .order-page a:focus-visible,.order-page button:focus-visible,.order-page summary:focus-visible{outline:3px solid #155576;outline-offset:3px}
 @media(max-width:900px){.order-layout{grid-template-columns:minmax(0,1fr)}.order-help-footer{max-width:none}.order-sidebar{grid-row:2}}
-@media(max-width:650px){.order-page .order-workspace{width:calc(100% - 32px);padding-top:26px}.order-heading{display:block}.order-current-status{display:inline-block;margin-top:14px}.order-package,.order-generation-history,.order-sidebar,.order-approved-plan,.order-plan-review{padding:20px}.order-package-files{grid-template-columns:1fr}.order-package-files>div{min-height:75px}.order-help-footer{margin-top:30px}.order-package-downloads .live-downloads{grid-template-columns:1fr}}
+@media(max-width:650px){.order-page .order-workspace{width:calc(100% - 32px);padding-top:26px}.order-heading{display:block}.order-current-status{display:inline-block;margin-top:14px}.order-package,.order-generation-history,.order-sidebar,.order-approved-plan,.order-plan-review,.paid-plan-review{padding:20px}.order-package-files{grid-template-columns:1fr}.order-package-files>div{min-height:75px}.order-help-footer{margin-top:30px}.order-package-downloads .live-downloads{grid-template-columns:1fr}.paid-plan-change,.paid-plan-approval{padding:18px}.paid-plan-modes{grid-template-columns:1fr}.paid-plan-modes button{min-height:72px}.paid-plan-submit{width:100%;justify-content:center}.paid-plan-field-meta{flex-wrap:wrap}}
 
 .order-quality-actions{padding:28px;border:1px solid #bdd9e4;border-radius:14px;background:#fffdf9;box-shadow:0 5px 0 #b7dbe766}
 .order-pack-remake{padding:28px;border:1px solid #7bb7cb;border-left:5px solid #175676;border-radius:14px;background:#f0f9fc;box-shadow:0 5px 0 #b7dbe766}

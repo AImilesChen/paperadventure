@@ -200,18 +200,78 @@ function IssueForm({ orderId, failedDelivery = false, initialRequest = null }) {
 
 function PaidPlanReview({order,refresh}) {
   const review=order.planReview;
-  const [mode,setMode]=useState('edit'),[scope,setScope]=useState('stage1'),[feedback,setFeedback]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+  const [mode,setMode]=useState('edit');
+  const [scope,setScope]=useState('stage1');
+  const [feedbackByMode,setFeedbackByMode]=useState({edit:'',rework:''});
+  const feedback=feedbackByMode[mode];
+  const setFeedback=value=>setFeedbackByMode(previous=>({...previous,[mode]:value}));
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState('');
+  const [notice,setNotice]=useState('');
   if (!review || !['paid','fulfilling','published','failed'].includes(order.status)) return null;
+
   async function action(body) {
-    setBusy(true);setError('');setNotice('');
+    setBusy(true); setError(''); setNotice('');
     try {
       await api(`/api/v1/orders/${order.id}/plan`,{method:'POST',headers:{'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify(body)});
       setNotice(body.action==='confirm'?'Plan approved. Your PDFs are now queued.':body.action==='select'?'Saved plan selected.':body.action==='retry_initial'?'A free recovery attempt is queued. You will not be charged again.':body.action==='resume_review'?'Your saved plan is ready to review again.':'Your plan change is queued. It uses an included change only if a valid new plan is delivered.');
-      setFeedback('');await refresh();
-    } catch(failure){setError(failure.message);} finally {setBusy(false);}
+      setFeedback('');
+      await refresh();
+    } catch(failure) { setError(failure.message); }
+    finally { setBusy(false); }
   }
+
   const reviewable=order.status==='paid'&&review.status==='review';
-  return <section className="live-revision paid-plan-review" aria-label="Personal plan review"><span className="eyebrow">YOUR PAID PLAN</span><h3>{review.status==='confirmed'?'Approved plan':review.status==='needs_help'?'Plan generation stopped':review.status==='review'?'Review your plan':'Preparing your personal plan'}</h3>{reviewable?<p>Whole-plan reworks: {review.fullLimit-review.fullUsed} left · Targeted edits: {review.targetedLimit-review.targetedUsed} left. Only valid new plans delivered for review use a change.</p>:review.confirmedVersion?<p>Version {review.confirmedVersion} was approved for PDF generation.</p>:review.status==='needs_help'?<p>Your payment is confirmed, but we could not finish a valid plan. No PDF generation has started, and no plan change was used.</p>:<p>Plan generation and quality checks are in progress.</p>}{review.pending&&<p role="status">{review.pending==='initial'?'Creating your first plan':'Preparing your requested change'}… You can return later through My adventures.</p>}{review.status==='needs_help'&&<div className="paid-plan-recovery" role="status"><p>{review.activeVersion ? 'Your earlier valid plan is saved. Return to it to review, edit or approve it.' : review.retryAvailable ? 'You can try the first plan again once at no charge. If it still fails, report the problem below for help or refund-policy review.' : 'This plan needs manual help. Report the problem below for assistance or refund-policy review.'}</p>{review.retryAvailable&&<button type="button" className="button" disabled={busy} onClick={()=>action({action:'retry_initial'})}>{busy?'Requesting…':'Retry my plan at no charge'} <ArrowRight size={17}/></button>}{review.activeVersion>0&&<button type="button" className="button" disabled={busy} onClick={()=>action({action:'resume_review'})}>Return to my saved plan <ArrowRight size={17}/></button>}</div>}{review.versions.length>0&&<><p>Saved versions stay available without using another change.</p><div className="creator-plan-options">{review.versions.map(item=><article key={item.version} className={item.version===review.activeVersion?'selected':''}><h4>Version {item.version} · {item.plan.title}</h4><p>{item.plan.summary}</p><details open={item.version===review.activeVersion && reviewable}><summary>Read this five-checkpoint plan</summary><PlanPreview plan={item.plan}/></details>{reviewable&&item.version!==review.activeVersion&&<button type="button" className="button-quiet" disabled={busy} onClick={()=>action({action:'select',version:item.version})}>Use this version</button>}</article>)}</div></>}{reviewable&&<><div className="creator-source-choice"><button type="button" aria-pressed={mode==='edit'} onClick={()=>setMode('edit')}>Targeted edit</button><button type="button" aria-pressed={mode==='rework'} onClick={()=>setMode('rework')}>Whole-plan rework</button></div>{(mode==='edit'?review.targetedUsed<review.targetedLimit:review.fullUsed<review.fullLimit)&&<form onSubmit={event=>{event.preventDefault();action({action:mode,scope:mode==='edit'?scope:undefined,feedback});}}>{mode==='edit'&&<label>Part to change<select value={scope} onChange={event=>setScope(event.target.value)}>{[['title','Title'],['summary','Summary'],['opening','Opening'],['roles','Team roles'],['goal','Goal'],['preparation','Preparation'],...[1,2,3,4,5].map(n=>[`stage${n}`,`Checkpoint ${n}`])].filter(([value])=>!order.packContractVersion||!['roles','preparation'].includes(value)).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label>}<label>What should change?<textarea minLength={10} maxLength={500} required value={feedback} onChange={event=>setFeedback(event.target.value)} placeholder="Tell us what felt wrong and what should be kept."/></label><button className="button" disabled={busy}>{busy?'Submitting…':mode==='edit'?'Request targeted edit':'Request whole-plan rework'}</button></form>}<button type="button" className="button" disabled={busy} onClick={()=>action({action:'confirm',version:review.activeVersion})}>Approve this plan and create PDFs <ArrowRight size={17}/></button><p className="small-muted">Approval starts full PDF generation. If the plan still does not work for you, use the help form below before approval.</p></>}{notice&&<p role="status">{notice}</p>}{error&&<Alert>{error}</Alert>}</section>;
+  const targetedLeft=Math.max(0,review.targetedLimit-review.targetedUsed);
+  const reworksLeft=Math.max(0,review.fullLimit-review.fullUsed);
+  const changeAvailable=mode==='edit'?targetedLeft>0:reworksLeft>0;
+  const hasUnsentFeedback=Object.values(feedbackByMode).some(value=>Boolean(value.trim()));
+  const activePlan=review.versions.find(item=>item.version===review.activeVersion)?.plan;
+  const stageNumber=/^stage([1-5])$/.exec(scope)?.[1];
+  const selectedStage=stageNumber?activePlan?.stages?.find(item=>item.number===Number(stageNumber)):null;
+  const scopeNames={title:'Title',summary:'Summary',opening:'Opening',roles:'Team roles',goal:'Goal',preparation:'Preparation'};
+  const selectedName=selectedStage?`Checkpoint ${stageNumber} · ${selectedStage.title}`:scopeNames[scope]||'Selected part';
+  const selectedText=selectedStage?[selectedStage.storyContext,selectedStage.task].filter(Boolean).join(' '):activePlan?.[scope];
+  const scopeOptions=[['title','Title'],['summary','Summary'],['opening','Opening'],['roles','Team roles'],['goal','Goal'],['preparation','Preparation'],...[1,2,3,4,5].map(n=>[`stage${n}`,`Checkpoint ${n}`])].filter(([value])=>!order.packContractVersion||!['roles','preparation'].includes(value));
+
+  return <section className="paid-plan-review" aria-label="Personal plan review">
+    <header className="paid-plan-heading">
+      <span className="eyebrow">YOUR PAID PLAN</span>
+      <h2>{review.status==='confirmed'?'Approved plan':review.status==='needs_help'?'Plan generation stopped':review.status==='review'?'Review your plan':'Preparing your personal plan'}</h2>
+      {reviewable ? <><p>Read the five checkpoints, then choose whether to change the plan or approve it for PDF creation.</p><div className="paid-plan-allowances" aria-label="Included plan changes remaining"><span><strong>{targetedLeft}</strong> focused edits left</span><span><strong>{reworksLeft}</strong> whole-plan reworks left</span></div><a className="paid-plan-skip" href="#paid-plan-next">Go to next step ↓</a></> : review.confirmedVersion ? <p>Version {review.confirmedVersion} was approved for PDF generation.</p> : review.status==='needs_help' ? <p>Your payment is confirmed, but we could not finish a valid plan. No PDF generation has started, and no plan change was used.</p> : <p>Plan generation and quality checks are in progress.</p>}
+    </header>
+
+    {review.pending&&<p className="paid-plan-pending" role="status">{review.pending==='initial'?'Creating your first plan':'Preparing your requested change'}… You can return later through My adventures.</p>}
+    {review.status==='needs_help'&&<div className="paid-plan-recovery" role="status"><p>{review.activeVersion ? 'Your earlier valid plan is saved. Return to it to review, edit or approve it.' : review.retryAvailable ? 'You can try the first plan again once at no charge. If it still fails, report the problem below for help or refund-policy review.' : 'This plan needs manual help. Report the problem below for assistance or refund-policy review.'}</p>{review.retryAvailable&&<button type="button" className="button" disabled={busy} onClick={()=>action({action:'retry_initial'})}>{busy?'Requesting…':'Retry my plan at no charge'} <ArrowRight size={17}/></button>}{review.activeVersion>0&&<button type="button" className="button" disabled={busy} onClick={()=>action({action:'resume_review'})}>Return to my saved plan <ArrowRight size={17}/></button>}</div>}
+
+    {review.versions.length>0&&<div className="paid-plan-versions"><h3>Your saved plans</h3><p>Earlier valid versions stay available without using another change.</p><div className="creator-plan-options">{review.versions.map(item=><article key={item.version} className={item.version===review.activeVersion?'selected':''}><h4>Version {item.version} · {item.plan.title}</h4><p>{item.plan.summary}</p><details open={item.version===review.activeVersion&&reviewable}><summary>Read this five-checkpoint plan</summary><PlanPreview plan={item.plan} showPreparation={false}/></details>{reviewable&&item.version!==review.activeVersion&&<button type="button" className="button-quiet" disabled={busy} onClick={()=>action({action:'select',version:item.version})}>Use this version</button>}</article>)}</div></div>}
+
+    {reviewable&&<div id="paid-plan-next" className="paid-plan-next">
+      <div className="paid-plan-change">
+        <span className="eyebrow">OPTIONAL CHANGE</span>
+        <h3>Want to change the plan?</h3>
+        <p>Your selected version stays saved. A change is used only when a valid new plan is ready for review.</p>
+        <div className="paid-plan-modes" role="group" aria-label="Choose a plan change">
+          <button type="button" aria-pressed={mode==='edit'} disabled={busy} onClick={()=>setMode('edit')}><strong>Change one part</strong><span>Focus on one checkpoint or story detail · {targetedLeft} left</span></button>
+          <button type="button" aria-pressed={mode==='rework'} disabled={busy} onClick={()=>setMode('rework')}><strong>Rethink the whole plan</strong><span>Ask for a different overall direction · {reworksLeft} left</span></button>
+        </div>
+        {changeAvailable ? <form className="paid-plan-change-form" onSubmit={event=>{event.preventDefault();action({action:mode,scope:mode==='edit'?scope:undefined,feedback:feedback.trim()});}}>
+          {mode==='edit'&&<div className="paid-plan-field"><label htmlFor="paid-plan-scope">Part to change</label><select id="paid-plan-scope" value={scope} onChange={event=>setScope(event.target.value)}>{scopeOptions.map(([value,label])=><option value={value} key={value}>{label}</option>)}</select>{activePlan&&<div className="paid-plan-selected"><span>Currently selected</span><strong>{selectedName}</strong>{selectedText&&<p>{selectedText}</p>}</div>}</div>}
+          <div className="paid-plan-field"><label htmlFor="paid-plan-feedback">What should change?</label><textarea id="paid-plan-feedback" rows={6} minLength={10} maxLength={500} required value={feedback} onChange={event=>setFeedback(event.target.value)} aria-describedby="paid-plan-feedback-hint paid-plan-feedback-count" placeholder={mode==='edit'?'For example: Make checkpoint 2 easier to read, but keep the clue and the team decision.':'For example: Keep the setting, but make the five checkpoints feel more like a mystery.'}/><div className="paid-plan-field-meta"><span id="paid-plan-feedback-hint">Say what felt wrong and what should stay.</span><span id="paid-plan-feedback-count">{feedback.length}/500{feedback&&<button type="button" className="paid-plan-clear" onClick={()=>setFeedback('')}>Clear draft</button>}</span></div></div>
+          <button type="submit" className="paid-plan-submit" disabled={busy}>{busy?'Submitting…':mode==='edit'?'Request this edit':'Request a new plan direction'} <ArrowRight size={17}/></button>
+        </form> : <p className="paid-plan-limit" role="status">No {mode==='edit'?'focused edits':'whole-plan reworks'} remain. You can review a saved version or ask for help before approving.</p>}
+      </div>
+
+      <section className="paid-plan-approval" aria-label="Approve your plan">
+        <span className="eyebrow">FINAL STEP</span>
+        <h3>Ready to make your game?</h3>
+        <p>Approve version {review.activeVersion} to begin creating and checking the Player Pack and adult guide. You can follow progress on this order.</p>
+        <button type="button" className="button" disabled={busy||hasUnsentFeedback} onClick={()=>action({action:'confirm',version:review.activeVersion})}>Approve this plan and create PDFs <ArrowRight size={17}/></button>
+        {hasUnsentFeedback ? <p className="paid-plan-approval-note">You have an unsent change request. Return to that change type to submit or clear it before approving.</p> : <p className="paid-plan-approval-note">If a plan does not work for you, use the help form below before approval.</p>}
+      </section>
+    </div>}
+    {notice&&<p className="paid-plan-notice" role="status">{notice}</p>}{error&&<Alert>{error}</Alert>}
+  </section>;
 }
 
 function DeliveryRecovery({order,refresh}) {
@@ -326,7 +386,10 @@ export function LiveOrder({ Link, orderId }) {
   const [error, setError] = useState('');
   const [selectedPaper, setSelectedPaper] = useState('A4');
   const [helpRequest,setHelpRequest] = useState(null);
-  const refresh = () => api(`/api/v1/orders/${orderId}`).then(data => { setOrder(data); setError(''); }).catch(failure => setError(failure.message));
+  const refresh = () => api(`/api/v1/orders/${orderId}`).then(data => {
+    if (data?.id !== orderId || !['ready', 'custom'].includes(data.kind)) throw new Error('The order service returned an invalid response. Please try again later.');
+    setOrder(data); setError('');
+  }).catch(failure => setError(failure.message));
   const openHelp = (kind,description) => {
     setHelpRequest({kind,description});
     requestAnimationFrame(()=>{const section=document.getElementById('order-help');if(section){section.open=true;section.scrollIntoView({behavior:'smooth',block:'start'});}});
@@ -340,7 +403,7 @@ export function LiveOrder({ Link, orderId }) {
     return () => { clearInterval(timer); document.removeEventListener('visibilitychange', update); };
   }, [orderId,order?.status,order?.remake?.status]);
 
-  if (error) return <main className="extended-page live-page order-page"><div className="order-workspace"><Alert>{error}</Alert><Link className="button" to="/en/account/">Sign in with Google <ArrowRight size={18}/></Link></div></main>;
+  if (error) return <main className="extended-page live-page order-page"><div className="order-workspace"><Alert>{error}</Alert><button className="button" type="button" onClick={refresh}>Retry order status <ArrowRight size={18}/></button><p><Link to="/en/account/">Sign in with Google</Link> if your session has expired.</p></div></main>;
   if (!order) return <main className="extended-page live-page order-page"><div className="order-workspace" role="status">Checking your order…</div></main>;
 
   const title = order.plan?.title || (order.kind === 'ready' ? order.sku.replaceAll('_',' ') : 'Your custom adventure');
@@ -433,3 +496,4 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
   }
   return <main className="extended-page live-page"><Intro eyebrow="SECURE CHECKOUT" title="Review your order."><p>{checkoutMode === 'test' ? 'TEST MODE · Sign in with Google and use test-card details. No real payment is taken.' : 'One-time purchase. Stripe shows the final total before you pay.'}</p></Intro><section className="live-shell"><div className="live-panel"><span className="eyebrow">{ready ? 'FIXED PACK' : 'NEW CUSTOM ADVENTURE'}</span><h2>{ready ? `${theme?.title || 'Unknown theme'} · ${setting}` : `${setting || 'Custom'} adventure`}</h2><p>Listed price: <strong>{offer ? formatUsd(offer.unitAmount) : 'Unavailable'}</strong> before applicable tax.</p><p>{ready ? 'After confirmed payment, download this ready-made game from My adventures.' : 'After confirmed payment, one personal five-checkpoint plan is generated for your review. Two successful whole-plan reworks and three successful targeted edits are included. Select and approve a saved plan before the full PDFs are generated. New custom packs use paper cards, tiles, keys, route rows and records; their layout differs from hand-authored ready-made themes. If no version works, contact support for assistance or refund-policy review.'}</p><p>{!ready && 'After PDF delivery, two successful single-checkpoint revisions within 30 days are included. '}Online re-download lasts {productRights.onlineRedownloadMonths} months {ready ? 'from confirmed payment' : 'from first qualified delivery'}.</p>{!ready && customDraftReady && <dl className="live-review"><div><dt>Story idea</dt><dd>{draft.idea}</dd></div><div><dt>Players</dt><dd>{draft.players} · ages {draft.age}</dd></div><div><dt>Paper and play</dt><dd>{draft.paper} · {mechanicById(draft.gameplay?.primary)?.title}</dd></div></dl>}{!eligible ? <Alert>{!ready && !customDraftReady ? 'Finish your custom adventure setup before checkout.' : 'This product is not available for checkout.'}</Alert> : needsSignIn ? authenticated === null ? <p role="status">Checking adult sign-in…</p> : <div><Alert>Sign in with your adult Google account before checkout.</Alert><Link className="button" to={signInPath}>Sign in with Google <ArrowRight size={18} /></Link></div> : <form onSubmit={start}>{ready && variantIds.length > 0 && <label>Classroom story wording<select value={variantId} onChange={event => setVariantId(event.target.value)}><option value="">{themeId === 'halloween' ? 'Autumn classroom' : 'Winter classroom'}</option>{variantIds.map(id => <option key={id} value={id}>{id === 'halloween' ? 'Halloween classroom' : 'Christmas classroom'}</option>)}</select></label>}{accountEmail ? <p className="live-note">Buying with your Google account: <strong>{accountEmail}</strong></p> : accountRequired ? <p className="live-note">This order stays in your signed-in account. Stripe may ask for an email for the payment receipt.</p> : <label>Email for your receipt and downloads<input type="email" required autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" /></label>}<p className="live-note">{checkoutMode === 'test' ? 'Stripe test checkout takes no real money.' : <>Review the <Link to="/en/terms/">terms</Link> and <Link to="/en/refunds/">refund policy</Link> before paying. Stripe displays the final total.</>}</p><button className="button" disabled={busy}>{busy ? 'Preparing checkout…' : checkoutMode === 'test' ? 'Continue to Stripe test' : 'Continue to Stripe'} <ArrowRight size={18} /></button>{error && <Alert>{error}</Alert>}</form>}</div></section></main>;
 }
+

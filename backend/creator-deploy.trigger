@@ -1,1 +1,2 @@
-2026-10-14: fix real checked-blueprint failures by assigning compatible paper activity types before AI and fitting narrative fields before validation.
+2026-10-14: release unified paper contract v1 with deterministic printable puzzles, independent answer proof and verified PDF layouts.
+

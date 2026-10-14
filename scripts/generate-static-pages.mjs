@@ -81,6 +81,10 @@ try {
   assert.match(unknown, /That page isn&#x27;t here\./);
   assert.doesNotMatch(unknown, /Privacy Notice/);
   assert.match(renderPreview('/en/create/unexpected/', '', null), /That page isn&#x27;t here\./);
+  const privateOrder = renderPreview('/en/orders/00000000-0000-0000-0000-000000000000/', '', null);
+  assert.match(privateOrder, /Checking your order/);
+  assert.doesNotMatch(privateOrder, /Your adventure, from checkout to play/);
+  assert.match(renderPreview('/en/orders/demo/', '', null), /Your adventure, from checkout to play/);
   console.log('Verified query and saved-draft hydration against the pre-rendered pages');
   const indexablePages = publicPages.filter(record => record.indexable);
   const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + indexablePages.map(record => `  <url><loc>${escape(origin + record.path)}</loc></url>`).join('\n') + '\n</urlset>\n';
@@ -93,3 +97,4 @@ try {
   delete globalThis.localStorage;
   await server.close();
 }
+
