@@ -75,5 +75,7 @@ export function validatePlan(value, spec) {
   };
   if (!['mystery','mission'].includes(plan.id)) throw new Error('Choose one of the two adventure plans.');
   if (plan.stages.filter(item=>item.mechanic===selected[0]).length < 3 || selected.some(id=>!plan.stages.some(item=>item.mechanic===id))) throw new Error('The plan must use the main style at least three times and every selected supporting style.');
+  if (spec.gamePackVersion===2 && (plan.title.length>70 || plan.opening.length>350 || plan.roles.length>180 || plan.goal.length>180 || plan.stages.some(item=>item.title.length>60 || item.task.length>180 || item.teamwork.length>150)))
+    throw new Error('The paper-pack plan needs concise headings, roles and player tasks that fit the printed sheets.');
   return plan;
 }

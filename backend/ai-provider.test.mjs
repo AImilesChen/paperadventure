@@ -119,6 +119,7 @@ test('failed quality checks retain the token usage and last provider response fo
 
 test('the approved plan supplies exact headings while printable punctuation is normalized before QA', async () => {
   const {spec:base} = validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}});
+  base.gamePackVersion=1; // An existing approved order retains its original text-pack contract.
   const plan = planFixture(base);
   const approved = {...base,plan,planConfirmed:true};
   const draft = {...story,title:'Paraphrased title',introduction:'Paraphrased opening',ending:'The team’s journey ends.',stages:story.stages.map((stage,index)=>({...stage,title:`Wrong ${index}`,mechanic:'sequence'}))};

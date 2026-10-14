@@ -312,7 +312,9 @@ test('verified Stripe payment grants only the matching ready pack and private fi
   const issue = await handleProductionApi(request(`/api/v1/orders/${orderId}/issues`, 'POST', { issueType: 'refund', description: 'The file was not usable and I need help.' }, { cookie: `paw_session=${token}`, origin: 'https://adventure.example' }), env);
   assert.equal(issue.status, 201);
   const cases = await handleProductionApi(request(`/api/v1/orders/${orderId}/issues`, 'GET', undefined, { cookie: `paw_session=${token}` }), env);
-  assert.equal((await cases.json()).cases[0].issue_type, 'refund');
+  const savedCase = (await cases.json()).cases[0];
+  assert.equal(savedCase.issue_type, 'refund');
+  assert.equal(savedCase.description, 'The file was not usable and I need help.');
   assert.equal((await handleProductionApi(request(`/api/v1/orders/${orderId}/issues`, 'GET', undefined, { cookie: `paw_session=${otherToken}` }), env)).status, 404);
 });
 
@@ -469,6 +471,7 @@ test('paid custom queue job generates private player and guide PDFs, then publis
 test('a failed PDF write resumes from the checked story without paying for another model call', async () => {
   const { db, binding } = database();
   const base = validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  base.gamePackVersion=1; // Simulate a legacy paid order already in delivery.
   const plan = planFixture(base);
   const purchase = {...base,onlineRedownloadMonths:productRights.onlineRedownloadMonths,accessPolicyVersion:productRights.version};
   const confirmed = {...purchase,plan,planConfirmed:true};
@@ -864,6 +867,7 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
   assert.equal((await post({action:'edit',scope:'opening',feedback:'Please mention the paper clock earlier.'},'paid-plan-change-0002')).status,202);
   await productionWorker.queue({messages:[{body:queued.at(-1),ack(){},retry(){throw Error('unexpected retry');}}]},env);
   const viewed=await handleProductionApi(request('/api/v1/orders/v3-order','GET',undefined,headers),env).then(r=>r.json());
+  assert.equal(viewed.gamePackVersion,2,'new paid orders identify the paper-material format');
   assert.equal(viewed.planReview.targetedUsed,1);assert.equal(viewed.planReview.versions.length,3);
   assert.equal((await post({action:'select',version:1},'paid-plan-select-0001')).status,200);
   assert.equal((await post({action:'confirm',version:1},'paid-plan-confirm-0001')).status,200);
@@ -876,6 +880,7 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
 test('staged paid generation resumes at a failed checkpoint without regenerating saved work',async()=>{
   const {db,binding}=database();
   const purchase=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  purchase.gamePackVersion=1; // Resume an order approved before interactive paper materials existed.
   const plan=planFixture(purchase);
   const spec={...purchase,plan,planConfirmed:true,onlineRedownloadMonths:12};
   const stored=JSON.stringify(purchase),storySpec=JSON.stringify(spec);
@@ -902,6 +907,8 @@ test('staged paid generation resumes at a failed checkpoint without regenerating
   assert.equal(db.prepare("SELECT status FROM orders WHERE id='staged-order'").get().status,'fulfilling');
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:'owner-hash',exp:Math.floor(Date.now()/1000)+3600});
   const view=await handleProductionApi(request('/api/v1/orders/staged-order','GET',undefined,{cookie:`paw_session=${token}`}),env).then(response=>response.json());
+  assert.equal(view.gamePackVersion,1,'a previously approved paid order keeps its original pack format');
+  assert.deepEqual(view.revisionRequests,[]);
   assert.equal(view.generationProgress.phase,'checkpoint');assert.equal(view.generationProgress.currentStage,3);
   await process();
   assert.deepEqual(db.prepare('SELECT stage_number FROM custom_game_stages WHERE order_id = ? ORDER BY stage_number').all('staged-order').map(row=>row.stage_number),[1,2,3,5]);

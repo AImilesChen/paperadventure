@@ -591,6 +591,9 @@ async function orderView(request, env, orderId) {
   const lastPdfFailure = pdfRows.filter(item => item.status === 'failed').at(-1);
   const retryBlocked = (lastPdfFailure?.phase === 'story' && nonRetryableStoryCodes.has(lastPdfFailure.error_code)) || lastPdfFailure?.error_code === 'STORY_CHECKPOINT_MISMATCH';
   const spec = JSON.parse(order.purchase_spec_json);
+  const revisionRows = order.product_kind === 'custom'
+    ? (await query(env.DB,'SELECT id,stage_number,status,version_number,created_at,completed_at FROM revision_requests WHERE order_id = ? ORDER BY created_at DESC LIMIT 5',order.id).all()).results || []
+    : [];
   const paidPlan = order.product_kind === 'custom' && spec.creatorVersion === 3
     ? await query(env.DB,'SELECT * FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
   const planVersions = paidPlan ? (await query(env.DB,'SELECT version_number,plan_json,request_kind,created_at FROM custom_plan_versions WHERE order_id = ? ORDER BY version_number',order.id).all()).results || [] : [];
@@ -621,6 +624,8 @@ async function orderView(request, env, orderId) {
     accessExpiresAt: entitlement?.access_expires_at || null,
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
     revisionExpiresAt: entitlement?.revision_expires_at || null,
+    gamePackVersion: order.product_kind === 'custom' ? spec.gamePackVersion || 1 : null,
+    revisionRequests: revisionRows.map(item=>({id:item.id,stageNumber:item.stage_number,status:item.status,version:item.version_number||null,createdAt:item.created_at,completedAt:item.completed_at||null})),
     plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
     ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
 }
@@ -783,7 +788,7 @@ async function supportCases(request, env, orderId) {
   const order = await query(env.DB, 'SELECT id FROM orders WHERE id = ? AND purchaser_email_hash = ?', orderId, hash).first();
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified order was found.');
   if (request.method === 'GET') {
-    const cases = await query(env.DB, 'SELECT id,issue_type,status,created_at,updated_at FROM support_cases WHERE order_id = ? AND email_hash = ? ORDER BY created_at DESC LIMIT 20', orderId, hash).all();
+    const cases = await query(env.DB, 'SELECT id,issue_type,description,status,created_at,updated_at FROM support_cases WHERE order_id = ? AND email_hash = ? ORDER BY created_at DESC LIMIT 20', orderId, hash).all();
     return json({ cases: cases.results || [] });
   }
   requireSameOrigin(request, env);

@@ -141,3 +141,35 @@
 .order-page a:focus-visible,.order-page button:focus-visible,.order-page summary:focus-visible{outline:3px solid #155576;outline-offset:3px}
 @media(max-width:900px){.order-layout{grid-template-columns:minmax(0,1fr)}.order-help-footer{max-width:none}.order-sidebar{grid-row:2}}
 @media(max-width:650px){.order-page .order-workspace{width:calc(100% - 32px);padding-top:26px}.order-heading{display:block}.order-current-status{display:inline-block;margin-top:14px}.order-package,.order-generation-history,.order-sidebar,.order-approved-plan,.order-plan-review{padding:20px}.order-package-files{grid-template-columns:1fr}.order-package-files>div{min-height:75px}.order-help-footer{margin-top:30px}.order-package-downloads .live-downloads{grid-template-columns:1fr}}
+
+.order-quality-actions{padding:28px;border:1px solid #bdd9e4;border-radius:14px;background:#fffdf9;box-shadow:0 5px 0 #b7dbe766}
+.order-quality-actions h2,.order-revision-form h2{margin:7px 0 8px;font-size:clamp(1.35rem,2.2vw,1.8rem);line-height:1.2}
+.order-quality-actions>p,.order-revision-form>p{margin:0 0 18px;color:#496c7c;line-height:1.6}
+.order-quality-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+.order-quality-grid>div{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:20px;border:1px solid #c6dde7;border-radius:10px;background:#f1f9fc}
+.order-quality-grid h3{margin:0;font-size:1.05rem}
+.order-quality-grid p{margin:0;color:#496c7c;font-size:.91rem;line-height:1.55}
+.order-quality-grid .button,.order-quality-grid .button-quiet{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:auto;padding:11px 12px;text-align:center;text-decoration:none}
+.order-quality-grid .button-quiet{border:1px solid #9ec6d7;border-radius:8px;background:#fff;font-weight:800;color:#155576;cursor:pointer}
+.order-quality-email{font-size:.88rem;font-weight:800;color:#155576;text-decoration:underline}
+.order-revision-form{margin:0;padding:28px;border:1px solid #bdd9e4;border-radius:14px;background:#fffdf9;box-shadow:0 5px 0 #b7dbe766;scroll-margin-top:24px;min-width:0}
+.order-revision-form label{display:grid;gap:9px;min-width:0;font-weight:800;color:#173b54}
+.order-revision-form select,.order-revision-form textarea{display:block;box-sizing:border-box;width:100%;min-width:0;padding:13px 15px;border:1px solid #a8cbd8;border-radius:8px;background:#fff;color:#173b54;font:inherit;line-height:1.5}
+.order-revision-form select{min-height:50px}
+.order-revision-form textarea{min-height:192px;resize:vertical}
+.order-revision-form label small{color:#496c7c;font-size:.82rem;font-weight:400;line-height:1.5}
+.order-revision-stage{padding:16px 18px;border-left:4px solid #155576;border-radius:8px;background:#edf8fc}
+.order-revision-stage strong{display:block;color:#173b54}
+.order-revision-stage p{margin:8px 0;line-height:1.55}
+.order-revision-stage small{color:#496c7c;line-height:1.5}
+.order-revision-prompts{display:grid;gap:10px}
+.revision-shortcuts{display:flex;flex-wrap:wrap;gap:8px}
+.order-revision-form .revision-shortcuts button{padding:8px 12px;border:1px solid #9ec6d7;border-radius:8px;background:#edf8fc;color:#155576;font-weight:800;cursor:pointer}
+.order-revision-submit{display:grid;justify-items:start;gap:9px;border-top:1px solid #c6dde7;padding-top:18px}
+.order-revision-submit .button{min-height:48px}
+.order-revision-submit p{max-width:58ch;color:#496c7c;font-size:.84rem;line-height:1.5}
+.order-revision-status{padding:13px 16px;border-radius:8px;background:#edf8fc;font-size:.88rem}
+.order-revision-status ul{margin:7px 0 0;padding-left:20px}
+.order-report-history{padding:13px 16px;border-radius:8px;background:#edf8fc;font-size:.88rem}
+.order-report-history ul{margin:7px 0 0;padding-left:20px}
+@media(max-width:650px){.order-quality-actions,.order-revision-form{padding:20px}.order-revision-submit,.order-revision-submit .button{width:100%}.order-revision-form textarea{min-height:208px}}
