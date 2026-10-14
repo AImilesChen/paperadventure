@@ -87,6 +87,7 @@ export async function packRemakeView(db, orderId) {
   const row = await query(db, 'SELECT status,phase,stages_json,blueprint_json,story_json,published_version,error_code,error_detail,recovery_round,created_at,updated_at,completed_at FROM custom_pack_remakes WHERE order_id = ?', orderId).first();
   if (!row) return null;
   const stages = JSON.parse(row.stages_json || '[]');
+  const reviewPrefix = 'The completed game did not pass its quality check: ';
   return {
     status: row.status,
     phase: row.phase,
@@ -95,7 +96,7 @@ export async function packRemakeView(db, orderId) {
     currentStage: [1,2,3,4,5].find(number => !stages.some(stage => stage.number === number)) || null,
     storyReady: Boolean(row.story_json),
     publishedVersion: row.published_version || null,
-    failureReason: row.status === 'failed' ? row.phase === 'blueprint' ? 'The game blueprint did not match the approved play rules. No new checkpoints or PDFs were published.' : row.phase === 'checkpoint' ? /Answer explanation is required and must be under/i.test(row.error_detail || '') ? 'The generated adult answer explanation was longer than the printable guide allows. Earlier checkpoints were saved.' : 'A new checkpoint did not pass generation checks. Saved earlier work remains on this order.' : row.phase === 'audit' ? 'The complete game did not pass its quality review. No new PDFs were published.' : 'The replacement PDF files did not pass delivery checks. Your original PDFs remain available.' : null,
+    failureReason: row.status === 'failed' ? row.phase === 'blueprint' ? 'The game blueprint did not match the approved play rules. No new checkpoints or PDFs were published.' : row.phase === 'checkpoint' ? /Answer explanation is required and must be under/i.test(row.error_detail || '') ? 'The generated adult answer explanation was longer than the printable guide allows. Earlier checkpoints were saved.' : 'A new checkpoint did not pass generation checks. Saved earlier work remains on this order.' : row.phase === 'audit' ? row.error_detail?.startsWith(reviewPrefix) ? `The quality review found: ${row.error_detail.slice(reviewPrefix.length,300)} The new PDFs were not published.` : 'The complete game did not pass its quality review. No new PDFs were published.' : 'The replacement PDF files did not pass delivery checks. Your original PDFs remain available.' : null,
     recoveryAvailable: row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && recoverableErrors.includes(row.error_code),
     recoveryCount: row.recovery_round,
     startedAt: row.created_at,

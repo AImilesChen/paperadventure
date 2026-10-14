@@ -54,6 +54,18 @@ test('a longer useful adult explanation fits, and an overlong checkpoint gets a 
   assert.equal(repaired.stage.explanation,expanded.trim());
 });
 
+test('quality review preserves its actionable checkpoint reason for recovery',async()=>{
+  const review={pass:false,issues:[{stageNumber:5,reason:'The last clue names the selected route before the team compares its cards.'}]};
+  const fetcher=async()=>Response.json({id:'audit-rejected',output:[{content:[{type:'output_text',text:JSON.stringify(review)}]}]});
+  const env={OPENAI_API_KEY:'mock-key',OPENAI_MODEL:'mock-model'};
+  let failure;
+  try { await auditStagedStory(sampleStory,sampleSpec,{stages:sampleStory.stages},env,fetcher); }
+  catch(error) { failure=error; }
+  assert.equal(failure?.stageNumber,5);
+  assert.match(failure?.message||'',/last clue names the selected route/);
+  assert.deepEqual(failure?.candidate,review);
+});
+
 test('the paid blueprint and five independently generated paper checkpoints assemble into printable PDFs',async()=>{
   const calls=[];
   const fetcher=async(_url,{body})=>{

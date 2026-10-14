@@ -35,9 +35,10 @@ jobs:
           node scripts/write-stage-wrangler.mjs
           npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
           npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
-      - name: Continue the saved paid remake from checkpoint two
+      - name: Continue the saved paid remake quality review
         run: |
           npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "UPDATE custom_pack_remakes SET status='queued',recovery_round=2,recovery_count=1,failure_count=0,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND status='failed' AND phase='checkpoint' AND recovery_round=1 AND published_version IS NULL"
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "UPDATE custom_pack_remakes SET status='queued',phase='audit',failure_count=0,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' AND status='failed' AND phase='audit' AND recovery_round=2 AND published_version IS NULL"
           node --input-type=module <<'NODE'
           const base = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/queues`;
           const headers = {Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`};
@@ -51,7 +52,7 @@ jobs:
           });
           const result = await response.json();
           if (!result.success) throw new Error(`Could not queue checkpoint recovery (${response.status})`);
-          console.log('Saved paid remake scheduled from checkpoint two.');
+          console.log('Saved paid remake scheduled for its next safe step.');
           NODE
       - name: Verify configured runtime
         run: |
