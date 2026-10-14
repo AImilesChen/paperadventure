@@ -87,7 +87,8 @@ jobs:
               curl --fail --silent --show-error --head https://paperadventure.app/en/account/ | grep -iq "x-robots-tag: noindex"
               curl --fail --silent --show-error https://paperadventure.app/robots.txt | grep -Fq "Sitemap: https://paperadventure.app/sitemap.xml"
               order_url="https://paperadventure.app/en/orders/00000000-0000-4000-8000-000000000001/"
-              curl --fail --silent --show-error --dump-header "$RUNNER_TEMP/paperadventure-order.headers" \
+              curl --retry 6 --retry-all-errors --retry-delay 2 --max-time 20 \
+                --fail --silent --show-error --dump-header "$RUNNER_TEMP/paperadventure-order.headers" \
                 --output "$RUNNER_TEMP/paperadventure-order.html" "$order_url"
               grep -Eiq '^content-type: text/html' "$RUNNER_TEMP/paperadventure-order.headers"
               grep -Eiq '^x-robots-tag: noindex' "$RUNNER_TEMP/paperadventure-order.headers"
