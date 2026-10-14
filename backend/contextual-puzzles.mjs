@@ -110,8 +110,12 @@ export function prepareContextualBlueprint(candidate,spec){
     const labels=raw.material?.items?.slice(0,count).map(piece=>text(typeof piece==='string'?piece:piece.label,'Piece label',40));
     if(labels?.length!==count||!unique(labels)||labels.some(label=>/^(?:plain fact|rule clue|witness|final action|journey clue)\s+[a-z0-9]+$/i.test(label)))throw Error(`Checkpoint ${i+1} needs ${count} distinct story-specific labels, not placeholder names.`);
     if(spec.packExperienceVersion>=2&&i<4)assertGoalStillOpen(labels,spec.plan.goal,i+1);
+    if(spec.packExperienceVersion>=2&&i<4&&type==='decision_record'&&labels.some(label=>/^(?:witness|statement|clue|candidate|option|answer|result|rule)\b/i.test(label)))
+      throw Error(`Checkpoint ${i+1} witness candidates must name story objects or actions, not the witness notes or answer roles.`);
     const features=(['evidence_cards','route_board'].includes(type)||spec.packExperienceVersion>=2&&type==='decision_record')&&i<4?raw.features?.map(value=>text(value,'Printed feature',32)):['Checked fact','Matching fact'];
     if(features?.length!==2||!unique(features))throw Error('Each activity needs two distinct story-specific feature names.');
+    if(spec.packExperienceVersion>=2&&i<4&&['evidence_cards','decision_record'].includes(type)&&features.some(value=>/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i.test(value)))
+      throw Error(`Checkpoint ${i+1} needs two concrete story properties, not answer or puzzle-state labels.`);
     const word=type==='symbol_key'?text(raw.word,'Printed key word',4).toUpperCase():'NOTE';
     if(!/^[A-Z]{4}$/.test(word))throw Error('The printed word must contain four ASCII letters.');
     const context={labels,features,word,title:text(raw.material.title,'Material title',45)};

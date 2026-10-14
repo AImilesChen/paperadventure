@@ -21,16 +21,18 @@ for(const item of cases){
   try{
     const {spec}=validatePurchase({sku:`custom_${item.setting}`,creatorVersion:3,customIdea:item.idea,setting:item.setting,players:item.players,age:item.age,paper:'A4',...(item.setting==='classroom'?{groups:Math.ceil(item.players/4)}:{}),gameplay:{primary:item.primary,secondary:item.secondary}});
     const planned=await generateSinglePlan(spec,env,privateFetch),approved={...spec,plan:planned.plan,planConfirmed:true};
-    phase='blueprint';let blueprint;
-    try{blueprint=(await generateBlueprint(approved,env,privateFetch)).blueprint;}
-    catch(error){blueprintRepairs++;blueprint=(await repairBlueprint(approved,error.candidate,error.message,env,privateFetch)).blueprint;}
+    phase='blueprint';let blueprint,candidate=null,reason='';
+    for(let attempt=0;attempt<3&&!blueprint;attempt++){
+      try{blueprint=(attempt?await repairBlueprint(approved,candidate,reason,env,privateFetch):await generateBlueprint(approved,env,privateFetch)).blueprint;}
+      catch(error){candidate=error.candidate;reason=error.message;if(attempt===2)throw error;blueprintRepairs++;}
+    }
     let story;
-    for(let attempt=0;attempt<2;attempt++){
+    for(let attempt=0;attempt<3;attempt++){
       phase='checkpoints';const stages=[];
       for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(approved,blueprint,number,stages.at(-1),env,privateFetch)).stage);
       story=assembleStagedStory(approved,blueprint,stages);phase='audit';
       try{await auditStagedStory(story,approved,blueprint,env,privateFetch);break;}
-      catch(error){if(attempt||blueprintRepairs)throw error;blueprintRepairs++;blueprint=(await repairBlueprint(approved,blueprint,error.message,env,privateFetch)).blueprint;}
+      catch(error){if(attempt===2)throw error;blueprintRepairs++;blueprint=(await repairBlueprint(approved,blueprint,error.message,env,privateFetch)).blueprint;}
     }
     phase='pdf';
     for(const paper of ['A4','Letter'])for(const role of ['player','guide'])await writeFile(`${directory}/${item.id}-${role}-${paper}.pdf`,buildGamePdf(story,{...approved,paper},role));

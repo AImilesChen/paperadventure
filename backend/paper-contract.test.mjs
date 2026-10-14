@@ -112,6 +112,12 @@ test('new pack rejects an early mission outcome before spending calls on later c
   const premature=structuredClone(clockSpec.plan);
   premature.stages[1].scene='Hear the noon bell';
   assert.throws(()=>completePaperPlan(premature,clockSpec.gameplay),/Checkpoint 2 names a completed mission outcome/);
+  const abstract=structuredClone(clockBlueprintContext);
+  abstract.stages[1].features=['Two ruled out','One remains'];
+  assert.throws(()=>prepareContextualBlueprint(abstract,spec),/concrete story properties/);
+  const mismatched=structuredClone(clockBlueprintContext);
+  mismatched.stages[1].material.items[0].label='Witness note left';
+  assert.throws(()=>prepareContextualBlueprint(mismatched,spec),/candidates must name story objects/);
 });
 
 test('an invalid new-plan checkpoint repairs only its own context',async()=>{
