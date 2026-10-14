@@ -94,7 +94,7 @@ function challenge(stage,spec){
   page.text('OUR CHOICE AND EVIDENCE:',48,y-25,10,true);
   page.rule(48,y-48,page.width-48,y-48);
   if(y>=205){
-    page.text('TWO PRINTED FACTS THAT SUPPORT OUR CHOICE:',48,y-82,10,true);
+    page.text(stage.material?.logic?.contractVersion===1&&stage.number===5?'THE FOUR SAVED RESULTS THAT SUPPORT OUR CHOICE:':'TWO PRINTED FACTS THAT SUPPORT OUR CHOICE:',48,y-82,10,true);
     page.rule(48,y-111,page.width-48,y-111);
     page.rule(48,y-143,page.width-48,y-143);
   }

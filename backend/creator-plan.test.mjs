@@ -56,7 +56,7 @@ test('paid plan parser accepts fenced provider JSON and audits the result',async
 });
 test('an overlong paid plan is repaired before audit and usage includes the repair',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
-  const valid=planFixture(spec),overlong={...valid,roles:'R'.repeat(350)};
+  const valid=planFixture(spec),overlong={...valid,opening:'R'.repeat(400)};
   let calls=0;
   const result=await generateSinglePlan(spec,env,async()=>{
     const value=[overlong,valid,{pass:true,issues:[]}][calls++];

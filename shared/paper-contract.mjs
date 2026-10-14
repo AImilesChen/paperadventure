@@ -9,6 +9,19 @@ export const paperActions={
   finale:{title:'Combine the four discoveries',task:'Copy your result digits from checkpoints 1-4 in order. Compare this code with the three final actions and choose the matching action.'},
 };
 
+export function paperPlanMechanics(gameplay={}){
+  const primary=gameplay.primary||'reasoning';
+  const support=gameplay.secondary||[];
+  return [primary,primary,primary,support[0]||'reasoning',support[1]||'reasoning'];
+}
+
+export function completePaperPlan(candidate,gameplay){
+  if(candidate?.stages?.length!==5)throw Error('Five planned checkpoints are required.');
+  const mechanics=paperPlanMechanics(gameplay);
+  return alignPaperPlan({...candidate,stages:candidate.stages.map((stage,index)=>({...stage,
+    number:index+1,mechanic:mechanics[index],storyContext:stage.storyContext||stage.title}))});
+}
+
 export function paperContractTypes(plan){
   if(plan?.stages?.length!==5)throw Error('Five planned checkpoints are required.');
   const allowed={reasoning:['evidence_cards','order_tiles','route_board','decision_record'],discussion:['decision_record','evidence_cards'],sequence:['order_tiles'],code:['symbol_key']};
