@@ -151,7 +151,7 @@ function OrderQualityActions({order,onHelp}) {
     <p>Use the option that matches the problem. Both stay with this paid order; there is no new checkout.</p>
     <div className="order-quality-grid">
       {canRevise&&<div><h3>Change one checkpoint</h3><p>Adjust the reading level, difficulty or instructions in one existing checkpoint. Only a successful revised file uses an included change.</p><a className="button" href="#order-revision">Choose a checkpoint <ArrowRight size={17}/></a></div>}
-      <div><h3>{legacy?'Request a full-pack remake':'Report an error in the pack'}</h3><p>{legacy?'This delivered pack uses the earlier text-focused format. A single-checkpoint change cannot turn it into the new paper-material format. Request a quality review of a no-charge remake on this order; this does not immediately start AI generation. Your existing files remain available.':'If a clue, answer or file is wrong, record the issue on this order for review. This is separate from your included preference changes.'}</p><button type="button" className="button-quiet" onClick={()=>onHelp(legacy?'other':'clue',legacy?'Please review a no-charge remake of my paid custom game in the new paper-material format. Preserve my original story idea and existing files until a complete replacement passes checks.':'I found an error in my delivered game pack: ')}>{legacy?'Record remake request':'Report a game error'} <ArrowRight size={17}/></button>{legacy&&<a className="order-quality-email" href={'mailto:support@paperadventure.app?subject='+encodeURIComponent(`Full-pack remake review · order ${order.id.slice(0,8).toUpperCase()}`)}>Email support directly</a>}</div>
+      <div><h3>{legacy?'Create a new version of the whole pack':'Report an error in the pack'}</h3><p>{legacy?'Your earlier pack can be rebuilt in the new paper-material format on this paid order. The original files stay available while the new version is created and checked.':'If a clue, answer or file is wrong, record the issue on this order for review. This is separate from your included preference changes.'}</p>{legacy?<a className="button-quiet" href="#order-remake">View no-charge remake <ArrowRight size={17}/></a>:<button type="button" className="button-quiet" onClick={()=>onHelp('clue','I found an error in my delivered game pack: ')}>Report a game error <ArrowRight size={17}/></button>}</div>
     </div>
   </section>;
 }
@@ -161,7 +161,7 @@ function RevisionForm({ order, refresh }) {
   const remaining = order.revisionLimit - order.revisionUsed;
   const shortcuts = ["Make the clue easier to read aloud, keeping the task and play style.","Reduce the reasoning difficulty, keeping one clear answer and the same task.","Clarify the printed instructions and hint without changing the story."];
   const selectedStage = order.plan?.stages?.find(stage => Number(stage.number) === stageNumber) || order.plan?.stages?.[stageNumber - 1];
-  if (order.kind !== 'custom' || !order.filesReady || remaining <= 0 || !order.revisionExpiresAt || Date.parse(`${order.revisionExpiresAt}Z`) <= Date.now()) return null;
+  if (order.kind !== 'custom' || !order.filesReady || ['queued','generating'].includes(order.remake?.status) || remaining <= 0 || !order.revisionExpiresAt || Date.parse(`${order.revisionExpiresAt}Z`) <= Date.now()) return null;
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError(''); setNotice('');
     try { await api(`/api/v1/orders/${order.id}/revisions`, { method: 'POST', body: JSON.stringify({ stageNumber, instruction }) }); setNotice('Your local change is queued. It counts only after a revised file is published.'); setInstruction(''); refresh(); }
@@ -275,6 +275,28 @@ function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
   </section>;
 }
 
+function PackRemake({order,refresh}) {
+  const [busy,setBusy] = useState(false), [error,setError] = useState('');
+  const remake = order.remake;
+  if (order.kind !== 'custom' || !order.paidAt || !order.filesReady || (order.gamePackVersion || 1) >= 2 && !remake) return null;
+  const active = remake && ['queued','generating'].includes(remake.status);
+  const done = remake?.status === 'ready';
+  const failed = remake?.status === 'failed';
+  const step = !remake?.blueprintReady ? 'Preparing the game blueprint' : remake.completedStages.length < 5 ? `Creating checkpoint ${remake.currentStage} of 5` : !remake.storyReady ? 'Checking the complete game' : 'Building and checking both PDFs';
+  const completed = (remake?.blueprintReady ? 1 : 0) + (remake?.completedStages?.length || 0) + (remake?.storyReady ? 1 : 0) + (done ? 1 : 0);
+  async function start() {
+    setBusy(true); setError('');
+    try { await api(`/api/v1/orders/${order.id}/pack-remake`,{method:'POST'}); await refresh(); }
+    catch (failure) { setError(failure.message); } finally { setBusy(false); }
+  }
+  return <section id="order-remake" className="order-pack-remake" aria-labelledby="order-remake-title">
+    <span className="eyebrow">NEW PAPER-MATERIAL FORMAT</span>
+    <h2 id="order-remake-title">{done?'Your new game pack is ready':failed?'Your new pack needs help':active?'Your new pack is being made':'Remake this pack on your paid order'}</h2>
+    {done?<><p>The new version passed the game, PDF and storage checks. Use the download buttons above for the new Player Pack and adult guide. There is no new charge.</p><div className="order-remake-original"><strong>Earlier version</strong><p>Your original PDFs are still available if you want to compare them.</p><a href={`/api/v1/files/${order.id}/player?paper=${order.paper}&version=1`}>Download original Player Pack <DownloadSimple size={16}/></a><a href={`/api/v1/files/${order.id}/guide?paper=${order.paper}&version=1`}>Download original adult guide <DownloadSimple size={16}/></a></div></>:failed?<p role="status">The new version did not pass every check, so it was not published. Your original PDFs are still available above. Please report this order below for help; you do not need to buy again.</p>:active?<><p role="status">{step}. Completed work is saved after each step. You may leave this page and return later; your original PDFs remain downloadable above.</p><div className="order-game-progress-track" role="progressbar" aria-valuenow={completed} aria-valuemin="0" aria-valuemax="8" aria-label="New game pack progress"><span style={{width:`${Math.round(completed/8*100)}%`}}/></div><p className="order-remake-count">Blueprint {remake.blueprintReady?'saved':'pending'} · {remake.completedStages.length} of 5 checkpoints saved · PDFs pending</p></>:<><p>Your earlier pack uses the text-focused format. We can use your approved story and plan to create a new pack with printable activities for all five checkpoints. This stays on order {order.id.slice(0,8).toUpperCase()} and does not require payment.</p><p>Your current Player Pack and guide stay available above while the new version is generated. The download buttons switch to the new files only after the whole game and both PDFs pass checks.</p><button type="button" className="button" onClick={start} disabled={busy}>{busy?'Starting…':'Create my new pack at no charge'} <ArrowRight size={17}/></button></>}
+    {error&&<Alert>{error}</Alert>}
+  </section>;
+}
+
 function PdfGenerationHistory({order}) {
   const attempts = order.pdfGenerationHistory || [];
   if (order.kind !== 'custom' || !order.planReview?.confirmedVersion && attempts.length === 0) return null;
@@ -308,10 +330,10 @@ export function LiveOrder({ Link, orderId }) {
   };
   useEffect(() => { setOrder(null); setError(''); refresh(); }, [orderId]);
   useEffect(() => {
-    if (!order || !['pending_payment','paid','fulfilling'].includes(order.status)) return;
+    if (!order || !['pending_payment','paid','fulfilling'].includes(order.status) && !['queued','generating'].includes(order.remake?.status)) return;
     const timer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 10000);
     return () => clearInterval(timer);
-  }, [orderId,order?.status]);
+  }, [orderId,order?.status,order?.remake?.status]);
 
   if (error) return <main className="extended-page live-page order-page"><div className="order-workspace"><Alert>{error}</Alert><Link className="button" to="/en/account/">Sign in with Google <ArrowRight size={18}/></Link></div></main>;
   if (!order) return <main className="extended-page live-page order-page"><div className="order-workspace" role="status">Checking your order…</div></main>;
@@ -329,6 +351,7 @@ export function LiveOrder({ Link, orderId }) {
       <div className="order-layout">
         <div className="order-main">
           <OrderPackage order={order} orderId={orderId} selectedPaper={selectedPaper} setSelectedPaper={setSelectedPaper}/>
+          <PackRemake order={order} refresh={refresh}/>
           <OrderQualityActions order={order} onHelp={openHelp}/>
           <RevisionForm order={order} refresh={refresh}/>
           <PdfGenerationHistory order={order}/>

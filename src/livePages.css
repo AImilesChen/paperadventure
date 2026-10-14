@@ -143,6 +143,15 @@
 @media(max-width:650px){.order-page .order-workspace{width:calc(100% - 32px);padding-top:26px}.order-heading{display:block}.order-current-status{display:inline-block;margin-top:14px}.order-package,.order-generation-history,.order-sidebar,.order-approved-plan,.order-plan-review{padding:20px}.order-package-files{grid-template-columns:1fr}.order-package-files>div{min-height:75px}.order-help-footer{margin-top:30px}.order-package-downloads .live-downloads{grid-template-columns:1fr}}
 
 .order-quality-actions{padding:28px;border:1px solid #bdd9e4;border-radius:14px;background:#fffdf9;box-shadow:0 5px 0 #b7dbe766}
+.order-pack-remake{padding:28px;border:1px solid #7bb7cb;border-left:5px solid #175676;border-radius:14px;background:#f0f9fc;box-shadow:0 5px 0 #b7dbe766}
+.order-pack-remake h2{margin:8px 0 12px;font-size:clamp(1.4rem,2.3vw,1.9rem);line-height:1.2}
+.order-pack-remake p{max-width:72ch;color:#365c70;line-height:1.6}
+.order-pack-remake .button{display:inline-flex;align-items:center;gap:10px;margin-top:10px;min-height:50px}
+.order-pack-remake .order-game-progress-track{margin:18px 0 10px}
+.order-pack-remake .order-remake-count{font-size:.9rem;font-weight:800}
+.order-remake-original{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:18px;padding-top:18px;border-top:1px solid #c6dde7}
+.order-remake-original strong,.order-remake-original p{width:100%;margin:0}
+.order-remake-original a{display:inline-flex;align-items:center;gap:7px;padding:10px 13px;border:1px solid #9ec6d7;border-radius:8px;background:#fff;color:#155576;font-weight:800;text-decoration:none}
 .order-quality-actions h2,.order-revision-form h2{margin:7px 0 8px;font-size:clamp(1.35rem,2.2vw,1.8rem);line-height:1.2}
 .order-quality-actions>p,.order-revision-form>p{margin:0 0 18px;color:#496c7c;line-height:1.6}
 .order-quality-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
@@ -172,4 +181,4 @@
 .order-revision-status ul{margin:7px 0 0;padding-left:20px}
 .order-report-history{padding:13px 16px;border-radius:8px;background:#edf8fc;font-size:.88rem}
 .order-report-history ul{margin:7px 0 0;padding-left:20px}
-@media(max-width:650px){.order-quality-actions,.order-revision-form{padding:20px}.order-revision-submit,.order-revision-submit .button{width:100%}.order-revision-form textarea{min-height:208px}}
+@media(max-width:650px){.order-quality-actions,.order-revision-form,.order-pack-remake{padding:20px}.order-pack-remake .button,.order-revision-submit,.order-revision-submit .button{width:100%}.order-revision-form textarea{min-height:208px}}
