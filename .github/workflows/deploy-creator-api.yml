@@ -36,6 +36,7 @@ jobs:
           npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
           npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT status,phase,error_code,failure_count,json_array_length(stages_json) AS saved_stages,published_version FROM custom_pack_remakes WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407'"
           npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT phase,stage_number,status,error_code,COUNT(*) AS attempts FROM custom_pack_remake_calls WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' GROUP BY phase,stage_number,status,error_code ORDER BY phase,stage_number"
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT phase,stage_number,error_code,substr(error_detail,1,240) AS reason FROM custom_pack_remake_calls WHERE order_id='612a56bd-494a-4265-984f-f4ecb3eb7407' ORDER BY created_at"
           npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
       - name: Verify configured runtime
         run: |
