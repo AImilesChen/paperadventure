@@ -157,7 +157,9 @@ async function queueNext(orderId, env) {
 
 function checkedPdf(bytes, expectedPages, label) {
   const text = new TextDecoder().decode(bytes);
-  if (!text.startsWith('%PDF-') || !text.includes(`/Count ${expectedPages}`) || bytes.length < 1000)
+  const count=Number(text.match(/\/Count (\d+)/)?.[1]);
+  const validCount=label==='Adult guide'?count>=expectedPages&&count<=expectedPages+5:count===expectedPages;
+  if (!text.startsWith('%PDF-') || !validCount || bytes.length < 1000)
     throw new ApiError(422, 'REMAKE_PDF_INVALID', `${label} did not pass the complete-page check.`);
 }
 

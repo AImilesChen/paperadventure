@@ -88,7 +88,7 @@ export function prepareContextualBlueprint(candidate,spec){
     const raw=candidate.stages[i],type=types[i],count=i===4?3:type==='order_tiles'?4:type==='symbol_key'?4:3;
     const labels=raw.material?.items?.slice(0,count).map(piece=>text(typeof piece==='string'?piece:piece.label,'Piece label',40));
     if(labels?.length!==count||!unique(labels)||labels.some(label=>/^(?:plain fact|rule clue|witness|final action|journey clue)\s+[a-z0-9]+$/i.test(label)))throw Error(`Checkpoint ${i+1} needs ${count} distinct story-specific labels, not placeholder names.`);
-    const features=['evidence_cards','route_board'].includes(type)&&i<4?raw.features?.map(value=>text(value,'Printed feature',24)):['Checked fact','Matching fact'];
+    const features=['evidence_cards','route_board'].includes(type)&&i<4?raw.features?.map(value=>text(value,'Printed feature',32)):['Checked fact','Matching fact'];
     if(features?.length!==2||!unique(features))throw Error('Each activity needs two distinct story-specific feature names.');
     const word=type==='symbol_key'?text(raw.word,'Printed key word',4).toUpperCase():'NOTE';
     if(!/^[A-Z]{4}$/.test(word))throw Error('The printed word must contain four ASCII letters.');

@@ -7,6 +7,7 @@ import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
 import {alignPaperPlan,paperContractTypes} from '../shared/paper-contract.mjs';
+import {verifyPrintedPuzzles} from './paper-proof.mjs';
 
 async function game(spec=clockSpec){
   const blueprint=(await generateBlueprint(spec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(clockBlueprintContext)}]}]}))).blueprint;
@@ -66,6 +67,17 @@ test('provider punctuation and plain label arrays normalize before puzzle checks
   assert.doesNotMatch(JSON.stringify(blueprint),/[^\x20-\x7e]/);
 });
 
+test('independent solving rejects ambiguous printed facts and ordering constraints',async()=>{
+  const {story}=await game();
+  assert.equal(verifyPrintedPuzzles(story).length,5);
+  const ambiguous=structuredClone(story);
+  ambiguous.stages[0].material.items[0].detail='Power present: YES. Noon mark missing: YES. Digit: 1.';
+  assert.throws(()=>verifyPrintedPuzzles(ambiguous),/one candidate/);
+  const ordering=structuredClone(story),last=ordering.stages[2].material.items[3].label;
+  ordering.stages[2].material.items.forEach((item,index)=>{item.detail=index===3?'After every other step.':`Before ${last}.`;});
+  assert.throws(()=>verifyPrintedPuzzles(ordering),/one solution/);
+});
+
 test('long complete action labels wrap and all adult text stays above the footer',async()=>{
   const raw=structuredClone(clockBlueprintContext);
   raw.stages[2].material.items=['Inspect the north rain collector tank','Reconnect the upper rain collector pipe','Replace the leaking rain collector seal','Test the final rain collector connection'].map(label=>({label}));
@@ -109,6 +121,7 @@ test('each main play style produces printable Home and Classroom packs without a
     const blueprint=prepareContextualBlueprint(raw,spec),stages=[];
     for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected request');})).stage);
     const story=assembleStagedStory(spec,blueprint,stages);
+    assert.equal(verifyPrintedPuzzles(story).length,5);
     for(const paper of ['A4','Letter'])for(const role of ['player','guide'])assert.ok(buildGamePdf(story,{...spec,paper},role).length>1000);
   }
 });

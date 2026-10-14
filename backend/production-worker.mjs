@@ -1064,7 +1064,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     const code=typeof caught?.code==='string' && /^[A-Z0-9_]{1,60}$/.test(caught.code)?caught.code:'UNEXPECTED';
     const phaseCalls=await countCalls(phase,stageNumber),calls=await totalCalls();
     const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
-    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='GENERATION_NOT_CONFIGURED' && calls<STAGED_AI_CALL_LIMIT && phaseCalls<STAGED_STEP_CALL_LIMIT;
+    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<STAGED_AI_CALL_LIMIT && phaseCalls<STAGED_STEP_CALL_LIMIT;
     if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
     if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&canRetry&&await countCalls('blueprint',0)<STAGED_STEP_CALL_LIMIT){
       await env.DB.batch([
