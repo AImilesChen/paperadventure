@@ -350,7 +350,7 @@ export function LiveOrder({ Link, orderId }) {
       <Link className="order-back" to="/en/my-adventures/">← My adventures</Link>
       <header className="order-heading">
         <div><span className="eyebrow">YOUR ADVENTURE ORDER</span><h1>{title}</h1><p>Order {order.id.slice(0,8).toUpperCase()} · {order.kind === 'ready' ? 'Ready-made' : order.sku.includes('classroom') ? 'Custom Classroom' : 'Custom Home'}</p></div>
-        <span className={'order-current-status status-' + order.status}>{orderLabel[order.status] || order.status}</span>
+        <span className={'order-current-status status-' + order.status}>{order.filesReady && order.remake && order.remake.status !== 'ready' ? 'Original files ready' : orderLabel[order.status] || order.status}</span>
       </header>
       <div className="order-layout">
         <div className="order-main">
@@ -364,7 +364,7 @@ export function LiveOrder({ Link, orderId }) {
         </div>
         <aside className="order-sidebar" aria-label="Order details">
           <h2>Order details</h2>
-          <dl><div><dt>Payment</dt><dd>{paid ? 'Confirmed' : 'Not confirmed'}</dd></div><div><dt>Total</dt><dd>{formatUsd(order.amountTotal)} · {order.currency}</dd></div><div><dt>Paper</dt><dd>{order.paper === 'Letter' ? 'US Letter' : order.paper || 'Choose on download'}</dd></div>{order.kind === 'custom' && <div><dt>Plan</dt><dd>{approved ? `Version ${order.planReview.confirmedVersion} approved` : 'Awaiting approval'}</dd></div>}<div><dt>Files</dt><dd>{order.filesReady ? 'Ready' : 'Not available yet'}</dd></div></dl>
+          <dl><div><dt>Payment</dt><dd>{paid ? 'Confirmed' : 'Not confirmed'}</dd></div><div><dt>Total</dt><dd>{formatUsd(order.amountTotal)} · {order.currency}</dd></div><div><dt>Paper</dt><dd>{order.paper === 'Letter' ? 'US Letter' : order.paper || 'Choose on download'}</dd></div>{order.kind === 'custom' && <div><dt>Plan</dt><dd>{approved ? `Version ${order.planReview.confirmedVersion} approved` : 'Awaiting approval'}</dd></div>}<div><dt>Files</dt><dd>{order.filesReady ? order.remake && order.remake.status !== 'ready' ? 'Original ready · new pending' : 'Ready' : 'Not available yet'}</dd></div></dl>
           {order.filesReady && order.accessExpiresAt && <p>Online re-download until {new Date(order.accessExpiresAt.replace(' ','T') + 'Z').toLocaleDateString()}.</p>}
           {order.kind === 'custom' && paid && <p>Plan changes happen before approval. Checkpoint revisions appear after your complete game is delivered.</p>}
           <button type="button" className="button-quiet" onClick={refresh}>Refresh order status</button>
