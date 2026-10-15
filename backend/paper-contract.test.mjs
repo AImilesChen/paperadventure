@@ -130,6 +130,8 @@ test('linked story requires four printed findings and explains them in the adult
     assert.match(guide,/CONNECT THE FOUR DISCOVERIES/);
     assert.match(guide,/Gear chamber note/);
     assert.match(guide,/WHY THIS ACTION/);
+    const continuation=guide.split('endstream').filter(stream=>/STORY AND NEXT PAGE/.test(stream)).at(-1);
+    assert.match(continuation,/CONNECT THE FOUR DISCOVERIES/,'a short final instruction must not sit alone on a sparse continuation page');
   }
   await auditStagedStory(story,spec,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
     const input=JSON.parse(JSON.parse(request.body).input);
@@ -580,6 +582,17 @@ test('a second story works for Home and Classroom without changing the printed a
       assert.match(pdf,new RegExp(`/Count ${role==='player'?12:7}`));
     }
   }
+});
+
+test('story links use the exact normalized printed material names',()=>{
+  const raw=linkedClockContext();
+  raw.stages[2].material.items[1].label='Check the key hook note';
+  raw.spine.links[2]='Open the panel note > Check the key hook note > Fit the brass key note > Wind the spring note is the checked story sequence. This prepares the repair.';
+  const story=prepareContextualBlueprint(raw,{...clockSpec,packExperienceVersion:3,packQualityVersion:3});
+  const printed=story.stages[2].material.items.map(item=>item.label).join(' > ');
+  assert.equal(story.spine.links[2].finding,printed);
+  assert.ok(story.spine.links[2].reason.startsWith(`${printed} is the checked story sequence.`));
+  assert.doesNotMatch(story.spine.links[2].reason,/Check the key hook note/);
 });
 
 test('new plan descriptions and ending cannot invent dates, evidence or decoded exhibit names',()=>{
