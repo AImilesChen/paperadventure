@@ -1,0 +1,60 @@
+name: Recover one paid remake with early semantic review
+on:
+  push:
+    branches: [codex-remake-diagnostic-20261015]
+    paths: [.github/workflows/recover-f72-semantic-preflight.yml]
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Queue one guarded repair on the existing paid order
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/recover.sql" <<'SQL'
+          INSERT OR IGNORE INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,result_json,error_code,error_detail,round_number,generation_round,logic_epoch,quality_epoch,completed_at)
+          SELECT 'f72-semantic-preflight-source',r.order_id,'blueprint',0,'failed','operator-saved-candidate',r.blueprint_json,'BLUEPRINT_INVALID',r.error_detail,2,3,r.logic_epoch,2,CURRENT_TIMESTAMP
+          FROM custom_pack_remakes r JOIN orders o ON o.id=r.order_id
+          WHERE r.order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND r.status='failed' AND r.phase='audit' AND r.error_code='GENERATION_QA_FAILED'
+            AND r.quality_epoch=1 AND r.recovery_round=2 AND r.logic_epoch=1 AND r.published_version=2 AND r.blueprint_json IS NOT NULL
+            AND o.status='published' AND o.paid_at IS NOT NULL;
+          UPDATE custom_pack_remakes SET status='queued',phase='blueprint',blueprint_json=NULL,blueprint_sha256=NULL,stages_json='[]',story_json=NULL,story_sha256=NULL,
+            failure_count=0,recovery_round=0,quality_epoch=2,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP
+          WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND status='failed' AND phase='audit' AND error_code='GENERATION_QA_FAILED'
+            AND quality_epoch=1 AND recovery_round=2 AND logic_epoch=1 AND published_version=2
+            AND EXISTS (SELECT 1 FROM custom_pack_remake_calls WHERE id='f72-semantic-preflight-source' AND order_id=custom_pack_remakes.order_id AND quality_epoch=2);
+          SQL
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --file "$RUNNER_TEMP/recover.sql" > "$RUNNER_TEMP/private-update-result.json"
+          echo 'Guarded same-order repair submitted. Original published files remain available.'
+      - name: Report safe progress fields only
+        shell: bash
+        run: |
+          for attempt in {1..20}; do
+            npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status,phase,quality_epoch,recovery_round,published_version,json_array_length(stages_json) AS stages_saved,error_code FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd'" > "$RUNNER_TEMP/private-status.json"
+            node - "$RUNNER_TEMP/private-status.json" <<'NODE'
+          const fs=require('node:fs'),raw=fs.readFileSync(process.argv[2],'utf8'),start=raw.indexOf('[{');
+          if(start<0)throw Error('No D1 results');
+          const result=JSON.parse(raw.slice(start)),row=result[0]?.results?.[0];
+          if(!row)throw Error('Order missing');
+          console.log(JSON.stringify(row));
+          NODE
+            status=$(node - "$RUNNER_TEMP/private-status.json" <<'NODE'
+          const fs=require('node:fs'),raw=fs.readFileSync(process.argv[2],'utf8'),start=raw.indexOf('[{');
+          console.log(JSON.parse(raw.slice(start))[0].results[0].status);
+          NODE
+          )
+            if [ "$status" = ready ] || [ "$status" = failed ]; then exit 0; fi
+            sleep 30
+          done
+          echo 'Timed out following safe order fields; scheduled worker may continue.'
