@@ -1,1 +1,1 @@
-2026-10-15: deploy joint repair of conflicting paid game-pack contexts before quality audit.
+2026-10-15: deploy latest-candidate targeted repair for paid game pack quality checks.
