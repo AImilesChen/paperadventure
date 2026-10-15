@@ -50,6 +50,8 @@ const recordLabel=value=>{
 const storyPieceLabel=value=>typeof value==='string'?value.replace(/^(?:Compare|Check|Match|Select|Record|Sort|Read)\s+(?:the\s+)?/i,'').trim():value;
 const worksheetLanguage=/\b(?:checkpoint|digit|digits|tile|tiles|printed|rule|rules|choice|choices|option|options|answer|answers|decoded word|report cards)\b/i;
 const completedOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
+const visibleOutcome=/\b(?:rings?|chimes?|sounds?|starts?|turns?|opens?|glows?|shines?|lights?|catches?|moves?|works?|returns?|arrives?|reaches?|restored|repaired|rescued|saved|delivered|completed|finished|recovered|solved)\b/i;
+const sharedResponse=/\b(?:smiles?|cheers?|celebrates?|thanks?|welcomes?|applauds?|continues?|begins?|sets out|heads home|gathers?|reunites?)\b/i;
 const subjectStop=new Set(['this','that','with','from','into','before','after','using','used','final','first','action','story','discovery','identifies','identify','gives','give','provides','provide','allows','allow','required','requires','complete','completes','mission','team','children','must','which','will','work']);
 const storySubject=(candidate,spec,index)=>{
   const source=[candidate.storyFrame?.purposes?.[index],candidate.storyFrame?.actions?.[0],spec.plan?.stages?.[index]?.scene,spec.plan?.goal]
@@ -225,9 +227,14 @@ export function prepareContextualBlueprint(candidate,spec){
         ? String(link).replace(new RegExp(`\\b${proposed.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'gi'),printed):link;
       return fitNarrative(aligned,180);
     }):candidate.spine.links,
-  },stages,types,spec.plan.goal):null;
+  },stages,types,spec.plan.goal,spec.packQualityVersion||4):null;
   const usePrintedEnding=spec.plan.stages.some(stage=>stage.scene)||candidate.celebration!==undefined;
   const celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration)?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
+  if((spec.packQualityVersion||0)>=5){
+    const sentences=celebration.match(/[^.!?]+[.!?]+/g)||[];
+    if(celebration.length<90||sentences.length<2||!visibleOutcome.test(celebration)||!sharedResponse.test(celebration))
+      throw Error('The ending celebration needs two complete beats: a visible result and a character or community response.');
+  }
   const ending=spine?`${spine.problem} The four checked results form code ${digits.join('')}, which matches "${spine.resolution}" on the final sheet. The team carries out that action. ${celebration}`:
     usePrintedEnding?`The four checked results form the code ${digits.join('')}. This code matches "${stages[4].material.items[0].label}" on the final sheet. The team completes that action and reaches its mission goal. ${celebration}`:text(candidate.ending,'Ending',1000);
   if(!/[.!?]$/.test(ending))throw Error('The ending must be a complete sentence.');
@@ -255,4 +262,3 @@ export function contextualStageText(stage,style='base'){
   if(style!=='base')throw Error('Unsupported contract wording.');
   return {clue,hint,explanation};
 }
-

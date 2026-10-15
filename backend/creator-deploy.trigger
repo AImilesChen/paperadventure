@@ -1,2 +1,1 @@
-2026-10-15: deploy complete-sentence links, structured guide discoveries and guaranteed quality-v4 paid rebuilds.
-
+2026-10-15: deploy causal story quality v5, two-beat endings and guide notes layout v4.

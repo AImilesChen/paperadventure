@@ -60,6 +60,8 @@ const concealResolution=(problem,action)=>{
   return hits.length>=2?'The mission is still blocked, and the team must use four discoveries to decide which action will work.':problem;
 };
 const completedOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
+const pendingDiscovery=/^(?:find|ask|inspect|check|look|search|visit|follow|trace|learn|discover|investigate)\b|\b(?:to|will) (?:reveal|learn|find|see|discover|show|explain|confirm)\b/i;
+const causalLanguage=/\b(?:because|so|therefore|which (?:means|shows|allows|confirms)|making|makes|enables?|allows?|proves?|confirms?|needed|necessary|can be|can now|must be)\b/i;
 const openPurpose=(value,index)=>completedOutcome.test(value)?[
   'This identifies a condition the team needs before choosing the final action.',
   'This locates something the team needs before choosing the final action.',
@@ -67,7 +69,19 @@ const openPurpose=(value,index)=>completedOutcome.test(value)?[
   'This identifies a usable route for carrying out the final action.',
 ][index]:value;
 
-export function prepareStoryFrame(frame){
+function strictPurposes(purposes,action){
+  for(const [index,purpose] of purposes.entries()){
+    if(pendingDiscovery.test(purpose))
+      throw Error(`Checkpoint ${index+1} discovery must state the finding already learned, not promise a later investigation.`);
+    if(!causalLanguage.test(purpose))
+      throw Error(`Checkpoint ${index+1} discovery must explain why the finding supports the final action.`);
+  }
+  const terms=resolutionWords(action);
+  const linked=purposes.filter(purpose=>[...terms].some(term=>new RegExp(`\\b${term}\\b`,'i').test(purpose))).length;
+  if(linked<3)throw Error('At least three discoveries must directly name part of the intended final action.');
+}
+
+export function prepareStoryFrame(frame,qualityVersion=4){
   if(!frame||!Array.isArray(frame.actions)||frame.actions.length!==3||!Array.isArray(frame.purposes)||frame.purposes.length!==4)
     throw Error('The story frame needs one problem, three final actions and four discovery purposes.');
   let problem;
@@ -85,6 +99,7 @@ export function prepareStoryFrame(frame){
   });
   if(purposes.some(value=>value.length<28||/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(value)))
     throw Error('Each discovery purpose must explain a story consequence rather than an answer code.');
+  if(qualityVersion>=5)strictPurposes(purposes,actions[0]);
   return {problem:concealResolution(problem,actions[0]),actions,purposes};
 }
 
@@ -134,8 +149,8 @@ const completeStoryLink=(lead,purpose,index,max=180)=>{
   throw Error(`Checkpoint ${index+1} printed names leave no room for a complete story link.`);
 };
 
-export function compileStorySpine(frame,stages,types){
-  const checked=prepareStoryFrame(frame),resolution=checked.actions[0];
+export function compileStorySpine(frame,stages,types,qualityVersion=4){
+  const checked=prepareStoryFrame(frame,qualityVersion),resolution=checked.actions[0];
   const links=stages.slice(0,4).map((stage,index)=>{
     const {lead}=storyLead(stage,types[index],index+1);
     return completeStoryLink(lead,checked.purposes[index],index);
@@ -143,7 +158,7 @@ export function compileStorySpine(frame,stages,types){
   return {problem:checked.problem,resolution,links};
 }
 
-export function validateStorySpine(spine,stages,types,goal){
+export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
   if(!spine||!Array.isArray(spine.links)||spine.links.length!==4||stages?.length!==5||types?.length!==5)
     throw Error('The game needs one problem, one final action and four linked findings.');
   const problem=plain(spine.problem,'Story problem',180);
@@ -175,9 +190,18 @@ export function validateStorySpine(spine,stages,types,goal){
     if(reason.length>180||danglingEnd.test(reason))throw Error(`Checkpoint ${index+1} story link must contain complete sentences.`);
     if(reason.length<Math.min(30,String(finding).length+15))
       throw Error(`Checkpoint ${index+1} story link needs a fictional reason beyond the answer code.`);
+    if(qualityVersion>=5){
+      if((reason.match(/[.!?](?:\s|$)/g)||[]).length<2)
+        throw Error(`Checkpoint ${index+1} story link must state both the checked finding and its consequence.`);
+      const consequence=reason.replace(lead,'').trim();
+      if(pendingDiscovery.test(consequence))
+        throw Error(`Checkpoint ${index+1} story link promises another investigation instead of stating its result.`);
+      if(!causalLanguage.test(consequence))
+        throw Error(`Checkpoint ${index+1} story link must explain why its finding supports the final action.`);
+    }
     assertGoalStillOpen([reason],goal,index+1);
     return {finding,reason};
   });
+  if(qualityVersion>=5)strictPurposes(links.map(link=>link.reason),resolution);
   return {problem,resolution,links};
 }
-

@@ -38,6 +38,97 @@ test('story frame keeps complete actions and conceals an opening that gives away
   assert.throws(()=>prepareStoryFrame({...frame,actions:['Final action A','Final action B','Final action C']}),/specific story action/);
 });
 
+test('quality version 5 requires completed causal discoveries instead of future investigations',()=>{
+  const strong={
+    problem:'The tower remains silent while the traveler waits below.',
+    actions:['Fit signal gear','Reset tower hands','Replace bell rope'],
+    purposes:[
+      'The signal gear is missing, so fitting that gear restores the drive path.',
+      'The spare gear fits the shaft, which means the signal gear can turn safely.',
+      'The checked order aligns the signal gear, so its teeth will not jam.',
+      'The upper route reaches the gear room, which allows the team to carry the signal gear safely.',
+    ],
+  };
+  assert.equal(prepareStoryFrame(strong,5).purposes.length,4);
+  assert.throws(()=>prepareStoryFrame({...strong,purposes:[...strong.purposes.slice(0,3),'Ask the keeper about the signal gear to reveal what stopped it.']},5),/already learned|later investigation/);
+  assert.throws(()=>prepareStoryFrame({...strong,purposes:strong.purposes.map(value=>value.replace(/, (?:so|which means|which allows).*$/i,'.'))},5),/story consequence|explain why/);
+});
+
+test('quality version 5 requires an earned two-beat ending and fills final-guide spare space',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:5,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.storyFrame={problem:raw.spine.problem,actions:raw.stages[4].material.items.map(item=>item.label),purposes:[
+    'The signal gear is missing, so fitting the signal gear restores the drive path.',
+    'The spare gear fits the shaft, which means the signal gear can turn safely.',
+    'The checked order aligns the signal gear, so the gear teeth will not jam.',
+    'The upper route reaches the gear room, which allows the team to carry the signal gear safely.',
+  ]};
+  raw.spine={problem:raw.spine.problem,resolution:'Fit signal gear',links:[
+    'Signal gear report contains both power and a missing noon mark. The missing signal gear is confirmed, so fitting the signal gear restores the drive path.',
+    'Gear chamber note contains both spare gear and safe storage. The spare gear fits the shaft, which means the signal gear can turn safely.',
+    'Stop the signal > Align the wheel > Set noon hands > Test the bell is the checked story sequence. The checked order aligns the signal gear, so the gear teeth will not jam.',
+    'Upper bridge is the only open story route. The upper route reaches the gear room, which allows the team to carry the signal gear safely.',
+  ]};
+  raw.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const blueprint=prepareContextualBlueprint(raw,spec),stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected provider request');})).stage);
+  const story=assembleStagedStory(spec,blueprint,stages);
+  const guide=new TextDecoder().decode(buildGamePdf(story,spec,'guide'));
+  assert.match(guide,/HOST NOTES/);
+  const thin=structuredClone(raw);thin.celebration='The gear works. Pip smiles.';
+  assert.throws(()=>prepareContextualBlueprint(thin,spec),/two complete beats/);
+  await assert.rejects(()=>auditStagedStory(story,spec,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>
+    Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:3,reason:'The third link promises a later inspection instead of stating its result.'}]})}]}]})),/quality check/);
+});
+
+test('quality version 5 builds a second theme on A4 and Letter with the same delivery gates',async()=>{
+  const plan=alignPaperPlan({...structuredClone(clockSpec.plan),title:'The Garden Lantern at Dusk',
+    opening:'The community garden path is dark, and the evening visitors are waiting. Four checked discoveries will identify the safe way to light the lantern.',
+    goal:'Light the garden lantern so visitors can follow the path home.',
+    stages:clockSpec.plan.stages.map((stage,index)=>({...stage,storyContext:[
+      'At the potting table. Three supply reports describe the lantern parts.',
+      'Inside the tool shed. Three storage notes identify the safe socket.',
+      'Beside the garden gate. Four preparation steps must be ordered.',
+      'Across the garden. Three routes lead toward the lantern post.',
+      'At the lantern post. The team combines its four checked discoveries.',
+    ][index]}))});
+  const spec={...clockSpec,plan,packExperienceVersion:3,packQualityVersion:5,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.stages[0].material={title:'Lantern supply reports',items:['Copper wire report','Glass shade report','Lantern wick report'].map(label=>({label}))};
+  raw.stages[0].features=['Mentions dry wick','Names brass socket'];
+  raw.stages[1].material={title:'Garden storage notes',items:['Tool shed note','Gate cabinet note','Potting bench note'].map(label=>({label}))};
+  raw.stages[1].features=['Mentions lantern key','Names dry shelf'];
+  raw.stages[2].material={title:'Lantern preparation steps',items:['Secure lantern post','Fit the dry wick','Close the glass shade','Turn the lantern key'].map(label=>({label}))};
+  raw.stages[3].material={title:'Garden route board',items:['Gate path route','Herb path route','Pond path route'].map(label=>({label}))};
+  raw.stages[4].material={title:'Lantern final actions',items:['Light garden lantern','Move lantern to shed','Close the garden gate'].map(label=>({label}))};
+  raw.storyFrame={problem:'The garden lantern remains dark while the evening visitors wait.',actions:raw.stages[4].material.items.map(item=>item.label),purposes:[
+    'The dry wick fits the lantern socket, so the garden lantern can hold a steady flame.',
+    'The lantern key is stored on a dry shelf, which means the garden lantern can be turned safely.',
+    'This protects the lantern, so its shade closes before lighting.',
+    'The pond path reaches the lantern post, which allows the team to carry the lantern key safely.',
+  ]};
+  raw.spine={problem:raw.storyFrame.problem,resolution:'Light garden lantern',links:[
+    'Lantern wick report contains both dry wick and brass socket. The dry wick fits the lantern socket, so the garden lantern can hold a steady flame.',
+    'Tool shed note contains both lantern key and dry shelf. The lantern key is stored on a dry shelf, which means the garden lantern can be turned safely.',
+    'Secure lantern post > Fit the dry wick > Close the glass shade > Turn the lantern key is the checked story sequence. This protects the lantern, so its shade closes before lighting.',
+    'Pond path route is the only open story route. The pond path reaches the lantern post, which allows the team to carry the lantern key safely.',
+  ]};
+  raw.celebration='The dry wick catches and the garden lantern lights the whole path. The visitors cheer, thank the team, and walk home together.';
+  const blueprint=prepareContextualBlueprint(raw,spec),stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected provider request');})).stage);
+  const story=assembleStagedStory(spec,blueprint,stages);
+  assert.equal(verifyPrintedPuzzles(story).length,5);
+  if(process.env.PAPER_QA_OUTPUT){
+    await mkdir(process.env.PAPER_QA_OUTPUT,{recursive:true});
+    for(const role of ['player','guide'])await writeFile(`${process.env.PAPER_QA_OUTPUT}/garden-v5-${role}-A4.pdf`,buildGamePdf(story,spec,role));
+  }
+  for(const paper of ['A4','Letter'])for(const role of ['player','guide']){
+    const pdf=new TextDecoder().decode(buildGamePdf(story,{...spec,paper},role));
+    assert.match(pdf,/The Garden Lantern at Dusk/);
+    assert.match(pdf,/HOST NOTES|Player Pack/);
+  }
+});
+
 test('a decoded story word CODE is not confused with an answer-code explanation',()=>{
   const stages=[
     {word:'CODE',material:{items:['1','2','3','4'].map(label=>({label}))}},
@@ -660,4 +751,3 @@ test('each main play style produces printable Home and Classroom packs without a
     for(const paper of ['A4','Letter'])for(const role of ['player','guide'])assert.ok(buildGamePdf(story,{...spec,paper},role).length>1000);
   }
 });
-

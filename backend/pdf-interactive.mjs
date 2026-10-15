@@ -340,6 +340,15 @@ function guideStage(stage,spec,story){
         page.text(label,48,y,9,true,'0.77 0.19 0.13');y-=16;
         y=page.block(value,48,y,77,10,14)-10;
       }
+      if((spec.packLayoutVersion||0)>=4&&stage.number===5&&y>205){
+        page.text('HOST NOTES',48,y-2,9,true,'0.77 0.19 0.13');
+        y-=18;
+        const bottom=67,height=y-bottom;
+        page.box(48,bottom,page.width-96,height,'0.97 0.99 1');
+        page.text(index?'Record how the four discoveries supported the final action.':'Record hints used, team reasoning or a point to revisit.',60,y-20,9,false,'0.27 0.39 0.49');
+        for(let line=y-48;line>bottom+18;line-=28)page.rule(60,line,page.width-60,line,'0.78 0.86 0.90');
+        y=bottom;
+      }
     });
     if(stage.number===5&&!story.spine){
       const findings=story.stages.slice(0,4).map(item=>`Checkpoint ${item.number}: ${item.material.type==='order_tiles'?item.material.logic.context.labels.at(-1):item.options[item.answerIndex].replace(/ \/ digit [1-3]$/,'')}`);
@@ -440,4 +449,3 @@ export function buildInteractiveGamePdf(story,spec,role){
   pages.forEach((page,index)=>page.text(`Page ${index+1} of ${pages.length}`,page.width-126,30,9));
   return serialize(pages);
 }
-
