@@ -1,8 +1,8 @@
-name: Inspect approved paid remake without story logs
+name: Inspect current paid remake failure without story logs
 on:
   push:
     branches: [codex-remake-diagnostic-20261015]
-    paths: [.github/workflows/diagnose-current-remake.yml, scripts/diagnose-current-remake.mjs]
+    paths: [.github/workflows/diagnose-current-remake.yml]
 permissions:
   contents: read
 jobs:
@@ -19,8 +19,30 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - name: Read only this paid order into runner temporary storage
+      - name: Read failure metadata into temporary runner storage
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT r.status,r.phase,r.error_code AS remake_error_code,r.error_detail AS remake_error_detail,r.spec_json,r.logic_epoch,r.recovery_round,c.status AS call_status,c.error_code AS call_error_code,c.error_detail AS call_error_detail,c.result_json FROM custom_pack_remakes r LEFT JOIN custom_pack_remake_calls c ON c.order_id=r.order_id AND c.logic_epoch=r.logic_epoch AND c.phase='blueprint' WHERE r.order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' ORDER BY c.created_at,c.id" > "$RUNNER_TEMP/remake-private.json"
-      - name: Replay local validation and report rule categories only
-        run: node scripts/diagnose-current-remake.mjs "$RUNNER_TEMP/remake-private.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT r.status,r.phase,r.error_code AS remake_error_code,r.error_detail AS remake_error_detail,r.logic_epoch,r.quality_epoch,r.recovery_round,json_array_length(r.stages_json) AS saved_stages,c.phase AS call_phase,c.stage_number,c.status AS call_status,c.error_code AS call_error_code,c.error_detail AS call_error_detail FROM custom_pack_remakes r LEFT JOIN custom_pack_remake_calls c ON c.order_id=r.order_id AND c.logic_epoch=r.logic_epoch AND c.quality_epoch=r.quality_epoch WHERE r.order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' ORDER BY c.created_at,c.id" > "$RUNNER_TEMP/remake-metadata.json"
+      - name: Print error codes and rule categories only
+        run: |
+          node - "$RUNNER_TEMP/remake-metadata.json" <<'NODE'
+          const fs=require('node:fs');
+          const data=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          const rows=(Array.isArray(data)?data:[data]).flatMap(item=>item.results||[]);
+          function category(value){
+            const message=String(value||'');
+            const rules=[
+              [/paper puzzle .* differs|unified paper contract|checked paper puzzle|contract wording/i,'CONTRACT_MISMATCH'],
+              [/task or teamwork|approved paper action|play style/i,'ACTION_MISMATCH'],
+              [/answer explanation|clue|hint|stage title|under [0-9]+ characters|too long/i,'TEXT_LIMIT'],
+              [/paper piece|paper activity|material/i,'MATERIAL'],
+              [/approved plan|plan is unavailable/i,'PLAN'],
+              [/safe generation limit|budget/i,'BUDGET'],
+              [/provider|upstream/i,'PROVIDER'],
+              [/checksum|storage|source/i,'STORAGE']
+            ];
+            return rules.find(([pattern])=>pattern.test(message))?.[1]||'OTHER';
+          }
+          const first=rows[0];
+          if(!first){console.log(JSON.stringify({found:false}));process.exit(0);}
+          console.log(JSON.stringify({status:first.status,phase:first.phase,logicEpoch:first.logic_epoch,qualityEpoch:first.quality_epoch,recoveryRound:first.recovery_round,savedStages:first.saved_stages,remakeErrorCode:first.remake_error_code,remakeIssue:category(first.remake_error_detail),calls:rows.filter(row=>row.call_phase).map(row=>({phase:row.call_phase,stage:row.stage_number,status:row.call_status,errorCode:row.call_error_code,issue:category(row.call_error_detail)}))}));
+          NODE
