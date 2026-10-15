@@ -129,7 +129,7 @@ export async function retryPackRemake(order, env) {
     throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','This remake is not waiting for a recovery.');
   const savedSpec=JSON.parse(previous.spec_json);
   const savedStages=JSON.parse(previous.stages_json||'[]');
-  const layoutRecovery=Boolean(previous.published_version&&savedSpec.packLayoutVersion>=2&&previous.blueprint_json&&savedStages.length===5&&previous.story_json&&previous.error_code==='BLUEPRINT_INVALID');
+  const layoutRecovery=Boolean(previous.published_version&&previous.blueprint_json&&savedStages.length===5&&previous.story_json&&previous.error_code==='BLUEPRINT_INVALID');
   if(layoutRecovery){
     const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'pdf',failure_count = 0,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND blueprint_json IS NOT NULL AND story_json IS NOT NULL",order.id).run();
     if(!changed.meta?.changes)throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','A PDF refresh recovery has already started.');
@@ -179,7 +179,7 @@ export async function packRemakeView(db, orderId) {
   if (!row) return null;
   const stages = JSON.parse(row.stages_json || '[]');
   const spec=JSON.parse(row.spec_json);
-  const layoutRecoveryAvailable=Boolean(row.status==='failed'&&row.published_version&&spec.packLayoutVersion>=2&&row.blueprint_json&&stages.length===5&&row.story_json&&row.error_code==='BLUEPRINT_INVALID');
+  const layoutRecoveryAvailable=Boolean(row.status==='failed'&&row.published_version&&row.blueprint_json&&stages.length===5&&row.story_json&&row.error_code==='BLUEPRINT_INVALID');
   const upgradeAvailable=row.status==='failed'&&(row.published_version===null||row.quality_epoch>0)&&failedRemakeNeedsUpgrade(spec,row);
   const savedBlueprintAvailable=row.status==='failed'&&row.phase==='blueprint'&&row.error_code==='BLUEPRINT_INVALID'&&row.recovery_round>=MAX_RECOVERY_ROUNDS&&row.logic_epoch===0&&!row.published_version&&spec.packExperienceVersion>=2&&Boolean(await recoverSavedBlueprint(db,orderId,spec));
   const reviewPrefix = 'The completed game did not pass its quality check: ';
