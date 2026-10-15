@@ -289,7 +289,7 @@ function guideStage(stage,spec,story){
       ...(stage.material.logic?.resultDigit?[['RECORD BEFORE CONTINUING',`The team must save result digit ${stage.material.logic.resultDigit} on its material sheet. Keep that sheet for checkpoint 5.`]]:[]),
       ...(story.spine&&stage.number<5?[['WHY THIS FINDING MATTERS',`After checking the answer, share this story link: ${story.spine.links[stage.number-1].reason}`]]:[]),
       ['IF THEY CHOSE DIFFERENTLY',wrongChoiceNotes(stage)],
-      ...(story.spine&&stage.number===5?[['CONNECT THE FOUR DISCOVERIES',story.spine.links.map((link,index)=>`${index+1}. ${link.reason}`).join(' ')],['WHY THIS ACTION',`These discoveries support ${story.spine.resolution}. The four recorded digits identify its printed code; read the ending only after the team checks both the story reason and the code.`]]:[]),
+      ...(story.spine&&stage.number===5?[['CONNECT THE FOUR DISCOVERIES','Review each checked discovery aloud before the team names the final action.'],...story.spine.links.map((link,index)=>[`DISCOVERY ${index+1}`,link.reason]),['WHY THIS ACTION',`These discoveries support ${story.spine.resolution}. The four recorded digits identify its printed code; read the ending only after the team checks both the story reason and the code.`]]:[]),
       ['STORY AND NEXT PAGE',stage.number===5?'The four earlier results identify the final action. After the team explains the code, release Player page 12 and read the ending.':`This check gives the next discovery, but the mission is not finished yet. Release checkpoint ${stage.number+1}, Player pages ${stage.number*2+2}-${stage.number*2+3}.`],
     ];
     const sectionHeight=([,value])=>wrap(value,77).length*14+26;
@@ -308,6 +308,13 @@ function guideStage(stage,spec,story){
       const last=groups.at(-1),previous=groups.at(-2);
       let lastHeight=last.reduce((total,section)=>total+sectionHeight(section),0);
       let previousHeight=previous.reduce((total,section)=>total+sectionHeight(section),0);
+      if(stage.number===5&&story.spine){
+        while(previous.length>1&&!last.some(([label])=>label==='CONNECT THE FOUR DISCOVERIES')){
+          const moved=previous.pop(),movedHeight=sectionHeight(moved);
+          if(lastHeight+movedHeight>capacity)break;
+          last.unshift(moved);lastHeight+=movedHeight;previousHeight-=movedHeight;
+        }
+      }
       const minimumContinuation=Math.min(220,Math.floor(capacity*.36));
       while(lastHeight<minimumContinuation&&previous.length>1){
         const moved=previous.pop();
