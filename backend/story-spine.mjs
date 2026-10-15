@@ -5,12 +5,49 @@ const plain = (value,label,max) => {
     throw Error(`${label} must be printable English under ${max} characters.`);
   return value.trim();
 };
+const sentence=(value,label,max)=>{
+  const result=plain(value,label,max);
+  return /[.!?]$/.test(result)?result:`${result}.`;
+};
+
+export function prepareStoryFrame(frame){
+  if(!frame||!Array.isArray(frame.actions)||frame.actions.length!==3||!Array.isArray(frame.purposes)||frame.purposes.length!==4)
+    throw Error('The story frame needs one problem, three final actions and four discovery purposes.');
+  const problem=sentence(frame.problem,'Story-frame problem',180);
+  const actions=frame.actions.map((value,index)=>plain(value,`Final action ${index+1}`,40));
+  if(new Set(actions.map(value=>value.toLowerCase())).size!==3)throw Error('The story frame needs three distinct final actions.');
+  if(actions.some(value=>/^(?:restore|fix|solve|complete|save)\b/i.test(value)))
+    throw Error('Each final action must name a specific story action.');
+  const purposes=frame.purposes.map((value,index)=>sentence(value,`Checkpoint ${index+1} discovery purpose`,100));
+  if(purposes.some(value=>value.length<28||/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(value)))
+    throw Error('Each discovery purpose must explain a story consequence rather than an answer code.');
+  return {problem,actions,purposes};
+}
 
 export function selectedStoryFinding(stage,type,number){
   const labels=stage?.material?.items?.map(item=>typeof item==='string'?item:item?.label)||[];
   if(type==='order_tiles')return labels.join(' > ');
   if(type==='symbol_key')return stage?.word||stage?.material?.logic?.context?.word;
   return labels[(number+1)%3];
+}
+
+export function compileStorySpine(frame,stages,types){
+  const checked=prepareStoryFrame(frame),resolution=checked.actions[0];
+  const links=stages.slice(0,4).map((stage,index)=>{
+    const finding=selectedStoryFinding(stage,types[index],index+1);
+    const features=stage.features||stage.material?.logic?.context?.features||[];
+    const subjects=features.map(value=>String(value).replace(/^(?:Mentions|Names)\s+/i,''));
+    const lead=['evidence_cards','decision_record'].includes(types[index])
+      ? `${finding} contains both ${subjects[0]} and ${subjects[1]}.`
+      :types[index]==='order_tiles'?`${finding} is the checked story sequence.`
+      :types[index]==='symbol_key'?`${finding} is the decoded story message.`
+      :`${finding} is the only open story route.`;
+    const combined=`${lead} ${checked.purposes[index]}`;
+    if(combined.length<=180)return combined;
+    const allowance=Math.max(28,179-lead.length);
+    return `${lead} ${checked.purposes[index].slice(0,allowance).replace(/\s+\S*$/,'').replace(/[,:;.!?\s]+$/,'')}.`;
+  });
+  return {problem:checked.problem,resolution,links};
 }
 
 export function validateStorySpine(spine,stages,types,goal){
