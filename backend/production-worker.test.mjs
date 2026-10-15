@@ -1063,7 +1063,8 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   const earlierPack=new Uint8Array(await (await download()).arrayBuffer());
   const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:3,packLayoutVersion:1};
   const earlierJson=JSON.stringify(earlierSpec);
-  db.prepare("UPDATE custom_pack_remakes SET spec_json = ?,spec_sha256 = ? WHERE order_id = 'quality-order'").run(earlierJson,await sha256(earlierJson));
+  const staleBlueprint='{}';
+  db.prepare("UPDATE custom_pack_remakes SET spec_json = ?,spec_sha256 = ?,blueprint_json = ?,blueprint_sha256 = ? WHERE order_id = 'quality-order'").run(earlierJson,await sha256(earlierJson),staleBlueprint,await sha256(staleBlueprint));
   assert.equal((await view()).qualityUpgradeAvailable,true,'an already delivered pack can receive the current PDF layout on the same order');
   assert.equal((await handleProductionApi(request('/api/v1/orders/quality-order/pack-remake','POST',undefined,headers),env)).status,202);
   assert.equal((await view()).qualityUpgradeAvailable,false);
@@ -1079,6 +1080,17 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.equal(blueprintCalls,1,'a layout-only refresh reuses the checked story and makes no model call');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1,'quality rebuild creates no checkout');
   assert.deepEqual(new Uint8Array(await (await download('&version=2')).arrayBuffer()),earlierPack);
+
+  db.prepare("UPDATE custom_pack_remakes SET status='failed',phase='blueprint',error_code='BLUEPRINT_INVALID',error_detail='A saved blueprint was checked before PDF rendering.',recovery_round=2 WHERE order_id='quality-order'").run();
+  const failedView=await packRemakeView(binding,'quality-order');
+  assert.equal(failedView.layoutRecoveryAvailable,true);
+  assert.equal(failedView.recoveryAvailable,true,'layout recovery does not consume or depend on AI recovery rounds');
+  const paidOrder=db.prepare("SELECT * FROM orders WHERE id='quality-order'").get();
+  assert.deepEqual(await retryPackRemake(paidOrder,env),{status:'queued',recovery:true,layoutOnly:true});
+  assert.equal(db.prepare("SELECT phase FROM custom_pack_remakes WHERE order_id='quality-order'").get().phase,'pdf');
+  await productionWorker.queue({messages:[{body:queue.shift(),ack(){},retry(){throw Error('layout recovery should finish from the saved story');}}]},env);
+  assert.equal((await view()).remake.publishedVersion,4);
+  assert.equal(blueprintCalls,1,'recovering a misclassified layout refresh still makes no model call');
 });
 
 test('current layout and revised checked packs cannot start the free full-pack upgrade',()=>{
