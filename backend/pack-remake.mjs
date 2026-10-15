@@ -10,7 +10,7 @@ const nowSeconds = () => Math.floor(Date.now() / 1000);
 const MAX_CALLS = 20;
 const MAX_STEP_CALLS = 2;
 const MAX_BLUEPRINT_CALLS = 3;
-const MAX_AUDIT_CALLS = 4;
+const MAX_AUDIT_CALLS = 5;
 const stepLimit = (phase,spec) => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? spec?.packExperienceVersion>=2?5:MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
@@ -271,6 +271,28 @@ export async function processPackRemake(orderId, env) {
       const blueprint = validateBlueprint(await recordCall(remake, 'blueprint', 0, async () => {
         const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", orderId,remake.quality_epoch,remake.logic_epoch).first();
         const result = prior ? await repairBlueprint(spec, JSON.parse(prior.result_json), prior.error_detail, env, env.FETCH || fetch) : await generateBlueprint(spec, env, env.FETCH || fetch);
+        if (spec.packContractVersion === 1 && spec.packExperienceVersion >= 2) {
+          try {
+            const previewStages = [];
+            for (let number = 1; number <= 5; number++) {
+              const preview = await generateStagedCheckpoint(spec, result.blueprint, number, previewStages.at(-1) || null, env, env.FETCH || fetch);
+              previewStages.push(preview.stage);
+            }
+            const previewStory = assembleStagedStory(spec, result.blueprint, previewStages);
+            const storyHash = await sha256(JSON.stringify(previewStory));
+            const proof = await recordCall(remake, 'audit', 0, async () => {
+              const checked = await auditStagedStory(previewStory, spec, result.blueprint, env, env.FETCH || fetch);
+              return { value: { storyHash }, usage: checked.usage, responseId: checked.responseId };
+            }, env);
+            if (proof.storyHash !== storyHash) throw new ApiError(422, 'GENERATION_QA_FAILED', 'The checked game changed during blueprint review.');
+          } catch (caught) {
+            if (caught.code === 'GENERATION_QA_FAILED') {
+              caught.code = 'BLUEPRINT_INVALID';
+              caught.candidate = result.blueprint;
+            }
+            throw caught;
+          }
+        }
         return { value: result.blueprint, usage: result.usage, responseId: result.responseId };
       }, env), spec);
       const blueprintJson = JSON.stringify(blueprint);
@@ -301,10 +323,11 @@ export async function processPackRemake(orderId, env) {
       const story = assembleStagedStory(spec, blueprint, stages);
       const storyJson = JSON.stringify(story);
       const storyHash = await sha256(storyJson);
-      await recordCall(remake, phase, 0, async () => {
+      const proof = await recordCall(remake, phase, 0, async () => {
         const result = await auditStagedStory(story, spec, blueprint, env, env.FETCH || fetch);
         return { value: { storyHash }, usage: result.usage, responseId: result.responseId };
       }, env);
+      if (proof.storyHash !== storyHash) throw new ApiError(422, 'GENERATION_QA_FAILED', 'The game differs from the checked blueprint.');
       await query(db, "UPDATE custom_pack_remakes SET story_json = ?,story_sha256 = ?,status = 'queued',phase = 'pdf',lease_until = NULL,failure_count = 0,updated_at = CURRENT_TIMESTAMP WHERE order_id = ?", storyJson, storyHash, orderId).run();
       await queueNext(orderId, env);
       return;
