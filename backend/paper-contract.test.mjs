@@ -21,6 +21,39 @@ test('long provider story-frame text is fitted before printable validation',()=>
   assert.ok(frame.problem.length<=180);
   assert.ok(frame.actions.every(value=>value.length<=40));
   assert.ok(frame.purposes.every(value=>value.length<=100));
+  assert.match(frame.actions[0],/chamber$/i);
+});
+
+test('story frame keeps complete actions and conceals an opening that gives away the winning action',()=>{
+  const frame=prepareStoryFrame({
+    problem:'The parcel must reach the friendly market keeper before the clock closes the gate.',
+    actions:['Hand the parcel to the friendly market keeper','Leave the parcel at the blue stall','Send the parcel through the side gate'],
+    purposes:['This identifies which parcel record belongs to the waiting customer.','This names the safe person who can receive the parcel.','This puts the delivery preparations in a safe order.','This identifies an open route through the busy market.'],
+  });
+  assert.equal(frame.actions[0],'Hand parcel to market keeper');
+  assert.match(frame.problem,/mission is still blocked/i);
+  assert.doesNotMatch(frame.problem,/market keeper/i);
+});
+
+test('linked blueprint replaces worksheet commands and early outcomes with playable in-world pieces',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext();
+  raw.storyFrame={problem:raw.spine.problem,actions:raw.stages[4].material.items.map(item=>item.label),purposes:[
+    'This identifies the missing signal component needed for the final repair.',
+    'This locates the spare component required to carry out the final repair.',
+    'This gives the safe preparation sequence before the repair is attempted.',
+    'This identifies a usable route for bringing the replacement into the tower.',
+  ]};
+  raw.stages[2].material.items=['Read printed rule','Record answer digit','Compare the tiles','Bell repaired'].map(label=>({label}));
+  raw.stages[3].material.items=['Check printed route','Bell rang route','Record final digit'].map(label=>({label}));
+  raw.spine={...raw.spine,links:raw.spine.links};
+  const blueprint=prepareContextualBlueprint(raw,spec);
+  const orderLabels=blueprint.stages[2].material.logic.context.labels;
+  const routeLabels=blueprint.stages[3].material.logic.context.labels;
+  assert.equal(new Set(orderLabels).size,4);
+  assert.ok(orderLabels.every(label=>/^(?:Inspect|Gather|Prepare|Position)\b/.test(label)));
+  assert.ok(routeLabels.every(label=>/ route$/i.test(label)));
+  assert.ok([...orderLabels,...routeLabels].every(label=>!/(?:printed|digit|repaired|rang)/i.test(label)));
 });
 
 test('linked story requires four printed findings and explains them in the adult guide',async()=>{
