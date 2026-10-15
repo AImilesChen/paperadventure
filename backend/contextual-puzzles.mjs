@@ -13,6 +13,14 @@ const fitNarrative=(value,max)=>{
   const words=value.slice(0,max-1).replace(/\s+\S*$/,'').trim();
   return `${(sentence&&sentence.length>=max/2?sentence:words).replace(/[,:;.!?\s]+$/,'')}.`;
 };
+const fitRecordFeature=value=>{
+  if(typeof value!=='string'||value.length<=24)return value;
+  const match=value.match(/^(Mentions|Names)\s+(.+)$/i);
+  if(!match)return value;
+  const prefix=match[1],words=match[2].trim().split(/\s+/);
+  while(words.length>1&&`${prefix} ${words.join(' ')}`.length>24)words.pop();
+  return `${prefix} ${words.join(' ')}`;
+};
 export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1,qualityVersion=2){
   const labels=context.labels;
   const shift=qualityVersion>=3?(number*2+1)%3:number%3;
@@ -121,7 +129,8 @@ export function prepareContextualBlueprint(candidate,spec){
       throw Error(`Checkpoint ${i+1} labels must name fictional story pieces or actions, not instructions about the worksheet.`);
     if(spec.packExperienceVersion>=2&&i<4&&type==='decision_record'&&labels.some(label=>/^(?:candidate|option|answer|result|rule)\b/i.test(label)))
       throw Error(`Checkpoint ${i+1} witness candidates must name story objects or actions, not the witness notes or answer roles.`);
-    const features=(['evidence_cards','route_board'].includes(type)||spec.packExperienceVersion>=2&&type==='decision_record')&&i<4?raw.features?.map(value=>text(value,`Checkpoint ${i+1} printed feature`,32)):['Checked fact','Matching fact'];
+    const usesPrintedFeatures=type==='evidence_cards'||type==='decision_record'&&spec.packExperienceVersion>=2||type==='route_board'&&spec.packExperienceVersion<2;
+    const features=usesPrintedFeatures&&i<4?raw.features?.map(value=>text(spec.packExperienceVersion>=3&&['evidence_cards','decision_record'].includes(type)?fitRecordFeature(value):value,`Checkpoint ${i+1} printed feature`,32)):['Checked fact','Matching fact'];
     if(features?.length!==2||!unique(features))throw Error(`Checkpoint ${i+1} needs two distinct story-specific feature names.`);
     if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)){
       if(labels.some(label=>!/(?:note|report|log|letter|ledger|record|card|message|ticket|journal|entry|file|memo|clipping|receipt|statement|page|sheet|slip|document)$/i.test(label)))

@@ -36,7 +36,14 @@ for(const item of cases){
       for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(approved,blueprint,number,stages.at(-1),env,privateFetch)).stage);
       story=assembleStagedStory(approved,blueprint,stages);phase='audit';
       try{await auditStagedStory(story,approved,blueprint,env,privateFetch);break;}
-      catch(error){if(attempt===2||blueprintRepairs>=4)throw error;blueprintRepairs++;blueprint=(await repairBlueprint(approved,blueprint,error.message,env,privateFetch)).blueprint;}
+      catch(error){
+        console.log(JSON.stringify({id:item.id,phase:'audit-check',attempt:attempt+1,code:error.code||'CHECK_FAILED',rule:String(error.message).slice(0,160)}));
+        if(attempt===2)throw error;
+        if(error.code==='GENERATION_QA_FAILED'&&blueprintRepairs<4){
+          blueprintRepairs++;
+          blueprint=(await repairBlueprint(approved,blueprint,error.message,env,privateFetch)).blueprint;
+        }
+      }
     }
     phase='pdf';
     if(verifyPrintedPuzzles(story).length!==5||story.spine?.links?.length!==4)throw Error('A printable finding or story link is missing.');

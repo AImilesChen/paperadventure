@@ -50,6 +50,9 @@ test('linked story requires four printed findings and explains them in the adult
     const invalid=linkedClockContext();mutate(invalid);
     assert.throws(()=>prepareContextualBlueprint(invalid,spec),message);
   }
+  const verbose=linkedClockContext();
+  verbose.spine.links[1]+=' The same clue is repeated in several extra sentences that add no new play rule or fictional finding.'.repeat(3);
+  assert.ok(prepareContextualBlueprint(verbose,spec).spine.links[1].reason.length<=180);
 });
 
 test('linked repair changes one checkpoint and its reason without discarding the others',async()=>{
@@ -125,6 +128,18 @@ test('linked story also produces complete classroom garden packs on both paper s
     assert.match(pdf,/Page 1 of/);
     if(role==='guide')assert.match(pdf,/Service walkway/);
   }
+});
+
+test('unused route fields cannot reject an otherwise printable linked game',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext();
+  const routeIndex=paperContractTypes(spec.plan).findIndex(type=>type==='route_board');
+  assert.ok(routeIndex>=0);
+  raw.stages[routeIndex].features=['An arbitrarily long model field that is not printed on the route board','Another unused route detail that cannot change the puzzle'];
+  raw.stages[routeIndex].word='NOT-A-KEY';
+  const blueprint=prepareContextualBlueprint(raw,spec);
+  assert.deepEqual(blueprint.stages[routeIndex].material.logic.context.features,['Checked fact','Matching fact']);
+  assert.equal(blueprint.stages[routeIndex].material.logic.context.word,'NOTE');
 });
 
 async function game(spec=clockSpec){
