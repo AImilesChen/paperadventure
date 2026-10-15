@@ -9,7 +9,8 @@ export const paperActions={
   finale:{title:'Combine the four discoveries',task:'Copy your result digits from checkpoints 1-4 in order. Compare this code with the three final actions and choose the matching action.'},
 };
 
-const earlyOutcome=/\b(?:hear|heard|ring|rings|rang|sound|sounds|sounded|restore|restored|repair|repaired|rescue|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
+// A proposed action such as "repair the clock" is not an accomplished outcome.
+const earlyOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
 const goalWords=goal=>new Set(String(goal||'').toLowerCase().match(/[a-z]{4,}/g)?.filter(word=>!['find','with','that','from','their','they','then','will','into','before','after','again','help','make','complete','finish','restore','repair','rescue','return','deliver','missing','story','journey'].includes(word))||[]);
 export function assertGoalStillOpen(texts,goal,number){
   const terms=goalWords(goal);

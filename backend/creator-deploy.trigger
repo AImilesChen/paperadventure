@@ -1,1 +1,1 @@
-2026-10-15: allow one no-charge quality upgrade for paid paper packs delivered before experience-v2 checks; retain original files until replacement passes.
+2026-10-15: recover saved checked blueprints on paid orders and publish a real new PDF artifact after all checks pass.

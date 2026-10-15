@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {generateBlueprint,repairBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory} from './staged-story.mjs';
+import {generateBlueprint,repairBlueprint,prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory,auditStagedStory} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
@@ -119,11 +119,16 @@ test('new pack contract prints a traceable route, evidence-based witnesses and f
 test('new pack rejects an early mission outcome before spending calls on later checkpoints',()=>{
   const spec={...clockSpec,packExperienceVersion:2};
   const raw=structuredClone(clockBlueprintContext);
-  raw.stages[2].material.items[3].label='Hear noon chime';
+  raw.stages[2].material.items[3].label='Heard noon chime';
   assert.throws(()=>prepareContextualBlueprint(raw,spec),/Checkpoint 3 names a completed mission outcome/);
+  assert.doesNotThrow(()=>prepareBlueprintCandidate(raw,spec),'a completed-sounding piece can be made an open clue without a model call');
+  assert.match(prepareBlueprintCandidate(raw,spec).stages[2].material.items[3].label,/Unheard noon chime/i);
+  const proposed=structuredClone(clockBlueprintContext);
+  proposed.stages[2].material.items[3].label='Repair noon chime';
+  assert.doesNotThrow(()=>prepareContextualBlueprint(proposed,spec),'a proposed repair is not a completed mission');
   assert.doesNotThrow(()=>prepareContextualBlueprint(clockBlueprintContext,clockSpec),'legacy paid specifications still validate');
   const premature=structuredClone(clockSpec.plan);
-  premature.stages[1].scene='Hear the noon bell';
+  premature.stages[1].scene='Heard the noon bell';
   assert.throws(()=>completePaperPlan(premature,clockSpec.gameplay),/Checkpoint 2 names a completed mission outcome/);
   const abstract=structuredClone(clockBlueprintContext);
   abstract.stages[1].features=['Two ruled out','One remains'];
@@ -145,7 +150,7 @@ test('new pack rejects an early mission outcome before spending calls on later c
 test('an invalid new-plan checkpoint repairs only its own context',async()=>{
   const spec={...clockSpec,packExperienceVersion:2};
   const raw=structuredClone(clockBlueprintContext);
-  raw.stages[2].material.items[3].label='Hear noon chime';
+  raw.stages[2].material.items[3].label='Heard noon chime';
   let calls=0;
   const result=await repairBlueprint(spec,raw,'Checkpoint 3 names a completed mission outcome before the final action.',
     {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{

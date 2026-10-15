@@ -1015,9 +1015,15 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('quality-order','custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(purchase,await sha256(purchase),owner,'quality-price');
   db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('quality-activity','quality-order','published',?)").run(purchase);
   db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit,revision_expires_at,access_expires_at) VALUES ('quality-entitlement','quality-order','quality-activity','active',2,datetime('now','+20 days'),datetime('now','+6 months'))").run();
-  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version) VALUES ('quality-artifact','quality-activity',1,'published',2)").run();
-  const queue=[];
-  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)}};
+  const original=new TextEncoder().encode('%PDF- original quality fixture');
+  const originalHash=createHash('sha256').update(original).digest('hex');
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version,player_r2_key,guide_r2_key,player_sha256,guide_sha256) VALUES ('quality-artifact','quality-activity',1,'published',2,'original/player.pdf','original/guide.pdf',?,?)").run(originalHash,originalHash);
+  const queue=[],files=new Map([['original/player.pdf',{body:original,customMetadata:{sha256:originalHash}}],['original/guide.pdf',{body:original,customMetadata:{sha256:originalHash}}]]);
+  const context=structuredClone(clockBlueprintContext);
+  context.stages[2].material.items=['Inspect the idle signal','Align the spare wheel','Check the noon marker','Record the test result'].map(label=>({label}));
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
+    PRIVATE_FILES:{get:async key=>files.get(key)||null,put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata})},
+    FETCH:async(_url,init)=>{const name=JSON.parse(init.body).text.format.name;return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(name==='game_blueprint'?context:{pass:true,issues:[]})}]}],usage:{input_tokens:10,output_tokens:10}});}};
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
   const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
   const view=()=>handleProductionApi(request('/api/v1/orders/quality-order','GET',undefined,headers),env).then(response=>response.json());
@@ -1032,6 +1038,18 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.equal((await view()).remake.status,'queued');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1,'original pack remains published until replacement checks finish');
+  const download=(suffix='')=>handleProductionApi(request(`/api/v1/files/quality-order/player?paper=A4${suffix}`,'GET',undefined,headers),env);
+  for(let step=0;step<12 && (await view()).remake.status!=='ready';step++){
+    const job=queue.shift();assert.equal(job?.type,'pack_remake');
+    await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('checked remake should not need queue-level retry');}}]},env);
+    if((await view()).remake.status!=='ready')assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),original);
+  }
+  const delivered=await view();
+  assert.equal(delivered.remake.status,'ready');
+  assert.equal(delivered.remake.publishedVersion,2,'new checked pack must publish a new artifact, not relabel the old one');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,2);
+  assert.notDeepEqual(new Uint8Array(await (await download()).arrayBuffer()),original);
+  assert.deepEqual(new Uint8Array(await (await download('&version=1')).arrayBuffer()),original);
 });
 
 test('current-quality and revised checked packs cannot start the free full-pack upgrade',()=>{
@@ -1040,6 +1058,43 @@ test('current-quality and revised checked packs cannot start the free full-pack 
   assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packExperienceVersion:2},2,false),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
+});
+
+test('an exhausted blueprint remake reuses its saved candidate and publishes a new pack without another blueprint call',async()=>{
+  const {db,binding}=database(),owner='saved-blueprint-owner',spec={...clockSpec,packExperienceVersion:2};
+  const stored=JSON.stringify(spec),original=new TextEncoder().encode('%PDF- earlier paid pack');
+  const originalHash=createHash('sha256').update(original).digest('hex');
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('saved-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('saved-order','custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(stored,await sha256(stored),owner,'saved-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('saved-activity','saved-order','published',?)").run(stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,access_expires_at) VALUES ('saved-entitlement','saved-order','saved-activity','active',datetime('now','+6 months'))").run();
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version,player_r2_key,guide_r2_key,player_sha256,guide_sha256) VALUES ('saved-artifact','saved-activity',1,'published',2,'earlier/player.pdf','earlier/guide.pdf',?,?)").run(originalHash,originalHash);
+  db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,error_code,recovery_round,logic_epoch) VALUES ('saved-order','failed','blueprint',?,?,'BLUEPRINT_INVALID',2,0)").run(stored,await sha256(stored));
+  const candidate=structuredClone(clockBlueprintContext);
+  candidate.stages[2].material.items[3].label='Heard noon chime';
+  db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,result_json,error_code,generation_round,logic_epoch) VALUES ('saved-call','saved-order','blueprint',0,'failed','fixture',?,'BLUEPRINT_INVALID',3,0)").run(JSON.stringify(candidate));
+  const queue=[],files=new Map([['earlier/player.pdf',{body:original,customMetadata:{sha256:originalHash}}],['earlier/guide.pdf',{body:original,customMetadata:{sha256:originalHash}}]]);
+  const names=[];
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},PRIVATE_FILES:{get:async key=>files.get(key)||null,put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata})},FETCH:async(_url,init)=>{const name=JSON.parse(init.body).text.format.name;names.push(name);assert.equal(name,'staged_story_audit');return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:true,issues:[]})}]}]});}};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const view=()=>handleProductionApi(request('/api/v1/orders/saved-order','GET',undefined,headers),env).then(response=>response.json());
+  assert.equal((await view()).remake.recoveryAvailable,true);
+  const retry=await handleProductionApi(request('/api/v1/orders/saved-order/pack-remake/retry','POST',undefined,headers),env);
+  assert.equal(retry.status,202,await retry.text());
+  assert.equal(db.prepare("SELECT phase,logic_epoch FROM custom_pack_remakes WHERE order_id='saved-order'").get().phase,'checkpoint');
+  assert.equal(db.prepare("SELECT logic_epoch FROM custom_pack_remakes WHERE order_id='saved-order'").get().logic_epoch,1);
+  for(let step=0;step<12&&(await view()).remake.status!=='ready';step++){
+    const job=queue.shift();assert.equal(job?.type,'pack_remake');
+    await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('saved blueprint recovery should not need queue retry');}}]},env);
+    if((await view()).remake.status!=='ready')assert.equal(db.prepare("SELECT COUNT(*) AS n FROM artifact_versions WHERE custom_activity_id='saved-activity'").get().n,1);
+  }
+  assert.equal((await view()).remake.status,'ready');
+  assert.equal((await view()).remake.publishedVersion,2);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM artifact_versions WHERE custom_activity_id='saved-activity'").get().n,2);
+  assert.equal(names.includes('game_blueprint'),false);
+  assert.equal(db.prepare("SELECT status FROM custom_pack_remake_calls WHERE id='saved-call'").get().status,'failed','the original diagnostic history is retained');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
 });
 
 test('an original checked pack can publish a checkpoint revision without a remake or model call',async()=>{

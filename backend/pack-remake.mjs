@@ -2,7 +2,7 @@ import { ApiError, validateGeneratedStory } from './domain.mjs';
 import { aiProvider } from './openai.mjs';
 import { sha256, sha256Bytes } from './security.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
-import { generateBlueprint, repairBlueprint, validateBlueprint, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory } from './staged-story.mjs';
+import { generateBlueprint, repairBlueprint, validateBlueprint, prepareBlueprintCandidate, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
@@ -14,6 +14,13 @@ const MAX_AUDIT_CALLS = 4;
 const stepLimit = (phase,spec) => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? spec?.packExperienceVersion>=2?5:MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
+
+async function recoverSavedBlueprint(db,orderId,spec){
+  const last=await query(db,"SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = 0 AND phase = 'blueprint' AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1",orderId).first();
+  if(!last?.result_json)return null;
+  try{return prepareBlueprintCandidate(JSON.parse(last.result_json),spec);}
+  catch{return null;}
+}
 
 function shorten(value, limit) {
   const text = String(value || '').trim();
@@ -91,7 +98,7 @@ export async function retryPackRemake(order, env) {
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
   if (order.product_kind !== 'custom' || order.status !== 'published' || !order.paid_at)
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'This paid order is not eligible for a pack remake.');
-  const previous=await query(env.DB,'SELECT status,spec_json,recovery_round,published_version FROM custom_pack_remakes WHERE order_id = ?',order.id).first();
+  const previous=await query(env.DB,'SELECT status,phase,error_code,logic_epoch,spec_json,recovery_round,published_version FROM custom_pack_remakes WHERE order_id = ?',order.id).first();
   if (!previous || previous.status!=='failed' || previous.published_version)
     throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','This remake is not waiting for a recovery.');
   const savedSpec=JSON.parse(previous.spec_json);
@@ -104,6 +111,16 @@ export async function retryPackRemake(order, env) {
     catch (caught) { console.error('Upgraded paid remake saved for queue',{orderId:order.id,message:caught?.message}); }
     return {status:'queued',recovery:true,upgraded:true};
   }
+  if(previous.phase==='blueprint'&&previous.error_code==='BLUEPRINT_INVALID'&&previous.recovery_round>=MAX_RECOVERY_ROUNDS&&previous.logic_epoch===0&&savedSpec.packExperienceVersion>=2){
+    const blueprint=await recoverSavedBlueprint(env.DB,order.id,savedSpec);
+    if(!blueprint)throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','The saved blueprint needs a quality review before generation can continue.');
+    const json=JSON.stringify(blueprint);
+    const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'checkpoint',blueprint_json = ?,blueprint_sha256 = ?,stages_json = '[]',story_json = NULL,story_sha256 = NULL,failure_count = 0,recovery_round = 0,logic_epoch = 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND phase = 'blueprint' AND error_code = 'BLUEPRINT_INVALID' AND recovery_round >= ? AND logic_epoch = 0 AND published_version IS NULL",json,await sha256(json),order.id,MAX_RECOVERY_ROUNDS).run();
+    if(!changed.meta?.changes)throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','A recovery has already started.');
+    try{await env.GENERATION_QUEUE.send({type:'pack_remake',orderId:order.id});}
+    catch(caught){console.error('Saved blueprint recovery queued',{orderId:order.id,message:caught?.message});}
+    return {status:'queued',recovery:true,reusedBlueprint:true};
+  }
   const changed = await query(env.DB, "UPDATE custom_pack_remakes SET status = 'queued',failure_count = 0,recovery_round = recovery_round + 1,recovery_count = MIN(recovery_count + 1,1),lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND recovery_round < ? AND published_version IS NULL AND error_code IN ('BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED')", order.id, MAX_RECOVERY_ROUNDS).run();
   if (!changed.meta?.changes) throw new ApiError(409, 'REMAKE_RECOVERY_UNAVAILABLE', 'A recovery has already started or this remake needs personal support.');
   try { await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: order.id }); }
@@ -112,11 +129,12 @@ export async function retryPackRemake(order, env) {
 }
 
 export async function packRemakeView(db, orderId) {
-  const row = await query(db, 'SELECT status,phase,stages_json,blueprint_json,story_json,spec_json,published_version,error_code,error_detail,recovery_round,created_at,updated_at,completed_at FROM custom_pack_remakes WHERE order_id = ?', orderId).first();
+  const row = await query(db, 'SELECT status,phase,stages_json,blueprint_json,story_json,spec_json,published_version,error_code,error_detail,recovery_round,logic_epoch,created_at,updated_at,completed_at FROM custom_pack_remakes WHERE order_id = ?', orderId).first();
   if (!row) return null;
   const stages = JSON.parse(row.stages_json || '[]');
   const spec=JSON.parse(row.spec_json);
   const upgradeAvailable=row.status==='failed'&&!row.published_version&&spec.packLogicVersion!==1;
+  const savedBlueprintAvailable=row.status==='failed'&&row.phase==='blueprint'&&row.error_code==='BLUEPRINT_INVALID'&&row.recovery_round>=MAX_RECOVERY_ROUNDS&&row.logic_epoch===0&&!row.published_version&&spec.packExperienceVersion>=2&&Boolean(await recoverSavedBlueprint(db,orderId,spec));
   const reviewPrefix = 'The completed game did not pass its quality check: ';
   return {
     status: row.status,
@@ -127,7 +145,7 @@ export async function packRemakeView(db, orderId) {
     storyReady: Boolean(row.story_json),
     publishedVersion: row.published_version || null,
     failureReason: row.status === 'failed' ? row.phase === 'blueprint' ? 'The game blueprint did not match the approved play rules. No new checkpoints or PDFs were published.' : row.phase === 'checkpoint' ? /Answer explanation is required and must be under/i.test(row.error_detail || '') ? 'The generated adult answer explanation was longer than the printable guide allows. Earlier checkpoints were saved.' : 'A new checkpoint did not pass generation checks. Saved earlier work remains on this order.' : row.phase === 'audit' ? row.error_detail?.startsWith(reviewPrefix) ? `The quality review found: ${row.error_detail.slice(reviewPrefix.length,300)} The new PDFs were not published.` : 'The complete game did not pass its quality review. No new PDFs were published.' : 'The replacement PDF files did not pass delivery checks. Your original PDFs remain available.' : null,
-    recoveryAvailable: upgradeAvailable || row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && recoverableErrors.includes(row.error_code),
+    recoveryAvailable: upgradeAvailable || savedBlueprintAvailable || row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && recoverableErrors.includes(row.error_code),
     upgradeAvailable,
     recoveryCount: row.recovery_round,
     startedAt: row.created_at,
@@ -185,10 +203,6 @@ async function publishRemadeFiles(remake, order, env) {
   if (!activity) throw new ApiError(409, 'REMAKE_SOURCE_MISSING', 'The original files are unavailable.');
   const prior = await query(db, "SELECT version_number,pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", activity?.id).first();
   if (!prior) throw new ApiError(409, 'REMAKE_SOURCE_MISSING', 'The original files are unavailable.');
-  if (prior.pack_format_version >= 2) {
-    await query(db, "UPDATE custom_pack_remakes SET status = 'ready',phase = 'delivered',published_version = ?,lease_until = NULL,completed_at = CURRENT_TIMESTAMP WHERE order_id = ?", prior.version_number, order.id).run();
-    return;
-  }
   const version = prior.version_number + 1;
   const prefix = `custom/${order.id}/v${version}-paper-remake`;
   const player = buildGamePdf(story, spec, 'player');
