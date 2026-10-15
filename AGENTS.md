@@ -2,6 +2,8 @@
 
 On 2026-10-15 the owner found a paid adult guide with a nearly empty continuation page and a story summary that paraphrased a normalized material label. Rebalance guide sections so a continuation page carries a meaningful group of related instructions rather than one orphaned paragraph. Build story links from the final normalized printed labels and verify those exact names across player pages, guide answers and the ending before publication.
 
+The corresponding PDF layout refresh is versioned separately from story quality. An eligible delivered V3 pack may reuse its saved checked blueprint, checkpoints and story to render the current layout on the same paid order without an AI call or another checkout. Keep the earlier published PDFs downloadable until the refreshed files pass PDF and storage checks.
+
 Run the local server yourself and open the preview in the browser available to this environment. Do not give the user server-start instructions when you can run it.
 
 Before making substantial visual changes, use the Product Design plugin's `get-context` skill when the visual source is unclear or no longer matches the current goal. When the user gives durable prototype-specific design feedback, preferences, or decisions, record them in `AGENTS.md`.
