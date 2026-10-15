@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, DownloadSimple, WarningCircle, Books, Sparkle, Receipt } from '@phosphor-icons/react';
+import { ArrowRight, ArrowClockwise, DownloadSimple, WarningCircle, Books, Sparkle, Receipt } from '@phosphor-icons/react';
 import { formatUsd, productRights } from '../shared/catalog.mjs';
 import { draftSpec, readySetup } from './creatorDraft.mjs';
 import { PlanPreview } from './creatorPlanPreview.jsx';
@@ -386,15 +386,42 @@ export function LiveOrder({ Link, orderId }) {
   const [error, setError] = useState('');
   const [selectedPaper, setSelectedPaper] = useState('A4');
   const [helpRequest,setHelpRequest] = useState(null);
-  const refresh = () => api(`/api/v1/orders/${orderId}`).then(data => {
-    if (data?.id !== orderId || !['ready', 'custom'].includes(data.kind)) throw new Error('The order service returned an invalid response. Please try again later.');
-    setOrder(data); setError('');
-  }).catch(failure => setError(failure.message));
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshNotice, setRefreshNotice] = useState('');
+  const refreshLock = useRef(false);
+  const refresh = async ({ announce = false } = {}) => {
+    if (refreshLock.current) return;
+    refreshLock.current = true;
+    setRefreshing(true);
+    try {
+      const data = await api(`/api/v1/orders/${orderId}`);
+      if (data?.id !== orderId || !['ready', 'custom'].includes(data.kind)) throw new Error('The order service returned an invalid response. Please try again later.');
+      setOrder(data);
+      setError('');
+      if (announce) {
+        const remakeActive = ['queued', 'generating'].includes(data.remake?.status);
+        const remakeStopped = data.remake && !['ready', 'queued', 'generating'].includes(data.remake.status);
+        setRefreshNotice(remakeActive
+          ? 'Status updated. Your new pack is still being prepared.'
+          : remakeStopped
+            ? 'Status updated. The new pack still needs attention; your current files remain available.'
+            : data.filesReady
+              ? 'Status updated. Your latest available files are ready below.'
+              : 'Status updated. No downloadable files are available yet.');
+      }
+    } catch (failure) {
+      setError(failure.message);
+      if (announce) setRefreshNotice('');
+    } finally {
+      refreshLock.current = false;
+      setRefreshing(false);
+    }
+  };
   const openHelp = (kind,description) => {
     setHelpRequest({kind,description});
     requestAnimationFrame(()=>{const section=document.getElementById('order-help');if(section){section.open=true;section.scrollIntoView({behavior:'smooth',block:'start'});}});
   };
-  useEffect(() => { setOrder(null); setError(''); refresh(); }, [orderId]);
+  useEffect(() => { setOrder(null); setError(''); setRefreshNotice(''); refresh(); }, [orderId]);
   useEffect(() => {
     if (!order || !['pending_payment','paid','fulfilling'].includes(order.status) && !['queued','generating'].includes(order.remake?.status)) return;
     const update = () => { if (document.visibilityState === 'visible') refresh(); };
@@ -403,7 +430,7 @@ export function LiveOrder({ Link, orderId }) {
     return () => { clearInterval(timer); document.removeEventListener('visibilitychange', update); };
   }, [orderId,order?.status,order?.remake?.status]);
 
-  if (error) return <main className="extended-page live-page order-page"><div className="order-workspace"><Alert>{error}</Alert><button className="button" type="button" onClick={refresh}>Retry order status <ArrowRight size={18}/></button><p><Link to="/en/account/">Sign in with Google</Link> if your session has expired.</p></div></main>;
+  if (error) return <main className="extended-page live-page order-page"><div className="order-workspace"><Alert>{error}</Alert><button className="button" type="button" onClick={() => refresh({ announce: true })} disabled={refreshing}>{refreshing ? 'Checking order…' : 'Retry order status'} {refreshing ? <ArrowClockwise className="is-spinning" size={18}/> : <ArrowRight size={18}/>}</button><p><Link to="/en/account/">Sign in with Google</Link> if your session has expired.</p></div></main>;
   if (!order) return <main className="extended-page live-page order-page"><div className="order-workspace" role="status">Checking your order…</div></main>;
 
   const title = order.plan?.title || (order.kind === 'ready' ? order.sku.replaceAll('_',' ') : 'Your custom adventure');
@@ -431,7 +458,14 @@ export function LiveOrder({ Link, orderId }) {
           <dl><div><dt>Payment</dt><dd>{paid ? 'Confirmed' : 'Not confirmed'}</dd></div><div><dt>Total</dt><dd>{formatUsd(order.amountTotal)} · {order.currency}</dd></div><div><dt>Paper</dt><dd>{order.paper === 'Letter' ? 'US Letter' : order.paper || 'Choose on download'}</dd></div>{order.kind === 'custom' && <div><dt>Plan</dt><dd>{approved ? `Version ${order.planReview.confirmedVersion} approved` : 'Awaiting approval'}</dd></div>}<div><dt>Files</dt><dd>{order.filesReady ? order.remake && order.remake.status !== 'ready' ? 'Original ready · new pending' : 'Ready' : 'Not available yet'}</dd></div></dl>
           {order.filesReady && order.accessExpiresAt && <p>Online re-download until {new Date(order.accessExpiresAt.replace(' ','T') + 'Z').toLocaleDateString()}.</p>}
           {order.kind === 'custom' && paid && <p>Plan changes happen before approval. Checkpoint revisions appear after your complete game is delivered.</p>}
-          <button type="button" className="button-quiet" onClick={refresh}>Refresh order status</button>
+          <div className={'order-status-action ' + (['queued', 'generating'].includes(order.remake?.status) ? 'is-pending' : '')}>
+            <strong>{['queued', 'generating'].includes(order.remake?.status) ? 'New pack in progress' : 'Need the latest status?'}</strong>
+            <p>This checks the server for updated files and progress. It does not create a new order or charge you.</p>
+            <button type="button" className="button order-refresh-button" onClick={() => refresh({ announce: true })} disabled={refreshing}>
+              {refreshing ? 'Checking status…' : 'Check for updates'} <ArrowClockwise className={refreshing ? 'is-spinning' : ''} size={18}/>
+            </button>
+            {refreshNotice && <p className="order-refresh-notice" role="status">{refreshNotice}</p>}
+          </div>
         </aside>
       </div>
       <section className="order-help-footer" aria-label="Help with this order">
