@@ -124,10 +124,19 @@ export async function retryPackRemake(order, env) {
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
   if (order.product_kind !== 'custom' || order.status !== 'published' || !order.paid_at)
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'This paid order is not eligible for a pack remake.');
-  const previous=await query(env.DB,'SELECT status,phase,error_code,error_detail,blueprint_json,story_json,logic_epoch,quality_epoch,spec_json,recovery_round,published_version FROM custom_pack_remakes WHERE order_id = ?',order.id).first();
+  const previous=await query(env.DB,'SELECT status,phase,error_code,error_detail,blueprint_json,stages_json,story_json,logic_epoch,quality_epoch,spec_json,recovery_round,published_version FROM custom_pack_remakes WHERE order_id = ?',order.id).first();
   if (!previous || previous.status!=='failed' || (previous.published_version && !previous.quality_epoch))
     throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','This remake is not waiting for a recovery.');
   const savedSpec=JSON.parse(previous.spec_json);
+  const savedStages=JSON.parse(previous.stages_json||'[]');
+  const layoutRecovery=Boolean(previous.published_version&&savedSpec.packLayoutVersion>=2&&previous.blueprint_json&&savedStages.length===5&&previous.story_json&&previous.error_code==='BLUEPRINT_INVALID');
+  if(layoutRecovery){
+    const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'pdf',failure_count = 0,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND blueprint_json IS NOT NULL AND story_json IS NOT NULL",order.id).run();
+    if(!changed.meta?.changes)throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','A PDF refresh recovery has already started.');
+    try{await env.GENERATION_QUEUE.send({type:'pack_remake',orderId:order.id});}
+    catch(caught){console.error('Layout-only PDF recovery saved for scheduled recovery',{orderId:order.id,message:caught?.message});}
+    return {status:'queued',recovery:true,layoutOnly:true};
+  }
   if (failedRemakeNeedsUpgrade(savedSpec,previous)) {
     const upgraded=remakeSpec(savedSpec);
     const specJson=JSON.stringify(upgraded);
@@ -170,6 +179,7 @@ export async function packRemakeView(db, orderId) {
   if (!row) return null;
   const stages = JSON.parse(row.stages_json || '[]');
   const spec=JSON.parse(row.spec_json);
+  const layoutRecoveryAvailable=Boolean(row.status==='failed'&&row.published_version&&spec.packLayoutVersion>=2&&row.blueprint_json&&stages.length===5&&row.story_json&&row.error_code==='BLUEPRINT_INVALID');
   const upgradeAvailable=row.status==='failed'&&(row.published_version===null||row.quality_epoch>0)&&failedRemakeNeedsUpgrade(spec,row);
   const savedBlueprintAvailable=row.status==='failed'&&row.phase==='blueprint'&&row.error_code==='BLUEPRINT_INVALID'&&row.recovery_round>=MAX_RECOVERY_ROUNDS&&row.logic_epoch===0&&!row.published_version&&spec.packExperienceVersion>=2&&Boolean(await recoverSavedBlueprint(db,orderId,spec));
   const reviewPrefix = 'The completed game did not pass its quality check: ';
@@ -181,8 +191,9 @@ export async function packRemakeView(db, orderId) {
     currentStage: [1,2,3,4,5].find(number => !stages.some(stage => stage.number === number)) || null,
     storyReady: Boolean(row.story_json),
     publishedVersion: row.published_version || null,
-    failureReason: row.status === 'failed' ? row.error_code === 'REMAKE_BUDGET_EXHAUSTED' ? 'Earlier quality-review repairs used up this run\'s generation allowance. Your saved blueprint can continue on this paid order without another checkout.' : row.phase === 'blueprint' ? 'The game blueprint did not match the approved play rules. No new checkpoints or PDFs were published.' : row.phase === 'checkpoint' ? /Answer explanation is required and must be under/i.test(row.error_detail || '') ? 'The generated adult answer explanation was longer than the printable guide allows. Earlier checkpoints were saved.' : 'A new checkpoint did not pass generation checks. Saved earlier work remains on this order.' : row.phase === 'audit' ? row.error_detail?.startsWith(reviewPrefix) ? `The quality review found: ${row.error_detail.slice(reviewPrefix.length,300)} The new PDFs were not published.` : 'The complete game did not pass its quality review. No new PDFs were published.' : 'The replacement PDF files did not pass delivery checks. Your original PDFs remain available.' : null,
-    recoveryAvailable: upgradeAvailable || savedBlueprintAvailable || row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && (recoverableErrors.includes(row.error_code) || row.error_code === 'REMAKE_BUDGET_EXHAUSTED' && row.quality_epoch > 0),
+    failureReason: row.status === 'failed' ? layoutRecoveryAvailable ? 'The saved game is complete, but the layout refresh stopped before PDF rendering. Retrying will reuse the saved game and will not call the AI.' : row.error_code === 'REMAKE_BUDGET_EXHAUSTED' ? 'Earlier quality-review repairs used up this run\'s generation allowance. Your saved blueprint can continue on this paid order without another checkout.' : row.phase === 'blueprint' ? 'The game blueprint did not match the approved play rules. No new checkpoints or PDFs were published.' : row.phase === 'checkpoint' ? /Answer explanation is required and must be under/i.test(row.error_detail || '') ? 'The generated adult answer explanation was longer than the printable guide allows. Earlier checkpoints were saved.' : 'A new checkpoint did not pass generation checks. Saved earlier work remains on this order.' : row.phase === 'audit' ? row.error_detail?.startsWith(reviewPrefix) ? `The quality review found: ${row.error_detail.slice(reviewPrefix.length,300)} The new PDFs were not published.` : 'The complete game did not pass its quality review. No new PDFs were published.' : 'The replacement PDF files did not pass delivery checks. Your original PDFs remain available.' : null,
+    recoveryAvailable: layoutRecoveryAvailable || upgradeAvailable || savedBlueprintAvailable || row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && (recoverableErrors.includes(row.error_code) || row.error_code === 'REMAKE_BUDGET_EXHAUSTED' && row.quality_epoch > 0),
+    layoutRecoveryAvailable,
     upgradeAvailable,
     recoveryCount: row.recovery_round,
     startedAt: row.created_at,
@@ -284,6 +295,11 @@ export async function processPackRemake(orderId, env) {
   const spec = JSON.parse(remake.spec_json);
   let phase = 'blueprint', stageNumber = 0;
   try {
+    if(remake.phase==='pdf'&&remake.story_json){
+      phase='pdf';
+      await publishRemadeFiles(remake,order,env);
+      return;
+    }
     if (!remake.blueprint_json) {
       const blueprint = validateBlueprint(await recordCall(remake, 'blueprint', 0, async () => {
         const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", orderId,remake.quality_epoch,remake.logic_epoch).first();
