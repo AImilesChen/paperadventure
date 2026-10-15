@@ -19,18 +19,42 @@ const fitted=(value,label,max,complete=false)=>{
   return complete?`${result.replace(/[,:;.!?\s]+$/,'')}.`:result.replace(/[,:;.!?\s]+$/,'');
 };
 
+const actionFiller=new Set(['a','an','the','friendly','careful','carefully','nearby','correct','chosen','final','proper','safely','safe']);
+const compactAction=(value,label,max=40)=>{
+  if(typeof value!=='string'||!value.trim()||/[^\x20-\x7e]/.test(value))
+    throw Error(`${label} must be printable English under ${max} characters.`);
+  let result=value.replace(/\s+/g,' ').trim().replace(/[,:;.!?\s]+$/,'');
+  if(result.length<=max)return result;
+  const words=result.split(' '),withoutFiller=words.filter((word,index)=>index===0||!actionFiller.has(word.toLowerCase()));
+  result=withoutFiller.join(' ');
+  if(result.length<=max)return result;
+  const first=withoutFiller[0],tail=withoutFiller.slice(1).filter(word=>!/^(?:very|really|quickly|slowly)$/i.test(word));
+  while(tail.length>1&&`${first} ${tail.join(' ')}`.length>max)tail.splice(Math.max(0,tail.length-2),1);
+  result=`${first} ${tail.join(' ')}`.trim();
+  if(result.length>max)result=result.slice(0,max).replace(/\s+\S*$/,'').trim();
+  if(result.split(/\s+/).length<2)throw Error(`${label} must name a complete action.`);
+  return result;
+};
+
+const resolutionWords=value=>new Set(String(value||'').toLowerCase().match(/[a-z]{4,}/g)?.filter(word=>
+  !['with','from','into','onto','over','under','before','after','using','through','bring','take','make','give','hand','place','carry','move','send','open','close','seal','join'].includes(word))||[]);
+const concealResolution=(problem,action)=>{
+  const words=resolutionWords(action),hits=[...words].filter(word=>new RegExp(`\\b${word}\\b`,'i').test(problem));
+  return hits.length>=2?'The mission is still blocked, and the team must use four discoveries to decide which action will work.':problem;
+};
+
 export function prepareStoryFrame(frame){
   if(!frame||!Array.isArray(frame.actions)||frame.actions.length!==3||!Array.isArray(frame.purposes)||frame.purposes.length!==4)
     throw Error('The story frame needs one problem, three final actions and four discovery purposes.');
   const problem=fitted(frame.problem,'Story-frame problem',180,true);
-  const actions=frame.actions.map((value,index)=>fitted(value,`Final action ${index+1}`,40));
+  const actions=frame.actions.map((value,index)=>compactAction(value,`Final action ${index+1}`,40));
   if(new Set(actions.map(value=>value.toLowerCase())).size!==3)throw Error('The story frame needs three distinct final actions.');
   if(actions.some(value=>/^(?:restore|fix|solve|complete|save)\b/i.test(value)))
     throw Error('Each final action must name a specific story action.');
   const purposes=frame.purposes.map((value,index)=>fitted(value,`Checkpoint ${index+1} discovery purpose`,100,true));
   if(purposes.some(value=>value.length<28||/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(value)))
     throw Error('Each discovery purpose must explain a story consequence rather than an answer code.');
-  return {problem,actions,purposes};
+  return {problem:concealResolution(problem,actions[0]),actions,purposes};
 }
 
 export function selectedStoryFinding(stage,type,number){
