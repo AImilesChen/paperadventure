@@ -1,1 +1,1 @@
-2026-10-15: deploy targeted repair of rejected paid quality-upgrade blueprints before retrying their audits.
+2026-10-15: deploy early semantic preflight and cached audit for paid quality remakes.
