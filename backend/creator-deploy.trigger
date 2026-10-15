@@ -1,1 +1,1 @@
-2026-10-15: deploy early semantic preflight and cached audit for paid quality remakes.
+2026-10-15: deploy concrete same-kind record repair for semantic quality failures.
