@@ -1128,13 +1128,14 @@ test('a paid quality remake checks story semantics before saving any checkpoint 
   db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,access_expires_at) VALUES ('preflight-entitlement',?,'preflight-activity','active',datetime('now','+6 months'))").run(orderId);
   db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version) VALUES ('preflight-original','preflight-activity',2,'published',2)").run();
   db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,published_version,logic_epoch,quality_epoch) VALUES (?,'queued','blueprint',?,?,2,1,1)").run(orderId,specJson,await sha256(specJson));
+  db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,error_code,error_detail,generation_round,logic_epoch,quality_epoch) VALUES ('preflight-older-review',?,'audit',0,'failed','fixture','GENERATION_QA_FAILED','Checkpoint 4: an earlier candidate had a contradictory witness',1,1,1)").run(orderId);
   const queue=[],files=new Map(),calls=[];let firstAudit=true;
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
     PRIVATE_FILES:{put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata}),get:async key=>files.get(key)||null},
     FETCH:async(_url,init)=>{
       const request=JSON.parse(init.body),name=request.text.format.name;calls.push(name);
-      const value=name==='game_blueprint'?clockBlueprintContext:name==='paper_context_repair'?structuredClone(clockBlueprintContext.stages[0]):
-        name==='staged_story_audit'&&firstAudit?(firstAudit=false,{pass:false,issues:[{stageNumber:1,reason:'The printed features do not fit every candidate.'}]}):{pass:true,issues:[]};
+      const value=name==='game_blueprint'?clockBlueprintContext:name==='paper_context_repair'?structuredClone(clockBlueprintContext.stages[4]):
+        name==='staged_story_audit'&&firstAudit?(firstAudit=false,{pass:false,issues:[{stageNumber:5,reason:'The final action does not follow the selected findings.'}]}):{pass:true,issues:[]};
       return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});
     }};
   const process=async()=>{const job=queue.shift();assert.ok(job);await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('unexpected retry');}}]},env);};
@@ -1147,7 +1148,7 @@ test('a paid quality remake checks story semantics before saving any checkpoint 
   for(let i=0;i<7&&db.prepare('SELECT status FROM custom_pack_remakes WHERE order_id=?').get(orderId).status!=='ready';i++)await process();
   assert.equal(db.prepare('SELECT status FROM custom_pack_remakes WHERE order_id=?').get(orderId).status,'ready');
   assert.deepEqual(calls,['game_blueprint','staged_story_audit','paper_context_repair','staged_story_audit']);
-  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id=? AND phase='audit'").get(orderId).n,2);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id=? AND phase='audit'").get(orderId).n,3);
   assert.ok(files.has(`custom/${orderId}/v3-paper-remake/player.pdf`));
 });
 
