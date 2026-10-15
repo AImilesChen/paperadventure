@@ -3,6 +3,7 @@ import {validatePurchase} from '../backend/domain.mjs';
 import {generateSinglePlan} from '../backend/plan-proposals.mjs';
 import {generateBlueprint,repairBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory} from '../backend/staged-story.mjs';
 import {buildGamePdf} from '../backend/pdf.mjs';
+import {verifyPrintedPuzzles} from '../backend/paper-proof.mjs';
 
 const env={AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:process.env.DEEPSEEK_API_KEY,DEEPSEEK_MODEL:'deepseek-flash'};
 if(!env.DEEPSEEK_API_KEY)throw Error('Private provider credential missing.');
@@ -20,6 +21,7 @@ for(const item of cases){
   const privateFetch=async(url,options)=>{calls++;const response=await fetch(url,{...options,signal:AbortSignal.timeout(90000)});await writeFile(`${directory}/${item.id}-call-${calls}.json`,JSON.stringify({request:JSON.parse(options.body),response:await response.clone().json()},null,2));return response;};
   try{
     const {spec}=validatePurchase({sku:`custom_${item.setting}`,creatorVersion:3,customIdea:item.idea,setting:item.setting,players:item.players,age:item.age,paper:'A4',...(item.setting==='classroom'?{groups:Math.ceil(item.players/4)}:{}),gameplay:{primary:item.primary,secondary:item.secondary}});
+    if(spec.packExperienceVersion!==3)throw Error('Linked-story contract is not enabled for a new purchase.');
     const planned=await generateSinglePlan(spec,env,privateFetch),approved={...spec,plan:planned.plan,planConfirmed:true};
     phase='blueprint';let blueprint,candidate=null,reason='';
     for(let attempt=0;attempt<5&&!blueprint;attempt++){
@@ -35,8 +37,15 @@ for(const item of cases){
       catch(error){if(attempt===2||blueprintRepairs>=4)throw error;blueprintRepairs++;blueprint=(await repairBlueprint(approved,blueprint,error.message,env,privateFetch)).blueprint;}
     }
     phase='pdf';
+    if(verifyPrintedPuzzles(story).length!==5||story.spine?.links?.length!==4)throw Error('A printable finding or story link is missing.');
     await writeFile(`${directory}/${item.id}.json`,JSON.stringify({spec:approved,story},null,2));
-    for(const paper of ['A4','Letter'])for(const role of ['player','guide'])await writeFile(`${directory}/${item.id}-${role}-${paper}.pdf`,buildGamePdf(story,{...approved,paper},role));
+    for(const paper of ['A4','Letter'])for(const role of ['player','guide']){
+      const pdf=buildGamePdf(story,{...approved,paper},role),source=new TextDecoder().decode(pdf);
+      const pages=Number(source.match(/\/Count (\d+)/)?.[1]);
+      if(!source.startsWith('%PDF-')||pages<(role==='player'?12:7)||pages>(role==='player'?12:12))throw Error(`${role} ${paper} PDF page check failed.`);
+      if(role==='guide'&&!source.includes('WHY THIS FINDING MATTERS'))throw Error('Adult story links are missing.');
+      await writeFile(`${directory}/${item.id}-${role}-${paper}.pdf`,pdf);
+    }
     // All fixtures are invented for this workflow. Never read customer orders here.
     summaries.push({id:item.id,passed:true,calls,blueprintRepairs,stages:story.stages.length});
   }catch(error){summaries.push({id:item.id,passed:false,phase,calls,blueprintRepairs,code:error.code||'CHECK_FAILED',detail:String(error.message).slice(0,160)});}
@@ -44,3 +53,4 @@ for(const item of cases){
 }
 await writeFile(`${directory}/summary.json`,JSON.stringify(summaries,null,2));
 if(summaries.some(item=>!item.passed))process.exitCode=1;
+
