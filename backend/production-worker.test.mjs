@@ -1118,6 +1118,39 @@ test('superseded checked checkpoints do not exhaust the next blueprint repair',a
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders WHERE id=?').get(orderId).n,1);
 });
 
+test('a paid quality remake checks story semantics before saving any checkpoint and reuses that audit',async()=>{
+  const {db,binding}=database(),orderId='preflight-remake-order';
+  const spec={...clockSpec,packExperienceVersion:2,packQualityVersion:3};
+  const specJson=JSON.stringify(spec);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('preflight-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(orderId,specJson,await sha256(specJson),'preflight-owner','preflight-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('preflight-activity',?,'published',?)").run(orderId,specJson);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,access_expires_at) VALUES ('preflight-entitlement',?,'preflight-activity','active',datetime('now','+6 months'))").run(orderId);
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version) VALUES ('preflight-original','preflight-activity',2,'published',2)").run();
+  db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,published_version,logic_epoch,quality_epoch) VALUES (?,'queued','blueprint',?,?,2,1,1)").run(orderId,specJson,await sha256(specJson));
+  const queue=[],files=new Map(),calls=[];let firstAudit=true;
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
+    PRIVATE_FILES:{put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata}),get:async key=>files.get(key)||null},
+    FETCH:async(_url,init)=>{
+      const request=JSON.parse(init.body),name=request.text.format.name;calls.push(name);
+      const value=name==='game_blueprint'?clockBlueprintContext:name==='paper_context_repair'?structuredClone(clockBlueprintContext.stages[0]):
+        name==='staged_story_audit'&&firstAudit?(firstAudit=false,{pass:false,issues:[{stageNumber:1,reason:'The printed features do not fit every candidate.'}]}):{pass:true,issues:[]};
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});
+    }};
+  const process=async()=>{const job=queue.shift();assert.ok(job);await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('unexpected retry');}}]},env);};
+  queue.push({type:'pack_remake',orderId});
+  await process();
+  assert.equal(db.prepare('SELECT blueprint_json FROM custom_pack_remakes WHERE order_id=?').get(orderId).blueprint_json,null);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id=? AND phase='checkpoint'").get(orderId).n,0);
+  await process();
+  assert.ok(db.prepare('SELECT blueprint_json FROM custom_pack_remakes WHERE order_id=?').get(orderId).blueprint_json);
+  for(let i=0;i<7&&db.prepare('SELECT status FROM custom_pack_remakes WHERE order_id=?').get(orderId).status!=='ready';i++)await process();
+  assert.equal(db.prepare('SELECT status FROM custom_pack_remakes WHERE order_id=?').get(orderId).status,'ready');
+  assert.deepEqual(calls,['game_blueprint','staged_story_audit','paper_context_repair','staged_story_audit']);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id=? AND phase='audit'").get(orderId).n,2);
+  assert.ok(files.has(`custom/${orderId}/v3-paper-remake/player.pdf`));
+});
+
 test('a stopped quality upgrade can resume after the model-call budget fix without another payment',async()=>{
   const {db,binding}=database(),orderId='budget-recovery-order',specJson=JSON.stringify({...clockSpec,packExperienceVersion:2,packQualityVersion:3});
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('budget-price','custom_home','USD',1499,'exclusive',1)").run();
