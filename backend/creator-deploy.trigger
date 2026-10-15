@@ -1,1 +1,1 @@
-2026-10-15: deploy paid-pack remake budget repair and same-order recovery for quality-v3 orders.
+2026-10-15: deploy targeted repair of rejected paid quality-upgrade blueprints before retrying their audits.
