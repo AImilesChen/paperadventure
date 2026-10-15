@@ -51,21 +51,31 @@ export function remakeSpec(original) {
   return prepared;
 }
 
+export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevision) {
+  return purchase?.gamePackVersion === 2 && purchase.packContractVersion === 1 &&
+    (purchase.packExperienceVersion || 0) < 2 && activity?.packContractVersion === 1 &&
+    (activity.packExperienceVersion || 0) < 2 && latestFormat === 2 && !hasRevision;
+}
+
 export async function startPackRemake(order, activity, env) {
   if (!env.DB || !env.GENERATION_QUEUE || !env.PRIVATE_FILES || !aiProvider(env))
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
   if (order.product_kind !== 'custom' || order.status !== 'published' || !order.paid_at || activity?.status !== 'published')
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'Only a delivered paid custom order can be remade.');
-  if (JSON.parse(order.purchase_spec_json).gamePackVersion >= 2)
-    throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'This order already uses the paper-material format.');
   const existing = await query(env.DB, 'SELECT status FROM custom_pack_remakes WHERE order_id = ?', order.id).first();
   if (existing) return { status: existing.status, queued: false };
   const latest = await query(env.DB, "SELECT pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", activity.id).first();
-  if (!latest || latest.pack_format_version >= 2)
-    throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'This order already has the paper-material format.');
-  const pendingRevision = await query(env.DB, "SELECT id FROM revision_requests WHERE order_id = ? AND status IN ('queued','generating') LIMIT 1", order.id).first();
+  const purchase = JSON.parse(order.purchase_spec_json);
+  const activitySpec = JSON.parse(activity.story_spec_json);
+  const checkedPack = purchase.gamePackVersion >= 2 || latest?.pack_format_version >= 2;
+  const anyRevision = checkedPack ? await query(env.DB, "SELECT id FROM revision_requests WHERE order_id = ? AND status IN ('queued','generating','published') LIMIT 1", order.id).first() : null;
+  const revisionAllowance = checkedPack ? await query(env.DB, 'SELECT revision_success_used FROM entitlements WHERE order_id = ?', order.id).first() : null;
+  if (checkedPack && !qualityUpgradeEligible(purchase, activitySpec, latest?.pack_format_version, Boolean(anyRevision || revisionAllowance?.revision_success_used)))
+    throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'This pack already has the current quality rules or has been revised. Please request a quality review for this order.');
+  if (!latest) throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'A delivered pack is required before a remake can start.');
+  const pendingRevision = checkedPack ? anyRevision : await query(env.DB, "SELECT id FROM revision_requests WHERE order_id = ? AND status IN ('queued','generating') LIMIT 1", order.id).first();
   if (pendingRevision) throw new ApiError(409, 'REVISION_IN_PROGRESS', 'Wait for the current checkpoint change before starting a full-pack remake.');
-  const spec = remakeSpec(JSON.parse(activity.story_spec_json));
+  const spec = remakeSpec(activitySpec);
   const specJson = JSON.stringify(spec);
   const specHash = await sha256(specJson);
   const created = await query(env.DB, "INSERT OR IGNORE INTO custom_pack_remakes (order_id,status,spec_json,spec_sha256) VALUES (?,'queued',?,?)", order.id, specJson, specHash).run();

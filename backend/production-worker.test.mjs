@@ -13,6 +13,7 @@ import { planFixture } from '../tests/fixtures/creator-plan-fixture.mjs';
 import { sampleSpec, sampleStory } from '../content/custom-paper-format-sample.mjs';
 import { compileControlledPuzzle, controlledStageText } from './controlled-puzzles.mjs';
 import { clockSpec,clockBlueprintContext } from '../content/paper-contract-qa.mjs';
+import { qualityUpgradeEligible } from './pack-remake.mjs';
 async function approvedCustomInput(env,input) {
   const spec=validatePurchase({...input,creatorVersion:2,gameplay:{primary:'reasoning',secondary:[]}}).spec;
   spec.plan=planFixture(spec,spec.direction);spec.planConfirmed=true;
@@ -1005,6 +1006,40 @@ test('a paid legacy pack remakes on the same order and keeps the old download un
   assert.notDeepEqual(new Uint8Array(await (await download()).arrayBuffer()),oldPdf,'downloads switch only after checked publication');
   const originalDownload=await handleProductionApi(request('/api/v1/files/legacy-order/player?paper=A4&version=1','GET',undefined,headers),env);
   assert.deepEqual(new Uint8Array(await originalDownload.arrayBuffer()),oldPdf,'the earlier pack can still be downloaded by its owner');
+});
+
+test('a delivered pre-quality checked pack offers one free upgrade on its paid order',async()=>{
+  const {db,binding}=database(),owner='quality-upgrade-owner';
+  const purchase=JSON.stringify(clockSpec);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('quality-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('quality-order','custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(purchase,await sha256(purchase),owner,'quality-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('quality-activity','quality-order','published',?)").run(purchase);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit,revision_expires_at,access_expires_at) VALUES ('quality-entitlement','quality-order','quality-activity','active',2,datetime('now','+20 days'),datetime('now','+6 months'))").run();
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version) VALUES ('quality-artifact','quality-activity',1,'published',2)").run();
+  const queue=[];
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)}};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const view=()=>handleProductionApi(request('/api/v1/orders/quality-order','GET',undefined,headers),env).then(response=>response.json());
+  assert.equal((await view()).qualityUpgradeAvailable,true);
+  assert.equal((await handleProductionApi(request('/api/v1/orders/quality-order/pack-remake','POST',undefined,headers),env)).status,202);
+  assert.equal((await handleProductionApi(request('/api/v1/orders/quality-order/pack-remake','POST',undefined,headers),env)).status,200);
+  assert.deepEqual(queue,[{type:'pack_remake',orderId:'quality-order'}]);
+  const saved=db.prepare("SELECT spec_json,status FROM custom_pack_remakes WHERE order_id='quality-order'").get();
+  assert.equal(JSON.parse(saved.spec_json).packExperienceVersion,2);
+  assert.equal(saved.status,'queued');
+  assert.equal((await view()).qualityUpgradeAvailable,false);
+  assert.equal((await view()).remake.status,'queued');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1,'original pack remains published until replacement checks finish');
+});
+
+test('current-quality and revised checked packs cannot start the free full-pack upgrade',()=>{
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false),true);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packExperienceVersion:2},clockSpec,2,false),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packExperienceVersion:2},2,false),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
 
 test('an original checked pack can publish a checkpoint revision without a remake or model call',async()=>{
