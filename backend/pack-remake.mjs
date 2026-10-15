@@ -107,7 +107,7 @@ export async function retryPackRemake(order, env) {
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
   if (order.product_kind !== 'custom' || order.status !== 'published' || !order.paid_at)
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'This paid order is not eligible for a pack remake.');
-  const previous=await query(env.DB,'SELECT status,phase,error_code,logic_epoch,quality_epoch,spec_json,recovery_round,published_version FROM custom_pack_remakes WHERE order_id = ?',order.id).first();
+  const previous=await query(env.DB,'SELECT status,phase,error_code,error_detail,blueprint_json,story_json,logic_epoch,quality_epoch,spec_json,recovery_round,published_version FROM custom_pack_remakes WHERE order_id = ?',order.id).first();
   if (!previous || previous.status!=='failed' || (previous.published_version && !previous.quality_epoch))
     throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','This remake is not waiting for a recovery.');
   const savedSpec=JSON.parse(previous.spec_json);
@@ -129,6 +129,17 @@ export async function retryPackRemake(order, env) {
     try{await env.GENERATION_QUEUE.send({type:'pack_remake',orderId:order.id});}
     catch(caught){console.error('Saved blueprint recovery queued',{orderId:order.id,message:caught?.message});}
     return {status:'queued',recovery:true,reusedBlueprint:true};
+  }
+  if(previous.phase==='audit'&&previous.error_code==='GENERATION_QA_FAILED'&&previous.quality_epoch>0&&previous.blueprint_json&&!previous.story_json&&previous.recovery_round<MAX_RECOVERY_ROUNDS){
+    const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'blueprint',blueprint_json = NULL,blueprint_sha256 = NULL,stages_json = '[]',story_json = NULL,story_sha256 = NULL,failure_count = 0,recovery_round = recovery_round + 1,recovery_count = MIN(recovery_count + 1,1),lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND phase = 'audit' AND error_code = 'GENERATION_QA_FAILED' AND quality_epoch > 0 AND recovery_round < ?",order.id,MAX_RECOVERY_ROUNDS).run();
+    if(!changed.meta?.changes)throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','A recovery has already started.');
+    await env.DB.batch([
+      query(env.DB,"UPDATE custom_pack_remake_calls SET status = 'failed',error_code = 'AUDIT_REJECTED',error_detail = ? WHERE id = (SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint' AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1)",String(previous.error_detail||'The full game needs a quality repair.').slice(0,500),order.id,previous.quality_epoch,previous.logic_epoch),
+      query(env.DB,"UPDATE custom_pack_remake_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'checkpoint' AND status = 'passed'",order.id,previous.quality_epoch,previous.logic_epoch),
+    ]);
+    try{await env.GENERATION_QUEUE.send({type:'pack_remake',orderId:order.id});}
+    catch(caught){console.error('Paid quality repair saved for scheduled recovery',{orderId:order.id,message:caught?.message});}
+    return {status:'queued',recovery:true};
   }
   const changed = await query(env.DB, "UPDATE custom_pack_remakes SET status = 'queued',failure_count = 0,recovery_round = recovery_round + 1,recovery_count = MIN(recovery_count + 1,1),lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND recovery_round < ? AND (published_version IS NULL OR quality_epoch > 0) AND (error_code IN ('BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED') OR (error_code = 'REMAKE_BUDGET_EXHAUSTED' AND quality_epoch > 0))", order.id, MAX_RECOVERY_ROUNDS).run();
   if (!changed.meta?.changes) throw new ApiError(409, 'REMAKE_RECOVERY_UNAVAILABLE', 'A recovery has already started or this remake needs personal support.');
