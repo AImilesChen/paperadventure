@@ -81,8 +81,31 @@ function strictPurposes(purposes,action){
   if(linked<3)throw Error('At least three discoveries must directly name part of the intended final action.');
 }
 
+const discoveryText=(value,label,max)=>{
+  const text=completeBounded(value,label,max);
+  if(pendingDiscovery.test(text))throw Error(`${label} must state what is already known, not promise a later investigation.`);
+  if(completedOutcome.test(text))throw Error(`${label} must keep the mission unfinished until the final action.`);
+  if(/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(text))
+    throw Error(`${label} must describe the story rather than an answer code.`);
+  return text;
+};
+const actionTerms=value=>new Set(String(value||'').toLowerCase().match(/[a-z]{3,}/g)?.filter(word=>
+  !['the','and','with','from','into','onto','over','under','before','after','using','through','this','that'].includes(word))||[]);
+const normalizeDiscovery=(value,index,action)=>{
+  if(!value||typeof value!=='object'||Array.isArray(value))
+    throw Error(`Checkpoint ${index+1} discovery needs separate finding, consequence and action support.`);
+  const finding=discoveryText(value.finding,`Checkpoint ${index+1} finding`,70);
+  const consequence=discoveryText(value.consequence,`Checkpoint ${index+1} consequence`,70);
+  const supportsAction=fitted(value.supportsAction,`Checkpoint ${index+1} supported action`,40);
+  const intended=actionTerms(action),supported=actionTerms(supportsAction);
+  if(![...supported].some(term=>intended.has(term)))
+    throw Error(`Checkpoint ${index+1} discovery must name a concrete part of the intended final action.`);
+  return {finding,consequence,supportsAction};
+};
+
 export function prepareStoryFrame(frame,qualityVersion=4){
-  if(!frame||!Array.isArray(frame.actions)||frame.actions.length!==3||!Array.isArray(frame.purposes)||frame.purposes.length!==4)
+  const hasStructured=Array.isArray(frame?.discoveries)&&frame.discoveries.length===4;
+  if(!frame||!Array.isArray(frame.actions)||frame.actions.length!==3||qualityVersion>=6&&!hasStructured||qualityVersion<6&&(!Array.isArray(frame.purposes)||frame.purposes.length!==4))
     throw Error('The story frame needs one problem, three final actions and four discovery purposes.');
   let problem;
   try{problem=fitted(frame.problem,'Story-frame problem',180,true);}
@@ -91,7 +114,9 @@ export function prepareStoryFrame(frame,qualityVersion=4){
   if(new Set(actions.map(value=>value.toLowerCase())).size!==3)throw Error('The story frame needs three distinct final actions.');
   if(actions.some(value=>/^(?:(?:restore|fix|solve|complete|save)\b|(?:final\s+)?action\b|option\b|choice\b)/i.test(value)))
     throw Error('Each final action must name a specific story action.');
-  const purposes=frame.purposes.map((value,index)=>{
+  const discoveries=qualityVersion>=6?frame.discoveries.map((value,index)=>normalizeDiscovery(value,index,actions[0])):null;
+  const purposeInput=discoveries?discoveries.map(value=>`${value.finding} ${value.consequence}`):frame.purposes;
+  const purposes=purposeInput.map((value,index)=>{
     let purpose;
     try{purpose=fitted(value,`Checkpoint ${index+1} discovery purpose`,100,true);}
     catch{purpose=purposeFallbacks[index];}
@@ -99,8 +124,8 @@ export function prepareStoryFrame(frame,qualityVersion=4){
   });
   if(purposes.some(value=>value.length<28||/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(value)))
     throw Error('Each discovery purpose must explain a story consequence rather than an answer code.');
-  if(qualityVersion>=5)strictPurposes(purposes,actions[0]);
-  return {problem:concealResolution(problem,actions[0]),actions,purposes};
+  if(qualityVersion===5)strictPurposes(purposes,actions[0]);
+  return {problem:concealResolution(problem,actions[0]),actions,purposes,...(discoveries?{discoveries}:{})};
 }
 
 export function selectedStoryFinding(stage,type,number){
@@ -148,11 +173,24 @@ const completeStoryLink=(lead,purpose,index,max=180)=>{
   }
   throw Error(`Checkpoint ${index+1} printed names leave no room for a complete story link.`);
 };
+const completeStructuredStoryLink=(lead,discovery,index,action,max=180)=>{
+  const consequence=discoveryText(discovery.consequence,`Checkpoint ${index+1} consequence`,70);
+  const support=fitted(action,`Checkpoint ${index+1} final action`,40);
+  const full=`${lead} ${consequence} This supports "${support}".`;
+  if(full.length<=max)return full;
+  const compact=`${lead} This supports "${support}".`;
+  if(compact.length<=max)return compact;
+  throw Error(`Checkpoint ${index+1} printed names leave no room for a complete story link.`);
+};
 
 export function compileStorySpine(frame,stages,types,qualityVersion=4){
   const checked=prepareStoryFrame(frame,qualityVersion),resolution=checked.actions[0];
   const links=stages.slice(0,4).map((stage,index)=>{
-    const {lead}=storyLead(stage,types[index],index+1);
+    const {finding,lead}=storyLead(stage,types[index],index+1);
+    if(qualityVersion>=6){
+      const discovery=checked.discoveries[index];
+      return {finding,reason:completeStructuredStoryLink(lead,discovery,index,resolution),consequence:discovery.consequence,supportsAction:discovery.supportsAction};
+    }
     return completeStoryLink(lead,checked.purposes[index],index);
   });
   return {problem:checked.problem,resolution,links};
@@ -168,9 +206,14 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
     throw Error('The final choice must name a specific repair or action, not restate the mission goal.');
   const resolution=firstAction;
   const links=spine.links.map((value,index)=>{
-    let reason=plain(typeof value==='string'?value:value?.reason,`Checkpoint ${index+1} story link`,180);
     const {finding,lead}=storyLead(stages[index],types[index],index+1);
     if(!finding)throw Error(`Checkpoint ${index+1} has no selected finding.`);
+    const structured=qualityVersion>=6?normalizeDiscovery({
+      finding:'The printed finding is confirmed.',
+      consequence:typeof value==='object'&&value?.consequence,
+      supportsAction:typeof value==='object'&&value?.supportsAction,
+    },index,resolution):null;
+    let reason=structured?completeStructuredStoryLink(lead,structured,index,resolution):plain(typeof value==='string'?value:value?.reason,`Checkpoint ${index+1} story link`,180);
     if(/\b(?:answer code|result digit|correct answer|matching option)\b/i.test(reason))
       throw Error(`Checkpoint ${index+1} story link needs a fictional reason beyond the answer code.`);
     const exactFinding=reason.toLowerCase().includes(String(finding).toLowerCase());
@@ -190,7 +233,7 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
     if(reason.length>180||danglingEnd.test(reason))throw Error(`Checkpoint ${index+1} story link must contain complete sentences.`);
     if(reason.length<Math.min(30,String(finding).length+15))
       throw Error(`Checkpoint ${index+1} story link needs a fictional reason beyond the answer code.`);
-    if(qualityVersion>=5){
+    if(qualityVersion===5){
       if((reason.match(/[.!?](?:\s|$)/g)||[]).length<2)
         throw Error(`Checkpoint ${index+1} story link must state both the checked finding and its consequence.`);
       const consequence=reason.replace(lead,'').trim();
@@ -200,8 +243,8 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
         throw Error(`Checkpoint ${index+1} story link must explain why its finding supports the final action.`);
     }
     assertGoalStillOpen([reason],goal,index+1);
-    return {finding,reason};
+    return {finding,reason,...(structured?{consequence:structured.consequence,supportsAction:structured.supportsAction}:{})};
   });
-  if(qualityVersion>=5)strictPurposes(links.map(link=>link.reason),resolution);
+  if(qualityVersion===5)strictPurposes(links.map(link=>link.reason),resolution);
   return {problem,resolution,links};
 }

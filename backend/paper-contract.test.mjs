@@ -10,7 +10,7 @@ import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
 import {alignPaperPlan,paperContractTypes,completePaperPlan} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
-import {prepareStoryFrame,validateStorySpine} from './story-spine.mjs';
+import {compileStorySpine,prepareStoryFrame,validateStorySpine} from './story-spine.mjs';
 
 test('long provider story-frame text is fitted before printable validation',()=>{
   const frame=prepareStoryFrame({
@@ -54,6 +54,57 @@ test('quality version 5 requires completed causal discoveries instead of future 
   assert.throws(()=>prepareStoryFrame({...strong,purposes:strong.purposes.map(value=>value.replace(/, (?:so|which means|which allows).*$/i,'.'))},5),/story consequence|explain why/);
 });
 
+const structuredClockFrame=()=>({
+  problem:'The tower remains silent while the traveler waits below.',
+  actions:['Fit signal gear','Reset tower hands','Replace bell rope'],
+  discoveries:[
+    {finding:'The signal gear is missing.',consequence:'The drive path becomes usable.',supportsAction:'signal gear'},
+    {finding:'The spare gear fits the shaft.',consequence:'The gear can turn without binding.',supportsAction:'signal gear'},
+    {finding:'The checked order protects the teeth.',consequence:'The parts stay aligned during repair.',supportsAction:'Fit signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The replacement can reach the tower.',supportsAction:'signal gear'},
+  ],
+});
+
+test('quality version 6 uses structured causal fields instead of keyword matching',()=>{
+  const frame=prepareStoryFrame(structuredClockFrame(),6);
+  assert.equal(frame.discoveries.length,4);
+  assert.equal(frame.discoveries[0].consequence,'The drive path becomes usable.');
+  assert.doesNotMatch(frame.discoveries[0].consequence,/because|so|enables|allows/i);
+  const raw=linkedClockContext();
+  const spine=compileStorySpine(frame,raw.stages,paperContractTypes(clockSpec.plan),6);
+  assert.equal(spine.links[0].supportsAction,'signal gear');
+  assert.match(spine.links[0].reason,/supports "Fit signal gear"/i);
+  assert.doesNotThrow(()=>validateStorySpine(spine,prepareContextualBlueprint({...raw,storyFrame:frame,spine,celebration:'The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.'},{...clockSpec,packExperienceVersion:3,packQualityVersion:6}).stages,paperContractTypes(clockSpec.plan),clockSpec.plan.goal,6));
+  const future=structuredClockFrame();future.discoveries[0].finding='Inspect the tower to reveal the missing gear.';
+  assert.throws(()=>prepareStoryFrame(future,6),/already known|later investigation/);
+  const unrelated=structuredClockFrame();unrelated.discoveries[0].supportsAction='bell rope';
+  assert.throws(()=>prepareStoryFrame(unrelated,6),/intended final action/);
+});
+
+test('quality version 6 repairs only a failed discovery before rebuilding materials',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:6,packLayoutVersion:4};
+  const frame=structuredClockFrame();
+  frame.discoveries[0].supportsAction='bell rope';
+  const fixed={finding:'The signal gear is missing.',consequence:'The drive path becomes usable.',supportsAction:'signal gear'};
+  const raw=linkedClockContext(),material={celebration:'The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.',stages:raw.stages};
+  let calls=0;
+  const result=await repairBlueprint(spec,{storyFrame:frame},'Checkpoint 1 discovery must name a concrete part of the intended final action.',
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+      calls++;
+      const body=JSON.parse(request.body);
+      if(calls===1){
+        assert.equal(body.text.format.name,'story_discovery_repair');
+        assert.equal(JSON.parse(body.input).checkpoint,1);
+        return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(fixed)}]}]});
+      }
+      assert.equal(body.text.format.name,'game_blueprint');
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(material)}]}]});
+    });
+  assert.equal(calls,2);
+  assert.deepEqual(result.blueprint.storyFrame.discoveries[0],fixed);
+  assert.deepEqual(result.blueprint.storyFrame.discoveries.slice(1),prepareStoryFrame({...frame,discoveries:[fixed,...frame.discoveries.slice(1)]},6).discoveries.slice(1));
+});
+
 test('quality version 5 requires an earned two-beat ending and fills final-guide spare space',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:5,packLayoutVersion:4};
   const raw=linkedClockContext();
@@ -81,7 +132,7 @@ test('quality version 5 requires an earned two-beat ending and fills final-guide
     Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:3,reason:'The third link promises a later inspection instead of stating its result.'}]})}]}]})),/quality check/);
 });
 
-test('quality version 5 builds a second theme on A4 and Letter with the same delivery gates',async()=>{
+test('quality version 6 builds a second theme on A4 and Letter with the same delivery gates',async()=>{
   const plan=alignPaperPlan({...structuredClone(clockSpec.plan),title:'The Garden Lantern at Dusk',
     opening:'The community garden path is dark, and the evening visitors are waiting. Four checked discoveries will identify the safe way to light the lantern.',
     goal:'Light the garden lantern so visitors can follow the path home.',
@@ -92,7 +143,7 @@ test('quality version 5 builds a second theme on A4 and Letter with the same del
       'Across the garden. Three routes lead toward the lantern post.',
       'At the lantern post. The team combines its four checked discoveries.',
     ][index]}))});
-  const spec={...clockSpec,plan,packExperienceVersion:3,packQualityVersion:5,packLayoutVersion:4};
+  const spec={...clockSpec,plan,packExperienceVersion:3,packQualityVersion:6,packLayoutVersion:4};
   const raw=linkedClockContext();
   raw.stages[0].material={title:'Lantern supply reports',items:['Copper wire report','Glass shade report','Lantern wick report'].map(label=>({label}))};
   raw.stages[0].features=['Mentions dry wick','Names brass socket'];
@@ -101,18 +152,13 @@ test('quality version 5 builds a second theme on A4 and Letter with the same del
   raw.stages[2].material={title:'Lantern preparation steps',items:['Secure lantern post','Fit the dry wick','Close the glass shade','Turn the lantern key'].map(label=>({label}))};
   raw.stages[3].material={title:'Garden route board',items:['Gate path route','Herb path route','Pond path route'].map(label=>({label}))};
   raw.stages[4].material={title:'Lantern final actions',items:['Light garden lantern','Move lantern to shed','Close the garden gate'].map(label=>({label}))};
-  raw.storyFrame={problem:'The garden lantern remains dark while the evening visitors wait.',actions:raw.stages[4].material.items.map(item=>item.label),purposes:[
-    'The dry wick fits the lantern socket, so the garden lantern can hold a steady flame.',
-    'The lantern key is stored on a dry shelf, which means the garden lantern can be turned safely.',
-    'This protects the lantern, so its shade closes before lighting.',
-    'The pond path reaches the lantern post, which allows the team to carry the lantern key safely.',
+  raw.storyFrame={problem:'The garden lantern remains dark while the evening visitors wait.',actions:raw.stages[4].material.items.map(item=>item.label),discoveries:[
+    {finding:'The dry wick fits the brass socket.',consequence:'The flame can stay steady.',supportsAction:'garden lantern'},
+    {finding:'The lantern key is on a dry shelf.',consequence:'The switch can turn safely.',supportsAction:'lantern'},
+    {finding:'The shade closes after the wick is fitted.',consequence:'The flame stays protected.',supportsAction:'Light garden lantern'},
+    {finding:'The pond path reaches the lantern post.',consequence:'The key can reach the post.',supportsAction:'lantern'},
   ]};
-  raw.spine={problem:raw.storyFrame.problem,resolution:'Light garden lantern',links:[
-    'Lantern wick report contains both dry wick and brass socket. The dry wick fits the lantern socket, so the garden lantern can hold a steady flame.',
-    'Tool shed note contains both lantern key and dry shelf. The lantern key is stored on a dry shelf, which means the garden lantern can be turned safely.',
-    'Secure lantern post > Fit the dry wick > Close the glass shade > Turn the lantern key is the checked story sequence. This protects the lantern, so its shade closes before lighting.',
-    'Pond path route is the only open story route. The pond path reaches the lantern post, which allows the team to carry the lantern key safely.',
-  ]};
+  raw.spine=compileStorySpine(raw.storyFrame,raw.stages,paperContractTypes(plan),6);
   raw.celebration='The dry wick catches and the garden lantern lights the whole path. The visitors cheer, thank the team, and walk home together.';
   const blueprint=prepareContextualBlueprint(raw,spec),stages=[];
   for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected provider request');})).stage);
@@ -120,7 +166,7 @@ test('quality version 5 builds a second theme on A4 and Letter with the same del
   assert.equal(verifyPrintedPuzzles(story).length,5);
   if(process.env.PAPER_QA_OUTPUT){
     await mkdir(process.env.PAPER_QA_OUTPUT,{recursive:true});
-    for(const role of ['player','guide'])await writeFile(`${process.env.PAPER_QA_OUTPUT}/garden-v5-${role}-A4.pdf`,buildGamePdf(story,spec,role));
+    for(const role of ['player','guide'])await writeFile(`${process.env.PAPER_QA_OUTPUT}/garden-v6-${role}-A4.pdf`,buildGamePdf(story,spec,role));
   }
   for(const paper of ['A4','Letter'])for(const role of ['player','guide']){
     const pdf=new TextDecoder().decode(buildGamePdf(story,{...spec,paper},role));

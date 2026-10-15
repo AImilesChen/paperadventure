@@ -30,7 +30,8 @@ const fitRecordFeature=value=>{
 const featureBanned=/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i;
 const featureStop=new Set(['this','that','with','from','into','before','after','needed','need','helps','help','using','used','final','first','action','story','discovery','identifies','identify','gives','give','provides','provide','allows','allow','required','requires','carry','complete','completes']);
 const fallbackRecordFeatures=(candidate,spec,index)=>{
-  const source=[candidate.storyFrame?.purposes?.[index],candidate.storyFrame?.actions?.[0],spec.plan?.stages?.[index]?.scene,spec.plan?.stages?.[index]?.storyContext]
+  const discovery=candidate.storyFrame?.discoveries?.[index];
+  const source=[discovery?.finding,discovery?.consequence,candidate.storyFrame?.purposes?.[index],candidate.storyFrame?.actions?.[0],spec.plan?.stages?.[index]?.scene,spec.plan?.stages?.[index]?.storyContext]
     .filter(Boolean).join(' ').toLowerCase();
   const words=(source.match(/[a-z]{4,}/g)||[]).filter(word=>!featureStop.has(word)&&!featureBanned.test(word));
   const uniqueWords=[...new Set(words)];
@@ -54,7 +55,8 @@ const visibleOutcome=/\b(?:rings?|chimes?|sounds?|starts?|turns?|opens?|glows?|s
 const sharedResponse=/\b(?:smiles?|cheers?|celebrates?|thanks?|welcomes?|applauds?|continues?|begins?|sets out|heads home|gathers?|reunites?)\b/i;
 const subjectStop=new Set(['this','that','with','from','into','before','after','using','used','final','first','action','story','discovery','identifies','identify','gives','give','provides','provide','allows','allow','required','requires','complete','completes','mission','team','children','must','which','will','work']);
 const storySubject=(candidate,spec,index)=>{
-  const source=[candidate.storyFrame?.purposes?.[index],candidate.storyFrame?.actions?.[0],spec.plan?.stages?.[index]?.scene,spec.plan?.goal]
+  const discovery=candidate.storyFrame?.discoveries?.[index];
+  const source=[discovery?.finding,discovery?.consequence,candidate.storyFrame?.purposes?.[index],candidate.storyFrame?.actions?.[0],spec.plan?.stages?.[index]?.scene,spec.plan?.goal]
     .filter(Boolean).join(' ').toLowerCase();
   const words=[...new Set((source.match(/[a-z]{4,}/g)||[]).filter(word=>!subjectStop.has(word)&&!featureBanned.test(word)))];
   return words.slice(0,2).join(' ')||'mission';
@@ -223,9 +225,11 @@ export function prepareContextualBlueprint(candidate,spec){
     ...candidate.spine,problem:fitNarrative(candidate.spine.problem,180),
     links:Array.isArray(candidate.spine.links)?candidate.spine.links.map((link,index)=>{
       const printed=stages[index].material.logic.context.word,proposed=candidate.stages[index]?.word;
+      const reason=typeof link==='string'?link:link?.reason;
       const aligned=types[index]==='symbol_key'&&typeof proposed==='string'&&proposed.toUpperCase()!==printed
-        ? String(link).replace(new RegExp(`\\b${proposed.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'gi'),printed):link;
-      return fitNarrative(aligned,180);
+        ? String(reason).replace(new RegExp(`\\b${proposed.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'gi'),printed):reason;
+      const fitted=fitNarrative(aligned,180);
+      return typeof link==='string'?fitted:{...link,reason:fitted};
     }):candidate.spine.links,
   },stages,types,spec.plan.goal,spec.packQualityVersion||4):null;
   const usePrintedEnding=spec.plan.stages.some(stage=>stage.scene)||candidate.celebration!==undefined;
