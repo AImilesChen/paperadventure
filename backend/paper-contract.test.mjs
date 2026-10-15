@@ -55,6 +55,21 @@ test('a decoded story word CODE is not confused with an answer-code explanation'
   assert.match(spine.links[0].reason,/CODE/);
 });
 
+test('symbol-key rows are compiled by the engine and do not depend on model labels',()=>{
+  const plan=alignPaperPlan({...structuredClone(clockSpec.plan),stages:clockSpec.plan.stages.map((stage,index)=>({...stage,mechanic:index<3?'code':'reasoning'}))});
+  const spec={...clockSpec,plan,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext();
+  raw.storyFrame={problem:raw.spine.problem,actions:raw.stages[4].material.items.map(item=>item.label),purposes:[
+    'This identifies a message needed before choosing the final action.',
+    'This locates another message needed before choosing the final action.',
+    'This establishes a safe preparation before the team attempts the final action.',
+    'This identifies a useful record for carrying out the final action.',
+  ]};
+  for(let index=0;index<3;index++)raw.stages[index].material.items=[{label:'Repeated row'},{label:'Repeated row'}];
+  const blueprint=prepareContextualBlueprint(raw,spec);
+  for(let index=0;index<3;index++)assert.deepEqual(blueprint.stages[index].material.logic.context.labels,['1','2','3','4']);
+});
+
 test('linked blueprint replaces worksheet commands and early outcomes with playable in-world pieces',()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
   const raw=linkedClockContext();
