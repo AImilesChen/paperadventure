@@ -26,7 +26,9 @@ for(const item of cases){
     phase='blueprint';let blueprint,candidate=null,reason='';
     for(let attempt=0;attempt<5&&!blueprint;attempt++){
       try{blueprint=(attempt?await repairBlueprint(approved,candidate,reason,env,privateFetch):await generateBlueprint(approved,env,privateFetch)).blueprint;}
-      catch(error){candidate=error.candidate;reason=error.message;if(attempt===4)throw error;blueprintRepairs++;}
+      catch(error){candidate=error.candidate;reason=error.message;
+        console.log(JSON.stringify({id:item.id,phase:'blueprint-check',attempt:attempt+1,code:error.code||'CHECK_FAILED',rule:String(reason).slice(0,180)}));
+        if(attempt===4)throw error;blueprintRepairs++;}
     }
     let story;
     for(let attempt=0;attempt<3;attempt++){

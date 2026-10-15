@@ -7,6 +7,12 @@ const text=(value,label,max)=>{
 };
 const unique=values=>new Set(values.map(value=>value.toLowerCase())).size===values.length;
 const rotate=(values,shift)=>values.map((_,i)=>values[(i+shift)%values.length]);
+const fitNarrative=(value,max)=>{
+  if(typeof value!=='string'||value.length<=max)return value;
+  const sentence=value.slice(0,max-1).match(/^.*[.!?](?=\s|$)/)?.[0];
+  const words=value.slice(0,max-1).replace(/\s+\S*$/,'').trim();
+  return `${(sentence&&sentence.length>=max/2?sentence:words).replace(/[,:;.!?\s]+$/,'')}.`;
+};
 export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1,qualityVersion=2){
   const labels=context.labels;
   const shift=qualityVersion>=3?(number*2+1)%3:number%3;
@@ -133,7 +139,10 @@ export function prepareContextualBlueprint(candidate,spec){
     stages.push(stage);if(i<4)digits.push(compiled.material.logic.resultDigit);
   }
   if(new Set(stages.slice(0,4).map(stage=>stage.material.logic.signature)).size!==4)throw Error('The first four activities repeat the same puzzle; distinct variations are required.');
-  const spine=spec.packExperienceVersion>=3?validateStorySpine(candidate.spine,candidate.stages,types,spec.plan.goal):null;
+  const spine=spec.packExperienceVersion>=3?validateStorySpine(candidate.spine&&{
+    ...candidate.spine,problem:fitNarrative(candidate.spine.problem,180),
+    links:Array.isArray(candidate.spine.links)?candidate.spine.links.map(link=>fitNarrative(link,180)):candidate.spine.links,
+  },candidate.stages,types,spec.plan.goal):null;
   const usePrintedEnding=spec.plan.stages.some(stage=>stage.scene)||candidate.celebration!==undefined;
   const celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration)?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
   const ending=spine?`${spine.problem} The four checked results form code ${digits.join('')}, which matches "${spine.resolution}" on the final sheet. The team carries out that action. ${celebration}`:
