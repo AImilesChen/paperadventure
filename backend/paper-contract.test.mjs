@@ -180,6 +180,22 @@ test('an invalid new-plan checkpoint repairs only its own context',async()=>{
   assert.equal(result.blueprint.stages[0].material.items[0].label,clockBlueprintContext.stages[0].material.items[0].label);
 });
 
+test('semantic feature repair keeps evidence candidates comparable',async()=>{
+  const spec={...clockSpec,packExperienceVersion:2,packQualityVersion:3};
+  const corrected=structuredClone(clockBlueprintContext.stages[0]);
+  corrected.material.items=['Keeper note','Tower log','Repair report'].map(label=>({label}));
+  corrected.features=['Mentions noon bell','Names Meridian wheel'];
+  const result=await repairBlueprint(spec,clockBlueprintContext,'Checkpoint 1: a clock-face property cannot describe every candidate.',
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+      const body=JSON.parse(request.body);
+      assert.match(body.instructions,/WRITTEN RECORDS/);
+      assert.equal(body.text.format.name,'paper_context_repair');
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(corrected)}]}]});
+    });
+  assert.deepEqual(result.blueprint.stages[0].material.logic.context.labels,['Keeper note','Tower log','Repair report']);
+  assert.deepEqual(result.blueprint.stages[0].material.logic.context.features,corrected.features);
+});
+
 test('a second story works for Home and Classroom without changing the printed answer contract',async()=>{
   const raw=structuredClone(clockBlueprintContext);
   raw.stages[0].material={title:'Archive record cards',items:['Tide chart','Compass page','Library map'].map(label=>({label}))};
@@ -264,3 +280,4 @@ test('each main play style produces printable Home and Classroom packs without a
     for(const paper of ['A4','Letter'])for(const role of ['player','guide'])assert.ok(buildGamePdf(story,{...spec,paper},role).length>1000);
   }
 });
+
