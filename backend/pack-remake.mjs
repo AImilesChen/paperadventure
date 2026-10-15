@@ -39,7 +39,7 @@ export function remakeSpec(original) {
     ...original,
     gamePackVersion: 2,
     packLogicVersion: 1,
-    ...(original.packContractVersion===1?{packExperienceVersion:2,packQualityVersion:3}:{}),
+    ...(original.packContractVersion===1?{packExperienceVersion:3,packQualityVersion:3}:{}),
     plan: {
       ...plan,
       title: shorten(plan.title, 70),
