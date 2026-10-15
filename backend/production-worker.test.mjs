@@ -13,7 +13,8 @@ import { planFixture } from '../tests/fixtures/creator-plan-fixture.mjs';
 import { sampleSpec, sampleStory } from '../content/custom-paper-format-sample.mjs';
 import { compileControlledPuzzle, controlledStageText } from './controlled-puzzles.mjs';
 import { clockSpec,clockBlueprintContext } from '../content/paper-contract-qa.mjs';
-import { qualityUpgradeEligible } from './pack-remake.mjs';
+import { prepareBlueprintCandidate } from './staged-story.mjs';
+import { packRemakeView, qualityUpgradeEligible, retryPackRemake } from './pack-remake.mjs';
 async function approvedCustomInput(env,input) {
   const spec=validatePurchase({...input,creatorVersion:2,gameplay:{primary:'reasoning',secondary:[]}}).spec;
   spec.plan=planFixture(spec,spec.direction);spec.planConfirmed=true;
@@ -1083,6 +1084,55 @@ test('quality version 3 and revised checked packs cannot start the free full-pac
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
 
+test('superseded checked checkpoints do not exhaust the next blueprint repair',async()=>{
+  const {db,binding}=database(),orderId='audit-repair-order';
+  const spec={...clockSpec,packExperienceVersion:2,packQualityVersion:3};
+  const specJson=JSON.stringify(spec),blueprint=prepareBlueprintCandidate(clockBlueprintContext,spec);
+  const blueprintJson=JSON.stringify(blueprint);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('audit-repair-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(orderId,specJson,await sha256(specJson),'audit-repair-owner','audit-repair-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('audit-repair-activity',?,'published',?)").run(orderId,specJson);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,access_expires_at) VALUES ('audit-repair-entitlement',?,'audit-repair-activity','active',datetime('now','+6 months'))").run(orderId);
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version) VALUES ('audit-repair-original','audit-repair-activity',2,'published',2)").run();
+  db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,blueprint_json,blueprint_sha256,published_version,logic_epoch,quality_epoch) VALUES (?,'queued','checkpoint',?,?,?,?,2,1,1)").run(orderId,specJson,await sha256(specJson),blueprintJson,await sha256(blueprintJson));
+  for(let cycle=1;cycle<=2;cycle++){
+    db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,error_code,generation_round,logic_epoch,quality_epoch) VALUES (?,?, 'blueprint',0,'failed','fixture','AUDIT_REJECTED',1,1,1)").run(`repair-blueprint-${cycle}`,orderId);
+    for(let stage=1;stage<=5;stage++)db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,error_code,generation_round,logic_epoch,quality_epoch) VALUES (?,?, 'checkpoint',?,'passed','checked-rules-v1','AUDIT_REJECTED',1,1,1)").run(`repair-stage-${cycle}-${stage}`,orderId,stage);
+    db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,error_code,generation_round,logic_epoch,quality_epoch) VALUES (?,?, 'audit',0,'failed','fixture','GENERATION_QA_FAILED',1,1,1)").run(`repair-audit-${cycle}`,orderId);
+  }
+  db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,result_json,generation_round,logic_epoch,quality_epoch) VALUES ('repair-blueprint-3',?,'blueprint',0,'passed','fixture',?,1,1,1)").run(orderId,blueprintJson);
+  const queue=[],files=new Map();
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
+    PRIVATE_FILES:{put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata}),get:async key=>files.get(key)||null},
+    FETCH:async(_url,init)=>{assert.equal(JSON.parse(init.body).text.format.name,'staged_story_audit');return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:true,issues:[]})}]}]});}};
+  queue.push({type:'pack_remake',orderId});
+  for(let step=0;step<8;step++){
+    const job=queue.shift();assert.ok(job,'saved work must advance without a second checkout');
+    await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('queue retry is not needed');}}]},env);
+    if(db.prepare('SELECT status FROM custom_pack_remakes WHERE order_id=?').get(orderId).status==='ready')break;
+  }
+  assert.equal(db.prepare('SELECT status FROM custom_pack_remakes WHERE order_id=?').get(orderId).status,'ready');
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id=? AND phase='checkpoint' AND stage_number=1").get(orderId).n,3);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM artifact_versions WHERE custom_activity_id='audit-repair-activity'").get().n,2);
+  assert.ok(files.has(`custom/${orderId}/v3-paper-remake/player.pdf`));
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders WHERE id=?').get(orderId).n,1);
+});
+
+test('a stopped quality upgrade can resume after the model-call budget fix without another payment',async()=>{
+  const {db,binding}=database(),orderId='budget-recovery-order',specJson=JSON.stringify({...clockSpec,packExperienceVersion:2,packQualityVersion:3});
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('budget-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(orderId,specJson,await sha256(specJson),'budget-owner','budget-price');
+  db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,published_version,error_code,quality_epoch) VALUES (?,'failed','checkpoint',?,?,2,'REMAKE_BUDGET_EXHAUSTED',1)").run(orderId,specJson,await sha256(specJson));
+  assert.equal((await packRemakeView(binding,orderId)).recoveryAvailable,true);
+  const queue=[];
+  const result=await retryPackRemake({id:orderId,product_kind:'custom',status:'published',paid_at:'2026-10-15'},
+    {...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)}});
+  assert.equal(result.status,'queued');
+  assert.equal(db.prepare('SELECT recovery_round FROM custom_pack_remakes WHERE order_id=?').get(orderId).recovery_round,1);
+  assert.deepEqual(queue,[{type:'pack_remake',orderId}]);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders WHERE id=?').get(orderId).n,1);
+});
+
 test('an exhausted blueprint remake reuses its saved candidate and publishes a new pack without another blueprint call',async()=>{
   const {db,binding}=database(),owner='saved-blueprint-owner',spec={...clockSpec,packExperienceVersion:2};
   const stored=JSON.stringify(spec),original=new TextEncoder().encode('%PDF- earlier paid pack');
@@ -1269,3 +1319,4 @@ test('contract delivery repairs one rejected context, then retries PDF storage w
   assert.deepEqual(stages[4].material.logic.previousDigits,['3','1','2','3']);
   const count=calls.length;await process();assert.equal(calls.length,count);
 });
+
