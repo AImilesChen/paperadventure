@@ -1,4 +1,5 @@
 import {paperContractTypes,paperActions,paperAction,validatePaperPlan,assertGoalStillOpen} from '../shared/paper-contract.mjs';
+import {validateStorySpine} from './story-spine.mjs';
 
 const text=(value,label,max)=>{
   if(typeof value!=='string'||!value.trim()||value.length>max||/[^\x20-\x7e]/.test(value))throw Error(`${label} must be concise printable English (maximum ${max}).`);
@@ -116,6 +117,12 @@ export function prepareContextualBlueprint(candidate,spec){
       throw Error(`Checkpoint ${i+1} witness candidates must name story objects or actions, not the witness notes or answer roles.`);
     const features=(['evidence_cards','route_board'].includes(type)||spec.packExperienceVersion>=2&&type==='decision_record')&&i<4?raw.features?.map(value=>text(value,`Checkpoint ${i+1} printed feature`,32)):['Checked fact','Matching fact'];
     if(features?.length!==2||!unique(features))throw Error(`Checkpoint ${i+1} needs two distinct story-specific feature names.`);
+    if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)){
+      if(labels.some(label=>!/(?:note|report|log|letter|ledger|record|card|message|ticket|journal|entry|file|memo|clipping|receipt|statement|page|sheet|slip|document)$/i.test(label)))
+        throw Error(`Checkpoint ${i+1} candidates must all be comparable written records.`);
+      if(features.some(value=>!/^(?:Mentions|Names) [A-Za-z]/i.test(value)))
+        throw Error(`Checkpoint ${i+1} printed features must describe the contents of every record.`);
+    }
     if(spec.packExperienceVersion>=2&&i<4&&['evidence_cards','decision_record'].includes(type)&&features.some(value=>/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i.test(value)))
       throw Error(`Checkpoint ${i+1} needs two concrete story properties, not answer or puzzle-state labels.`);
     const word=type==='symbol_key'?text(raw.word,`Checkpoint ${i+1} printed key word`,4).toUpperCase():'NOTE';
@@ -126,11 +133,13 @@ export function prepareContextualBlueprint(candidate,spec){
     stages.push(stage);if(i<4)digits.push(compiled.material.logic.resultDigit);
   }
   if(new Set(stages.slice(0,4).map(stage=>stage.material.logic.signature)).size!==4)throw Error('The first four activities repeat the same puzzle; distinct variations are required.');
+  const spine=spec.packExperienceVersion>=3?validateStorySpine(candidate.spine,candidate.stages,types,spec.plan.goal):null;
   const usePrintedEnding=spec.plan.stages.some(stage=>stage.scene)||candidate.celebration!==undefined;
   const celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration)?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
-  const ending=usePrintedEnding?`The four checked results form the code ${digits.join('')}. This code matches "${stages[4].material.items[0].label}" on the final sheet. The team completes that action and reaches its mission goal. ${celebration}`:text(candidate.ending,'Ending',1000);
+  const ending=spine?`${spine.problem} The four checked results form code ${digits.join('')}, which matches "${spine.resolution}" on the final sheet. The team carries out that action. ${celebration}`:
+    usePrintedEnding?`The four checked results form the code ${digits.join('')}. This code matches "${stages[4].material.items[0].label}" on the final sheet. The team completes that action and reaches its mission goal. ${celebration}`:text(candidate.ending,'Ending',1000);
   if(!/[.!?]$/.test(ending))throw Error('The ending must be a complete sentence.');
-  return {ending,...(usePrintedEnding?{celebration}:{}),groupInstructions:spec.setting==='classroom'?'Each crew uses its own complete Player set and keeps its own four result digits. Rotate the four jobs after each checkpoint; the teacher checks each result before releasing the next pages.':'',stages};
+  return {ending,...(usePrintedEnding?{celebration}:{}),...(spine?{spine}:{}),groupInstructions:spec.setting==='classroom'?'Each crew uses its own complete Player set and keeps its own four result digits. Rotate the four jobs after each checkpoint; the teacher checks each result before releasing the next pages.':'',stages};
 }
 
 export function validateContextualPuzzle(stage){
@@ -154,3 +163,4 @@ export function contextualStageText(stage,style='base'){
   if(style!=='base')throw Error('Unsupported contract wording.');
   return {clue,hint,explanation};
 }
+
