@@ -9,16 +9,25 @@ const sentence=(value,label,max)=>{
   const result=plain(value,label,max);
   return /[.!?]$/.test(result)?result:`${result}.`;
 };
+const fitted=(value,label,max,complete=false)=>{
+  if(typeof value!=='string'||!value.trim()||/[^\x20-\x7e]/.test(value))
+    throw Error(`${label} must be printable English under ${max} characters.`);
+  let result=value.replace(/\s+/g,' ').trim();
+  const limit=complete?max-1:max;
+  if(result.length>limit)result=result.slice(0,limit).replace(/\s+\S*$/,'').trim();
+  if(!result)throw Error(`${label} must be printable English under ${max} characters.`);
+  return complete?`${result.replace(/[,:;.!?\s]+$/,'')}.`:result.replace(/[,:;.!?\s]+$/,'');
+};
 
 export function prepareStoryFrame(frame){
   if(!frame||!Array.isArray(frame.actions)||frame.actions.length!==3||!Array.isArray(frame.purposes)||frame.purposes.length!==4)
     throw Error('The story frame needs one problem, three final actions and four discovery purposes.');
-  const problem=sentence(frame.problem,'Story-frame problem',180);
-  const actions=frame.actions.map((value,index)=>plain(value,`Final action ${index+1}`,40));
+  const problem=fitted(frame.problem,'Story-frame problem',180,true);
+  const actions=frame.actions.map((value,index)=>fitted(value,`Final action ${index+1}`,40));
   if(new Set(actions.map(value=>value.toLowerCase())).size!==3)throw Error('The story frame needs three distinct final actions.');
   if(actions.some(value=>/^(?:restore|fix|solve|complete|save)\b/i.test(value)))
     throw Error('Each final action must name a specific story action.');
-  const purposes=frame.purposes.map((value,index)=>sentence(value,`Checkpoint ${index+1} discovery purpose`,100));
+  const purposes=frame.purposes.map((value,index)=>fitted(value,`Checkpoint ${index+1} discovery purpose`,100,true));
   if(purposes.some(value=>value.length<28||/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(value)))
     throw Error('Each discovery purpose must explain a story consequence rather than an answer code.');
   return {problem,actions,purposes};
