@@ -1091,6 +1091,14 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   await productionWorker.queue({messages:[{body:queue.shift(),ack(){},retry(){throw Error('layout recovery should finish from the saved story');}}]},env);
   assert.equal((await view()).remake.publishedVersion,4);
   assert.equal(blueprintCalls,1,'recovering a misclassified layout refresh still makes no model call');
+
+  db.prepare("UPDATE custom_pack_remakes SET status='failed',phase='blueprint',error_code='BLUEPRINT_INVALID',error_detail='A saved blueprint was checked before PDF rendering.',recovery_round=2 WHERE order_id='quality-order'").run();
+  await productionWorker.scheduled({},env);
+  assert.deepEqual({...db.prepare("SELECT status,phase FROM custom_pack_remakes WHERE order_id='quality-order'").get()},{status:'queued',phase:'pdf'});
+  assert.deepEqual(queue,[{type:'pack_remake',orderId:'quality-order'}]);
+  await productionWorker.queue({messages:[{body:queue.shift(),ack(){},retry(){throw Error('scheduled layout recovery should finish from the saved story');}}]},env);
+  assert.equal((await view()).remake.publishedVersion,5);
+  assert.equal(blueprintCalls,1,'scheduled layout recovery makes no model call');
 });
 
 test('current layout and revised checked packs cannot start the free full-pack upgrade',()=>{
