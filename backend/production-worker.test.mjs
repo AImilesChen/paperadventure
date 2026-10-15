@@ -1081,7 +1081,9 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1,'quality rebuild creates no checkout');
   assert.deepEqual(new Uint8Array(await (await download('&version=2')).arrayBuffer()),earlierPack);
 
-  db.prepare("UPDATE custom_pack_remakes SET status='failed',phase='blueprint',error_code='BLUEPRINT_INVALID',error_detail='A saved blueprint was checked before PDF rendering.',recovery_round=2 WHERE order_id='quality-order'").run();
+  const versionlessSpec=JSON.parse(db.prepare("SELECT spec_json FROM custom_pack_remakes WHERE order_id='quality-order'").get().spec_json);delete versionlessSpec.packLayoutVersion;
+  const versionlessJson=JSON.stringify(versionlessSpec);
+  db.prepare("UPDATE custom_pack_remakes SET status='failed',phase='blueprint',spec_json=?,spec_sha256=?,error_code='BLUEPRINT_INVALID',error_detail='A saved blueprint was checked before PDF rendering.',recovery_round=2 WHERE order_id='quality-order'").run(versionlessJson,await sha256(versionlessJson));
   const failedView=await packRemakeView(binding,'quality-order');
   assert.equal(failedView.layoutRecoveryAvailable,true);
   assert.equal(failedView.recoveryAvailable,true,'layout recovery does not consume or depend on AI recovery rounds');
