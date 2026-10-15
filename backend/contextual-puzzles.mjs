@@ -186,7 +186,7 @@ export function prepareContextualBlueprint(candidate,spec){
   const ending=spine?`${spine.problem} The four checked results form code ${digits.join('')}, which matches "${spine.resolution}" on the final sheet. The team carries out that action. ${celebration}`:
     usePrintedEnding?`The four checked results form the code ${digits.join('')}. This code matches "${stages[4].material.items[0].label}" on the final sheet. The team completes that action and reaches its mission goal. ${celebration}`:text(candidate.ending,'Ending',1000);
   if(!/[.!?]$/.test(ending))throw Error('The ending must be a complete sentence.');
-  return {ending,...(usePrintedEnding?{celebration}:{}),...(spine?{spine}:{}),groupInstructions:spec.setting==='classroom'?'Each crew uses its own complete Player set and keeps its own four result digits. Rotate the four jobs after each checkpoint; the teacher checks each result before releasing the next pages.':'',stages};
+  return {ending,...(usePrintedEnding?{celebration}:{}),...(spine?{spine}:{}),...(candidate.storyFrame?{storyFrame:candidate.storyFrame}:{}),groupInstructions:spec.setting==='classroom'?'Each crew uses its own complete Player set and keeps its own four result digits. Rotate the four jobs after each checkpoint; the teacher checks each result before releasing the next pages.':'',stages};
 }
 
 export function validateContextualPuzzle(stage){
