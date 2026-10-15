@@ -1,0 +1,44 @@
+name: Resume paid semantic repair on same order
+on:
+  push:
+    branches: [codex-remake-diagnostic-20261015]
+    paths: [.github/workflows/resume-f72-semantic.yml]
+permissions:
+  contents: read
+jobs:
+  resume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Resume one bounded repair without a new checkout
+        shell: bash
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_pack_remakes SET status='queued',phase='blueprint',failure_count=0,recovery_round=1,recovery_count=1,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND status='failed' AND phase='blueprint' AND error_code='BLUEPRINT_INVALID' AND quality_epoch=2 AND logic_epoch=1 AND recovery_round=0 AND published_version=2 AND EXISTS (SELECT 1 FROM custom_pack_remake_calls WHERE order_id=custom_pack_remakes.order_id AND quality_epoch=2 AND phase='blueprint' AND status='failed' AND result_json IS NOT NULL)" > "$RUNNER_TEMP/update-result.json"
+          echo 'Same-order recovery checked; no payment or existing artifact changed.'
+      - name: Follow safe publication status
+        shell: bash
+        run: |
+          for attempt in {1..20}; do
+            npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status,phase,quality_epoch,recovery_round,published_version,json_array_length(stages_json) AS stages_saved,error_code FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd'" > "$RUNNER_TEMP/status.json"
+            status=$(node - "$RUNNER_TEMP/status.json" <<'NODE'
+          const fs=require('node:fs'),raw=fs.readFileSync(process.argv[2],'utf8'),start=raw.indexOf('[');
+          if(start<0)throw Error('No D1 result array');
+          const row=JSON.parse(raw.slice(start))[0]?.results?.[0];
+          if(!row)throw Error('Order missing');
+          console.error(JSON.stringify(row));
+          console.log(row.status);
+          NODE
+          )
+            if [ "$status" = ready ] || [ "$status" = failed ]; then exit 0; fi
+            sleep 30
+          done
+          echo 'Observation timed out; scheduled worker may continue.'
