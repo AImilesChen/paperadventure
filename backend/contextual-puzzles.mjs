@@ -21,11 +21,15 @@ const fitRecordFeature=value=>{
   while(words.length>1&&`${prefix} ${words.join(' ')}`.length>24)words.pop();
   return `${prefix} ${words.join(' ')}`;
 };
+const fitLabel=(value,max=40)=>{
+  if(typeof value!=='string'||value.length<=max)return value;
+  return value.slice(0,max).replace(/\s+\S*$/,'').trim();
+};
 const recordLabel=value=>{
-  if(typeof value!=='string'||/(?:note|report|log|letter|ledger|record|card|message|ticket|journal|entry|file|memo|clipping|receipt|statement|page|sheet|slip|document)$/i.test(value.trim()))return value;
-  const words=value.trim().split(/\s+/);
-  while(words.length>1&&`${words.join(' ')} report`.length>40)words.pop();
-  return `${words.join(' ')} report`;
+  if(typeof value!=='string')return value;
+  const match=value.trim().match(/^(.*?)(?:\s+(note|report|log|letter|ledger|record|card|message|ticket|journal|entry|file|memo|clipping|receipt|statement|page|sheet|slip|document))?$/i);
+  const suffix=match?.[2]||'report',subject=match?.[1]||value;
+  return `${fitLabel(subject,40-suffix.length-1)} ${suffix}`;
 };
 const storyPieceLabel=value=>typeof value==='string'?value.replace(/^(?:Compare|Check|Match|Select|Record|Sort|Read)\s+(?:the\s+)?/i,'').trim():value;
 export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1,qualityVersion=2){
@@ -133,7 +137,7 @@ export function prepareContextualBlueprint(candidate,spec){
     const labels=raw.material?.items?.slice(0,count).map(piece=>{
       const label=typeof piece==='string'?piece:piece.label;
       const normalized=spec.packExperienceVersion>=3&&i<4?storyPieceLabel(label):label;
-      return text(usesRecords?recordLabel(normalized):normalized,'Piece label',40);
+      return text(usesRecords?recordLabel(normalized):spec.packExperienceVersion>=3?fitLabel(normalized):normalized,'Piece label',40);
     });
     if(labels?.length!==count||!unique(labels)||labels.some(label=>/^(?:plain fact|rule clue|witness|final action|journey clue)\s+[a-z0-9]+$/i.test(label)))throw Error(`Checkpoint ${i+1} needs ${count} distinct story-specific labels, not placeholder names.`);
     if(spec.packExperienceVersion>=2&&i<4)assertGoalStillOpen(labels,spec.plan.goal,i+1);

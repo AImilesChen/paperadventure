@@ -18,7 +18,6 @@ export function validateStorySpine(spine,stages,types,goal){
     throw Error('The game needs one problem, one final action and four linked findings.');
   const problem=plain(spine.problem,'Story problem',180);
   if(!/[.!?]$/.test(problem))throw Error('The story problem must be a complete sentence.');
-  plain(spine.resolution,'Final action',40);
   const firstAction=plain(stages[4]?.material?.items?.[0]?.label,'First final action',40);
   if(/^(?:restore|fix|solve|complete|save)\b/i.test(firstAction))
     throw Error('The final choice must name a specific repair or action, not restate the mission goal.');
