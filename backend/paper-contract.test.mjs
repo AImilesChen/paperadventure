@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {generateBlueprint,repairBlueprint,prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory,auditStagedStory} from './staged-story.mjs';
+import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory,auditStagedStory} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
@@ -194,6 +194,30 @@ test('semantic feature repair keeps evidence candidates comparable',async()=>{
     });
   assert.deepEqual(result.blueprint.stages[0].material.logic.context.labels,['Keeper note','Tower log','Repair report']);
   assert.deepEqual(result.blueprint.stages[0].material.logic.context.features,corrected.features);
+});
+
+test('joint semantic repair receives all conflicting checkpoints and retains one checked contract',async()=>{
+  const spec={...clockSpec,packExperienceVersion:2,packQualityVersion:3};
+  const corrected=structuredClone(clockBlueprintContext);
+  corrected.celebration='The travelers celebrate when the noon bell finally sounds.';
+  corrected.stages[0].material.items=['Gear note','Pendulum note','Bell rope note'].map(label=>({label}));
+  corrected.stages[0].features=['Mentions quiet bell','Names worn rope'];
+  corrected.stages[3].features=['Mentions quiet bell','Names worn rope'];
+  corrected.stages[4].material.items=['Replace bell rope','Oil the stiff gear','Straighten clock hand'].map(label=>({label}));
+  const reasons=['Checkpoint 1: physical features do not apply to all written records.',
+    'Checkpoint 4: the noon bell cannot have been heard before the final repair.',
+    'Checkpoint 5: the selected findings support the rope, not oiling a gear.'];
+  const result=await repairBlueprintTogether(spec,prepareBlueprintCandidate(clockBlueprintContext,spec),reasons,
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+      const body=JSON.parse(request.body),input=JSON.parse(body.input);
+      assert.equal(body.text.format.name,'paper_context_joint_repair');
+      assert.deepEqual(input.qualityIssues,reasons);
+      assert.equal(input.candidate.stages.length,5);
+      assert.match(body.instructions,/fix all supplied contradictions at once/i);
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(corrected)}]}]});
+    });
+  assert.deepEqual(result.blueprint.stages[4].material.logic.context.labels,corrected.stages[4].material.items.map(item=>item.label));
+  assert.deepEqual(result.blueprint.stages[0].material.logic.context.features,corrected.stages[0].features);
 });
 
 test('a second story works for Home and Classroom without changing the printed answer contract',async()=>{
