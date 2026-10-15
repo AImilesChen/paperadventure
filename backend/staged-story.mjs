@@ -402,10 +402,11 @@ export function assembleStagedStory(spec,blueprint,stages) {
 function storyAuditOutline(story,spec){
   return {goal:spec.plan.goal,opening:spec.plan.opening,checkpoints:story.stages.map((stage,index)=>({
     number:stage.number,scene:spec.plan.stages[index].scene||stage.storyContext||'',materialType:stage.material.type,
-    candidateLabels:stage.material.logic.context.labels,
+    printedPieces:stage.material.items.map(item=>({label:item.label,detail:item.detail})),
     ...(stage.number<5?{printedFeatures:stage.material.logic.context.features,printedFacts:stage.material.items.map(item=>({label:item.label,detail:item.detail})),
       selectedFinding:stage.material.type==='order_tiles'?stage.material.logic.context.labels.join(' > '):stage.material.type==='symbol_key'?stage.material.logic.context.word:stage.options[stage.answerIndex],
-      resultDigit:stage.material.logic.resultDigit}:{intendedFinalAction:stage.material.logic.context.labels[0],savedResults:stage.material.logic.previousDigits}),
+      resultDigit:stage.material.logic.resultDigit}:{intendedFinalAction:stage.material.logic.context.labels[0],savedResults:stage.material.logic.previousDigits,
+        finalActionCodes:stage.material.items.filter(item=>/Final action code:/.test(item.detail)).map(item=>({action:item.label,code:item.detail.replace(/^.*?:\s*/, '')}))}),
   })),...(story.spine?{spine:story.spine}:{}),ending:story.ending};
 }
 
