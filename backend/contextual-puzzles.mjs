@@ -42,6 +42,22 @@ const recordLabel=value=>{
   return `${fitLabel(subject,40-suffix.length-1)} ${suffix}`;
 };
 const storyPieceLabel=value=>typeof value==='string'?value.replace(/^(?:Compare|Check|Match|Select|Record|Sort|Read)\s+(?:the\s+)?/i,'').trim():value;
+const worksheetLanguage=/\b(?:checkpoint|digit|digits|tile|tiles|printed|rule|rules|choice|choices|option|options|answer|answers|decoded word|report cards)\b/i;
+const completedOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
+const subjectStop=new Set(['this','that','with','from','into','before','after','using','used','final','first','action','story','discovery','identifies','identify','gives','give','provides','provide','allows','allow','required','requires','complete','completes','mission','team','children','must','which','will','work']);
+const storySubject=(candidate,spec,index)=>{
+  const source=[candidate.storyFrame?.purposes?.[index],candidate.storyFrame?.actions?.[0],spec.plan?.stages?.[index]?.scene,spec.plan?.goal]
+    .filter(Boolean).join(' ').toLowerCase();
+  const words=[...new Set((source.match(/[a-z]{4,}/g)||[]).filter(word=>!subjectStop.has(word)&&!featureBanned.test(word)))];
+  return words.slice(0,2).join(' ')||'mission';
+};
+const goalTerms=goal=>new Set((String(goal||'').toLowerCase().match(/[a-z]{4,}/g)||[]).filter(word=>
+  !['find','with','that','from','their','they','then','will','into','before','after','again','help','make','complete','finish','restore','repair','rescue','return','deliver','missing','story','journey'].includes(word)));
+const closesGoal=(label,goal)=>completedOutcome.test(label)&&[...goalTerms(goal)].some(word=>new RegExp(`\\b${word}\\b`,'i').test(label));
+const stableOrderLabels=(candidate,spec,index)=>{
+  const subject=storySubject(candidate,spec,index);
+  return [`Inspect ${subject}`,`Gather ${subject} supplies`,`Prepare ${subject} parts`,`Position ${subject}`].map(value=>fitLabel(value));
+};
 const shortKeyWord=(value,spec,index,used)=>{
   const tokens=[value,spec.plan?.title,spec.customIdea].filter(item=>typeof item==='string').flatMap(item=>item.toUpperCase().match(/[A-Z]+/g)||[]);
   for(const token of tokens)for(let start=0;start<=token.length-4;start++){
@@ -152,14 +168,24 @@ export function prepareContextualBlueprint(candidate,spec){
   for(let i=0;i<5;i++){
     const raw=candidate.stages[i],type=types[i],count=i===4?3:type==='order_tiles'?4:type==='symbol_key'?4:3;
     const usesRecords=spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type);
-    const labels=raw.material?.items?.slice(0,count).map(piece=>{
+    let labels=raw.material?.items?.slice(0,count).map(piece=>{
       const label=typeof piece==='string'?piece:piece.label;
       const normalized=spec.packExperienceVersion>=3&&i<4?storyPieceLabel(label):label;
       return text(usesRecords?recordLabel(normalized):spec.packExperienceVersion>=3?fitLabel(normalized):normalized,'Piece label',40);
     });
+    if(spec.packExperienceVersion>=3&&i<4&&type==='order_tiles'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||closesGoal(label,spec.plan.goal)))
+      labels=stableOrderLabels(candidate,spec,i);
+    if(spec.packExperienceVersion>=3&&i<4&&usesRecords&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
+      const subject=storySubject(candidate,spec,i);
+      labels=['Field report','Keeper note','Route log'].map(kind=>recordLabel(`${subject} ${kind}`));
+    }
+    if(spec.packExperienceVersion>=3&&i<4&&type==='route_board'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
+      const subject=storySubject(candidate,spec,i);
+      labels=['North','Garden','Market'].map(name=>fitLabel(`${name} ${subject} route`));
+    }
     if(labels?.length!==count||!unique(labels)||labels.some(label=>/^(?:plain fact|rule clue|witness|final action|journey clue)\s+[a-z0-9]+$/i.test(label)))throw Error(`Checkpoint ${i+1} needs ${count} distinct story-specific labels, not placeholder names.`);
     if(spec.packExperienceVersion>=2&&i<4)assertGoalStillOpen(labels,spec.plan.goal,i+1);
-    if(spec.packExperienceVersion>=2&&i<4&&type!=='symbol_key'&&labels.some(label=>/\b(?:checkpoint|digit|digits|tile|tiles|printed|rule|rules|choice|choices|option|options|answer|answers|decoded word|report cards)\b/i.test(label)||/^(?:compare|match|select|record)\s+(?:card|facts|conditions|the printed)\b/i.test(label)))
+    if(spec.packExperienceVersion>=2&&i<4&&type!=='symbol_key'&&labels.some(label=>worksheetLanguage.test(label)||/^(?:compare|match|select|record)\s+(?:card|facts|conditions|the printed)\b/i.test(label)))
       throw Error(`Checkpoint ${i+1} labels must name fictional story pieces or actions, not instructions about the worksheet.`);
     if(spec.packExperienceVersion>=2&&i<4&&type==='decision_record'&&labels.some(label=>/^(?:candidate|option|answer|result|rule)\b/i.test(label)))
       throw Error(`Checkpoint ${i+1} witness candidates must name story objects or actions, not the witness notes or answer roles.`);
