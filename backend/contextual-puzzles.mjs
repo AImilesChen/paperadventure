@@ -173,6 +173,7 @@ export function prepareContextualBlueprint(candidate,spec){
       const normalized=spec.packExperienceVersion>=3&&i<4?storyPieceLabel(label):label;
       return text(usesRecords?recordLabel(normalized):spec.packExperienceVersion>=3?fitLabel(normalized):normalized,'Piece label',40);
     });
+    if(spec.packExperienceVersion>=3&&i<4&&type==='symbol_key')labels=['1','2','3','4'];
     if(spec.packExperienceVersion>=3&&i<4&&type==='order_tiles'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||closesGoal(label,spec.plan.goal)))
       labels=stableOrderLabels(candidate,spec,i);
     if(spec.packExperienceVersion>=3&&i<4&&usesRecords&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
