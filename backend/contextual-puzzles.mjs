@@ -27,6 +27,7 @@ const recordLabel=value=>{
   while(words.length>1&&`${words.join(' ')} report`.length>40)words.pop();
   return `${words.join(' ')} report`;
 };
+const storyPieceLabel=value=>typeof value==='string'?value.replace(/^(?:Compare|Check|Match|Select|Record|Sort|Read)\s+(?:the\s+)?/i,'').trim():value;
 export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1,qualityVersion=2){
   const labels=context.labels;
   const shift=qualityVersion>=3?(number*2+1)%3:number%3;
@@ -129,7 +130,11 @@ export function prepareContextualBlueprint(candidate,spec){
   for(let i=0;i<5;i++){
     const raw=candidate.stages[i],type=types[i],count=i===4?3:type==='order_tiles'?4:type==='symbol_key'?4:3;
     const usesRecords=spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type);
-    const labels=raw.material?.items?.slice(0,count).map(piece=>text(usesRecords?recordLabel(typeof piece==='string'?piece:piece.label):typeof piece==='string'?piece:piece.label,'Piece label',40));
+    const labels=raw.material?.items?.slice(0,count).map(piece=>{
+      const label=typeof piece==='string'?piece:piece.label;
+      const normalized=spec.packExperienceVersion>=3&&i<4?storyPieceLabel(label):label;
+      return text(usesRecords?recordLabel(normalized):normalized,'Piece label',40);
+    });
     if(labels?.length!==count||!unique(labels)||labels.some(label=>/^(?:plain fact|rule clue|witness|final action|journey clue)\s+[a-z0-9]+$/i.test(label)))throw Error(`Checkpoint ${i+1} needs ${count} distinct story-specific labels, not placeholder names.`);
     if(spec.packExperienceVersion>=2&&i<4)assertGoalStillOpen(labels,spec.plan.goal,i+1);
     if(spec.packExperienceVersion>=2&&i<4&&type!=='symbol_key'&&labels.some(label=>/\b(?:checkpoint|digit|digits|tile|tiles|printed|rule|rules|choice|choices|option|options|answer|answers|decoded word|report cards)\b/i.test(label)||/^(?:compare|match|select|record)\s+(?:card|facts|conditions|the printed)\b/i.test(label)))

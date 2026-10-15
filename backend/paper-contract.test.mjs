@@ -153,6 +153,7 @@ test('linked records print comparable report labels and content facts',()=>{
   const raw=linkedClockContext();
   const recordIndex=paperContractTypes(spec.plan).findIndex(type=>type==='evidence_cards');
   raw.stages[recordIndex].material.items=['Keeper tower','Bell chamber','Signal cabinet'].map(label=>({label}));
+  raw.stages[recordIndex].material.items[0].label='Read Keeper tower';
   raw.stages[recordIndex].features=['Silent bell','Worn gear'];
   raw.spine.links[recordIndex]='The chosen record identifies the damaged component that the crew needs to repair.';
   const blueprint=prepareContextualBlueprint(raw,spec);
