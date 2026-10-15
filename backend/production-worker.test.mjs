@@ -1022,10 +1022,17 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version,player_r2_key,guide_r2_key,player_sha256,guide_sha256) VALUES ('quality-artifact','quality-activity',1,'published',2,'original/player.pdf','original/guide.pdf',?,?)").run(originalHash,originalHash);
   const queue=[],files=new Map([['original/player.pdf',{body:original,customMetadata:{sha256:originalHash}}],['original/guide.pdf',{body:original,customMetadata:{sha256:originalHash}}]]);
   const context=linkedClockContext();
+  const storyFrame={problem:context.spine.problem,actions:context.stages[4].material.items.map(item=>item.label),purposes:[
+    'This identifies the missing signal component needed for the final repair.',
+    'This locates the spare component required to carry out the final repair.',
+    'This gives the safe preparation sequence before the repair is attempted.',
+    'This identifies a usable route for bringing the replacement into the tower.',
+  ]};
+  const materialContext=structuredClone(context);delete materialContext.spine;
   let blueprintCalls=0;
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
     PRIVATE_FILES:{get:async key=>files.get(key)||null,put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata})},
-    FETCH:async(_url,init)=>{const name=JSON.parse(init.body).text.format.name;if(name==='game_blueprint')blueprintCalls++;return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(name==='game_blueprint'?context:{pass:true,issues:[]})}]}],usage:{input_tokens:10,output_tokens:10}});}};
+    FETCH:async(_url,init)=>{const name=JSON.parse(init.body).text.format.name;if(name==='game_blueprint')blueprintCalls++;return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(name==='story_frame'?storyFrame:name==='game_blueprint'?materialContext:{pass:true,issues:[]})}]}],usage:{input_tokens:10,output_tokens:10}});}};
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
   const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
   const view=()=>handleProductionApi(request('/api/v1/orders/quality-order','GET',undefined,headers),env).then(response=>response.json());
