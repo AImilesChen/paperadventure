@@ -14,11 +14,27 @@ import {verifyPrintedPuzzles} from './paper-proof.mjs';
 test('linked story requires four printed findings and explains them in the adult guide',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
   const raw=linkedClockContext();
+  const frame={problem:raw.spine.problem,actions:raw.stages[4].material.items.map(item=>item.label),purposes:[
+    'This identifies the missing signal component needed for the final repair.',
+    'This locates the spare component required to carry out the final repair.',
+    'This gives the safe preparation sequence before the repair is attempted.',
+    'This identifies a usable route for bringing the replacement into the tower.',
+  ]};
+  let providerCalls=0;
   const {blueprint}=await generateBlueprint(spec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
     const body=JSON.parse(request.body);
-    assert.ok(body.text.format.schema.required.includes('spine'));
-    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(raw)}]}]});
+    providerCalls+=1;
+    if(body.text.format.name==='story_frame'){
+      assert.ok(body.text.format.schema.required.includes('actions'));
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(frame)}]}]});
+    }
+    assert.equal(body.text.format.name,'game_blueprint');
+    assert.ok(!body.text.format.schema.required.includes('spine'));
+    const materials=structuredClone(raw);delete materials.spine;
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(materials)}]}]});
   });
+  assert.equal(providerCalls,2);
+  assert.deepEqual(blueprint.storyFrame.actions,frame.actions);
   const stages=[];
   for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected provider request');})).stage);
   const story=assembleStagedStory(spec,blueprint,stages);
@@ -63,12 +79,55 @@ test('linked story requires four printed findings and explains them in the adult
 
 test('provider JSON split across output text blocks is read as one checked blueprint',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
-  const raw=JSON.stringify(linkedClockContext()),pivot=Math.floor(raw.length/2);
-  const result=await generateBlueprint(spec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>Response.json({output:[{content:[
-    {type:'output_text',text:raw.slice(0,pivot)},
-    {type:'output_text',text:raw.slice(pivot)},
-  ]}]}));
+  const source=linkedClockContext();
+  const frame={problem:source.spine.problem,actions:source.stages[4].material.items.map(item=>item.label),purposes:[
+    'This identifies the missing signal component needed for the final repair.',
+    'This locates the spare component required to carry out the final repair.',
+    'This gives the safe preparation sequence before the repair is attempted.',
+    'This identifies a usable route for bringing the replacement into the tower.',
+  ]};
+  const materials=structuredClone(source);delete materials.spine;
+  const raw=JSON.stringify(materials),pivot=Math.floor(raw.length/2);
+  const result=await generateBlueprint(spec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+    const body=JSON.parse(request.body);
+    if(body.text.format.name==='story_frame')return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(frame)}]}]});
+    return Response.json({output:[{content:[
+      {type:'output_text',text:raw.slice(0,pivot)},
+      {type:'output_text',text:raw.slice(pivot)},
+    ]}]});
+  });
   assert.equal(result.blueprint.spine.links.length,4);
+});
+
+test('new linked repair changes only one material and recompiles its story link in code',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext();
+  const frame={problem:raw.spine.problem,actions:raw.stages[4].material.items.map(item=>item.label),purposes:[
+    'This identifies the missing signal component needed for the final repair.',
+    'This locates the spare component required to carry out the final repair.',
+    'This gives the safe preparation sequence before the repair is attempted.',
+    'This identifies a usable route for bringing the replacement into the tower.',
+  ]};
+  const materials=structuredClone(raw);delete materials.spine;
+  const generated=await generateBlueprint(spec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+    const body=JSON.parse(request.body);
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(body.text.format.name==='story_frame'?frame:materials)}]}]});
+  });
+  const repairedStage=structuredClone(materials.stages[0]);
+  repairedStage.material.items=[{label:'Dial cabinet report'},{label:'Bell chamber report'},{label:'Keeper desk report'}];
+  repairedStage.features=['Mentions signal gear','Names noon marker'];
+  let calls=0;
+  const repaired=await repairBlueprint(spec,generated.blueprint,'Checkpoint 1: replace the unclear written records.',{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+    const body=JSON.parse(request.body);calls+=1;
+    assert.equal(body.text.format.name,'checkpoint_material_repair');
+    assert.ok(!Object.hasOwn(body.text.format.schema.properties,'link'));
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(repairedStage)}]}]});
+  });
+  assert.equal(calls,1);
+  assert.deepEqual(repaired.blueprint.storyFrame,generated.blueprint.storyFrame);
+  assert.deepEqual(repaired.blueprint.stages[1],generated.blueprint.stages[1]);
+  assert.match(repaired.blueprint.spine.links[0].reason,/Keeper desk report/);
+  assert.match(repaired.blueprint.spine.links[0].reason,/signal gear/);
 });
 
 test('linked repair changes one checkpoint and its reason without discarding the others',async()=>{
