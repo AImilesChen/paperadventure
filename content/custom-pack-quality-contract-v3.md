@@ -19,3 +19,7 @@ This version is snapshotted as `packExperienceVersion: 3` for new creator-v3 pur
 
 Local tests use invented Home and Classroom stories, both paper sizes, independent puzzle proof, full queue/database/storage simulation and actual PDF rendering. They do not establish the success rate of the configured provider or prove that unfamiliar families can play without help. A private provider smoke on several themes and physical play-tests are still release evidence.
 
+## Release status, 2026-10-15
+
+This candidate is **not cleared for paid production**. The real-provider validation branch `codex-linked-pack-20261015` has not completed all four invented themes. The latest complete run failed the independent narrative audit for three themes and stopped at a key-word format check for the fourth. Mechanical format failures have since been normalized locally, but the story failures remain. Do not publish version 3 or claim that its generated packs are deliverable until a new provider run produces valid Player and Guide PDFs for every theme and a human checks that the printed game can be played from the supplied pages. A failed run must not consume a customer's plan-edit allowance or replace their existing files.
+

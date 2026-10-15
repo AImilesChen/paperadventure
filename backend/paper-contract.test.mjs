@@ -158,6 +158,20 @@ test('unused route fields cannot reject an otherwise printable linked game',()=>
   assert.equal(blueprint.stages[routeIndex].material.logic.context.word,'NOTE');
 });
 
+test('a long model key becomes a four-letter printed word without losing its story link',()=>{
+  const plan=alignPaperPlan({...clockSpec.plan,stages:clockSpec.plan.stages.map((stage,index)=>({...stage,mechanic:index===1?'code':stage.mechanic}))});
+  const spec={...clockSpec,plan,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext();
+  const codeIndex=paperContractTypes(spec.plan).findIndex(type=>type==='symbol_key');
+  assert.ok(codeIndex>=0);
+  raw.stages[codeIndex].material.items=['1','2','3','4'].map(label=>({label}));
+  raw.stages[codeIndex].word='CLOCK';
+  raw.spine.links[codeIndex]='The CLOCK message helps the crew compare the tower records before choosing the repair.';
+  const blueprint=prepareContextualBlueprint(raw,spec);
+  assert.equal(blueprint.stages[codeIndex].material.logic.context.word,'LOCK');
+  assert.match(blueprint.spine.links[codeIndex].reason,/LOCK message/);
+});
+
 test('linked records print comparable report labels and content facts',()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
   const raw=linkedClockContext();

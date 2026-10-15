@@ -32,6 +32,14 @@ const recordLabel=value=>{
   return `${fitLabel(subject,40-suffix.length-1)} ${suffix}`;
 };
 const storyPieceLabel=value=>typeof value==='string'?value.replace(/^(?:Compare|Check|Match|Select|Record|Sort|Read)\s+(?:the\s+)?/i,'').trim():value;
+const shortKeyWord=(value,spec,index,used)=>{
+  const tokens=[value,spec.plan?.title,spec.customIdea].filter(item=>typeof item==='string').flatMap(item=>item.toUpperCase().match(/[A-Z]+/g)||[]);
+  for(const token of tokens)for(let start=0;start<=token.length-4;start++){
+    const word=token.slice(start,start+4);
+    if(new Set(word).size===4&&!used.has(word))return word;
+  }
+  return ['CLUE','FIND','PATH','LAMP'].find(word=>!used.has(word))||'NOTE';
+};
 export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1,qualityVersion=2){
   const labels=context.labels;
   const shift=qualityVersion>=3?(number*2+1)%3:number%3;
@@ -156,7 +164,7 @@ export function prepareContextualBlueprint(candidate,spec){
     }
     if(spec.packExperienceVersion>=2&&i<4&&['evidence_cards','decision_record'].includes(type)&&features.some(value=>/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i.test(value)))
       throw Error(`Checkpoint ${i+1} needs two concrete story properties, not answer or puzzle-state labels.`);
-    const word=type==='symbol_key'?text(raw.word,`Checkpoint ${i+1} printed key word`,4).toUpperCase():'NOTE';
+    const word=type==='symbol_key'?spec.packExperienceVersion>=3?shortKeyWord(raw.word,spec,i,new Set(stages.filter(stage=>stage.material.type==='symbol_key').map(stage=>stage.material.logic.context.word))):text(raw.word,`Checkpoint ${i+1} printed key word`,4).toUpperCase():'NOTE';
     if(!/^[A-Z]{4}$/.test(word))throw Error(`Checkpoint ${i+1} printed word must contain four ASCII letters.`);
     const context={labels,features,word,title:text(raw.material.title,`Checkpoint ${i+1} material title`,45)};
     const compiled=buildContextPuzzle(i+1,type,context,digits.slice(),spec.packExperienceVersion||1,spec.packQualityVersion||2);
@@ -166,7 +174,12 @@ export function prepareContextualBlueprint(candidate,spec){
   if(new Set(stages.slice(0,4).map(stage=>stage.material.logic.signature)).size!==4)throw Error('The first four activities repeat the same puzzle; distinct variations are required.');
   const spine=spec.packExperienceVersion>=3?validateStorySpine(candidate.spine&&{
     ...candidate.spine,problem:fitNarrative(candidate.spine.problem,180),
-    links:Array.isArray(candidate.spine.links)?candidate.spine.links.map(link=>fitNarrative(link,180)):candidate.spine.links,
+    links:Array.isArray(candidate.spine.links)?candidate.spine.links.map((link,index)=>{
+      const printed=stages[index].material.logic.context.word,proposed=candidate.stages[index]?.word;
+      const aligned=types[index]==='symbol_key'&&typeof proposed==='string'&&proposed.toUpperCase()!==printed
+        ? String(link).replace(new RegExp(`\\b${proposed.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'gi'),printed):link;
+      return fitNarrative(aligned,180);
+    }):candidate.spine.links,
   },stages,types,spec.plan.goal):null;
   const usePrintedEnding=spec.plan.stages.some(stage=>stage.scene)||candidate.celebration!==undefined;
   const celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration)?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
