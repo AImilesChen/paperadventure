@@ -104,7 +104,11 @@ export function validateStorySpine(spine,stages,types,goal){
     const finding=selectedStoryFinding(stages[index],types[index],index+1);
     if(!finding)throw Error(`Checkpoint ${index+1} has no selected finding.`);
     const labels=types[index]==='order_tiles'?stages[index].material.items.map(item=>item.label):[finding];
-    if(!labels.some(label=>reason.toLowerCase().includes(String(label).toLowerCase())))
+    if(types[index]==='order_tiles'&&!reason.toLowerCase().includes(finding.toLowerCase())){
+      const lead=`${finding} is the checked story sequence.`;
+      const tail=reason.replace(/^[^.!?]+[.!?]\\s*/, '').trim();
+      reason=`${lead} ${tail||'This finding gives the team information needed before choosing the final action.'}`;
+    }else if(!labels.some(label=>reason.toLowerCase().includes(String(label).toLowerCase())))
       reason=`${types[index]==='order_tiles'?labels[0]:finding}: ${reason}`;
     if(['evidence_cards','decision_record'].includes(types[index])){
       const features=stages[index]?.features||stages[index]?.material?.logic?.context?.features||[];
