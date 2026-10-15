@@ -125,7 +125,15 @@
 .order-sidebar dt{color:#557588}
 .order-sidebar dd{margin:0;text-align:right;font-weight:800;overflow-wrap:anywhere}
 .order-sidebar p{font-size:.85rem;color:#496c7c;line-height:1.6}
-.order-sidebar button{margin-top:10px}
+.order-status-action{display:grid;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid #cbdfe6}
+.order-status-action strong{color:#0d294f;font-size:.96rem;line-height:1.35}
+.order-status-action p{margin:0}
+.order-status-action.is-pending{padding:16px;border:1px solid #b4d5e2;border-radius:10px;background:#edf8fc}
+.order-sidebar .order-refresh-button{display:flex;width:100%;min-height:48px;margin:2px 0 0;justify-content:center}
+.order-sidebar .order-refresh-button:disabled{cursor:wait;opacity:.72}
+.order-sidebar .order-refresh-notice{padding:10px 12px;border-radius:7px;background:#e8f4f7;color:#214f66;font-size:.8rem;font-weight:800;line-height:1.45}
+.is-spinning{animation:order-refresh-spin .8s linear infinite}
+@keyframes order-refresh-spin{to{transform:rotate(360deg)}}
 .order-approved-plan summary,.order-plan-review summary{cursor:pointer;color:#153d5a;font-weight:900}
 .paid-plan-review{min-width:0;padding:28px;border:1px solid #bdd9e4;border-radius:14px;background:#fffdf9;box-shadow:0 5px 0 #b7dbe766}
 .paid-plan-review h2,.paid-plan-review h3,.paid-plan-review h4{color:#0d294f}
@@ -232,3 +240,4 @@
 .order-report-history{padding:13px 16px;border-radius:8px;background:#edf8fc;font-size:.88rem}
 .order-report-history ul{margin:7px 0 0;padding-left:20px}
 @media(max-width:650px){.order-quality-actions,.order-revision-form,.order-pack-remake{padding:20px}.order-pack-remake .button,.order-revision-submit,.order-revision-submit .button{width:100%}.order-revision-form textarea{min-height:208px}}
+
