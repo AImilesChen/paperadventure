@@ -1,1 +1,1 @@
-2026-10-15: deploy concrete same-kind record repair for semantic quality failures.
+2026-10-15: deploy joint repair of conflicting paid game-pack contexts before quality audit.
