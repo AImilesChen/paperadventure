@@ -40,21 +40,5 @@ jobs:
       - name: Report safe progress fields only
         shell: bash
         run: |
-          for attempt in {1..20}; do
-            npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status,phase,quality_epoch,recovery_round,published_version,json_array_length(stages_json) AS stages_saved,error_code FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd'" > "$RUNNER_TEMP/private-status.json"
-            node - "$RUNNER_TEMP/private-status.json" <<'NODE'
-          const fs=require('node:fs'),raw=fs.readFileSync(process.argv[2],'utf8'),start=raw.indexOf('[{');
-          if(start<0)throw Error('No D1 results');
-          const result=JSON.parse(raw.slice(start)),row=result[0]?.results?.[0];
-          if(!row)throw Error('Order missing');
-          console.log(JSON.stringify(row));
-          NODE
-            status=$(node - "$RUNNER_TEMP/private-status.json" <<'NODE'
-          const fs=require('node:fs'),raw=fs.readFileSync(process.argv[2],'utf8'),start=raw.indexOf('[{');
-          console.log(JSON.parse(raw.slice(start))[0].results[0].status);
-          NODE
-          )
-            if [ "$status" = ready ] || [ "$status" = failed ]; then exit 0; fi
-            sleep 30
-          done
-          echo 'Timed out following safe order fields; scheduled worker may continue.'
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status,phase,quality_epoch,recovery_round,published_version,json_array_length(stages_json) AS stages_saved,error_code FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd'" > "$RUNNER_TEMP/private-status.json"
+          cat "$RUNNER_TEMP/private-status.json"
