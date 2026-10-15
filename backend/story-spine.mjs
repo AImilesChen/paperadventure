@@ -106,7 +106,7 @@ export function validateStorySpine(spine,stages,types,goal){
     const labels=types[index]==='order_tiles'?stages[index].material.items.map(item=>item.label):[finding];
     if(types[index]==='order_tiles'&&!reason.toLowerCase().includes(finding.toLowerCase())){
       const lead=`${finding} is the checked story sequence.`;
-      const tail=reason.replace(/^[^.!?]+[.!?]\\s*/, '').trim();
+      const tail=reason.replace(/^[^.!?]+[.!?]\s*/, '').trim();
       reason=`${lead} ${tail||'This finding gives the team information needed before choosing the final action.'}`;
     }else if(!labels.some(label=>reason.toLowerCase().includes(String(label).toLowerCase())))
       reason=`${types[index]==='order_tiles'?labels[0]:finding}: ${reason}`;
