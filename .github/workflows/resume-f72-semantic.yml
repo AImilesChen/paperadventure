@@ -22,7 +22,7 @@ jobs:
       - name: Resume one bounded repair without a new checkout
         shell: bash
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_pack_remakes SET status='queued',phase='blueprint',failure_count=0,recovery_round=1,recovery_count=1,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND status='failed' AND phase='blueprint' AND error_code='BLUEPRINT_INVALID' AND quality_epoch=2 AND logic_epoch=1 AND recovery_round=0 AND published_version=2 AND EXISTS (SELECT 1 FROM custom_pack_remake_calls WHERE order_id=custom_pack_remakes.order_id AND quality_epoch=2 AND phase='blueprint' AND status='failed' AND result_json IS NOT NULL)" > "$RUNNER_TEMP/update-result.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_pack_remakes SET status='queued',phase='blueprint',failure_count=0,recovery_round=2,recovery_count=1,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND status='failed' AND phase='blueprint' AND error_code='BLUEPRINT_INVALID' AND quality_epoch=2 AND logic_epoch=1 AND recovery_round=1 AND published_version=2 AND EXISTS (SELECT 1 FROM custom_pack_remake_calls WHERE order_id=custom_pack_remakes.order_id AND quality_epoch=2 AND phase='blueprint' AND status='failed' AND result_json IS NOT NULL)" > "$RUNNER_TEMP/update-result.json"
           echo 'Same-order recovery checked; no payment or existing artifact changed.'
       - name: Follow safe publication status
         shell: bash
