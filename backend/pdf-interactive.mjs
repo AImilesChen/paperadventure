@@ -292,15 +292,37 @@ function guideStage(stage,spec,story){
       ...(story.spine&&stage.number===5?[['CONNECT THE FOUR DISCOVERIES',story.spine.links.map((link,index)=>`${index+1}. ${link.reason}`).join(' ')],['WHY THIS ACTION',`These discoveries support ${story.spine.resolution}. The four recorded digits identify its printed code; read the ending only after the team checks both the story reason and the code.`]]:[]),
       ['STORY AND NEXT PAGE',stage.number===5?'The four earlier results identify the final action. After the team explains the code, release Player page 12 and read the ending.':`This check gives the next discovery, but the mission is not finished yet. Release checkpoint ${stage.number+1}, Player pages ${stage.number*2+2}-${stage.number*2+3}.`],
     ];
-    for(const [label,value] of sections){
-      const height=wrap(value,77).length*14+26;
-      if(y-height<67){
+    const sectionHeight=([,value])=>wrap(value,77).length*14+26;
+    const pageStart=y,capacity=pageStart-67;
+    const groups=[[]];
+    let used=0;
+    for(const section of sections){
+      const height=sectionHeight(section);
+      if(groups.at(-1).length&&used+height>capacity){groups.push([]);used=0;}
+      groups.at(-1).push(section);used+=height;
+    }
+    // Avoid a paid guide ending with one orphaned paragraph on an otherwise
+    // empty continuation page. Move related preceding sections with it until
+    // the continuation has enough useful content to scan and print cleanly.
+    if(groups.length>1){
+      const last=groups.at(-1),previous=groups.at(-2);
+      let lastHeight=last.reduce((total,section)=>total+sectionHeight(section),0);
+      const minimumContinuation=Math.min(220,Math.floor(capacity*.36));
+      while(lastHeight<minimumContinuation&&previous.length>1){
+        const moved=previous.pop();
+        last.unshift(moved);lastHeight+=sectionHeight(moved);
+      }
+    }
+    groups.forEach((group,index)=>{
+      if(index){
         page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,`Adult guide / Checkpoint ${stage.number} / Continued`);
         pages.push(page);y=heading(page,`Guide / checkpoint ${stage.number} continued`,stage.title);
       }
-      page.text(label,48,y,9,true,'0.77 0.19 0.13');y-=16;
-      y=page.block(value,48,y,77,10,14)-10;
-    }
+      for(const [label,value] of group){
+        page.text(label,48,y,9,true,'0.77 0.19 0.13');y-=16;
+        y=page.block(value,48,y,77,10,14)-10;
+      }
+    });
     if(stage.number===5&&!story.spine){
       const findings=story.stages.slice(0,4).map(item=>`Checkpoint ${item.number}: ${item.material.type==='order_tiles'?item.material.logic.context.labels.at(-1):item.options[item.answerIndex].replace(/ \/ digit [1-3]$/,'')}`);
       const needed=26+findings.reduce((height,line)=>height+wrap(line,77).length*14+3,0)+42;
