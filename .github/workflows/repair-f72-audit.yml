@@ -1,0 +1,59 @@
+name: Repair and resume one paid quality-audit failure
+on:
+  push:
+    branches: [codex-remake-diagnostic-20261015]
+    paths: [.github/workflows/repair-f72-audit.yml]
+permissions:
+  contents: read
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Ask the current saved blueprint to repair the recorded audit issue
+        run: |
+          cat > "$RUNNER_TEMP/repair.sql" <<'SQL'
+          UPDATE custom_pack_remake_calls SET status='failed',error_code='AUDIT_REJECTED',error_detail=(SELECT error_detail FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd')
+          WHERE id=(SELECT id FROM custom_pack_remake_calls WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND quality_epoch=1 AND logic_epoch=1 AND phase='blueprint' AND status='passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1)
+          AND EXISTS(SELECT 1 FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND status='failed' AND phase='audit' AND error_code='GENERATION_QA_FAILED' AND quality_epoch=1 AND recovery_round=1 AND published_version=2);
+          UPDATE custom_pack_remake_calls SET result_json=NULL,error_code='AUDIT_REJECTED'
+          WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND quality_epoch=1 AND logic_epoch=1 AND phase='checkpoint' AND status='passed'
+          AND EXISTS(SELECT 1 FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND status='failed' AND phase='audit' AND error_code='GENERATION_QA_FAILED' AND quality_epoch=1 AND recovery_round=1 AND published_version=2);
+          UPDATE custom_pack_remakes SET status='queued',phase='blueprint',blueprint_json=NULL,blueprint_sha256=NULL,stages_json='[]',story_json=NULL,story_sha256=NULL,failure_count=0,recovery_round=2,recovery_count=MIN(recovery_count+1,1),lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP
+          WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND status='failed' AND phase='audit' AND error_code='GENERATION_QA_FAILED' AND quality_epoch=1 AND recovery_round=1 AND blueprint_json IS NOT NULL AND published_version=2;
+          SQL
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --file "$RUNNER_TEMP/repair.sql" > "$RUNNER_TEMP/repair-result.json"
+          node - "$RUNNER_TEMP/repair-result.json" <<'NODE'
+          const fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          const parts=Array.isArray(d)?d:[d];
+          if(Number(parts.at(-1)?.meta?.changes)!==1)throw Error('Order state changed; guarded repair was not queued.');
+          console.log('A targeted repair was queued on the same paid order; existing PDFs remain published.');
+          NODE
+      - name: Follow only safe delivery status fields
+        run: |
+          for attempt in {1..20}; do
+            npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status,phase,error_code,json_array_length(stages_json) AS saved_checkpoints,published_version FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd'" > "$RUNNER_TEMP/order-status.json"
+            state=$(node - "$RUNNER_TEMP/order-status.json" <<'NODE'
+          const fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          const r=(Array.isArray(d)?d:[d]).flatMap(x=>x.results||[])[0];
+          if(!r)throw Error('Order record missing.');
+          console.log(JSON.stringify({status:r.status,phase:r.phase,savedCheckpoints:r.saved_checkpoints,publishedVersion:r.published_version,errorCode:r.error_code}));
+          NODE
+            )
+            echo "Delivery status: $state"
+            if [[ "$state" == *'"status":"ready"'* ]]; then exit 0; fi
+            if [[ "$state" == *'"status":"failed"'* ]]; then exit 1; fi
+            sleep 30
+          done
+          exit 1
