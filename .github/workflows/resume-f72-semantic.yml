@@ -19,11 +19,27 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - name: Resume one bounded repair without a new checkout
+      - name: Carry only the latest failed candidate into one operator recovery
         shell: bash
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_pack_remakes SET status='queued',phase='blueprint',failure_count=0,recovery_round=2,recovery_count=1,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND status='failed' AND phase='blueprint' AND error_code='BLUEPRINT_INVALID' AND quality_epoch=2 AND logic_epoch=1 AND recovery_round=1 AND published_version=2 AND EXISTS (SELECT 1 FROM custom_pack_remake_calls WHERE order_id=custom_pack_remakes.order_id AND quality_epoch=2 AND phase='blueprint' AND status='failed' AND result_json IS NOT NULL)" > "$RUNNER_TEMP/update-result.json"
-          echo 'Same-order recovery checked; no payment or existing artifact changed.'
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "INSERT OR IGNORE INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,result_json,error_code,error_detail,round_number,generation_round,logic_epoch,quality_epoch) SELECT 'operator-seed-f72-20261015',order_id,'blueprint',0,'failed','operator-candidate',result_json,'BLUEPRINT_INVALID',error_detail,1,1,logic_epoch,3 FROM custom_pack_remake_calls WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND quality_epoch=2 AND logic_epoch=1 AND phase='blueprint' AND status='failed' AND result_json IS NOT NULL AND EXISTS (SELECT 1 FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND status='failed' AND phase='blueprint' AND error_code='BLUEPRINT_INVALID' AND quality_epoch=2 AND recovery_round=2 AND published_version=2) ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1" > "$RUNNER_TEMP/seed.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE id='operator-seed-f72-20261015' AND quality_epoch=3 AND result_json IS NOT NULL" > "$RUNNER_TEMP/seed-check.json"
+          node - "$RUNNER_TEMP/seed-check.json" <<'NODE'
+          const fs=require('node:fs'),raw=fs.readFileSync(process.argv[2],'utf8'),start=raw.indexOf('[');
+          if(start<0||JSON.parse(raw.slice(start))[0]?.results?.[0]?.n!==1)throw Error('No saved candidate available for controlled recovery');
+          console.log('One saved candidate is available; private content was not logged.');
+          NODE
+      - name: Resume this paid order without changing original files or charging again
+        shell: bash
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_pack_remakes SET status='queued',phase='blueprint',quality_epoch=3,recovery_round=0,failure_count=0,blueprint_json=NULL,blueprint_sha256=NULL,stages_json='[]',story_json=NULL,story_sha256=NULL,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND status='failed' AND phase='blueprint' AND error_code='BLUEPRINT_INVALID' AND quality_epoch=2 AND recovery_round=2 AND published_version=2 AND EXISTS (SELECT 1 FROM custom_pack_remake_calls WHERE id='operator-seed-f72-20261015' AND result_json IS NOT NULL)" > "$RUNNER_TEMP/update.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status,quality_epoch,recovery_round,published_version FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd'" > "$RUNNER_TEMP/updated-status.json"
+          node - "$RUNNER_TEMP/updated-status.json" <<'NODE'
+          const fs=require('node:fs'),raw=fs.readFileSync(process.argv[2],'utf8'),start=raw.indexOf('[');
+          const row=JSON.parse(raw.slice(start))[0]?.results?.[0];
+          if(row?.quality_epoch!==3||row?.published_version!==2||!['queued','generating','ready'].includes(row?.status))throw Error('Order did not enter the guarded recovery state');
+          console.log('Same paid order entered one guarded recovery; original version 2 remains published.');
+          NODE
       - name: Follow safe publication status
         shell: bash
         run: |
@@ -38,7 +54,9 @@ jobs:
           console.log(row.status);
           NODE
           )
-            if [ "$status" = ready ] || [ "$status" = failed ]; then exit 0; fi
+            if [ "$status" = ready ]; then exit 0; fi
+            if [ "$status" = failed ]; then exit 1; fi
             sleep 30
           done
-          echo 'Observation timed out; scheduled worker may continue.'
+          echo 'No publication after the bounded observation window.'
+          exit 1
