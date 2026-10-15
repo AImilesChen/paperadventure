@@ -42,6 +42,13 @@ const concealResolution=(problem,action)=>{
   const words=resolutionWords(action),hits=[...words].filter(word=>new RegExp(`\\b${word}\\b`,'i').test(problem));
   return hits.length>=2?'The mission is still blocked, and the team must use four discoveries to decide which action will work.':problem;
 };
+const completedOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
+const openPurpose=(value,index)=>completedOutcome.test(value)?[
+  'This identifies a condition the team needs before choosing the final action.',
+  'This locates something the team needs before choosing the final action.',
+  'This establishes a safe preparation before the team attempts the final action.',
+  'This identifies a usable route for carrying out the final action.',
+][index]:value;
 
 export function prepareStoryFrame(frame){
   if(!frame||!Array.isArray(frame.actions)||frame.actions.length!==3||!Array.isArray(frame.purposes)||frame.purposes.length!==4)
@@ -49,9 +56,9 @@ export function prepareStoryFrame(frame){
   const problem=fitted(frame.problem,'Story-frame problem',180,true);
   const actions=frame.actions.map((value,index)=>compactAction(value,`Final action ${index+1}`,40));
   if(new Set(actions.map(value=>value.toLowerCase())).size!==3)throw Error('The story frame needs three distinct final actions.');
-  if(actions.some(value=>/^(?:restore|fix|solve|complete|save)\b/i.test(value)))
+  if(actions.some(value=>/^(?:(?:restore|fix|solve|complete|save)\b|(?:final\s+)?action\b|option\b|choice\b)/i.test(value)))
     throw Error('Each final action must name a specific story action.');
-  const purposes=frame.purposes.map((value,index)=>fitted(value,`Checkpoint ${index+1} discovery purpose`,100,true));
+  const purposes=frame.purposes.map((value,index)=>openPurpose(fitted(value,`Checkpoint ${index+1} discovery purpose`,100,true),index));
   if(purposes.some(value=>value.length<28||/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(value)))
     throw Error('Each discovery purpose must explain a story consequence rather than an answer code.');
   return {problem:concealResolution(problem,actions[0]),actions,purposes};
@@ -106,7 +113,7 @@ export function validateStorySpine(spine,stages,types,goal){
       if(missing.length)reason=`${finding} mentions ${missing.join(' and ')}. ${reason}`;
     }
     if(reason.length>180){const cut=reason.slice(0,176).replace(/\s+\S*$/,'').replace(/[,:;.!?\s]+$/,'');reason=`${cut}.`;}
-    if(reason.length<Math.min(30,String(finding).length+15)||/\b(?:digit|code|correct answer|matching option)\b/i.test(reason))
+    if(reason.length<Math.min(30,String(finding).length+15)||/\b(?:answer code|result digit|correct answer|matching option)\b/i.test(reason))
       throw Error(`Checkpoint ${index+1} story link needs a fictional reason beyond the answer code.`);
     assertGoalStillOpen([reason],goal,index+1);
     return {finding,reason};
