@@ -1,1 +1,1 @@
-2026-10-15: deploy quality-rules v3, semantic story checks and one no-charge upgrade for earlier paid packs.
+2026-10-15: deploy paid-pack remake budget repair and same-order recovery for quality-v3 orders.
