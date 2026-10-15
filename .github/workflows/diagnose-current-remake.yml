@@ -1,4 +1,4 @@
-name: Verify targeted paid audit repair state without story logs
+name: Check final paid quality repair result without story logs
 on:
   push:
     branches: [codex-remake-diagnostic-20261015]
