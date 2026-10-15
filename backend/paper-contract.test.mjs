@@ -10,7 +10,7 @@ import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
 import {alignPaperPlan,paperContractTypes,completePaperPlan} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
-import {prepareStoryFrame} from './story-spine.mjs';
+import {prepareStoryFrame,validateStorySpine} from './story-spine.mjs';
 
 test('long provider story-frame text is fitted before printable validation',()=>{
   const frame=prepareStoryFrame({
@@ -33,6 +33,26 @@ test('story frame keeps complete actions and conceals an opening that gives away
   assert.equal(frame.actions[0],'Hand parcel to market keeper');
   assert.match(frame.problem,/mission is still blocked/i);
   assert.doesNotMatch(frame.problem,/market keeper/i);
+  const reopened=prepareStoryFrame({...frame,purposes:[...frame.purposes.slice(0,3),'This confirms the missing parcel was delivered to the shopkeeper.']});
+  assert.doesNotMatch(reopened.purposes[3],/delivered/i);
+  assert.throws(()=>prepareStoryFrame({...frame,actions:['Final action A','Final action B','Final action C']}),/specific story action/);
+});
+
+test('a decoded story word CODE is not confused with an answer-code explanation',()=>{
+  const stages=[
+    {word:'CODE',material:{items:['1','2','3','4'].map(label=>({label}))}},
+    {material:{items:['North route','East route','West route'].map(label=>({label}))}},
+    {material:{items:['Inspect sign','Prepare hook','Lift frame','Secure label'].map(label=>({label}))}},
+    {material:{items:['Hall route','Desk route','Case route'].map(label=>({label}))}},
+    {material:{items:['Hang label beside case','Place label on desk','Store label in folder'].map(label=>({label}))}},
+  ];
+  const spine=validateStorySpine({problem:'The exhibit label is still missing.',resolution:'Hang label beside case',links:[
+    'CODE is the decoded story message and identifies the kind of museum record to inspect.',
+    'North route is the only open story route for reaching the display safely.',
+    'Inspect sign > Prepare hook > Lift frame > Secure label is the checked story sequence.',
+    'Case route is the only open story route and leads to the correct display area.',
+  ]},stages,['symbol_key','route_board','order_tiles','route_board','decision_record'],'Restore the missing exhibit label.');
+  assert.match(spine.links[0].reason,/CODE/);
 });
 
 test('linked blueprint replaces worksheet commands and early outcomes with playable in-world pieces',()=>{
