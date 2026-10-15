@@ -21,6 +21,16 @@ const fitRecordFeature=value=>{
   while(words.length>1&&`${prefix} ${words.join(' ')}`.length>24)words.pop();
   return `${prefix} ${words.join(' ')}`;
 };
+const featureBanned=/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i;
+const featureStop=new Set(['this','that','with','from','into','before','after','needed','need','helps','help','using','used','final','first','action','story','discovery','identifies','identify','gives','give','provides','provide','allows','allow','required','requires','carry','complete','completes']);
+const fallbackRecordFeatures=(candidate,spec,index)=>{
+  const source=[candidate.storyFrame?.purposes?.[index],candidate.storyFrame?.actions?.[0],spec.plan?.stages?.[index]?.scene,spec.plan?.stages?.[index]?.storyContext]
+    .filter(Boolean).join(' ').toLowerCase();
+  const words=(source.match(/[a-z]{4,}/g)||[]).filter(word=>!featureStop.has(word)&&!featureBanned.test(word));
+  const uniqueWords=[...new Set(words)];
+  const first=uniqueWords[0]||'needed item',second=uniqueWords.find(word=>word!==first)||'safe place';
+  return [fitRecordFeature(`Mentions ${first}`),fitRecordFeature(`Names ${second}`)];
+};
 const fitLabel=(value,max=40)=>{
   if(typeof value!=='string'||value.length<=max)return value;
   return value.slice(0,max).replace(/\s+\S*$/,'').trim();
@@ -154,7 +164,9 @@ export function prepareContextualBlueprint(candidate,spec){
     if(spec.packExperienceVersion>=2&&i<4&&type==='decision_record'&&labels.some(label=>/^(?:candidate|option|answer|result|rule)\b/i.test(label)))
       throw Error(`Checkpoint ${i+1} witness candidates must name story objects or actions, not the witness notes or answer roles.`);
     const usesPrintedFeatures=type==='evidence_cards'||type==='decision_record'&&spec.packExperienceVersion>=2||type==='route_board'&&spec.packExperienceVersion<2;
-    const features=usesPrintedFeatures&&i<4?raw.features?.map(value=>text(spec.packExperienceVersion>=3&&['evidence_cards','decision_record'].includes(type)?fitRecordFeature(value):value,`Checkpoint ${i+1} printed feature`,32)):['Checked fact','Matching fact'];
+    let features=usesPrintedFeatures&&i<4?raw.features?.map(value=>text(spec.packExperienceVersion>=3&&['evidence_cards','decision_record'].includes(type)?fitRecordFeature(value):value,`Checkpoint ${i+1} printed feature`,32)):['Checked fact','Matching fact'];
+    if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)&&features?.some(value=>featureBanned.test(value)))
+      features=fallbackRecordFeatures(candidate,spec,i);
     if(features?.length!==2||!unique(features))throw Error(`Checkpoint ${i+1} needs two distinct story-specific feature names.`);
     if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)){
       if(labels.some(label=>!/(?:note|report|log|letter|ledger|record|card|message|ticket|journal|entry|file|memo|clipping|receipt|statement|page|sheet|slip|document)$/i.test(label)))
@@ -162,7 +174,7 @@ export function prepareContextualBlueprint(candidate,spec){
       if(features.some(value=>!/^(?:Mentions|Names) [A-Za-z]/i.test(value)))
         throw Error(`Checkpoint ${i+1} printed features must describe the contents of every record.`);
     }
-    if(spec.packExperienceVersion>=2&&i<4&&['evidence_cards','decision_record'].includes(type)&&features.some(value=>/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i.test(value)))
+    if(spec.packExperienceVersion>=2&&i<4&&['evidence_cards','decision_record'].includes(type)&&features.some(value=>featureBanned.test(value)))
       throw Error(`Checkpoint ${i+1} needs two concrete story properties, not answer or puzzle-state labels.`);
     const word=type==='symbol_key'?spec.packExperienceVersion>=3?shortKeyWord(raw.word,spec,i,new Set(stages.filter(stage=>stage.material.type==='symbol_key').map(stage=>stage.material.logic.context.word))):text(raw.word,`Checkpoint ${i+1} printed key word`,4).toUpperCase():'NOTE';
     if(!/^[A-Z]{4}$/.test(word))throw Error(`Checkpoint ${i+1} printed word must contain four ASCII letters.`);
