@@ -85,7 +85,7 @@ test('an overlong paid plan is repaired before audit and usage includes the repa
   assert.equal(result.usage.input_tokens,30);assert.equal(result.usage.output_tokens,60);
 });
 
-test('failed plan validation preserves usage from both paid provider responses',async()=>{
+test('failed initial plan validation retries once and preserves usage from every provider response',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const invalid={...planFixture(spec),premise:'R'.repeat(400)};
   let calls=0;
@@ -93,10 +93,22 @@ test('failed plan validation preserves usage from both paid provider responses',
     calls++;return Response.json({id:`failed-${calls}`,output:[{content:[{type:'output_text',text:JSON.stringify(invalid)}]}],usage:{input_tokens:10,output_tokens:20}});
   }),error=>{
     assert.equal(error.code,'PLAN_INVALID');
-    assert.deepEqual(error.usage,{input_tokens:20,output_tokens:40});
-    assert.equal(error.responseId,'failed-2');return true;
+    assert.deepEqual(error.usage,{input_tokens:40,output_tokens:80});
+    assert.equal(error.responseId,'failed-4');return true;
   });
-  assert.equal(calls,2);
+  assert.equal(calls,4);
+});
+test('a transient invalid initial plan recovers without using a customer change',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec;
+  const valid=planFixture(spec),invalid={...valid,premise:'R'.repeat(400)};
+  let calls=0;
+  const result=await generateSinglePlan(spec,env,async()=>{
+    const value=[invalid,invalid,valid,{pass:true,issues:[]}][calls++];
+    return Response.json({id:`plan-${calls}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
+  });
+  assert.equal(calls,4);
+  assert.equal(result.plan.title,valid.title);
+  assert.deepEqual(result.usage,{input_tokens:40,output_tokens:80});
 });
 test('a paid plan rejected by audit is corrected and independently rechecked once',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
@@ -153,3 +165,4 @@ test('new Player and Guide PDFs include the approved mission, preserve answer se
     assert.match(guide,/Gentle hint:/);assert.match(guide,/Printed player pages and pencils/);
   }
 });
+
