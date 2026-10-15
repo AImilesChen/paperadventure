@@ -14,12 +14,18 @@ const fitNarrative=(value,max)=>{
   return `${(sentence&&sentence.length>=max/2?sentence:words).replace(/[,:;.!?\s]+$/,'')}.`;
 };
 const fitRecordFeature=value=>{
-  if(typeof value!=='string'||value.length<=24)return value;
-  const match=value.match(/^(Mentions|Names)\s+(.+)$/i);
+  if(typeof value!=='string')return value;
+  const match=value.trim().match(/^(?:(Mentions|Names|Is|Has)\s+)?(.+)$/i);
   if(!match)return value;
-  const prefix=match[1],words=match[2].trim().split(/\s+/);
+  const prefix=/^(?:Mentions|Names)$/i.test(match[1]||'')?match[1]:'Mentions',words=match[2].trim().split(/\s+/);
   while(words.length>1&&`${prefix} ${words.join(' ')}`.length>24)words.pop();
   return `${prefix} ${words.join(' ')}`;
+};
+const recordLabel=value=>{
+  if(typeof value!=='string'||/(?:note|report|log|letter|ledger|record|card|message|ticket|journal|entry|file|memo|clipping|receipt|statement|page|sheet|slip|document)$/i.test(value.trim()))return value;
+  const words=value.trim().split(/\s+/);
+  while(words.length>1&&`${words.join(' ')} report`.length>40)words.pop();
+  return `${words.join(' ')} report`;
 };
 export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1,qualityVersion=2){
   const labels=context.labels;
@@ -122,7 +128,8 @@ export function prepareContextualBlueprint(candidate,spec){
   const types=paperContractTypes(spec.plan),digits=[],stages=[];
   for(let i=0;i<5;i++){
     const raw=candidate.stages[i],type=types[i],count=i===4?3:type==='order_tiles'?4:type==='symbol_key'?4:3;
-    const labels=raw.material?.items?.slice(0,count).map(piece=>text(typeof piece==='string'?piece:piece.label,'Piece label',40));
+    const usesRecords=spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type);
+    const labels=raw.material?.items?.slice(0,count).map(piece=>text(usesRecords?recordLabel(typeof piece==='string'?piece:piece.label):typeof piece==='string'?piece:piece.label,'Piece label',40));
     if(labels?.length!==count||!unique(labels)||labels.some(label=>/^(?:plain fact|rule clue|witness|final action|journey clue)\s+[a-z0-9]+$/i.test(label)))throw Error(`Checkpoint ${i+1} needs ${count} distinct story-specific labels, not placeholder names.`);
     if(spec.packExperienceVersion>=2&&i<4)assertGoalStillOpen(labels,spec.plan.goal,i+1);
     if(spec.packExperienceVersion>=2&&i<4&&type!=='symbol_key'&&labels.some(label=>/\b(?:checkpoint|digit|digits|tile|tiles|printed|rule|rules|choice|choices|option|options|answer|answers|decoded word|report cards)\b/i.test(label)||/^(?:compare|match|select|record)\s+(?:card|facts|conditions|the printed)\b/i.test(label)))
@@ -151,7 +158,7 @@ export function prepareContextualBlueprint(candidate,spec){
   const spine=spec.packExperienceVersion>=3?validateStorySpine(candidate.spine&&{
     ...candidate.spine,problem:fitNarrative(candidate.spine.problem,180),
     links:Array.isArray(candidate.spine.links)?candidate.spine.links.map(link=>fitNarrative(link,180)):candidate.spine.links,
-  },candidate.stages,types,spec.plan.goal):null;
+  },stages,types,spec.plan.goal):null;
   const usePrintedEnding=spec.plan.stages.some(stage=>stage.scene)||candidate.celebration!==undefined;
   const celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration)?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
   const ending=spine?`${spine.problem} The four checked results form code ${digits.join('')}, which matches "${spine.resolution}" on the final sheet. The team carries out that action. ${celebration}`:

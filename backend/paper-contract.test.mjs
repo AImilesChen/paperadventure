@@ -42,10 +42,8 @@ test('linked story requires four printed findings and explains them in the adult
   });
   for(const [mutate,message] of [
     [value=>{delete value.spine;},/game needs one problem/],
-    [value=>{value.spine.resolution='Reset tower hands';},/first printed final action/],
     [value=>{value.stages[4].material.items[0].label='Restore noon bell';value.spine.resolution='Restore noon bell';},/specific repair or action/],
-    [value=>{value.spine.links[0]='A useful number leads to the answer code.';},/selected printed finding/],
-    [value=>{value.spine.links[1]='Gear chamber note gives the correct digit.';},/both printed record facts/],
+    [value=>{value.spine.links[0]='A useful number leads to the answer code.';},/fictional reason beyond the answer code/],
   ]){
     const invalid=linkedClockContext();mutate(invalid);
     assert.throws(()=>prepareContextualBlueprint(invalid,spec),message);
@@ -53,6 +51,14 @@ test('linked story requires four printed findings and explains them in the adult
   const verbose=linkedClockContext();
   verbose.spine.links[1]+=' The same clue is repeated in several extra sentences that add no new play rule or fictional finding.'.repeat(3);
   assert.ok(prepareContextualBlueprint(verbose,spec).spine.links[1].reason.length<=180);
+  const mismatched=linkedClockContext();
+  mismatched.spine.resolution='Reset tower hands';
+  mismatched.spine.links[1]='The keeper can inspect the component before making a final repair.';
+  const normalized=prepareContextualBlueprint(mismatched,spec);
+  assert.equal(normalized.spine.resolution,normalized.stages[4].material.logic.context.labels[0]);
+  assert.match(normalized.spine.links[1].reason,/Gear chamber note/);
+  for(const feature of normalized.stages[1].material.logic.context.features)
+    assert.ok(normalized.spine.links[1].reason.toLowerCase().includes(feature.replace(/^(?:Mentions|Names)\s+/i,'').toLowerCase()));
 });
 
 test('linked repair changes one checkpoint and its reason without discarding the others',async()=>{
@@ -140,6 +146,21 @@ test('unused route fields cannot reject an otherwise printable linked game',()=>
   const blueprint=prepareContextualBlueprint(raw,spec);
   assert.deepEqual(blueprint.stages[routeIndex].material.logic.context.features,['Checked fact','Matching fact']);
   assert.equal(blueprint.stages[routeIndex].material.logic.context.word,'NOTE');
+});
+
+test('linked records print comparable report labels and content facts',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext();
+  const recordIndex=paperContractTypes(spec.plan).findIndex(type=>type==='evidence_cards');
+  raw.stages[recordIndex].material.items=['Keeper tower','Bell chamber','Signal cabinet'].map(label=>({label}));
+  raw.stages[recordIndex].features=['Silent bell','Worn gear'];
+  raw.spine.links[recordIndex]='The chosen record identifies the damaged component that the crew needs to repair.';
+  const blueprint=prepareContextualBlueprint(raw,spec);
+  const context=blueprint.stages[recordIndex].material.logic.context;
+  assert.ok(context.labels.every(label=>label.endsWith(' report')));
+  assert.deepEqual(context.features,['Mentions Silent bell','Mentions Worn gear']);
+  assert.ok(blueprint.spine.links[recordIndex].reason.includes(context.labels[(recordIndex+2)%3]));
+  assert.ok(blueprint.spine.links[recordIndex].reason.includes('Silent bell'));
 });
 
 async function game(spec=clockSpec){
