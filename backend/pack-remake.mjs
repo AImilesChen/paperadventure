@@ -2,7 +2,7 @@ import { ApiError, validateGeneratedStory } from './domain.mjs';
 import { aiProvider } from './openai.mjs';
 import { sha256, sha256Bytes } from './security.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
-import { generateBlueprint, repairBlueprint, repairBlueprintTogether, validateBlueprint, prepareBlueprintCandidate, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory } from './staged-story.mjs';
+import { generateBlueprint, repairBlueprint, validateBlueprint, prepareBlueprintCandidate, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
@@ -270,11 +270,9 @@ export async function processPackRemake(orderId, env) {
     if (!remake.blueprint_json) {
       const blueprint = validateBlueprint(await recordCall(remake, 'blueprint', 0, async () => {
         const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", orderId,remake.quality_epoch,remake.logic_epoch).first();
-        const reviews = prior && spec.packContractVersion===1 ? (await query(db,"SELECT error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'audit' AND status = 'failed' AND error_code = 'GENERATION_QA_FAILED' ORDER BY created_at DESC,id DESC LIMIT 6",orderId,remake.quality_epoch,remake.logic_epoch).all()).results||[] : [];
-        const reasons=reviews.map(row=>row.error_detail).filter(Boolean);
-        const issueStages=new Set(reasons.map(reason=>Number(String(reason).match(/Checkpoint\s+([1-5])/i)?.[1])||0).filter(Boolean));
-        const result = prior ? issueStages.size>=2 ? await repairBlueprintTogether(spec, JSON.parse(prior.result_json), reasons, env, env.FETCH || fetch)
-          : await repairBlueprint(spec, JSON.parse(prior.result_json), prior.error_detail, env, env.FETCH || fetch)
+        // Audit reports are about different candidates. Replaying older issues against the
+        // newest candidate can undo a corrected checkpoint and make repairs oscillate.
+        const result = prior ? await repairBlueprint(spec, JSON.parse(prior.result_json), prior.error_detail, env, env.FETCH || fetch)
           : await generateBlueprint(spec, env, env.FETCH || fetch);
         if (spec.packContractVersion === 1 && spec.packExperienceVersion >= 2) {
           try {
