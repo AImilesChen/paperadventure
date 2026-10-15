@@ -1316,6 +1316,36 @@ test('an exhausted old paid remake can restart once with checked puzzles and no 
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
 });
 
+test('a failed V2 quality remake migrates to V3 on the same paid order even when logic version is current',async()=>{
+  const {db,binding}=database(),orderId='stale-experience-order';
+  const priceId='stale-experience-price',activityId='stale-experience-activity';
+  const savedSpec={...clockSpec,packExperienceVersion:2,packQualityVersion:3};
+  const savedJson=JSON.stringify(savedSpec);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES (?,'custom_home','USD',1499,'exclusive',1)").run(priceId);
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(orderId,savedJson,await sha256(savedJson),'stale-owner',priceId);
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES (?,?,'published',?)").run(activityId,orderId,savedJson);
+  db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,published_version,error_code,recovery_round,logic_epoch,quality_epoch) VALUES (?,'failed','blueprint',?,?,2,'BLUEPRINT_INVALID',2,1,3)").run(orderId,savedJson,await sha256(savedJson));
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,story_r2_key,story_sha256,pack_format_version) VALUES ('stale-original',?,2,'published','original/story.json','original-hash',2)").run(activityId);
+  const queued=[];
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture-model',GENERATION_QUEUE:{send:async job=>queued.push(job)},PRIVATE_FILES:{get:async()=>null}};
+  const order=db.prepare('SELECT * FROM orders WHERE id=?').get(orderId);
+
+  const result=await retryPackRemake(order,env);
+
+  assert.deepEqual(result,{status:'queued',recovery:true,upgraded:true});
+  const saved=db.prepare('SELECT status,phase,spec_json,published_version,recovery_round,logic_epoch,quality_epoch,blueprint_json,stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId);
+  const upgraded=JSON.parse(saved.spec_json);
+  assert.equal(upgraded.packExperienceVersion,3);
+  assert.equal(upgraded.packQualityVersion,3);
+  assert.equal(saved.status,'queued');assert.equal(saved.phase,'blueprint');
+  assert.equal(saved.published_version,2,'the downloadable original stays published during the upgrade');
+  assert.equal(saved.recovery_round,0);assert.equal(saved.logic_epoch,1);assert.equal(saved.quality_epoch,4);
+  assert.equal(saved.blueprint_json,null);assert.equal(saved.stages_json,'[]');
+  assert.equal(db.prepare("SELECT status FROM artifact_versions WHERE id='stale-original'").get().status,'published');
+  assert.deepEqual(queued,[{type:'pack_remake',orderId}]);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders WHERE id=?').get(orderId).n,1);
+});
+
 test('a failed paid first plan offers one free recovery without another checkout or spending edits',async()=>{
   const {db,binding}=database();
   const owner=await sha256('test-session-secret|adult@example.com');
