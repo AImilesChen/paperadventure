@@ -63,11 +63,13 @@ export function remakeSpec(original) {
 
 function failedRemakeNeedsUpgrade(spec, row) {
   const logicUpgrade = spec?.gamePackVersion !== 2 || spec?.packLogicVersion !== 1;
+  const linkedQualityUpgrade=spec?.packContractVersion===1&&
+    (spec.packExperienceVersion||0)>=3&&(spec.packQualityVersion||0)<CURRENT_PACK_QUALITY_VERSION&&row?.phase==='blueprint';
   const experienceUpgrade = spec?.packContractVersion === 1 &&
     ((spec.packExperienceVersion || 0) < 3 || (spec.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION);
   // A later checkpoint or audit already has reusable V2 work. Keep its targeted
   // recovery path; only restart an exhausted V2 blueprint that saved no stages.
-  return logicUpgrade || experienceUpgrade && row?.phase === 'blueprint' && row?.logic_epoch === 1;
+  return logicUpgrade || linkedQualityUpgrade || experienceUpgrade && row?.phase === 'blueprint' && row?.logic_epoch === 1;
 }
 
 export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevision, previousRemakeSpec=null) {
