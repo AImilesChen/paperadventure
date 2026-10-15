@@ -1061,32 +1061,34 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.deepEqual(new Uint8Array(await (await download('&version=1')).arrayBuffer()),original);
   assert.equal(blueprintCalls,1);
   const earlierPack=new Uint8Array(await (await download()).arrayBuffer());
-  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:2};
+  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:3,packLayoutVersion:1};
   const earlierJson=JSON.stringify(earlierSpec);
   db.prepare("UPDATE custom_pack_remakes SET spec_json = ?,spec_sha256 = ? WHERE order_id = 'quality-order'").run(earlierJson,await sha256(earlierJson));
-  assert.equal((await view()).qualityUpgradeAvailable,true,'an already delivered older-quality remake can be rebuilt on the same order');
+  assert.equal((await view()).qualityUpgradeAvailable,true,'an already delivered pack can receive the current PDF layout on the same order');
   assert.equal((await handleProductionApi(request('/api/v1/orders/quality-order/pack-remake','POST',undefined,headers),env)).status,202);
   assert.equal((await view()).qualityUpgradeAvailable,false);
   assert.equal(db.prepare("SELECT quality_epoch,published_version FROM custom_pack_remakes WHERE order_id='quality-order'").get().quality_epoch,1);
   for(let step=0;step<12 && (await view()).remake.status!=='ready';step++){
-    assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),earlierPack,'published files remain available during the quality rebuild');
+    assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),earlierPack,'published files remain available during the layout refresh');
     const job=queue.shift();assert.equal(job?.type,'pack_remake');
     await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('quality rebuild should not need queue-level retry');}}]},env);
   }
   assert.equal((await view()).remake.status,'ready');
   assert.equal((await view()).remake.publishedVersion,3);
-  assert.equal((await view()).qualityUpgradeAvailable,false,'the same quality upgrade cannot be claimed twice');
-  assert.equal(blueprintCalls,2,'the stronger rules receive a fresh blueprint call, not an earlier cached result');
+  assert.equal((await view()).qualityUpgradeAvailable,false,'the same layout refresh cannot be claimed twice');
+  assert.equal(blueprintCalls,1,'a layout-only refresh reuses the checked story and makes no model call');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1,'quality rebuild creates no checkout');
   assert.deepEqual(new Uint8Array(await (await download('&version=2')).arrayBuffer()),earlierPack);
 });
 
-test('quality version 3 and revised checked packs cannot start the free full-pack upgrade',()=>{
+test('current layout and revised checked packs cannot start the free full-pack upgrade',()=>{
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false),true);
-  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:3},clockSpec,2,false),false);
-  assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packQualityVersion:3},2,false),false);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:3},clockSpec,2,false),true);
+  assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packQualityVersion:3},2,false),true);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:3,packLayoutVersion:2},{...clockSpec,packQualityVersion:3,packLayoutVersion:2},2,false),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packExperienceVersion:2}),true);
-  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3}),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3}),true);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3,packLayoutVersion:2}),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
