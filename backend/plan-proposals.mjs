@@ -124,6 +124,16 @@ export async function generateSinglePlan(spec,env,fetcher,options={}){
     try{const body=await response.clone().json();usage.input_tokens+=body.usage?.input_tokens||0;usage.output_tokens+=body.usage?.output_tokens||0;responseId=body.id||responseId;}catch{}
     return response;
   };
-  try{return await prepareSinglePlan(spec,env,tracked,options);}
-  catch(error){error.usage=usage;error.responseId=responseId;throw error;}
+  const mayRetry=spec.packExperienceVersion>=3&&(options.kind==null||options.kind==='initial');
+  const recoverable=new Set(['PLAN_INVALID','PLAN_QA_FAILED','PLAN_AUDIT_INVALID','PLAN_UPSTREAM_FAILED','PLAN_REPAIR_FAILED','PLAN_AUDIT_FAILED']);
+  for(let attempt=0;attempt<(mayRetry?2:1);attempt++){
+    try{
+      const result=await prepareSinglePlan(spec,env,tracked,options);
+      return {...result,usage,responseId:result.responseId||responseId};
+    }catch(error){
+      if(attempt===0&&mayRetry&&recoverable.has(error.code))continue;
+      error.usage=usage;error.responseId=responseId;throw error;
+    }
+  }
 }
+
