@@ -59,6 +59,15 @@ export function remakeSpec(original) {
   return prepared;
 }
 
+function failedRemakeNeedsUpgrade(spec, row) {
+  const logicUpgrade = spec?.gamePackVersion !== 2 || spec?.packLogicVersion !== 1;
+  const experienceUpgrade = spec?.packContractVersion === 1 &&
+    ((spec.packExperienceVersion || 0) < 3 || (spec.packQualityVersion || 0) < 3);
+  // A later checkpoint or audit already has reusable V2 work. Keep its targeted
+  // recovery path; only restart an exhausted V2 blueprint that saved no stages.
+  return logicUpgrade || experienceUpgrade && row?.phase === 'blueprint' && row?.logic_epoch === 1;
+}
+
 export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevision, previousRemakeSpec=null) {
   return purchase?.gamePackVersion === 2 && purchase.packContractVersion === 1 &&
     activity?.packContractVersion === 1 && latestFormat === 2 && !hasRevision &&
@@ -111,10 +120,10 @@ export async function retryPackRemake(order, env) {
   if (!previous || previous.status!=='failed' || (previous.published_version && !previous.quality_epoch))
     throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','This remake is not waiting for a recovery.');
   const savedSpec=JSON.parse(previous.spec_json);
-  if (savedSpec.packLogicVersion!==1) {
+  if (failedRemakeNeedsUpgrade(savedSpec,previous)) {
     const upgraded=remakeSpec(savedSpec);
     const specJson=JSON.stringify(upgraded);
-    const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'blueprint',spec_json = ?,spec_sha256 = ?,blueprint_json = NULL,blueprint_sha256 = NULL,stages_json = '[]',story_json = NULL,story_sha256 = NULL,failure_count = 0,recovery_round = 0,logic_epoch = 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND published_version IS NULL AND logic_epoch = 0",specJson,await sha256(specJson),order.id).run();
+    const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'blueprint',spec_json = ?,spec_sha256 = ?,blueprint_json = NULL,blueprint_sha256 = NULL,stages_json = '[]',story_json = NULL,story_sha256 = NULL,failure_count = 0,recovery_round = 0,logic_epoch = CASE WHEN logic_epoch = 0 THEN 1 ELSE logic_epoch END,quality_epoch = quality_epoch + 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND (published_version IS NULL OR quality_epoch > 0)",specJson,await sha256(specJson),order.id).run();
     if (!changed.meta?.changes) throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','A recovery has already started.');
     try { await env.GENERATION_QUEUE.send({type:'pack_remake',orderId:order.id}); }
     catch (caught) { console.error('Upgraded paid remake saved for queue',{orderId:order.id,message:caught?.message}); }
@@ -153,7 +162,7 @@ export async function packRemakeView(db, orderId) {
   if (!row) return null;
   const stages = JSON.parse(row.stages_json || '[]');
   const spec=JSON.parse(row.spec_json);
-  const upgradeAvailable=row.status==='failed'&&!row.published_version&&spec.packLogicVersion!==1;
+  const upgradeAvailable=row.status==='failed'&&failedRemakeNeedsUpgrade(spec,row)&&(!row.published_version||row.quality_epoch>0);
   const savedBlueprintAvailable=row.status==='failed'&&row.phase==='blueprint'&&row.error_code==='BLUEPRINT_INVALID'&&row.recovery_round>=MAX_RECOVERY_ROUNDS&&row.logic_epoch===0&&!row.published_version&&spec.packExperienceVersion>=2&&Boolean(await recoverSavedBlueprint(db,orderId,spec));
   const reviewPrefix = 'The completed game did not pass its quality check: ';
   return {
