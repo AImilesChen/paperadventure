@@ -14,6 +14,7 @@ const MAX_AUDIT_CALLS = 4;
 const stepLimit = (phase,spec) => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? spec?.packExperienceVersion>=2?5:MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
+const deterministicCheckpoint = (phase,spec) => phase === 'checkpoint' && spec.gamePackVersion === 2 && spec.packLogicVersion === 1;
 
 async function recoverSavedBlueprint(db,orderId,spec){
   const last=await query(db,"SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = 0 AND phase = 'blueprint' AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1",orderId).first();
@@ -129,7 +130,7 @@ export async function retryPackRemake(order, env) {
     catch(caught){console.error('Saved blueprint recovery queued',{orderId:order.id,message:caught?.message});}
     return {status:'queued',recovery:true,reusedBlueprint:true};
   }
-  const changed = await query(env.DB, "UPDATE custom_pack_remakes SET status = 'queued',failure_count = 0,recovery_round = recovery_round + 1,recovery_count = MIN(recovery_count + 1,1),lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND recovery_round < ? AND (published_version IS NULL OR quality_epoch > 0) AND error_code IN ('BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED')", order.id, MAX_RECOVERY_ROUNDS).run();
+  const changed = await query(env.DB, "UPDATE custom_pack_remakes SET status = 'queued',failure_count = 0,recovery_round = recovery_round + 1,recovery_count = MIN(recovery_count + 1,1),lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND recovery_round < ? AND (published_version IS NULL OR quality_epoch > 0) AND (error_code IN ('BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED') OR (error_code = 'REMAKE_BUDGET_EXHAUSTED' AND quality_epoch > 0))", order.id, MAX_RECOVERY_ROUNDS).run();
   if (!changed.meta?.changes) throw new ApiError(409, 'REMAKE_RECOVERY_UNAVAILABLE', 'A recovery has already started or this remake needs personal support.');
   try { await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: order.id }); }
   catch (caught) { console.error('Paid remake recovery saved for queue', { orderId: order.id, message: caught?.message }); }
@@ -137,7 +138,7 @@ export async function retryPackRemake(order, env) {
 }
 
 export async function packRemakeView(db, orderId) {
-  const row = await query(db, 'SELECT status,phase,stages_json,blueprint_json,story_json,spec_json,published_version,error_code,error_detail,recovery_round,logic_epoch,created_at,updated_at,completed_at FROM custom_pack_remakes WHERE order_id = ?', orderId).first();
+  const row = await query(db, 'SELECT status,phase,stages_json,blueprint_json,story_json,spec_json,published_version,error_code,error_detail,recovery_round,logic_epoch,quality_epoch,created_at,updated_at,completed_at FROM custom_pack_remakes WHERE order_id = ?', orderId).first();
   if (!row) return null;
   const stages = JSON.parse(row.stages_json || '[]');
   const spec=JSON.parse(row.spec_json);
@@ -152,8 +153,8 @@ export async function packRemakeView(db, orderId) {
     currentStage: [1,2,3,4,5].find(number => !stages.some(stage => stage.number === number)) || null,
     storyReady: Boolean(row.story_json),
     publishedVersion: row.published_version || null,
-    failureReason: row.status === 'failed' ? row.phase === 'blueprint' ? 'The game blueprint did not match the approved play rules. No new checkpoints or PDFs were published.' : row.phase === 'checkpoint' ? /Answer explanation is required and must be under/i.test(row.error_detail || '') ? 'The generated adult answer explanation was longer than the printable guide allows. Earlier checkpoints were saved.' : 'A new checkpoint did not pass generation checks. Saved earlier work remains on this order.' : row.phase === 'audit' ? row.error_detail?.startsWith(reviewPrefix) ? `The quality review found: ${row.error_detail.slice(reviewPrefix.length,300)} The new PDFs were not published.` : 'The complete game did not pass its quality review. No new PDFs were published.' : 'The replacement PDF files did not pass delivery checks. Your original PDFs remain available.' : null,
-    recoveryAvailable: upgradeAvailable || savedBlueprintAvailable || row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && recoverableErrors.includes(row.error_code),
+    failureReason: row.status === 'failed' ? row.error_code === 'REMAKE_BUDGET_EXHAUSTED' ? 'Earlier quality-review repairs used up this run\'s generation allowance. Your saved blueprint can continue on this paid order without another checkout.' : row.phase === 'blueprint' ? 'The game blueprint did not match the approved play rules. No new checkpoints or PDFs were published.' : row.phase === 'checkpoint' ? /Answer explanation is required and must be under/i.test(row.error_detail || '') ? 'The generated adult answer explanation was longer than the printable guide allows. Earlier checkpoints were saved.' : 'A new checkpoint did not pass generation checks. Saved earlier work remains on this order.' : row.phase === 'audit' ? row.error_detail?.startsWith(reviewPrefix) ? `The quality review found: ${row.error_detail.slice(reviewPrefix.length,300)} The new PDFs were not published.` : 'The complete game did not pass its quality review. No new PDFs were published.' : 'The replacement PDF files did not pass delivery checks. Your original PDFs remain available.' : null,
+    recoveryAvailable: upgradeAvailable || savedBlueprintAvailable || row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && (recoverableErrors.includes(row.error_code) || row.error_code === 'REMAKE_BUDGET_EXHAUSTED' && row.quality_epoch > 0),
     upgradeAvailable,
     recoveryCount: row.recovery_round,
     startedAt: row.created_at,
@@ -166,14 +167,14 @@ async function recordCall(remake, phase, stageNumber, produce, env) {
   const db = env.DB;
   const spec=JSON.parse(remake.spec_json);
   const round = remake.recovery_round + 1;
+  const deterministic = deterministicCheckpoint(phase,spec);
   const cached = await query(db, "SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", remake.order_id, remake.quality_epoch, remake.logic_epoch, phase, stageNumber).first();
   if (cached) return JSON.parse(cached.result_json);
   const stepCount = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', remake.order_id, remake.quality_epoch, remake.logic_epoch, phase, stageNumber, round).first();
-  const total = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ?', remake.order_id, remake.quality_epoch, remake.logic_epoch, round).first();
-  if (stepCount.n >= stepLimit(phase,spec) || total.n >= MAX_CALLS)
-    throw new ApiError(422, 'REMAKE_BUDGET_EXHAUSTED', 'The safe generation limit was reached. Your original game remains available.');
+  const total = await query(db, "SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND model != 'checked-rules-v1'", remake.order_id, remake.quality_epoch, remake.logic_epoch, round).first();
+  if ((!deterministic && stepCount.n >= stepLimit(phase,spec)) || (!deterministic && total.n >= MAX_CALLS))
+    throw new ApiError(422, 'REMAKE_BUDGET_EXHAUSTED', 'The safe model-call limit was reached. Your original game remains available.');
   const id = crypto.randomUUID();
-  const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&phase!=='blueprint'&&!(spec.packContractVersion===1&&phase==='audit');
   await query(db, "INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,round_number,generation_round,logic_epoch,quality_epoch) VALUES (?,?,?,?,'started',?,?,?,?,?)", id, remake.order_id, phase, stageNumber, deterministic?'checked-rules-v1':aiProvider(env).model, Math.min(round,2), round, remake.logic_epoch, remake.quality_epoch).run();
   try {
     const result = await produce();
@@ -301,9 +302,10 @@ export async function processPackRemake(orderId, env) {
     await publishRemadeFiles(remake, order, env);
   } catch (caught) {
     const code = typeof caught?.code === 'string' && /^[A-Z0-9_]{1,60}$/.test(caught.code) ? caught.code : 'UNEXPECTED';
-    const total = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ?', orderId, remake.quality_epoch, remake.logic_epoch, remake.recovery_round + 1).first();
+    const total = await query(db, "SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND model != 'checked-rules-v1'", orderId, remake.quality_epoch, remake.logic_epoch, remake.recovery_round + 1).first();
     const step = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', orderId, remake.quality_epoch, remake.logic_epoch, phase, stageNumber, remake.recovery_round + 1).first();
-    let retry = total.n < MAX_CALLS && step.n < stepLimit(phase,spec) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING'].includes(code);
+    let retry = total.n < MAX_CALLS && (deterministicCheckpoint(phase,spec) || step.n < stepLimit(phase,spec)) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING','REMAKE_BUDGET_EXHAUSTED'].includes(code);
+    if (deterministicCheckpoint(phase,spec) && code === 'GENERATION_INVALID') retry = false;
     if (code === 'GENERATION_QA_FAILED') {
       const failedStage = caught.stageNumber;
       retry = retry && failedStage >= 1 && failedStage <= 5;
@@ -332,3 +334,4 @@ export async function processPackRemake(orderId, env) {
     if (retry) await queueNext(orderId, env);
   }
 }
+
