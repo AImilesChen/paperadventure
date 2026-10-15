@@ -633,9 +633,9 @@ async function orderView(request, env, orderId) {
     gamePackVersion: order.product_kind === 'custom' ? Math.max(latestArtifact?.pack_format_version || 1, spec.gamePackVersion || 1) : null,
     packContractVersion: spec.packContractVersion || (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packContractVersion || 0 : 0),
     checkedPuzzleRevision: Boolean(latestArtifact && (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packLogicVersion === 1 : spec.packLogicVersion === 1)),
-    qualityUpgradeAvailable: Boolean(order.product_kind === 'custom' && order.status === 'published' && activity?.status === 'published' && order.paid_at && accessActive(entitlement) && !remake &&
+    qualityUpgradeAvailable: Boolean(order.product_kind === 'custom' && order.status === 'published' && activity?.status === 'published' && order.paid_at && accessActive(entitlement) && (!remake || remake.status === 'ready') &&
       qualityUpgradeEligible(spec, activity?.story_spec_json ? JSON.parse(activity.story_spec_json) : null,
-        latestArtifact?.pack_format_version, Boolean(entitlement?.revision_success_used || revisionRows.some(item => ['queued','generating','published'].includes(item.status))))),
+        latestArtifact?.pack_format_version, Boolean(entitlement?.revision_success_used || revisionRows.some(item => ['queued','generating','published'].includes(item.status))), readyRemakeSpec?.spec_json ? JSON.parse(readyRemakeSpec.spec_json) : null)),
     remake,
     revisionRequests: revisionRows.map(item=>({id:item.id,stageNumber:item.stage_number,status:item.status,version:item.version_number||null,createdAt:item.created_at,completedAt:item.completed_at||null})),
     plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
@@ -762,11 +762,9 @@ async function fileDownload(request, env, orderId, role) {
   else {
     if (paper !== spec.paper) throw new ApiError(404, 'FILE_NOT_FOUND', 'This paper size was not generated.');
     const requestedVersion = new URL(request.url).searchParams.get('version');
-    if (requestedVersion && requestedVersion !== '1') throw new ApiError(404, 'FILE_NOT_FOUND', 'This file version is unavailable.');
-    const remake = requestedVersion === '1' ? await query(env.DB, "SELECT status FROM custom_pack_remakes WHERE order_id = ?", order.id).first() : null;
-    if (requestedVersion === '1' && remake?.status !== 'ready') throw new ApiError(404, 'FILE_NOT_FOUND', 'The original file version is unavailable.');
-    const artifact = requestedVersion === '1'
-      ? await query(env.DB, "SELECT * FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' AND version_number = 1", entitlement.custom_activity_id).first()
+    if (requestedVersion && (!/^[1-9]\d{0,3}$/.test(requestedVersion) || Number(requestedVersion) > 999)) throw new ApiError(404, 'FILE_NOT_FOUND', 'This file version is unavailable.');
+    const artifact = requestedVersion
+      ? await query(env.DB, "SELECT * FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' AND version_number = ?", entitlement.custom_activity_id, Number(requestedVersion)).first()
       : await query(env.DB, "SELECT * FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", entitlement.custom_activity_id).first();
     file = artifact && { r2_key: role === 'player' ? artifact.player_r2_key : artifact.guide_r2_key, sha256: role === 'player' ? artifact.player_sha256 : artifact.guide_sha256 };
   }
@@ -1084,7 +1082,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
         query(env.DB,"UPDATE custom_generation_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED',error_detail = ? WHERE order_id = ? AND phase = 'checkpoint' AND stage_number = ? AND status = 'passed'",(caught.issues||[]).join(' | ').slice(0,1000),order.id,caught.stageNumber),
       ]);
     } else if (code==='GENERATION_QA_FAILED') canRetry=false;
-    console.error('Staged custom generation stopped',{orderId:order.id,phase,stageNumber,code,message:caught?.message||'Unknown failure',retrying:canRetry});
+    console.error('Staged custom generation stopped',{orderId:order.id,phase,stageNumber,code,retrying:canRetry});
     if (canRetry) {
       await query(env.DB,'UPDATE custom_activities SET lease_until = 0,pipeline_failures = ? WHERE id = ?',persistenceFailures,activity.id).run();
       try { await env.GENERATION_QUEUE.send({orderId:order.id}); }

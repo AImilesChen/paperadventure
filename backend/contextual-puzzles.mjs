@@ -6,9 +6,9 @@ const text=(value,label,max)=>{
 };
 const unique=values=>new Set(values.map(value=>value.toLowerCase())).size===values.length;
 const rotate=(values,shift)=>values.map((_,i)=>values[(i+shift)%values.length]);
-export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1){
+export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1,qualityVersion=2){
   const labels=context.labels;
-  const shift=number%3;
+  const shift=qualityVersion>=3?(number*2+1)%3:number%3;
   let items,options,answer,clue,hint,explanation,instruction,signature;
   const winning=(number+1)%3;
   if(number===5){
@@ -94,7 +94,7 @@ export function buildContextPuzzle(number,type,context,previousDigits=[],experie
   const digit=String(answer+1);
   if(number!==5 && ['order_tiles','symbol_key'].includes(type))options=options.map((option,i)=>`${option} / digit ${i+1}`);
   const material={type,title:context.title,instruction,recordPrompt:number===5?'Record your final action and the four earlier results that prove it.':'Record the chosen result and its digit. Keep this sheet for checkpoint 5.',items,
-    logic:{version:1,contractVersion:1,...(experienceVersion>=2?{experienceVersion:2}:{}),context,number,previousDigits,signature,resultDigit:number===5?null:digit}};
+    logic:{version:1,contractVersion:1,...(experienceVersion>=2?{experienceVersion:2}:{}),...(qualityVersion>=3?{qualityVersion:3}:{}),context,number,previousDigits,signature,resultDigit:number===5?null:digit}};
   const task=paperAction(type,number).task;
   return {number,question:task,evidence:clue,options:rotate(options,shift),answerIndex:(answer-shift+3)%3,material,
     clue,hint,explanation,task,teamwork:number===5?'Each explorer checks one earlier result. Compare all four before agreeing on the final action.':'One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.',
@@ -121,7 +121,7 @@ export function prepareContextualBlueprint(candidate,spec){
     const word=type==='symbol_key'?text(raw.word,`Checkpoint ${i+1} printed key word`,4).toUpperCase():'NOTE';
     if(!/^[A-Z]{4}$/.test(word))throw Error(`Checkpoint ${i+1} printed word must contain four ASCII letters.`);
     const context={labels,features,word,title:text(raw.material.title,`Checkpoint ${i+1} material title`,45)};
-    const compiled=buildContextPuzzle(i+1,type,context,digits.slice(),spec.packExperienceVersion||1);
+    const compiled=buildContextPuzzle(i+1,type,context,digits.slice(),spec.packExperienceVersion||1,spec.packQualityVersion||2);
     const stage={...compiled,title:spec.plan.stages[i].title,mechanic:spec.plan.stages[i].mechanic};
     stages.push(stage);if(i<4)digits.push(compiled.material.logic.resultDigit);
   }
@@ -136,7 +136,7 @@ export function prepareContextualBlueprint(candidate,spec){
 export function validateContextualPuzzle(stage){
   const logic=stage.material?.logic;
   if(logic?.contractVersion!==1||logic.number!==stage.number)throw Error('The unified paper contract is missing.');
-  const expected=buildContextPuzzle(stage.number,stage.material.type,logic.context,logic.previousDigits,logic.experienceVersion||1);
+  const expected=buildContextPuzzle(stage.number,stage.material.type,logic.context,logic.previousDigits,logic.experienceVersion||1,logic.qualityVersion||2);
   for(const field of ['options','answerIndex','material','task','teamwork','unlock'])if(JSON.stringify(stage[field])!==JSON.stringify(expected[field]))throw Error(`Checkpoint ${stage.number} ${field} differs from its unified paper contract.`);
   for(const field of ['question','evidence'])if(stage[field]!=null&&stage[field]!==expected[field])throw Error(`Checkpoint ${stage.number} ${field} differs from its unified paper contract.`);
   const style=stage.logicStyle||'base';
@@ -146,7 +146,7 @@ export function validateContextualPuzzle(stage){
 }
 
 export function contextualStageText(stage,style='base'){
-  const expected=buildContextPuzzle(stage.number||stage.material.logic.number,stage.material.type,stage.material.logic.context,stage.material.logic.previousDigits,stage.material.logic.experienceVersion||1);
+  const expected=buildContextPuzzle(stage.number||stage.material.logic.number,stage.material.type,stage.material.logic.context,stage.material.logic.previousDigits,stage.material.logic.experienceVersion||1,stage.material.logic.qualityVersion||2);
   const {clue,hint,explanation}=expected;
   if(style==='simple')return {clue:`Read the rule aloud. ${clue}`,hint:'Check one printed piece at a time.',explanation};
   if(style==='guided')return {clue,hint:`${hint} Point to the printed proof.`,explanation};

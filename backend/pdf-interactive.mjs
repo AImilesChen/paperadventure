@@ -216,7 +216,13 @@ function guideStart(story,spec){
     ];
     for(const [label,value] of sections){
       page.text(label,48,y,10,true,'0.77 0.19 0.13');y-=18;
-      y=page.block(value,48,y,77,10,16)-18;
+      y=page.block(value,48,y,77,10,16)-14;
+    }
+    const quickChecks=story.stages.map(stage=>`Checkpoint ${stage.number}: answer ${String.fromCharCode(65+stage.answerIndex)}${stage.number<5?`; save digit ${stage.material.logic.resultDigit}`:'; combine the four saved digits'}`);
+    const quickHeight=20+quickChecks.reduce((height,line)=>height+wrap(line,77).length*12+2,0);
+    if(y-quickHeight>=68){
+      page.text('HOST CHECKLIST - KEEP PRIVATE',48,y,10,true,'0.77 0.19 0.13');y-=18;
+      for(const line of quickChecks)y=page.block(line,48,y,77,10,12)-2;
     }
     if(y<68)throw new Error('Adult preparation guide does not fit.');
     return page;
@@ -265,13 +271,13 @@ function wrongChoiceNotes(stage){
   return `Let the team compare and correct its answer. ${notes.join(' ')}`;
 }
 
-function guideStage(stage,spec){
+function guideStage(stage,spec,story){
   let page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,`Adult guide / Checkpoint ${stage.number}`);
   const pages=[page];
   let y=heading(page,`Guide / checkpoint ${stage.number}`,stage.title);
   if(spec.packExperienceVersion>=2){
     const option=stage.options[stage.answerIndex];
-    const prompt=stage.material.type==='order_tiles'?'Which printed before/after rule fixes the first and last step?':stage.material.type==='symbol_key'?'What letter does each row of the key give?':stage.material.type==='route_board'?'Can you trace both links without crossing a CLOSED mark?':stage.material.type==='decision_record'?'Which candidate satisfies both witness properties?':stage.number===5?'Do all four saved digits match this action in order?':'Which piece satisfies both parts of the printed rule?';
+    const prompt=stage.number===5?'Do all four saved digits match this action in order?':stage.material.type==='order_tiles'?'Which printed before/after rule fixes the first and last step?':stage.material.type==='symbol_key'?'What letter does each row of the key give?':stage.material.type==='route_board'?'Can you trace both links without crossing a CLOSED mark?':stage.material.type==='decision_record'?'Which candidate satisfies both witness properties?':'Which piece satisfies both parts of the printed rule?';
     const sections=[
       ['STORY BEFORE THIS CHECK',stage.storyContext||`The team reaches checkpoint ${stage.number}. The mission is still open.`],
       ['HAND OUT',`Player pages ${stage.number*2}-${stage.number*2+1}: the challenge and ${kindLabel[stage.material.type].toLowerCase()} sheet. Keep all later pages and this answer private.`],
@@ -291,6 +297,15 @@ function guideStage(stage,spec){
       }
       page.text(label,48,y,9,true,'0.77 0.19 0.13');y-=16;
       y=page.block(value,48,y,77,10,14)-10;
+    }
+    if(stage.number===5){
+      const findings=story.stages.slice(0,4).map(item=>`Checkpoint ${item.number}: ${item.material.type==='order_tiles'?item.material.logic.context.labels.at(-1):item.options[item.answerIndex].replace(/ \/ digit [1-3]$/,'')}`);
+      const needed=26+findings.reduce((height,line)=>height+wrap(line,77).length*14+3,0)+42;
+      if(y-needed>=67){
+        page.text('CONNECT THE STORY',48,y,9,true,'0.77 0.19 0.13');y-=16;
+        for(const line of findings)y=page.block(line,48,y,77,10,14)-3;
+        page.block(`Ask how these four discoveries make ${stage.material.logic.context.labels[0]} a sensible final action. The code proves which printed option to choose; the team should also be able to explain the story link.`,48,y-7,77,10,14);
+      }
     }
     return pages;
   }
@@ -366,7 +381,7 @@ export function buildInteractiveGamePdf(story,spec,role){
   if(!story.stages?.every(stage=>stage.material))throw new Error('The paper materials are incomplete');
   const pages=role==='player'
     ? [cover(story,spec),...story.stages.flatMap(stage=>[challenge(stage,spec),materialSheet(stage,spec)]),finish(story,spec,role)]
-    : [guideStart(story,spec),...story.stages.flatMap(stage=>guideStage(stage,spec)),finish(story,spec,role)];
+    : [guideStart(story,spec),...story.stages.flatMap(stage=>guideStage(stage,spec,story)),finish(story,spec,role)];
   pages.forEach((page,index)=>page.text(`Page ${index+1} of ${pages.length}`,page.width-126,30,9));
   return serialize(pages);
 }

@@ -38,7 +38,7 @@ export function remakeSpec(original) {
     ...original,
     gamePackVersion: 2,
     packLogicVersion: 1,
-    ...(original.packContractVersion===1?{packExperienceVersion:2}:{}),
+    ...(original.packContractVersion===1?{packExperienceVersion:2,packQualityVersion:3}:{}),
     plan: {
       ...plan,
       title: shorten(plan.title, 70),
@@ -58,10 +58,11 @@ export function remakeSpec(original) {
   return prepared;
 }
 
-export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevision) {
+export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevision, previousRemakeSpec=null) {
   return purchase?.gamePackVersion === 2 && purchase.packContractVersion === 1 &&
-    (purchase.packExperienceVersion || 0) < 2 && activity?.packContractVersion === 1 &&
-    (activity.packExperienceVersion || 0) < 2 && latestFormat === 2 && !hasRevision;
+    activity?.packContractVersion === 1 && latestFormat === 2 && !hasRevision &&
+    (previousRemakeSpec ? (previousRemakeSpec.packQualityVersion || 0) < 3 :
+      (purchase.packQualityVersion || 0) < 3 && (activity.packQualityVersion || 0) < 3);
 }
 
 export async function startPackRemake(order, activity, env) {
@@ -69,15 +70,15 @@ export async function startPackRemake(order, activity, env) {
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
   if (order.product_kind !== 'custom' || order.status !== 'published' || !order.paid_at || activity?.status !== 'published')
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'Only a delivered paid custom order can be remade.');
-  const existing = await query(env.DB, 'SELECT status FROM custom_pack_remakes WHERE order_id = ?', order.id).first();
-  if (existing) return { status: existing.status, queued: false };
+  const existing = await query(env.DB, 'SELECT status,spec_json,published_version,quality_epoch FROM custom_pack_remakes WHERE order_id = ?', order.id).first();
+  if (existing?.status !== 'ready' && existing) return { status: existing.status, queued: false };
   const latest = await query(env.DB, "SELECT pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", activity.id).first();
   const purchase = JSON.parse(order.purchase_spec_json);
   const activitySpec = JSON.parse(activity.story_spec_json);
   const checkedPack = purchase.gamePackVersion >= 2 || latest?.pack_format_version >= 2;
   const anyRevision = checkedPack ? await query(env.DB, "SELECT id FROM revision_requests WHERE order_id = ? AND status IN ('queued','generating','published') LIMIT 1", order.id).first() : null;
   const revisionAllowance = checkedPack ? await query(env.DB, 'SELECT revision_success_used FROM entitlements WHERE order_id = ?', order.id).first() : null;
-  if (checkedPack && !qualityUpgradeEligible(purchase, activitySpec, latest?.pack_format_version, Boolean(anyRevision || revisionAllowance?.revision_success_used)))
+  if (checkedPack && !qualityUpgradeEligible(purchase, activitySpec, latest?.pack_format_version, Boolean(anyRevision || revisionAllowance?.revision_success_used), existing?.spec_json ? JSON.parse(existing.spec_json) : null))
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'This pack already has the current quality rules or has been revised. Please request a quality review for this order.');
   if (!latest) throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'A delivered pack is required before a remake can start.');
   const pendingRevision = checkedPack ? anyRevision : await query(env.DB, "SELECT id FROM revision_requests WHERE order_id = ? AND status IN ('queued','generating') LIMIT 1", order.id).first();
@@ -85,6 +86,13 @@ export async function startPackRemake(order, activity, env) {
   const spec = remakeSpec(activitySpec);
   const specJson = JSON.stringify(spec);
   const specHash = await sha256(specJson);
+  if (existing?.status === 'ready') {
+    const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'blueprint',spec_json = ?,spec_sha256 = ?,blueprint_json = NULL,blueprint_sha256 = NULL,stages_json = '[]',story_json = NULL,story_sha256 = NULL,failure_count = 0,recovery_round = 0,quality_epoch = quality_epoch + 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'ready' AND quality_epoch = ? AND published_version = ?",specJson,specHash,order.id,existing.quality_epoch,existing.published_version).run();
+    if (!changed.meta?.changes) return {status:'queued',queued:false};
+    try { await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: order.id }); }
+    catch (caught) { console.error('Quality-rules rebuild queued for scheduled recovery', {orderId:order.id,message:caught?.message}); }
+    return {status:'queued',queued:true};
+  }
   const created = await query(env.DB, "INSERT OR IGNORE INTO custom_pack_remakes (order_id,status,spec_json,spec_sha256) VALUES (?,'queued',?,?)", order.id, specJson, specHash).run();
   if (created.meta?.changes) {
     try { await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: order.id }); }
@@ -98,8 +106,8 @@ export async function retryPackRemake(order, env) {
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
   if (order.product_kind !== 'custom' || order.status !== 'published' || !order.paid_at)
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'This paid order is not eligible for a pack remake.');
-  const previous=await query(env.DB,'SELECT status,phase,error_code,logic_epoch,spec_json,recovery_round,published_version FROM custom_pack_remakes WHERE order_id = ?',order.id).first();
-  if (!previous || previous.status!=='failed' || previous.published_version)
+  const previous=await query(env.DB,'SELECT status,phase,error_code,logic_epoch,quality_epoch,spec_json,recovery_round,published_version FROM custom_pack_remakes WHERE order_id = ?',order.id).first();
+  if (!previous || previous.status!=='failed' || (previous.published_version && !previous.quality_epoch))
     throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','This remake is not waiting for a recovery.');
   const savedSpec=JSON.parse(previous.spec_json);
   if (savedSpec.packLogicVersion!==1) {
@@ -121,7 +129,7 @@ export async function retryPackRemake(order, env) {
     catch(caught){console.error('Saved blueprint recovery queued',{orderId:order.id,message:caught?.message});}
     return {status:'queued',recovery:true,reusedBlueprint:true};
   }
-  const changed = await query(env.DB, "UPDATE custom_pack_remakes SET status = 'queued',failure_count = 0,recovery_round = recovery_round + 1,recovery_count = MIN(recovery_count + 1,1),lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND recovery_round < ? AND published_version IS NULL AND error_code IN ('BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED')", order.id, MAX_RECOVERY_ROUNDS).run();
+  const changed = await query(env.DB, "UPDATE custom_pack_remakes SET status = 'queued',failure_count = 0,recovery_round = recovery_round + 1,recovery_count = MIN(recovery_count + 1,1),lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND recovery_round < ? AND (published_version IS NULL OR quality_epoch > 0) AND error_code IN ('BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED')", order.id, MAX_RECOVERY_ROUNDS).run();
   if (!changed.meta?.changes) throw new ApiError(409, 'REMAKE_RECOVERY_UNAVAILABLE', 'A recovery has already started or this remake needs personal support.');
   try { await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: order.id }); }
   catch (caught) { console.error('Paid remake recovery saved for queue', { orderId: order.id, message: caught?.message }); }
@@ -158,15 +166,15 @@ async function recordCall(remake, phase, stageNumber, produce, env) {
   const db = env.DB;
   const spec=JSON.parse(remake.spec_json);
   const round = remake.recovery_round + 1;
-  const cached = await query(db, "SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", remake.order_id, remake.logic_epoch, phase, stageNumber).first();
+  const cached = await query(db, "SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", remake.order_id, remake.quality_epoch, remake.logic_epoch, phase, stageNumber).first();
   if (cached) return JSON.parse(cached.result_json);
-  const stepCount = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', remake.order_id, remake.logic_epoch, phase, stageNumber, round).first();
-  const total = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND generation_round = ?', remake.order_id, remake.logic_epoch, round).first();
+  const stepCount = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', remake.order_id, remake.quality_epoch, remake.logic_epoch, phase, stageNumber, round).first();
+  const total = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ?', remake.order_id, remake.quality_epoch, remake.logic_epoch, round).first();
   if (stepCount.n >= stepLimit(phase,spec) || total.n >= MAX_CALLS)
     throw new ApiError(422, 'REMAKE_BUDGET_EXHAUSTED', 'The safe generation limit was reached. Your original game remains available.');
   const id = crypto.randomUUID();
   const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&phase!=='blueprint'&&!(spec.packContractVersion===1&&phase==='audit');
-  await query(db, "INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,round_number,generation_round,logic_epoch) VALUES (?,?,?,?,'started',?,?,?,?)", id, remake.order_id, phase, stageNumber, deterministic?'checked-rules-v1':aiProvider(env).model, Math.min(round,2), round, remake.logic_epoch).run();
+  await query(db, "INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,round_number,generation_round,logic_epoch,quality_epoch) VALUES (?,?,?,?,'started',?,?,?,?,?)", id, remake.order_id, phase, stageNumber, deterministic?'checked-rules-v1':aiProvider(env).model, Math.min(round,2), round, remake.logic_epoch, remake.quality_epoch).run();
   try {
     const result = await produce();
     await query(db, "UPDATE custom_pack_remake_calls SET status = 'passed',result_json = ?,response_id = ?,input_tokens = ?,output_tokens = ?,completed_at = CURRENT_TIMESTAMP WHERE id = ?", JSON.stringify(result.value), result.responseId || null, result.usage?.input_tokens ?? null, result.usage?.output_tokens ?? null, id).run();
@@ -249,7 +257,7 @@ export async function processPackRemake(orderId, env) {
   try {
     if (!remake.blueprint_json) {
       const blueprint = validateBlueprint(await recordCall(remake, 'blueprint', 0, async () => {
-        const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", orderId,remake.logic_epoch).first();
+        const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", orderId,remake.quality_epoch,remake.logic_epoch).first();
         const result = prior ? await repairBlueprint(spec, JSON.parse(prior.result_json), prior.error_detail, env, env.FETCH || fetch) : await generateBlueprint(spec, env, env.FETCH || fetch);
         return { value: result.blueprint, usage: result.usage, responseId: result.responseId };
       }, env), spec);
@@ -266,7 +274,7 @@ export async function processPackRemake(orderId, env) {
       phase = 'checkpoint'; stageNumber = next;
       const previous = stages.at(-1) || null;
       const stage = await recordCall(remake, phase, next, async () => {
-        const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND phase = 'checkpoint' AND stage_number = ? AND generation_round = ? AND status = 'failed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1", orderId, remake.logic_epoch, next, remake.recovery_round + 1).first();
+        const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'checkpoint' AND stage_number = ? AND generation_round = ? AND status = 'failed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1", orderId, remake.quality_epoch, remake.logic_epoch, next, remake.recovery_round + 1).first();
         const result = prior ? await repairStagedCheckpoint(spec, blueprint, next, previous, JSON.parse(prior.result_json), prior.error_detail, env, env.FETCH || fetch)
           : await generateStagedCheckpoint(spec, blueprint, next, previous, env, env.FETCH || fetch);
         return { value: result.stage, usage: result.usage, responseId: result.responseId };
@@ -293,8 +301,8 @@ export async function processPackRemake(orderId, env) {
     await publishRemadeFiles(remake, order, env);
   } catch (caught) {
     const code = typeof caught?.code === 'string' && /^[A-Z0-9_]{1,60}$/.test(caught.code) ? caught.code : 'UNEXPECTED';
-    const total = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND generation_round = ?', orderId, remake.logic_epoch, remake.recovery_round + 1).first();
-    const step = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', orderId, remake.logic_epoch, phase, stageNumber, remake.recovery_round + 1).first();
+    const total = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ?', orderId, remake.quality_epoch, remake.logic_epoch, remake.recovery_round + 1).first();
+    const step = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', orderId, remake.quality_epoch, remake.logic_epoch, phase, stageNumber, remake.recovery_round + 1).first();
     let retry = total.n < MAX_CALLS && step.n < stepLimit(phase,spec) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING'].includes(code);
     if (code === 'GENERATION_QA_FAILED') {
       const failedStage = caught.stageNumber;
@@ -303,8 +311,8 @@ export async function processPackRemake(orderId, env) {
         const blueprintIssue = spec.packContractVersion===1 || /material|card|option|choice|answer leak|printed piece/i.test(caught.message);
         if (blueprintIssue) {
           await db.batch([
-            query(db, "UPDATE custom_pack_remake_calls SET status = 'failed',error_code = 'AUDIT_REJECTED',error_detail = ? WHERE id = (SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = ? AND phase = 'blueprint' AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1)", String(caught.message).slice(0,500), orderId,remake.logic_epoch),
-            query(db, "UPDATE custom_pack_remake_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND logic_epoch = ? AND phase = 'checkpoint' AND status = 'passed'", orderId,remake.logic_epoch),
+            query(db, "UPDATE custom_pack_remake_calls SET status = 'failed',error_code = 'AUDIT_REJECTED',error_detail = ? WHERE id = (SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint' AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1)", String(caught.message).slice(0,500), orderId,remake.quality_epoch,remake.logic_epoch),
+            query(db, "UPDATE custom_pack_remake_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'checkpoint' AND status = 'passed'", orderId,remake.quality_epoch,remake.logic_epoch),
             query(db, "UPDATE custom_pack_remakes SET blueprint_json = NULL,blueprint_sha256 = NULL,stages_json = '[]',story_json = NULL,story_sha256 = NULL WHERE order_id = ?", orderId),
           ]);
           phase = 'blueprint';
@@ -312,13 +320,13 @@ export async function processPackRemake(orderId, env) {
           const stages = JSON.parse(remake.stages_json || '[]').slice(0, failedStage - 1);
           await db.batch([
             query(db, 'UPDATE custom_pack_remakes SET stages_json = ? WHERE order_id = ?', JSON.stringify(stages), orderId),
-            query(db, "UPDATE custom_pack_remake_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND logic_epoch = ? AND phase = 'checkpoint' AND stage_number >= ? AND status = 'passed'", orderId,remake.logic_epoch, failedStage),
+            query(db, "UPDATE custom_pack_remake_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'checkpoint' AND stage_number >= ? AND status = 'passed'", orderId,remake.quality_epoch,remake.logic_epoch, failedStage),
           ]);
           phase = 'checkpoint';
         }
       }
     }
-    console.error('Paid pack remake step stopped', { orderId, phase, stageNumber, code, retry, message: caught?.message });
+    console.error('Paid pack remake step stopped', { orderId, phase, stageNumber, code, retry });
     await query(db, "UPDATE custom_pack_remakes SET status = ?,phase = ?,lease_until = NULL,failure_count = failure_count + 1,error_code = ?,error_detail = ?,updated_at = CURRENT_TIMESTAMP,completed_at = CASE WHEN ? = 'failed' THEN CURRENT_TIMESTAMP ELSE completed_at END WHERE order_id = ?", retry ? 'queued' : 'failed', phase, code, String(caught?.message || 'Unknown failure').slice(0, 1000), retry ? 'queued' : 'failed', orderId).run();
     if(!retry)await query(db,"INSERT INTO custom_delivery_incidents (order_id,phase,error_code) VALUES (?,?,?) ON CONFLICT(order_id) DO UPDATE SET phase = excluded.phase,error_code = excluded.error_code,status = 'open',alert_status = 'pending',alert_attempts = 0,alerted_at = NULL",orderId,phase,code).run();
     if (retry) await queueNext(orderId, env);

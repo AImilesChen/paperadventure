@@ -39,6 +39,15 @@ test('clock game tasks, materials and adult steps agree, and the final action us
   assert.equal(auditCalls,1,'content coherence needs an independent audit, beyond puzzle arithmetic');
 });
 
+test('quality version 3 varies answer positions while preserving earlier checked contracts',async()=>{
+  const old=(await game({...clockSpec,packExperienceVersion:2})).story;
+  const current=(await game({...clockSpec,packExperienceVersion:2,packQualityVersion:3})).story;
+  assert.deepEqual(old.stages.map(stage=>stage.answerIndex),[1,1,1,1,1]);
+  assert.deepEqual(current.stages.map(stage=>stage.answerIndex),[2,1,0,2,1]);
+  assert.deepEqual(current.stages.slice(0,4).map(stage=>stage.material.logic.resultDigit),old.stages.slice(0,4).map(stage=>stage.material.logic.resultDigit));
+  assert.equal(verifyPrintedPuzzles(current).length,5);
+});
+
 test('unified contracts reject changed tasks, incomplete introductions, placeholder pieces and mismatched final records',async()=>{
   const {story}=await game();
   assert.throws(()=>validateGeneratedStory({...story,stages:story.stages.map((stage,i)=>i===2?{...stage,task:'Compare coloured seals.'}:stage)},clockSpec),/contract|action/);
@@ -100,6 +109,7 @@ test('new pack contract prints a traceable route, evidence-based witnesses and f
     const guide=new TextDecoder().decode(buildGamePdf(story,{...spec,paper},'guide'));
     assert.match(player,/LINK 1/);assert.match(guide,/HINT 2 - NARROW THE CHECK/);
     assert.match(guide,/IF THEY CHOSE DIFFERENTLY/);
+    assert.match(guide,/Do all four saved digits match this action in order/,'the final hint checks the four results, not witness properties');
   }
   const longStory=structuredClone(story);
   longStory.title='The Museum of Lost Words: Restore the Hidden Exhibit Label';
@@ -112,8 +122,13 @@ test('new pack contract prints a traceable route, evidence-based witnesses and f
     assert.equal(outline.goal,spec.plan.goal);
     assert.equal(outline.checkpoints.length,5);
     assert.equal('story' in outline,false,'the narrative critic must not reinterpret checked paper rules');
+    assert.deepEqual(outline.checkpoints[0].printedFeatures,story.stages[0].material.logic.context.features);
+    assert.equal(outline.checkpoints[0].printedFacts[0].label,story.stages[0].material.items[0].label);
+    assert.equal(outline.checkpoints[0].selectedFinding,story.stages[0].options[story.stages[0].answerIndex]);
+    assert.equal(outline.checkpoints[4].intendedFinalAction,story.stages[4].material.logic.context.labels[0]);
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:true,issues:[]})}]}]});
   });
+  await assert.rejects(auditStagedStory(story,spec,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:1,reason:'Face shows midday cannot apply to a bell rope.'}]})}]}]})),error=>error.code==='GENERATION_QA_FAILED'&&error.stageNumber===1);
 });
 
 test('new pack rejects an early mission outcome before spending calls on later checkpoints',()=>{

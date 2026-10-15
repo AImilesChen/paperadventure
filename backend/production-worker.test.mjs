@@ -23,7 +23,7 @@ async function approvedCustomInput(env,input) {
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -1021,9 +1021,10 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   const queue=[],files=new Map([['original/player.pdf',{body:original,customMetadata:{sha256:originalHash}}],['original/guide.pdf',{body:original,customMetadata:{sha256:originalHash}}]]);
   const context=structuredClone(clockBlueprintContext);
   context.stages[2].material.items=['Inspect the idle signal','Align the spare wheel','Check the noon marker','Record the test result'].map(label=>({label}));
+  let blueprintCalls=0;
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
     PRIVATE_FILES:{get:async key=>files.get(key)||null,put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata})},
-    FETCH:async(_url,init)=>{const name=JSON.parse(init.body).text.format.name;return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(name==='game_blueprint'?context:{pass:true,issues:[]})}]}],usage:{input_tokens:10,output_tokens:10}});}};
+    FETCH:async(_url,init)=>{const name=JSON.parse(init.body).text.format.name;if(name==='game_blueprint')blueprintCalls++;return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(name==='game_blueprint'?context:{pass:true,issues:[]})}]}],usage:{input_tokens:10,output_tokens:10}});}};
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
   const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
   const view=()=>handleProductionApi(request('/api/v1/orders/quality-order','GET',undefined,headers),env).then(response=>response.json());
@@ -1050,12 +1051,34 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,2);
   assert.notDeepEqual(new Uint8Array(await (await download()).arrayBuffer()),original);
   assert.deepEqual(new Uint8Array(await (await download('&version=1')).arrayBuffer()),original);
+  assert.equal(blueprintCalls,1);
+  const earlierPack=new Uint8Array(await (await download()).arrayBuffer());
+  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:2};
+  const earlierJson=JSON.stringify(earlierSpec);
+  db.prepare("UPDATE custom_pack_remakes SET spec_json = ?,spec_sha256 = ? WHERE order_id = 'quality-order'").run(earlierJson,await sha256(earlierJson));
+  assert.equal((await view()).qualityUpgradeAvailable,true,'an already delivered older-quality remake can be rebuilt on the same order');
+  assert.equal((await handleProductionApi(request('/api/v1/orders/quality-order/pack-remake','POST',undefined,headers),env)).status,202);
+  assert.equal((await view()).qualityUpgradeAvailable,false);
+  assert.equal(db.prepare("SELECT quality_epoch,published_version FROM custom_pack_remakes WHERE order_id='quality-order'").get().quality_epoch,1);
+  for(let step=0;step<12 && (await view()).remake.status!=='ready';step++){
+    assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),earlierPack,'published files remain available during the quality rebuild');
+    const job=queue.shift();assert.equal(job?.type,'pack_remake');
+    await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('quality rebuild should not need queue-level retry');}}]},env);
+  }
+  assert.equal((await view()).remake.status,'ready');
+  assert.equal((await view()).remake.publishedVersion,3);
+  assert.equal((await view()).qualityUpgradeAvailable,false,'the same quality upgrade cannot be claimed twice');
+  assert.equal(blueprintCalls,2,'the stronger rules receive a fresh blueprint call, not an earlier cached result');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1,'quality rebuild creates no checkout');
+  assert.deepEqual(new Uint8Array(await (await download('&version=2')).arrayBuffer()),earlierPack);
 });
 
-test('current-quality and revised checked packs cannot start the free full-pack upgrade',()=>{
+test('quality version 3 and revised checked packs cannot start the free full-pack upgrade',()=>{
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false),true);
-  assert.equal(qualityUpgradeEligible({...clockSpec,packExperienceVersion:2},clockSpec,2,false),false);
-  assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packExperienceVersion:2},2,false),false);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:3},clockSpec,2,false),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packQualityVersion:3},2,false),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packExperienceVersion:2}),true);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3}),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
