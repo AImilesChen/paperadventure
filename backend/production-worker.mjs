@@ -1273,6 +1273,7 @@ export default {
       catch (caught) { console.error('Operator delivery alert failed',caught); }
     }
     if (!env.GENERATION_QUEUE) return;
+    await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'pdf',failure_count = 0,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE status = 'failed' AND error_code = 'BLUEPRINT_INVALID' AND published_version IS NOT NULL AND blueprint_json IS NOT NULL AND story_json IS NOT NULL AND json_array_length(stages_json) = 5 AND COALESCE(json_extract(spec_json,'$.packLayoutVersion'),0) >= 2").run();
     const jobs = await query(env.DB, `SELECT c.order_id FROM custom_activities c JOIN orders o ON o.id = c.order_id
       LEFT JOIN custom_plan_orders p ON p.order_id = c.order_id
       WHERE c.status IN ('queued','generating') AND COALESCE(c.lease_until,0) < ? AND o.status IN ('paid','fulfilling') AND (p.order_id IS NULL OR p.confirmed_version IS NOT NULL) LIMIT 20`, nowSeconds()).all();
@@ -1285,4 +1286,5 @@ export default {
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
 };
+
 
