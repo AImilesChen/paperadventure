@@ -307,10 +307,21 @@ function guideStage(stage,spec,story){
     if(groups.length>1){
       const last=groups.at(-1),previous=groups.at(-2);
       let lastHeight=last.reduce((total,section)=>total+sectionHeight(section),0);
+      let previousHeight=previous.reduce((total,section)=>total+sectionHeight(section),0);
       const minimumContinuation=Math.min(220,Math.floor(capacity*.36));
       while(lastHeight<minimumContinuation&&previous.length>1){
         const moved=previous.pop();
-        last.unshift(moved);lastHeight+=sectionHeight(moved);
+        const movedHeight=sectionHeight(moved);
+        last.unshift(moved);lastHeight+=movedHeight;previousHeight-=movedHeight;
+      }
+      // A continuation should read as the second half of the checkpoint, not a
+      // nearly empty spill page. Rebalance whole sections while keeping both
+      // pages within the printable area.
+      while(previous.length>1&&previousHeight-lastHeight>120){
+        const moved=previous.at(-1),movedHeight=sectionHeight(moved);
+        if(lastHeight+movedHeight>capacity)break;
+        previous.pop();last.unshift(moved);
+        lastHeight+=movedHeight;previousHeight-=movedHeight;
       }
     }
     groups.forEach((group,index)=>{

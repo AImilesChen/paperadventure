@@ -5,18 +5,35 @@ const plain = (value,label,max) => {
     throw Error(`${label} must be printable English under ${max} characters.`);
   return value.trim();
 };
+const danglingEnd=/\b(?:a|an|the|to|of|for|from|with|into|onto|at|by|as|and|or|but|because|so|than|that|which|who|whose|when|where|while|through|before|after|under|over|its|their|this|these|those)[.!?]?$/i;
+const normalizeSentence=value=>String(value||'').replace(/\s+/g,' ').trim();
+const completeBounded=(value,label,max)=>{
+  const normalized=normalizeSentence(value);
+  if(!normalized||/[^\x20-\x7e]/.test(normalized))throw Error(`${label} must be printable English under ${max} characters.`);
+  const punctuated=/[.!?]$/.test(normalized)?normalized:`${normalized}.`;
+  if(punctuated.length<=max&&!danglingEnd.test(punctuated))return punctuated;
+  const sentences=normalized.match(/[^.!?]+[.!?]+/g)||[];
+  let result='';
+  for(const part of sentences){
+    const next=`${result} ${part.trim()}`.trim();
+    if(next.length>max)break;
+    result=next;
+  }
+  if(result&&!danglingEnd.test(result))return result;
+  throw Error(`${label} must contain a complete sentence under ${max} characters.`);
+};
 const sentence=(value,label,max)=>{
-  const result=plain(value,label,max);
-  return /[.!?]$/.test(result)?result:`${result}.`;
+  return completeBounded(plain(value,label,max),label,max);
 };
 const fitted=(value,label,max,complete=false)=>{
   if(typeof value!=='string'||!value.trim()||/[^\x20-\x7e]/.test(value))
     throw Error(`${label} must be printable English under ${max} characters.`);
   let result=value.replace(/\s+/g,' ').trim();
+  if(complete)return completeBounded(result,label,max);
   const limit=complete?max-1:max;
   if(result.length>limit)result=result.slice(0,limit).replace(/\s+\S*$/,'').trim();
   if(!result)throw Error(`${label} must be printable English under ${max} characters.`);
-  return complete?`${result.replace(/[,:;.!?\s]+$/,'')}.`:result.replace(/[,:;.!?\s]+$/,'');
+  return result.replace(/[,:;.!?\s]+$/,'');
 };
 
 const actionFiller=new Set(['a','an','the','friendly','careful','carefully','nearby','correct','chosen','final','proper','safely','safe']);
@@ -53,12 +70,19 @@ const openPurpose=(value,index)=>completedOutcome.test(value)?[
 export function prepareStoryFrame(frame){
   if(!frame||!Array.isArray(frame.actions)||frame.actions.length!==3||!Array.isArray(frame.purposes)||frame.purposes.length!==4)
     throw Error('The story frame needs one problem, three final actions and four discovery purposes.');
-  const problem=fitted(frame.problem,'Story-frame problem',180,true);
+  let problem;
+  try{problem=fitted(frame.problem,'Story-frame problem',180,true);}
+  catch{problem='The mission is still blocked, and the team must use four discoveries to decide which action will work.';}
   const actions=frame.actions.map((value,index)=>compactAction(value,`Final action ${index+1}`,40));
   if(new Set(actions.map(value=>value.toLowerCase())).size!==3)throw Error('The story frame needs three distinct final actions.');
   if(actions.some(value=>/^(?:(?:restore|fix|solve|complete|save)\b|(?:final\s+)?action\b|option\b|choice\b)/i.test(value)))
     throw Error('Each final action must name a specific story action.');
-  const purposes=frame.purposes.map((value,index)=>openPurpose(fitted(value,`Checkpoint ${index+1} discovery purpose`,100,true),index));
+  const purposes=frame.purposes.map((value,index)=>{
+    let purpose;
+    try{purpose=fitted(value,`Checkpoint ${index+1} discovery purpose`,100,true);}
+    catch{purpose=purposeFallbacks[index];}
+    return openPurpose(purpose,index);
+  });
   if(purposes.some(value=>value.length<28||/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(value)))
     throw Error('Each discovery purpose must explain a story consequence rather than an answer code.');
   return {problem:concealResolution(problem,actions[0]),actions,purposes};
@@ -71,21 +95,50 @@ export function selectedStoryFinding(stage,type,number){
   return labels[(number+1)%3];
 }
 
+const purposeFallbacks=[
+  'This shows what the team must fix before choosing the final action.',
+  'This identifies what the team needs before choosing the final action.',
+  'This establishes the safe order needed for the final action.',
+  'This identifies the route needed for the final action.',
+];
+const compactPurposeFallbacks=[
+  'This finding guides the final action.',
+  'This finding is needed for the final action.',
+  'This sequence prepares the final action.',
+  'This route enables the final action.',
+];
+const storyLead=(stage,type,number)=>{
+  const finding=selectedStoryFinding(stage,type,number);
+  const features=stage?.features||stage?.material?.logic?.context?.features||[];
+  const subjects=features.map(value=>String(value).replace(/^(?:Mentions|Names)\s+/i,''));
+  const lead=['evidence_cards','decision_record'].includes(type)&&subjects.length===2
+    ? `${finding} contains both ${subjects[0]} and ${subjects[1]}.`
+    :type==='order_tiles'?`${finding} is the checked story sequence.`
+    :type==='symbol_key'?`${finding} message is the decoded story message.`
+    :`${finding} is the only open story route.`;
+  return {finding,lead};
+};
+const completeStoryLink=(lead,purpose,index,max=180)=>{
+  let second;
+  try{second=completeBounded(purpose,`Checkpoint ${index+1} story purpose`,Math.max(40,max-lead.length-1));}
+  catch{second=purposeFallbacks[index];}
+  if(`${lead} ${second}`.length<=max)return `${lead} ${second}`;
+  const fallback=purposeFallbacks[index];
+  if(`${lead} ${fallback}`.length<=max)return `${lead} ${fallback}`;
+  const compact=compactPurposeFallbacks[index];
+  if(`${lead} ${compact}`.length<=max)return `${lead} ${compact}`;
+  if(lead.endsWith(' is the checked story sequence.')){
+    const single=lead.replace(/ is the checked story sequence\.$/,' guides the final action.');
+    if(single.length<=max)return single;
+  }
+  throw Error(`Checkpoint ${index+1} printed names leave no room for a complete story link.`);
+};
+
 export function compileStorySpine(frame,stages,types){
   const checked=prepareStoryFrame(frame),resolution=checked.actions[0];
   const links=stages.slice(0,4).map((stage,index)=>{
-    const finding=selectedStoryFinding(stage,types[index],index+1);
-    const features=stage.features||stage.material?.logic?.context?.features||[];
-    const subjects=features.map(value=>String(value).replace(/^(?:Mentions|Names)\s+/i,''));
-    const lead=['evidence_cards','decision_record'].includes(types[index])
-      ? `${finding} contains both ${subjects[0]} and ${subjects[1]}.`
-      :types[index]==='order_tiles'?`${finding} is the checked story sequence.`
-      :types[index]==='symbol_key'?`${finding} is the decoded story message.`
-      :`${finding} is the only open story route.`;
-    const combined=`${lead} ${checked.purposes[index]}`;
-    if(combined.length<=180)return combined;
-    const allowance=Math.max(28,179-lead.length);
-    return `${lead} ${checked.purposes[index].slice(0,allowance).replace(/\s+\S*$/,'').replace(/[,:;.!?\s]+$/,'')}.`;
+    const {lead}=storyLead(stage,types[index],index+1);
+    return completeStoryLink(lead,checked.purposes[index],index);
   });
   return {problem:checked.problem,resolution,links};
 }
@@ -101,23 +154,26 @@ export function validateStorySpine(spine,stages,types,goal){
   const resolution=firstAction;
   const links=spine.links.map((value,index)=>{
     let reason=plain(typeof value==='string'?value:value?.reason,`Checkpoint ${index+1} story link`,180);
-    const finding=selectedStoryFinding(stages[index],types[index],index+1);
+    const {finding,lead}=storyLead(stages[index],types[index],index+1);
     if(!finding)throw Error(`Checkpoint ${index+1} has no selected finding.`);
-    const labels=types[index]==='order_tiles'?stages[index].material.items.map(item=>item.label):[finding];
-    if(types[index]==='order_tiles'&&!reason.toLowerCase().includes(finding.toLowerCase())){
-      const lead=`${finding} is the checked story sequence.`;
-      const tail=reason.replace(/^[^.!?]+[.!?]\s*/, '').trim();
-      reason=`${lead} ${tail||'This finding gives the team information needed before choosing the final action.'}`;
-    }else if(!labels.some(label=>reason.toLowerCase().includes(String(label).toLowerCase())))
-      reason=`${types[index]==='order_tiles'?labels[0]:finding}: ${reason}`;
+    if(/\b(?:answer code|result digit|correct answer|matching option)\b/i.test(reason))
+      throw Error(`Checkpoint ${index+1} story link needs a fictional reason beyond the answer code.`);
+    const exactFinding=reason.toLowerCase().includes(String(finding).toLowerCase());
     if(['evidence_cards','decision_record'].includes(types[index])){
       const features=stages[index]?.features||stages[index]?.material?.logic?.context?.features||[];
       if(features.length!==2)throw Error(`Checkpoint ${index+1} story link must cite both printed record facts.`);
       const missing=features.map(feature=>String(feature).replace(/^(?:Mentions|Names)\s+/i,'')).filter(subject=>!reason.toLowerCase().includes(subject.toLowerCase()));
-      if(missing.length)reason=`${finding} mentions ${missing.join(' and ')}. ${reason}`;
+      if(!exactFinding||missing.length){
+        const originalPurpose=reason.replace(/^[^.!?]+[.!?]\s*/, '').trim()||purposeFallbacks[index];
+        reason=completeStoryLink(lead,originalPurpose,index);
+      }
+    }else if(!exactFinding){
+      const originalPurpose=reason.replace(/^[^.!?]+[.!?]\s*/, '').trim()||purposeFallbacks[index];
+      reason=completeStoryLink(lead,originalPurpose,index);
     }
-    if(reason.length>180){const cut=reason.slice(0,176).replace(/\s+\S*$/,'').replace(/[,:;.!?\s]+$/,'');reason=`${cut}.`;}
-    if(reason.length<Math.min(30,String(finding).length+15)||/\b(?:answer code|result digit|correct answer|matching option)\b/i.test(reason))
+    reason=completeBounded(reason,`Checkpoint ${index+1} story link`,180);
+    if(reason.length>180||danglingEnd.test(reason))throw Error(`Checkpoint ${index+1} story link must contain complete sentences.`);
+    if(reason.length<Math.min(30,String(finding).length+15))
       throw Error(`Checkpoint ${index+1} story link needs a fictional reason beyond the answer code.`);
     assertGoalStillOpen([reason],goal,index+1);
     return {finding,reason};

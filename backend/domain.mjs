@@ -48,7 +48,7 @@ export function validatePurchase(input) {
   if (Boolean(proposalTitle) !== Boolean(proposalSummary)) throw new ApiError(400, 'INVALID_SPEC', 'The selected proposal is incomplete.');
   if (input.creatorVersion === 3 && (input.plan || input.previewToken || input.planConfirmed || proposalTitle || proposalSummary)) throw new ApiError(400,'INVALID_SPEC','The personal plan is created after payment.');
   return { offer, spec: { sku: offer.sku, kind: 'custom', setting: offer.setting, themeId, customIdea: idea, players, groups, age, paper, direction, proposalTitle, proposalSummary,
-    ...(input.creatorVersion === 3 ? {gamePackVersion:2,packLogicVersion:1,packContractVersion:1,packExperienceVersion:3,packQualityVersion:3,packLayoutVersion:2} : {}),
+    ...(input.creatorVersion === 3 ? {gamePackVersion:2,packLogicVersion:1,packContractVersion:1,packExperienceVersion:3,packQualityVersion:4,packLayoutVersion:3} : {}),
     preferences: Object.fromEntries(['characters','goal','include','avoid'].map(key => [key, input.preferences?.[key] ? requireText(input.preferences[key], `Preference ${key}`, 180) : ''])),
     place: String(input.place || '').trim().slice(0, 180), reading: String(input.reading || '').trim().slice(0, 40), materials: String(input.materials || '').trim().slice(0, 180), ...creatorFields(input) } };
 }

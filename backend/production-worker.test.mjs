@@ -1061,7 +1061,7 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.deepEqual(new Uint8Array(await (await download('&version=1')).arrayBuffer()),original);
   assert.equal(blueprintCalls,1);
   const earlierPack=new Uint8Array(await (await download()).arrayBuffer());
-  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:3,packLayoutVersion:1};
+  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:4,packLayoutVersion:2};
   const earlierJson=JSON.stringify(earlierSpec);
   const staleBlueprint='{}';
   db.prepare("UPDATE custom_pack_remakes SET spec_json = ?,spec_sha256 = ?,blueprint_json = ?,blueprint_sha256 = ? WHERE order_id = 'quality-order'").run(earlierJson,await sha256(earlierJson),staleBlueprint,await sha256(staleBlueprint));
@@ -1107,10 +1107,11 @@ test('current layout and revised checked packs cannot start the free full-pack u
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false),true);
   assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:3},clockSpec,2,false),true);
   assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packQualityVersion:3},2,false),true);
-  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:3,packLayoutVersion:2},{...clockSpec,packQualityVersion:3,packLayoutVersion:2},2,false),false);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:4,packLayoutVersion:3},{...clockSpec,packQualityVersion:4,packLayoutVersion:3},2,false),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packExperienceVersion:2}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3}),true);
-  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3,packLayoutVersion:2}),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:4,packLayoutVersion:2}),true);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:4,packLayoutVersion:3}),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
@@ -1360,7 +1361,8 @@ test('a failed V2 quality remake migrates to V3 on the same paid order even when
   const saved=db.prepare('SELECT status,phase,spec_json,published_version,recovery_round,logic_epoch,quality_epoch,blueprint_json,stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId);
   const upgraded=JSON.parse(saved.spec_json);
   assert.equal(upgraded.packExperienceVersion,3);
-  assert.equal(upgraded.packQualityVersion,3);
+  assert.equal(upgraded.packQualityVersion,4);
+  assert.equal(upgraded.packLayoutVersion,3);
   assert.equal(saved.status,'queued');assert.equal(saved.phase,'blueprint');
   assert.equal(saved.published_version,2,'the downloadable original stays published during the upgrade');
   assert.equal(saved.recovery_round,0);assert.equal(saved.logic_epoch,1);assert.equal(saved.quality_epoch,4);

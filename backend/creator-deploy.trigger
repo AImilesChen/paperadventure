@@ -1,1 +1,2 @@
-2026-10-15: deploy clear order status refresh action and inline feedback.
+2026-10-15: deploy complete-sentence story links, balanced guide continuations and quality-v4 paid rebuilds.
+

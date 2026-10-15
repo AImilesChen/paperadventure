@@ -9,9 +9,15 @@ const unique=values=>new Set(values.map(value=>value.toLowerCase())).size===valu
 const rotate=(values,shift)=>values.map((_,i)=>values[(i+shift)%values.length]);
 const fitNarrative=(value,max)=>{
   if(typeof value!=='string'||value.length<=max)return value;
-  const sentence=value.slice(0,max-1).match(/^.*[.!?](?=\s|$)/)?.[0];
-  const words=value.slice(0,max-1).replace(/\s+\S*$/,'').trim();
-  return `${(sentence&&sentence.length>=max/2?sentence:words).replace(/[,:;.!?\s]+$/,'')}.`;
+  const sentences=value.match(/[^.!?]+[.!?]+/g)||[];
+  let result='';
+  for(const sentence of sentences){
+    const next=`${result} ${sentence.trim()}`.trim();
+    if(next.length>max)break;
+    result=next;
+  }
+  if(!result)throw Error(`Narrative text needs a complete sentence within ${max} characters.`);
+  return result;
 };
 const fitRecordFeature=value=>{
   if(typeof value!=='string')return value;

@@ -13,6 +13,8 @@ const MAX_BLUEPRINT_CALLS = 3;
 const MAX_AUDIT_CALLS = 5;
 const stepLimit = (phase,spec) => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? spec?.packExperienceVersion>=2?5:MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
+const CURRENT_PACK_QUALITY_VERSION = 4;
+const CURRENT_PACK_LAYOUT_VERSION = 3;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
 const deterministicCheckpoint = (phase,spec) => phase === 'checkpoint' && spec.gamePackVersion === 2 && spec.packLogicVersion === 1;
 
@@ -39,7 +41,7 @@ export function remakeSpec(original) {
     ...original,
     gamePackVersion: 2,
     packLogicVersion: 1,
-    ...(original.packContractVersion===1?{packExperienceVersion:3,packQualityVersion:3,packLayoutVersion:2}:{}),
+    ...(original.packContractVersion===1?{packExperienceVersion:3,packQualityVersion:CURRENT_PACK_QUALITY_VERSION,packLayoutVersion:CURRENT_PACK_LAYOUT_VERSION}:{}),
     plan: {
       ...plan,
       title: shorten(plan.title, 70),
@@ -62,7 +64,7 @@ export function remakeSpec(original) {
 function failedRemakeNeedsUpgrade(spec, row) {
   const logicUpgrade = spec?.gamePackVersion !== 2 || spec?.packLogicVersion !== 1;
   const experienceUpgrade = spec?.packContractVersion === 1 &&
-    ((spec.packExperienceVersion || 0) < 3 || (spec.packQualityVersion || 0) < 3);
+    ((spec.packExperienceVersion || 0) < 3 || (spec.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION);
   // A later checkpoint or audit already has reusable V2 work. Keep its targeted
   // recovery path; only restart an exhausted V2 blueprint that saved no stages.
   return logicUpgrade || experienceUpgrade && row?.phase === 'blueprint' && row?.logic_epoch === 1;
@@ -70,10 +72,10 @@ function failedRemakeNeedsUpgrade(spec, row) {
 
 export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevision, previousRemakeSpec=null) {
   const previous=previousRemakeSpec||null;
-  const qualityOutdated=previous ? (previous.packQualityVersion || 0) < 3 :
-    (purchase.packQualityVersion || 0) < 3 && (activity.packQualityVersion || 0) < 3;
-  const layoutOutdated=previous ? (previous.packLayoutVersion || 0) < 2 :
-    (purchase.packLayoutVersion || 0) < 2 && (activity.packLayoutVersion || 0) < 2;
+  const qualityOutdated=previous ? (previous.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION :
+    (purchase.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION && (activity.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION;
+  const layoutOutdated=previous ? (previous.packLayoutVersion || 0) < CURRENT_PACK_LAYOUT_VERSION :
+    (purchase.packLayoutVersion || 0) < CURRENT_PACK_LAYOUT_VERSION && (activity.packLayoutVersion || 0) < CURRENT_PACK_LAYOUT_VERSION;
   return purchase?.gamePackVersion === 2 && purchase.packContractVersion === 1 &&
     activity?.packContractVersion === 1 && latestFormat === 2 && !hasRevision &&
     (qualityOutdated || layoutOutdated);
@@ -102,7 +104,7 @@ export async function startPackRemake(order, activity, env) {
   const specJson = JSON.stringify(spec);
   const specHash = await sha256(specJson);
   if (existing?.status === 'ready') {
-    const layoutOnly=Boolean(existing.blueprint_json&&existing.story_json&&previousSpec?.packExperienceVersion>=3&&previousSpec?.packQualityVersion>=3&&(previousSpec.packLayoutVersion||0)<2);
+    const layoutOnly=Boolean(existing.blueprint_json&&existing.story_json&&previousSpec?.packExperienceVersion>=3&&previousSpec?.packQualityVersion>=CURRENT_PACK_QUALITY_VERSION&&(previousSpec.packLayoutVersion||0)<CURRENT_PACK_LAYOUT_VERSION);
     const changed=layoutOnly
       ? await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'pdf',spec_json = ?,spec_sha256 = ?,failure_count = 0,recovery_round = 0,quality_epoch = quality_epoch + 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'ready' AND quality_epoch = ? AND published_version = ? AND blueprint_json IS NOT NULL AND story_json IS NOT NULL",specJson,specHash,order.id,existing.quality_epoch,existing.published_version).run()
       : await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'blueprint',spec_json = ?,spec_sha256 = ?,blueprint_json = NULL,blueprint_sha256 = NULL,stages_json = '[]',story_json = NULL,story_sha256 = NULL,failure_count = 0,recovery_round = 0,quality_epoch = quality_epoch + 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'ready' AND quality_epoch = ? AND published_version = ?",specJson,specHash,order.id,existing.quality_epoch,existing.published_version).run();
@@ -129,7 +131,7 @@ export async function retryPackRemake(order, env) {
     throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','This remake is not waiting for a recovery.');
   const savedSpec=JSON.parse(previous.spec_json);
   const savedStages=JSON.parse(previous.stages_json||'[]');
-  const layoutRecovery=Boolean(previous.published_version&&previous.blueprint_json&&savedStages.length===5&&previous.story_json&&previous.error_code==='BLUEPRINT_INVALID');
+  const layoutRecovery=Boolean(previous.published_version&&previous.blueprint_json&&savedStages.length===5&&previous.story_json&&previous.error_code==='BLUEPRINT_INVALID'&&!failedRemakeNeedsUpgrade(savedSpec,previous));
   if(layoutRecovery){
     const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'pdf',failure_count = 0,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND blueprint_json IS NOT NULL AND story_json IS NOT NULL",order.id).run();
     if(!changed.meta?.changes)throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','A PDF refresh recovery has already started.');
@@ -179,7 +181,7 @@ export async function packRemakeView(db, orderId) {
   if (!row) return null;
   const stages = JSON.parse(row.stages_json || '[]');
   const spec=JSON.parse(row.spec_json);
-  const layoutRecoveryAvailable=Boolean(row.status==='failed'&&row.published_version&&row.blueprint_json&&stages.length===5&&row.story_json&&row.error_code==='BLUEPRINT_INVALID');
+  const layoutRecoveryAvailable=Boolean(row.status==='failed'&&row.published_version&&row.blueprint_json&&stages.length===5&&row.story_json&&row.error_code==='BLUEPRINT_INVALID'&&!failedRemakeNeedsUpgrade(spec,row));
   const upgradeAvailable=row.status==='failed'&&(row.published_version===null||row.quality_epoch>0)&&failedRemakeNeedsUpgrade(spec,row);
   const savedBlueprintAvailable=row.status==='failed'&&row.phase==='blueprint'&&row.error_code==='BLUEPRINT_INVALID'&&row.recovery_round>=MAX_RECOVERY_ROUNDS&&row.logic_epoch===0&&!row.published_version&&spec.packExperienceVersion>=2&&Boolean(await recoverSavedBlueprint(db,orderId,spec));
   const reviewPrefix = 'The completed game did not pass its quality check: ';
@@ -238,6 +240,15 @@ function checkedPdf(bytes, expectedPages, label) {
   const validCount=label==='Adult guide'?count>=expectedPages&&count<=expectedPages+5:count===expectedPages;
   if (!text.startsWith('%PDF-') || !validCount || bytes.length < 1000)
     throw new ApiError(422, 'REMAKE_PDF_INVALID', `${label} did not pass the complete-page check.`);
+  if(label==='Adult guide'){
+    const streams=[...text.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)].map(match=>match[1]);
+    const continuations=streams.filter(stream=>/GUIDE \/ CHECKPOINT \d+ CONTINUED/i.test(stream));
+    if(continuations.some(stream=>(stream.match(/\) Tj ET/g)||[]).length<18))
+      throw new ApiError(422,'REMAKE_PDF_INVALID','The adult guide contains a sparse continuation page.');
+    const finale=continuations.find(stream=>/GUIDE \/ CHECKPOINT 5 CONTINUED/i.test(stream));
+    if(finale&&!['CONNECT THE FOUR DISCOVERIES','WHY THIS ACTION','STORY AND NEXT PAGE'].every(title=>finale.includes(title)))
+      throw new ApiError(422,'REMAKE_PDF_INVALID','The adult guide split the final host instructions across incomplete pages.');
+  }
 }
 
 async function publishRemadeFiles(remake, order, env) {

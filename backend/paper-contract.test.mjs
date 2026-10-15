@@ -119,6 +119,10 @@ test('linked story requires four printed findings and explains them in the adult
   for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected provider request');})).stage);
   const story=assembleStagedStory(spec,blueprint,stages);
   assert.equal(story.spine.links.length,4);
+  for(const link of story.spine.links){
+    assert.match(link.reason,/[.!?]$/,'every story link must end as a complete sentence');
+    assert.doesNotMatch(link.reason,/\b(?:a|an|the|to|of|for|from|with|into|onto|at|by|as|and|or|but|because|so|than|that|which|who|whose|when|where|while|through|before|after|under|over|its|their|this|these|those)[.!?]$/i,'a story link cannot end on a dangling connector');
+  }
   assert.equal(verifyPrintedPuzzles(story).length,5);
   if(process.env.PAPER_QA_OUTPUT){
     await mkdir(process.env.PAPER_QA_OUTPUT,{recursive:true});
@@ -132,6 +136,7 @@ test('linked story requires four printed findings and explains them in the adult
     assert.match(guide,/WHY THIS ACTION/);
     const continuation=guide.split('endstream').filter(stream=>/STORY AND NEXT PAGE/.test(stream)).at(-1);
     assert.match(continuation,/CONNECT THE FOUR DISCOVERIES/,'a short final instruction must not sit alone on a sparse continuation page');
+    assert.ok((continuation.match(/\) Tj ET/g)||[]).length>=18,'the final guide continuation must contain enough host guidance to justify a page');
   }
   await auditStagedStory(story,spec,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
     const input=JSON.parse(JSON.parse(request.body).input);
