@@ -1,13 +1,131 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
+import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory,auditStagedStory} from './staged-story.mjs';
+import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
 import {alignPaperPlan,paperContractTypes,completePaperPlan} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
+
+test('linked story requires four printed findings and explains them in the adult guide',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext();
+  const {blueprint}=await generateBlueprint(spec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+    const body=JSON.parse(request.body);
+    assert.ok(body.text.format.schema.required.includes('spine'));
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(raw)}]}]});
+  });
+  const stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected provider request');})).stage);
+  const story=assembleStagedStory(spec,blueprint,stages);
+  assert.equal(story.spine.links.length,4);
+  assert.equal(verifyPrintedPuzzles(story).length,5);
+  if(process.env.PAPER_QA_OUTPUT){
+    await mkdir(process.env.PAPER_QA_OUTPUT,{recursive:true});
+    for(const role of ['player','guide'])await writeFile(`${process.env.PAPER_QA_OUTPUT}/clock-${role}-A4.pdf`,buildGamePdf(story,spec,role));
+  }
+  for(const paper of ['A4','Letter']){
+    const guide=new TextDecoder().decode(buildGamePdf(story,{...spec,paper},'guide'));
+    assert.match(guide,/WHY THIS FINDING MATTERS/);
+    assert.match(guide,/CONNECT THE FOUR DISCOVERIES/);
+    assert.match(guide,/Gear chamber note/);
+    assert.match(guide,/WHY THIS ACTION/);
+  }
+  await auditStagedStory(story,spec,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+    const input=JSON.parse(JSON.parse(request.body).input);
+    assert.equal(input.spine.links.length,4);
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:true,issues:[]})}]}]});
+  });
+  for(const [mutate,message] of [
+    [value=>{delete value.spine;},/game needs one problem/],
+    [value=>{value.spine.resolution='Reset tower hands';},/first printed final action/],
+    [value=>{value.stages[4].material.items[0].label='Restore noon bell';value.spine.resolution='Restore noon bell';},/specific repair or action/],
+    [value=>{value.spine.links[0]='A useful number leads to the answer code.';},/selected printed finding/],
+    [value=>{value.spine.links[1]='Gear chamber note gives the correct digit.';},/both printed record facts/],
+  ]){
+    const invalid=linkedClockContext();mutate(invalid);
+    assert.throws(()=>prepareContextualBlueprint(invalid,spec),message);
+  }
+});
+
+test('linked repair changes one checkpoint and its reason without discarding the others',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext();
+  raw.stages[0].features=['Clock face shiny','Names missing noon mark'];
+  const corrected=linkedClockContext();
+  const result=await repairBlueprint(spec,raw,'Checkpoint 1: a physical property cannot describe all written records.',{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+    const body=JSON.parse(request.body);
+    assert.equal(body.text.format.name,'linked_story_repair');
+    assert.deepEqual(Object.keys(body.text.format.schema.properties).sort(),['link','stage']);
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({stage:corrected.stages[0],link:corrected.spine.links[0]})}]}]});
+  });
+  assert.deepEqual(result.blueprint.stages[1].material.logic.context.labels,raw.stages[1].material.items.map(item=>item.label));
+  assert.equal(result.blueprint.spine.links[0].reason,corrected.spine.links[0]);
+});
+
+test('linked repair can fill a missing spine while keeping every printed activity fixed',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext(),spine=raw.spine;
+  delete raw.spine;
+  const result=await repairBlueprint(spec,raw,'The game needs one problem, one final action and four linked findings.',
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+      const body=JSON.parse(request.body);
+      assert.equal(body.text.format.name,'missing_story_spine');
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(spine)}]}]});
+    });
+  assert.equal(result.blueprint.spine.resolution,'Fit signal gear');
+  assert.deepEqual(result.blueprint.stages[0].material.logic.context.labels,raw.stages[0].material.items.map(item=>item.label));
+  const invalid=structuredClone(result.blueprint);delete invalid.spine;
+  assert.throws(()=>validateBlueprint(invalid,spec),/four linked findings/);
+});
+
+test('linked story also produces complete classroom garden packs on both paper sizes',async()=>{
+  const plan=structuredClone(clockSpec.plan);
+  plan.title='The Rooftop Rain Collector';
+  plan.opening='The rooftop garden is dry because the rain collector has stopped. The crew needs four findings before choosing the repair.';
+  plan.goal='Restore the rain collector so the rooftop garden can receive water again.';
+  [
+    'The water collector has stopped. Compare the written component reports to identify the part that needs attention.',
+    'Two gardeners wrote notes about the spare valve and where it can be found safely.',
+    'The crew has four repair steps. Their printed rules determine the safe order.',
+    'Use the paper routes to choose a way to bring the valve to the collector.',
+    'The crew checks all four results before deciding on its final repair action.',
+  ].forEach((scene,index)=>{plan.stages[index].storyContext=scene;});
+  const spec={...clockSpec,setting:'classroom',players:24,groups:6,packExperienceVersion:3,packQualityVersion:3,plan};
+  const raw=linkedClockContext();
+  raw.stages[0].material.items=['Roof pipe report','Water tank report','Collector valve report'].map(label=>({label}));
+  raw.stages[0].features=['Mentions water supply','Names stuck valve'];
+  raw.stages[1].material.items=['Roof shed note','Garden gate note','Tool bench note'].map(label=>({label}));
+  raw.stages[1].features=['Mentions spare valve','Names safe storage'];
+  raw.stages[2].material.items=['Shut the flow','Fit the valve','Check the seal','Test the collector'].map(label=>({label}));
+  raw.stages[3].material.items=['North stairs','Glass passage','Service walkway'].map(label=>({label}));
+  raw.stages[4].material.items=['Fit spare valve','Replace rooftop pipe','Refill the water tank'].map(label=>({label}));
+  raw.spine={problem:'The collector is stopped and the rooftop garden is dry until a repair is completed.',
+    resolution:'Fit spare valve',links:[
+      'Collector valve report names the stuck valve while the water supply is present, pointing to the part needed for the repair.',
+      'Roof shed note names safe storage for a spare valve, so the crew knows where to find that replacement.',
+      'Shut the flow > Fit the valve > Check the seal > Test the collector gives the crew the repair order.',
+      'Service walkway has the open paper route, so the crew can bring the replacement valve to the collector.',
+    ]};
+  raw.celebration='The garden crew cheers when water reaches the plants again.';
+  const blueprint=prepareBlueprintCandidate(raw,spec),stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected provider request');})).stage);
+  const story=assembleStagedStory(spec,blueprint,stages);
+  assert.equal(verifyPrintedPuzzles(story).length,5);
+  if(process.env.PAPER_QA_OUTPUT){
+    await mkdir(process.env.PAPER_QA_OUTPUT,{recursive:true});
+    for(const role of ['player','guide'])await writeFile(`${process.env.PAPER_QA_OUTPUT}/garden-${role}-A4.pdf`,buildGamePdf(story,spec,role));
+  }
+  for(const paper of ['A4','Letter'])for(const role of ['player','guide']){
+    const pdf=new TextDecoder().decode(buildGamePdf(story,{...spec,paper},role));
+    assert.match(pdf,/Page 1 of/);
+    if(role==='guide')assert.match(pdf,/Service walkway/);
+  }
+});
 
 async function game(spec=clockSpec){
   const blueprint=(await generateBlueprint(spec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(clockBlueprintContext)}]}]}))).blueprint;
