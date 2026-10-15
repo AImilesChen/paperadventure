@@ -1,7 +1,7 @@
 name: Verify unified paper contract with real provider
 on:
   push:
-    branches: [codex-paper-contract-20261014]
+    branches: [codex-linked-pack-20261015]
 permissions:
   contents: read
 jobs:
@@ -27,4 +27,5 @@ jobs:
         with:
           name: synthetic-paper-contract-packs
           path: tmp/provider-contract/
-          retention-days: 3
+          retention-days: 1
+
