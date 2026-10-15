@@ -101,6 +101,9 @@ test('linked story requires four printed findings and explains them in the adult
     assert.equal(input.spine.links.length,4);
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:true,issues:[]})}]}]});
   });
+  const editorial=await auditStagedStory(story,spec,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>
+    Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:5,reason:'The final action may feel too easy to guess.'}]})}]}]}));
+  assert.equal(editorial.advisories.length,1);
   for(const [mutate,message] of [
     [value=>{delete value.spine;},/game needs one problem/],
     [value=>{value.stages[4].material.items[0].label='Restore noon bell';value.spine.resolution='Restore noon bell';},/specific repair or action/],
