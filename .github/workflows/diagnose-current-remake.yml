@@ -1,0 +1,26 @@
+name: Inspect approved paid remake without story logs
+on:
+  push:
+    branches: [codex-remake-v5-diagnostic-20261015]
+    paths: [.github/workflows/diagnose-current-remake.yml, scripts/diagnose-current-remake.mjs]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Read only this paid order into runner temporary storage
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT r.status,r.phase,r.error_code AS remake_error_code,r.error_detail AS remake_error_detail,r.spec_json,r.logic_epoch,r.recovery_round,c.status AS call_status,c.error_code AS call_error_code,c.error_detail AS call_error_detail,c.result_json FROM custom_pack_remakes r LEFT JOIN custom_pack_remake_calls c ON c.order_id=r.order_id AND c.logic_epoch=r.logic_epoch AND c.phase='blueprint' WHERE r.order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' ORDER BY c.created_at,c.id" > "$RUNNER_TEMP/remake-private.json"
+      - name: Replay local validation and report rule categories only
+        run: node scripts/diagnose-current-remake.mjs "$RUNNER_TEMP/remake-private.json"
