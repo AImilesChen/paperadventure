@@ -1,1 +1,1 @@
-2026-10-15: deploy latest-candidate targeted repair for paid game pack quality checks.
+linked-pack-v3-delivery-2026-10-15T14:06:17.954Z
