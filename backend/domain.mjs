@@ -4,6 +4,7 @@ import { validatePlan } from '../shared/creator-plan.mjs';
 import { validatePrintableMaterial, validateMaterialSet } from './printable-material.mjs';
 import { validateControlledPuzzle } from './controlled-puzzles.mjs';
 import {validatePaperPlan} from '../shared/paper-contract.mjs';
+import {validateStorySpine} from './story-spine.mjs';
 
 export class ApiError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code; }
@@ -47,7 +48,7 @@ export function validatePurchase(input) {
   if (Boolean(proposalTitle) !== Boolean(proposalSummary)) throw new ApiError(400, 'INVALID_SPEC', 'The selected proposal is incomplete.');
   if (input.creatorVersion === 3 && (input.plan || input.previewToken || input.planConfirmed || proposalTitle || proposalSummary)) throw new ApiError(400,'INVALID_SPEC','The personal plan is created after payment.');
   return { offer, spec: { sku: offer.sku, kind: 'custom', setting: offer.setting, themeId, customIdea: idea, players, groups, age, paper, direction, proposalTitle, proposalSummary,
-    ...(input.creatorVersion === 3 ? {gamePackVersion:2,packLogicVersion:1,packContractVersion:1,packExperienceVersion:2,packQualityVersion:3} : {}),
+    ...(input.creatorVersion === 3 ? {gamePackVersion:2,packLogicVersion:1,packContractVersion:1,packExperienceVersion:3,packQualityVersion:3} : {}),
     preferences: Object.fromEntries(['characters','goal','include','avoid'].map(key => [key, input.preferences?.[key] ? requireText(input.preferences[key], `Preference ${key}`, 180) : ''])),
     place: String(input.place || '').trim().slice(0, 180), reading: String(input.reading || '').trim().slice(0, 40), materials: String(input.materials || '').trim().slice(0, 180), ...creatorFields(input) } };
 }
@@ -127,6 +128,9 @@ export function validateGeneratedStory(story, spec) {
     if(stages.some(stage=>stage.material.logic.contractVersion!==1)||JSON.stringify(stages[4].material.logic.previousDigits)!==JSON.stringify(digits))throw new ApiError(422,'GENERATION_INVALID','The final action must use all four earlier result digits.');
     if(!/[.!?]$/.test(introduction)||!/[.!?]$/.test(ending))throw new ApiError(422,'GENERATION_INVALID','Story paragraphs must end with complete sentences.');
   }
-  return { title, introduction, ending, stages, groupInstructions: story.groupInstructions ? requireText(story.groupInstructions, 'Group instructions', 700) : null };
+  const spine=spec.packContractVersion===1&&spec.packExperienceVersion>=3
+    ? validateStorySpine(story.spine,stages,stages.map(stage=>stage.material.type),spec.plan.goal):null;
+  return { title, introduction, ending, stages, ...(spine?{spine}:{}),groupInstructions: story.groupInstructions ? requireText(story.groupInstructions, 'Group instructions', 700) : null };
 }
+
 
