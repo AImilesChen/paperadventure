@@ -39,7 +39,7 @@ export function remakeSpec(original) {
     ...original,
     gamePackVersion: 2,
     packLogicVersion: 1,
-    ...(original.packContractVersion===1?{packExperienceVersion:3,packQualityVersion:3}:{}),
+    ...(original.packContractVersion===1?{packExperienceVersion:3,packQualityVersion:3,packLayoutVersion:2}:{}),
     plan: {
       ...plan,
       title: shorten(plan.title, 70),
@@ -69,10 +69,14 @@ function failedRemakeNeedsUpgrade(spec, row) {
 }
 
 export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevision, previousRemakeSpec=null) {
+  const previous=previousRemakeSpec||null;
+  const qualityOutdated=previous ? (previous.packQualityVersion || 0) < 3 :
+    (purchase.packQualityVersion || 0) < 3 && (activity.packQualityVersion || 0) < 3;
+  const layoutOutdated=previous ? (previous.packLayoutVersion || 0) < 2 :
+    (purchase.packLayoutVersion || 0) < 2 && (activity.packLayoutVersion || 0) < 2;
   return purchase?.gamePackVersion === 2 && purchase.packContractVersion === 1 &&
     activity?.packContractVersion === 1 && latestFormat === 2 && !hasRevision &&
-    (previousRemakeSpec ? (previousRemakeSpec.packQualityVersion || 0) < 3 :
-      (purchase.packQualityVersion || 0) < 3 && (activity.packQualityVersion || 0) < 3);
+    (qualityOutdated || layoutOutdated);
 }
 
 export async function startPackRemake(order, activity, env) {
@@ -80,7 +84,7 @@ export async function startPackRemake(order, activity, env) {
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
   if (order.product_kind !== 'custom' || order.status !== 'published' || !order.paid_at || activity?.status !== 'published')
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'Only a delivered paid custom order can be remade.');
-  const existing = await query(env.DB, 'SELECT status,spec_json,published_version,quality_epoch FROM custom_pack_remakes WHERE order_id = ?', order.id).first();
+  const existing = await query(env.DB, 'SELECT status,spec_json,published_version,quality_epoch,blueprint_json,story_json FROM custom_pack_remakes WHERE order_id = ?', order.id).first();
   if (existing?.status !== 'ready' && existing) return { status: existing.status, queued: false };
   const latest = await query(env.DB, "SELECT pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", activity.id).first();
   const purchase = JSON.parse(order.purchase_spec_json);
@@ -88,7 +92,8 @@ export async function startPackRemake(order, activity, env) {
   const checkedPack = purchase.gamePackVersion >= 2 || latest?.pack_format_version >= 2;
   const anyRevision = checkedPack ? await query(env.DB, "SELECT id FROM revision_requests WHERE order_id = ? AND status IN ('queued','generating','published') LIMIT 1", order.id).first() : null;
   const revisionAllowance = checkedPack ? await query(env.DB, 'SELECT revision_success_used FROM entitlements WHERE order_id = ?', order.id).first() : null;
-  if (checkedPack && !qualityUpgradeEligible(purchase, activitySpec, latest?.pack_format_version, Boolean(anyRevision || revisionAllowance?.revision_success_used), existing?.spec_json ? JSON.parse(existing.spec_json) : null))
+  const previousSpec=existing?.spec_json ? JSON.parse(existing.spec_json) : null;
+  if (checkedPack && !qualityUpgradeEligible(purchase, activitySpec, latest?.pack_format_version, Boolean(anyRevision || revisionAllowance?.revision_success_used), previousSpec))
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'This pack already has the current quality rules or has been revised. Please request a quality review for this order.');
   if (!latest) throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'A delivered pack is required before a remake can start.');
   const pendingRevision = checkedPack ? anyRevision : await query(env.DB, "SELECT id FROM revision_requests WHERE order_id = ? AND status IN ('queued','generating') LIMIT 1", order.id).first();
@@ -97,7 +102,10 @@ export async function startPackRemake(order, activity, env) {
   const specJson = JSON.stringify(spec);
   const specHash = await sha256(specJson);
   if (existing?.status === 'ready') {
-    const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'blueprint',spec_json = ?,spec_sha256 = ?,blueprint_json = NULL,blueprint_sha256 = NULL,stages_json = '[]',story_json = NULL,story_sha256 = NULL,failure_count = 0,recovery_round = 0,quality_epoch = quality_epoch + 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'ready' AND quality_epoch = ? AND published_version = ?",specJson,specHash,order.id,existing.quality_epoch,existing.published_version).run();
+    const layoutOnly=Boolean(existing.blueprint_json&&existing.story_json&&previousSpec?.packExperienceVersion>=3&&previousSpec?.packQualityVersion>=3&&(previousSpec.packLayoutVersion||0)<2);
+    const changed=layoutOnly
+      ? await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'pdf',spec_json = ?,spec_sha256 = ?,failure_count = 0,recovery_round = 0,quality_epoch = quality_epoch + 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'ready' AND quality_epoch = ? AND published_version = ? AND blueprint_json IS NOT NULL AND story_json IS NOT NULL",specJson,specHash,order.id,existing.quality_epoch,existing.published_version).run()
+      : await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'blueprint',spec_json = ?,spec_sha256 = ?,blueprint_json = NULL,blueprint_sha256 = NULL,stages_json = '[]',story_json = NULL,story_sha256 = NULL,failure_count = 0,recovery_round = 0,quality_epoch = quality_epoch + 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'ready' AND quality_epoch = ? AND published_version = ?",specJson,specHash,order.id,existing.quality_epoch,existing.published_version).run();
     if (!changed.meta?.changes) return {status:'queued',queued:false};
     try { await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: order.id }); }
     catch (caught) { console.error('Quality-rules rebuild queued for scheduled recovery', {orderId:order.id,message:caught?.message}); }
@@ -162,7 +170,7 @@ export async function packRemakeView(db, orderId) {
   if (!row) return null;
   const stages = JSON.parse(row.stages_json || '[]');
   const spec=JSON.parse(row.spec_json);
-  const upgradeAvailable=row.status==='failed'&&failedRemakeNeedsUpgrade(spec,row)&&(!row.published_version||row.quality_epoch>0);
+  const upgradeAvailable=row.status==='failed'&&(row.published_version===null||row.quality_epoch>0)&&failedRemakeNeedsUpgrade(spec,row);
   const savedBlueprintAvailable=row.status==='failed'&&row.phase==='blueprint'&&row.error_code==='BLUEPRINT_INVALID'&&row.recovery_round>=MAX_RECOVERY_ROUNDS&&row.logic_epoch===0&&!row.published_version&&spec.packExperienceVersion>=2&&Boolean(await recoverSavedBlueprint(db,orderId,spec));
   const reviewPrefix = 'The completed game did not pass its quality check: ';
   return {
