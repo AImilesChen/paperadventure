@@ -40,9 +40,10 @@ jobs:
               [/provider|upstream/i,'PROVIDER'],
               [/checksum|storage|source/i,'STORAGE']
             ];
+            if(/completed game did not pass its quality check/i.test(message)) return /final action|ending|mission goal|goal|selected finding|earlier finding/i.test(message)?'FINAL_ACTION_COHERENCE':/feature|YES|NO|properties/i.test(message)?'FEATURE_SEMANTICS':/candidate|same kind|comparable/i.test(message)?'CANDIDATE_COHERENCE':'GAME_AUDIT_OTHER';
             return rules.find(([pattern])=>pattern.test(message))?.[1]||'OTHER';
           }
           const first=rows[0];
           if(!first){console.log(JSON.stringify({found:false}));process.exit(0);}
-          console.log(JSON.stringify({status:first.status,phase:first.phase,logicEpoch:first.logic_epoch,qualityEpoch:first.quality_epoch,recoveryRound:first.recovery_round,savedStages:first.saved_stages,remakeErrorCode:first.remake_error_code,remakeIssue:category(first.remake_error_detail),calls:rows.filter(row=>row.call_phase).map(row=>({phase:row.call_phase,stage:row.stage_number,status:row.call_status,errorCode:row.call_error_code,issue:category(row.call_error_detail)}))}));
+          console.log(JSON.stringify({status:first.status,phase:first.phase,logicEpoch:first.logic_epoch,qualityEpoch:first.quality_epoch,recoveryRound:first.recovery_round,savedStages:first.saved_stages,remakeErrorCode:first.remake_error_code,remakeIssue:category(first.remake_error_detail),calls:rows.filter(row=>row.call_phase).map(row=>({phase:row.call_phase,stage:row.stage_number,status:row.call_status,errorCode:row.call_error_code,issue:category(row.call_error_detail),issueStage:Number(String(row.call_error_detail||'').match(/Checkpoint\\s+([1-5])/)?.[1])||null}))}));
           NODE
