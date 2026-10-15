@@ -13,6 +13,7 @@ import { planFixture } from '../tests/fixtures/creator-plan-fixture.mjs';
 import { sampleSpec, sampleStory } from '../content/custom-paper-format-sample.mjs';
 import { compileControlledPuzzle, controlledStageText } from './controlled-puzzles.mjs';
 import { clockSpec,clockBlueprintContext } from '../content/paper-contract-qa.mjs';
+import { linkedClockContext } from '../content/linked-contract-qa.mjs';
 import { prepareBlueprintCandidate } from './staged-story.mjs';
 import { packRemakeView, qualityUpgradeEligible, retryPackRemake } from './pack-remake.mjs';
 async function approvedCustomInput(env,input) {
@@ -1020,8 +1021,7 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   const originalHash=createHash('sha256').update(original).digest('hex');
   db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version,player_r2_key,guide_r2_key,player_sha256,guide_sha256) VALUES ('quality-artifact','quality-activity',1,'published',2,'original/player.pdf','original/guide.pdf',?,?)").run(originalHash,originalHash);
   const queue=[],files=new Map([['original/player.pdf',{body:original,customMetadata:{sha256:originalHash}}],['original/guide.pdf',{body:original,customMetadata:{sha256:originalHash}}]]);
-  const context=structuredClone(clockBlueprintContext);
-  context.stages[2].material.items=['Inspect the idle signal','Align the spare wheel','Check the noon marker','Record the test result'].map(label=>({label}));
+  const context=linkedClockContext();
   let blueprintCalls=0;
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
     PRIVATE_FILES:{get:async key=>files.get(key)||null,put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata})},
@@ -1034,7 +1034,7 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.equal((await handleProductionApi(request('/api/v1/orders/quality-order/pack-remake','POST',undefined,headers),env)).status,200);
   assert.deepEqual(queue,[{type:'pack_remake',orderId:'quality-order'}]);
   const saved=db.prepare("SELECT spec_json,status FROM custom_pack_remakes WHERE order_id='quality-order'").get();
-  assert.equal(JSON.parse(saved.spec_json).packExperienceVersion,2);
+  assert.equal(JSON.parse(saved.spec_json).packExperienceVersion,3);
   assert.equal(saved.status,'queued');
   assert.equal((await view()).qualityUpgradeAvailable,false);
   assert.equal((await view()).remake.status,'queued');
