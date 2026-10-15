@@ -1,0 +1,49 @@
+name: Resume one approved paid quality rebuild after quota fix
+on:
+  push:
+    branches: [codex-remake-diagnostic-20261015]
+    paths: [.github/workflows/resume-f72-quality.yml]
+permissions:
+  contents: read
+jobs:
+  resume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Resume only the confirmed stopped quality rebuild
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_pack_remakes SET status='queued',phase='checkpoint',failure_count=0,recovery_round=recovery_round+1,recovery_count=MIN(recovery_count+1,1),lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND status='failed' AND error_code='REMAKE_BUDGET_EXHAUSTED' AND quality_epoch=1 AND recovery_round=0 AND blueprint_json IS NOT NULL AND json_array_length(stages_json)=0 AND published_version=2" > "$RUNNER_TEMP/resume-result.json"
+          node - "$RUNNER_TEMP/resume-result.json" <<'NODE'
+          const fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          const changed=(Array.isArray(d)?d:[d]).reduce((n,x)=>n+Number(x.meta?.changes||0),0);
+          if(changed!==1)throw Error('Order state changed or guarded recovery could not start.');
+          console.log('The original paid order was queued for one no-charge recovery.');
+          NODE
+      - name: Follow only safe delivery status fields
+        run: |
+          for attempt in {1..20}; do
+            npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status,phase,error_code,json_array_length(stages_json) AS saved_checkpoints,published_version FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd'" > "$RUNNER_TEMP/order-status.json"
+            state=$(node - "$RUNNER_TEMP/order-status.json" <<'NODE'
+          const fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          const r=(Array.isArray(d)?d:[d]).flatMap(x=>x.results||[])[0];
+          if(!r)throw Error('Order record missing.');
+          console.log(JSON.stringify({status:r.status,phase:r.phase,savedCheckpoints:r.saved_checkpoints,publishedVersion:r.published_version,errorCode:r.error_code}));
+          NODE
+            )
+            echo "Delivery status: $state"
+            if [[ "$state" == *'"status":"ready"'* ]]; then exit 0; fi
+            if [[ "$state" == *'"status":"failed"'* ]]; then exit 1; fi
+            sleep 30
+          done
+          exit 1
