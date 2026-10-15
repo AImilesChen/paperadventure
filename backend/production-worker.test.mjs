@@ -1133,6 +1133,28 @@ test('a stopped quality upgrade can resume after the model-call budget fix witho
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders WHERE id=?').get(orderId).n,1);
 });
 
+test('an audit-stopped quality upgrade repairs its saved blueprint instead of auditing the same rejected game again',async()=>{
+  const {db,binding}=database(),orderId='audit-recovery-order',specJson=JSON.stringify({...clockSpec,packExperienceVersion:2,packQualityVersion:3});
+  const blueprintJson=JSON.stringify(prepareBlueprintCandidate(clockBlueprintContext,JSON.parse(specJson)));
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('audit-recovery-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(orderId,specJson,await sha256(specJson),'audit-recovery-owner','audit-recovery-price');
+  db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,blueprint_json,blueprint_sha256,stages_json,published_version,error_code,error_detail,logic_epoch,quality_epoch,recovery_round) VALUES (?,'failed','audit',?,?,?,?,?,2,'GENERATION_QA_FAILED','The completed game did not pass its quality check: Checkpoint 1: printed properties need review.',1,1,1)").run(orderId,specJson,await sha256(specJson),blueprintJson,await sha256(blueprintJson),JSON.stringify([{number:1}]));
+  db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,result_json,generation_round,logic_epoch,quality_epoch) VALUES ('audit-recovery-blueprint',?,'blueprint',0,'passed','fixture',?,2,1,1)").run(orderId,blueprintJson);
+  db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,result_json,generation_round,logic_epoch,quality_epoch) VALUES ('audit-recovery-stage',?,'checkpoint',1,'passed','checked-rules-v1','{}',2,1,1)").run(orderId);
+  const queue=[],env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)}};
+  const result=await retryPackRemake({id:orderId,product_kind:'custom',status:'published',paid_at:'2026-10-15'},env);
+  assert.equal(result.status,'queued');
+  const saved=db.prepare('SELECT status,phase,blueprint_json,stages_json,recovery_round FROM custom_pack_remakes WHERE order_id=?').get(orderId);
+  assert.deepEqual({...saved},{status:'queued',phase:'blueprint',blueprint_json:null,stages_json:'[]',recovery_round:2});
+  const oldBlueprint=db.prepare("SELECT status,result_json,error_code FROM custom_pack_remake_calls WHERE id='audit-recovery-blueprint'").get();
+  assert.equal(oldBlueprint.status,'failed');
+  assert.equal(oldBlueprint.error_code,'AUDIT_REJECTED');
+  assert.equal(oldBlueprint.result_json,blueprintJson,'the rejected candidate remains private for a targeted repair');
+  assert.equal(db.prepare("SELECT result_json FROM custom_pack_remake_calls WHERE id='audit-recovery-stage'").get().result_json,null);
+  assert.deepEqual(queue,[{type:'pack_remake',orderId}]);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders WHERE id=?').get(orderId).n,1);
+});
+
 test('an exhausted blueprint remake reuses its saved candidate and publishes a new pack without another blueprint call',async()=>{
   const {db,binding}=database(),owner='saved-blueprint-owner',spec={...clockSpec,packExperienceVersion:2};
   const stored=JSON.stringify(spec),original=new TextEncoder().encode('%PDF- earlier paid pack');
