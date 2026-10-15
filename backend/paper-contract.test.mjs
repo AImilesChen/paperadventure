@@ -10,6 +10,18 @@ import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
 import {alignPaperPlan,paperContractTypes,completePaperPlan} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
+import {prepareStoryFrame} from './story-spine.mjs';
+
+test('long provider story-frame text is fitted before printable validation',()=>{
+  const frame=prepareStoryFrame({
+    problem:'A deliberately long unresolved story problem '.repeat(8),
+    actions:['Install the calibrated replacement signal gear in the upper clock tower chamber','Install the old display gear','Install the spare winding gear'],
+    purposes:['This deliberately long discovery purpose explains a concrete story consequence before the final repair '.repeat(3),'This locates the spare component required for the final repair.','This gives the safe preparation sequence before the repair.','This identifies a usable route for the replacement.'],
+  });
+  assert.ok(frame.problem.length<=180);
+  assert.ok(frame.actions.every(value=>value.length<=40));
+  assert.ok(frame.purposes.every(value=>value.length<=100));
+});
 
 test('linked story requires four printed findings and explains them in the adult guide',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
@@ -245,6 +257,23 @@ test('linked records print comparable report labels and content facts',()=>{
   assert.deepEqual(context.features,['Mentions Silent bell','Mentions Worn gear']);
   assert.ok(blueprint.spine.links[recordIndex].reason.includes(context.labels[(recordIndex+2)%3]));
   assert.ok(blueprint.spine.links[recordIndex].reason.includes('Silent bell'));
+});
+
+test('answer-state record features are replaced from the fixed story frame',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext();
+  raw.storyFrame={problem:raw.spine.problem,actions:raw.stages[4].material.items.map(item=>item.label),purposes:[
+    'This identifies the missing signal gear needed for the final repair.',
+    'This locates the spare component required to carry out the final repair.',
+    'This gives the safe preparation sequence before the repair is attempted.',
+    'This identifies a usable route for bringing the replacement into the tower.',
+  ]};
+  const recordIndex=paperContractTypes(spec.plan).findIndex(type=>['evidence_cards','decision_record'].includes(type));
+  raw.stages[recordIndex].features=['Mentions correct answer','Names matching choice'];
+  const blueprint=prepareContextualBlueprint(raw,spec);
+  const features=blueprint.stages[recordIndex].material.logic.context.features;
+  assert.ok(features.every(value=>/^(?:Mentions|Names) /.test(value)));
+  assert.ok(features.every(value=>!/(?:correct|answer|match|choice)/i.test(value)));
 });
 
 async function game(spec=clockSpec){
