@@ -208,6 +208,7 @@ function guideStart(story,spec){
   if(spec.packExperienceVersion>=2){
     const sections=[
       ['THE MISSION',spec.plan.goal],
+      ...(story.spine?[['THE PROBLEM TO SOLVE',story.spine.problem]]:[]),
       ['PRINT AND PREPARE',`${spec.setting==='classroom'?`Print ${spec.groups} complete Player sets, one per crew.`:`Print one complete Player Pack for ${spec.players} players.`} Use ${spec.paper} paper and pencils. Keep this guide and the ending page private. Cutting cards or tiles is optional; pointing and writing always work.`],
       ['RELEASE THE PAGES','Start with Player pages 2-3. After each correct result, release only the next challenge and material pair: 4-5, 6-7, 8-9, then 10-11. Give out Player page 12 only after the final answer is checked.'],
       ['FOUR JOBS','Reader reads the clue aloud. Paper Handler points to or arranges pieces. Checker tests the printed rule and explains why another choice fails. Recorder writes the choice and its result digit. Rotate jobs after each checkpoint.'],
@@ -286,7 +287,9 @@ function guideStage(stage,spec,story){
       ['HINT 2 - NARROW THE CHECK',stage.hint],
       ['CHECK THE ANSWER',`Correct choice: ${String.fromCharCode(65+stage.answerIndex)}. ${option}. ${stage.explanation}`],
       ...(stage.material.logic?.resultDigit?[['RECORD BEFORE CONTINUING',`The team must save result digit ${stage.material.logic.resultDigit} on its material sheet. Keep that sheet for checkpoint 5.`]]:[]),
+      ...(story.spine&&stage.number<5?[['WHY THIS FINDING MATTERS',`After checking the answer, share this story link: ${story.spine.links[stage.number-1].reason}`]]:[]),
       ['IF THEY CHOSE DIFFERENTLY',wrongChoiceNotes(stage)],
+      ...(story.spine&&stage.number===5?[['CONNECT THE FOUR DISCOVERIES',story.spine.links.map((link,index)=>`${index+1}. ${link.reason}`).join(' ')],['WHY THIS ACTION',`These discoveries support ${story.spine.resolution}. The four recorded digits identify its printed code; read the ending only after the team checks both the story reason and the code.`]]:[]),
       ['STORY AND NEXT PAGE',stage.number===5?'The four earlier results identify the final action. After the team explains the code, release Player page 12 and read the ending.':`This check gives the next discovery, but the mission is not finished yet. Release checkpoint ${stage.number+1}, Player pages ${stage.number*2+2}-${stage.number*2+3}.`],
     ];
     for(const [label,value] of sections){
@@ -298,7 +301,7 @@ function guideStage(stage,spec,story){
       page.text(label,48,y,9,true,'0.77 0.19 0.13');y-=16;
       y=page.block(value,48,y,77,10,14)-10;
     }
-    if(stage.number===5){
+    if(stage.number===5&&!story.spine){
       const findings=story.stages.slice(0,4).map(item=>`Checkpoint ${item.number}: ${item.material.type==='order_tiles'?item.material.logic.context.labels.at(-1):item.options[item.answerIndex].replace(/ \/ digit [1-3]$/,'')}`);
       const needed=26+findings.reduce((height,line)=>height+wrap(line,77).length*14+3,0)+42;
       if(y-needed>=67){
@@ -335,8 +338,20 @@ function finish(story,spec,role){
   let y=heading(page,'The adventure concludes','The ending');
   y=page.block(story.ending,48,y,77,11,18)-28;
   if(role==='player'){
-    page.text('WHAT DID YOUR TEAM DISCOVER?',48,y,12,true);y-=26;
-    for(let i=0;i<5;i++){page.text(`${i+1}.`,48,y,10,true);page.rule(70,y-2,page.width-48,y-2);y-=50;}
+    if(story.spine){
+      page.text('THE FOUR DISCOVERIES',48,y,12,true);y-=24;
+      for(const [index,link] of story.spine.links.entries()){
+        y=page.block(`${index+1}. ${link.reason}`,52,y,74,11,17)-13;
+      }
+      page.text('THE FINAL ACTION',48,y,12,true);y-=24;
+      y=page.block(story.spine.resolution,52,y,74,12,18,true)-28;
+      if(y<110)throw new Error('The linked ending does not fit the player page.');
+      page.text('WHICH DISCOVERY HELPED YOUR TEAM MOST?',48,y,10,true);
+      page.rule(48,y-25,page.width-48,y-25);
+    }else{
+      page.text('WHAT DID YOUR TEAM DISCOVER?',48,y,12,true);y-=26;
+      for(let i=0;i<5;i++){page.text(`${i+1}.`,48,y,10,true);page.rule(70,y-2,page.width-48,y-2);y-=50;}
+    }
   } else if(spec.packExperienceVersion>=2){
     page.text('FINAL HOST CHECK',48,y,12,true);y-=26;
     for(const [label,value] of [
@@ -385,3 +400,4 @@ export function buildInteractiveGamePdf(story,spec,role){
   pages.forEach((page,index)=>page.text(`Page ${index+1} of ${pages.length}`,page.width-126,30,9));
   return serialize(pages);
 }
+
