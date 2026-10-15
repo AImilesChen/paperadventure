@@ -61,6 +61,16 @@ test('linked story requires four printed findings and explains them in the adult
     assert.ok(normalized.spine.links[1].reason.toLowerCase().includes(feature.replace(/^(?:Mentions|Names)\s+/i,'').toLowerCase()));
 });
 
+test('provider JSON split across output text blocks is read as one checked blueprint',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
+  const raw=JSON.stringify(linkedClockContext()),pivot=Math.floor(raw.length/2);
+  const result=await generateBlueprint(spec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>Response.json({output:[{content:[
+    {type:'output_text',text:raw.slice(0,pivot)},
+    {type:'output_text',text:raw.slice(pivot)},
+  ]}]}));
+  assert.equal(result.blueprint.spine.links.length,4);
+});
+
 test('linked repair changes one checkpoint and its reason without discarding the others',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
   const raw=linkedClockContext();
