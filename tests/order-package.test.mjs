@@ -30,6 +30,11 @@ test('a delivered order renders its original download card during theme correcti
     assert.match(retryHtml, /existing allowance/);
     assert.match(retryHtml, /did not record a specific failure reason/);
     assert.match(retryHtml, /Retry corrected theme plan at no charge/);
+    const recoveryHtml=renderToStaticMarkup(createElement(PackRemake,{order:{...order,paidAt:'2026-10-16',gamePackVersion:2,themePlanRecoveryAvailable:true,planReview:{...order.planReview,status:'confirmed',themeReplanAttempts:4}},refresh:()=>{}}));
+    assert.match(recoveryHtml,/Your plan recovery is ready/);
+    assert.match(recoveryHtml,/Start recovery at no charge/);
+    assert.match(recoveryHtml,/Previous plan correction stopped/);
+    assert.match(recoveryHtml,/review and approve the corrected plan/);
     for(const [status,progress,expected] of [
       ['queued',null,'Waiting to prepare'],
       ['generating',{phase:'auditing',candidateSaved:true,formatChecked:true},'Reviewing the theme and story'],
