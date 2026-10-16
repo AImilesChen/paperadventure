@@ -573,8 +573,8 @@ test('reading revisions preserve all result digits and the final puzzle',async()
 
 test('provider punctuation and plain label arrays normalize before puzzle checks',async()=>{
   const raw=structuredClone(clockBlueprintContext);
-  raw.ending+=' Everyone��s notes match��nothing is missing.';
-  raw.stages[0].material.items=['Keeper��s bell','Signal gear','Clock cable'];
+  raw.ending+=' Everyone’s notes match—nothing is missing.';
+  raw.stages[0].material.items=['Keeper’s bell','Signal gear','Clock cable'];
   const {blueprint}=await generateBlueprint(clockSpec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>Response.json({output:[{content:[{type:'output_text',text:'```json\n'+JSON.stringify(raw)+'\n```'}]}]}));
   assert.equal(blueprint.stages[0].material.items[0].label,"Keeper's bell");
   assert.match(blueprint.ending,/Everyone's notes match-nothing is missing/);
