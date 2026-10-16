@@ -115,6 +115,16 @@ test('quality version 8 blocks a concrete story defect and rejects a generic end
     assert.deepEqual(input.checkpoints.map(checkpoint=>checkpoint.printedPieces.length),stages.map(stage=>stage.material.logic.context.labels.length),'engine-supplied rule cards are excluded from candidate review');
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:3,reason:'The tower note is a document, not an action.'}]})}]}]});
   }),error=>error.code==='GENERATION_QA_FAILED'&&error.stageNumber===3);
+  let reviews=0;
+  const overturned=await auditStagedStory(story,spec,blueprint,env,async(_url,request)=>{
+    reviews++;
+    const name=JSON.parse(request.body).text.format.name;
+    assert.equal(name,reviews===1?'staged_story_audit':'staged_story_adjudication');
+    const data=reviews===1?{pass:false,issues:[{stageNumber:5,reason:'Fit signal gear is a noun phrase.'}]}:{pass:true,issues:[]};
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(data)}]}]});
+  });
+  assert.equal(reviews,2);
+  assert.equal(overturned.advisories,undefined);
   await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async()=>{throw Error('Review unavailable');}),error=>error.code==='GENERATION_UPSTREAM_FAILED');
   await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:5,reason:'The ending does not state the observable outcome of the final action.'}]})}]}]})),error=>error.code==='GENERATION_QA_FAILED'&&error.stageNumber===0);
   const generic=structuredClone(raw);
@@ -139,6 +149,8 @@ test('quality version 8 grounds story consequences after the printable pieces ex
   const result=await generateBlueprint(spec,env,async(_url,request)=>{
     const body=JSON.parse(request.body),name=body.text.format.name;
     names.push(name);
+    if(name==='story_frame')assert.match(body.instructions,/last step that directly makes the approved goal true/i);
+    if(name==='game_blueprint')assert.match(body.instructions,/none may repeat or carry out a final action/i);
     if(name==='grounded_discoveries'){
       const input=JSON.parse(body.input);
       assert.equal(input.printed[0].selectedFinding,'Signal gear report');
