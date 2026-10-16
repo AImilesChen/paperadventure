@@ -1057,12 +1057,13 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   const delivered=await view();
   assert.equal(delivered.remake.status,'ready');
   assert.equal(delivered.remake.publishedVersion,2,'new checked pack must publish a new artifact, not relabel the old one');
+  assert.equal(delivered.contentReviewPassed,true,'the order distinguishes content review from PDF availability');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,2);
   assert.notDeepEqual(new Uint8Array(await (await download()).arrayBuffer()),original);
   assert.deepEqual(new Uint8Array(await (await download('&version=1')).arrayBuffer()),original);
   assert.equal(blueprintCalls,1);
   const earlierPack=new Uint8Array(await (await download()).arrayBuffer());
-  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:7,packLayoutVersion:3};
+  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:8,packLayoutVersion:3};
   const earlierJson=JSON.stringify(earlierSpec);
   const staleBlueprint='{}';
   db.prepare("UPDATE custom_pack_remakes SET spec_json = ?,spec_sha256 = ?,blueprint_json = ?,blueprint_sha256 = ? WHERE order_id = 'quality-order'").run(earlierJson,await sha256(earlierJson),staleBlueprint,await sha256(staleBlueprint));
@@ -1121,7 +1122,7 @@ test('quality v7 saves a blueprint and earlier checkpoint while repairing one re
   db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('semantic-activity',?,'published',?)").run(orderId,specJson);
   db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version) VALUES ('semantic-original','semantic-activity',1,'published',2)").run();
   db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,published_version) VALUES (?,'queued','blueprint',?,?,1)").run(orderId,specJson,await sha256(specJson));
-  const calls=[],queue=[];let rejected=false;
+  const calls=[],queue=[];let rejected=false,negativeReviewed=false;
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},PRIVATE_FILES:{get:async()=>null,put:async()=>{}},
     FETCH:async(_url,init)=>{
       const request=JSON.parse(init.body),name=request.text.format.name,input=JSON.parse(request.input);calls.push(name);
@@ -1129,7 +1130,8 @@ test('quality v7 saves a blueprint and earlier checkpoint while repairing one re
       if(name==='story_frame')value=storyFrame;
       else if(name==='game_blueprint')value=materialContext;
       else if(name==='paper_checkpoint_semantics'){
-        value=input.checkpoint===2&&!rejected?(rejected=true,{pass:false,issues:[{stageNumber:2,reason:'The printed finding uses a feature that cannot describe every record.'}]}):{pass:true,issues:[]};
+        value=input.checkpoint===1&&!negativeReviewed?(negativeReviewed=true,{pass:false,issues:[{stageNumber:1,reason:'A feature has answer NO for the second note.'}]})
+          :input.checkpoint===2&&!rejected?(rejected=true,{pass:false,issues:[{stageNumber:2,reason:'The printed finding uses a feature that cannot describe every record.'}]}):{pass:true,issues:[]};
       }else if(name==='checkpoint_material_repair'){
         value=structuredClone(materialContext.stages[1]);value.material.title='Checked tower records';
       }else throw Error(`Unexpected provider call ${name}`);
@@ -1140,6 +1142,7 @@ test('quality v7 saves a blueprint and earlier checkpoint while repairing one re
   await processPackRemake(orderId,env);
   const first=db.prepare('SELECT stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId).stages_json;
   assert.equal(JSON.parse(first).length,1);
+  assert.equal(negativeReviewed,true,'a negative record answer receives a second semantic review');
   await processPackRemake(orderId,env);
   let view=await packRemakeView(binding,orderId);
   assert.equal(view.phase,'repair');assert.deepEqual(view.completedStages,[1]);assert.equal(view.problemStage,2);
@@ -1162,11 +1165,11 @@ test('current layout and revised checked packs cannot start the free full-pack u
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false),true);
   assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:3},clockSpec,2,false),true);
   assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packQualityVersion:3},2,false),true);
-  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:7,packLayoutVersion:4},{...clockSpec,packQualityVersion:7,packLayoutVersion:4},2,false),false);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:8,packLayoutVersion:4},{...clockSpec,packQualityVersion:8,packLayoutVersion:4},2,false),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packExperienceVersion:2}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:5,packLayoutVersion:3}),true);
-  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:7,packLayoutVersion:4}),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:8,packLayoutVersion:4}),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
@@ -1430,7 +1433,7 @@ test('a failed V2 quality remake migrates to V3 on the same paid order even when
   const saved=db.prepare('SELECT status,phase,spec_json,published_version,recovery_round,logic_epoch,quality_epoch,blueprint_json,stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId);
   const upgraded=JSON.parse(saved.spec_json);
   assert.equal(upgraded.packExperienceVersion,3);
-  assert.equal(upgraded.packQualityVersion,7);
+  assert.equal(upgraded.packQualityVersion,8);
   assert.equal(upgraded.packLayoutVersion,4);
   assert.equal(saved.status,'queued');assert.equal(saved.phase,'blueprint');
   assert.equal(saved.published_version,2,'the downloadable original stays published during the upgrade');
@@ -1506,4 +1509,44 @@ test('contract delivery repairs one rejected context, then retries PDF storage w
   assert.equal(stages.length,5);assert.equal(stages[2].material.items[0].label,'Pause noon signal');
   assert.deepEqual(stages[4].material.logic.previousDigits,['3','1','2','3']);
   const count=calls.length;await process();assert.equal(calls.length,count);
+});
+
+test('quality v8 repairs an ending without rebuilding five saved paid checkpoints',async()=>{
+  const {db,binding}=database(),orderId='v8-ending-order',owner='v8-owner';
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,packLayoutVersion:4,onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
+  const stored=JSON.stringify(spec);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('v8-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,?,1499,'USD','paid',CURRENT_TIMESTAMP)").run(orderId,stored,await sha256(stored),owner,'v8-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version) VALUES (?,?,'queued',?,2)").run('v8-activity',orderId,stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit) VALUES (?,?,'v8-activity','active',2)").run('v8-entitlement',orderId);
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,confirmed_version) VALUES (?,'confirmed',1)").run(orderId);
+  const context=linkedClockContext(),frame={problem:context.spine.problem,actions:context.stages[4].material.items.map(item=>item.label),discoveries:[
+    {finding:'The signal gear is missing.',consequence:'The drive path becomes usable.',supportsAction:'signal gear'},
+    {finding:'The spare gear fits the shaft.',consequence:'The gear can turn without binding.',supportsAction:'signal gear'},
+    {finding:'The checked order protects the teeth.',consequence:'The parts stay aligned during repair.',supportsAction:'Fit signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The replacement can reach the tower.',supportsAction:'signal gear'},
+  ]};
+  const material={celebration:'The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.',stages:context.stages};
+  const files=new Map(),calls=[];let reject=true;
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async()=>{}},
+    PRIVATE_FILES:{put:async(key,bytes,options)=>files.set(key,{bytes,options}),head:async key=>files.has(key)?{customMetadata:files.get(key).options.customMetadata}:null},
+    FETCH:async(_url,request)=>{
+      const name=JSON.parse(request.body).text.format.name;calls.push(name);
+      const value=name==='story_frame'?frame:name==='game_blueprint'?material:name==='closing_repair'
+        ?{celebration:'The repaired gear spins and the noon bell rings across the square. Pip cheers, thanks the team, and sets out on the journey.'}
+        :name==='staged_story_audit'?reject?(reject=false,{pass:false,issues:[{stageNumber:0,reason:'The ending needs a concrete noon-bell result.'}]}):{pass:true,issues:[]}
+        :null;
+      assert.ok(value,`unexpected provider request ${name}`);
+      return Response.json({id:`v8-${calls.length}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
+    }};
+  const process=()=>productionWorker.queue({messages:[{body:{orderId},ack(){},retry(){throw Error('Unexpected queue retry');}}]},env);
+  for(let step=0;step<4&&db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status!=='published';step++)await process();
+  assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'published');
+  assert.deepEqual(calls,['story_frame','game_blueprint','staged_story_audit','closing_repair','staged_story_audit']);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_generation_calls WHERE order_id=? AND phase='checkpoint'").get(orderId).n,5);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
+  assert.equal(files.size,3);
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const view=await handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,{cookie:`paw_session=${token}`}),env).then(response=>response.json());
+  assert.equal(view.contentReviewPassed,true);
 });
