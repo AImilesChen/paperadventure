@@ -23,14 +23,15 @@ const fitRecordFeature=value=>{
   if(typeof value!=='string')return value;
   const match=value.trim().match(/^(?:(Mentions|Names|Is|Has)\s+)?(.+)$/i);
   if(!match)return value;
-  const prefix=/^(?:Mentions|Names)$/i.test(match[1]||'')?match[1]:'Mentions',words=match[2].trim().split(/\s+/);
-  while(words.length>1&&`${prefix} ${words.join(' ')}`.length>24)words.pop();
-  // Never publish a field ending in a connector after fitting it to the card.
-  // "Names a cracked peg by its owner" previously became the ambiguous
-  // "Names a cracked peg by", which then caused an otherwise valid pack to
-  // fail both semantic and story audits.
-  const dangling=/^(?:a|an|the|and|or|by|with|from|to|for|of|at|in|on|near|under|over|before|after)$/i;
-  while(words.length>1&&dangling.test(words.at(-1)))words.pop();
+  const prefix=/^(?:Mentions|Names)$/i.test(match[1]||'')?match[1]:'Mentions';
+  // Keep the content-bearing end of a provider phrase. Truncating from the
+  // right turned "storing gear in a dry sack" into "storing gear", while the
+  // story still depended on the omitted dry condition. Removing grammar-only
+  // words first keeps the printed fact and its story consequence aligned.
+  const filler=/^(?:a|an|the|and|or|by|with|from|to|for|of|at|in|on|near|under|over|before|after|as|its|their)$/i;
+  const words=match[2].trim().split(/\s+/).filter(word=>!filler.test(word));
+  while(words.length>2&&`${prefix} ${words.join(' ')}`.length>32)words.splice(words.length-2,1);
+  while(words.length>1&&`${prefix} ${words.join(' ')}`.length>32)words.shift();
   return `${prefix} ${words.join(' ')}`;
 };
 const featureBanned=/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i;
