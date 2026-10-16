@@ -50,7 +50,13 @@ const recordLabel=value=>{
 };
 const storyPieceLabel=value=>typeof value==='string'?value.replace(/^(?:Compare|Check|Match|Select|Record|Sort|Read)\s+(?:the\s+)?/i,'').trim():value;
 const worksheetLanguage=/\b(?:checkpoint|digit|digits|tile|tiles|printed|rule|rules|choice|choices|option|options|answer|answers|decoded word|report cards)\b/i;
-const inWorldAction=/^(?:align|ask|attach|balance|bring|carry|check|clear|climb|clean|close|collect|connect|cover|cross|deliver|drain|draw|examine|fasten|fetch|fill|find|fit|follow|gather|give|grip|guide|hand|hang|hold|hook|inspect|install|join|label|lay|let|lift|light|line|locate|loosen|mark|move|open|pick|place|polish|position|prepare|press|pull|push|release|replace|reset|ring|roll|seal|search|secure|set|slide|smooth|spot|start|stop|strike|switch|take|test|thread|tie|trace|turn|uncoil|unlock|untie|visit|wait|walk|wash|watch|wind|wipe|wrap)\s+\S+/i;
+const inWorldAction=/^(?:align|ask|attach|balance|bring|carry|check|clear|climb|clean|close|collect|connect|cover|cross|deliver|drain|draw|examine|fasten|fetch|fill|find|fit|follow|gather|give|grip|guide|hand|hang|hold|hook|inspect|install|join|label|lay|let|lift|light|line|locate|look|loosen|mark|move|open|pick|place|polish|position|prepare|press|pull|push|reach|read|release|replace|reset|ring|roll|scrape|seal|search|secure|set|slide|smear|smooth|spot|start|stop|strike|switch|take|test|thread|tie|trace|turn|uncoil|unlock|untie|visit|wait|walk|wash|watch|wind|wipe|wrap)\s+\S+/i;
+const isInWorldAction=label=>inWorldAction.test(label)||label.trim().split(/\s+/).length>=4&&!/^(?:a|an|the|this|that)\b/i.test(label)&&!/(?:note|report|log|letter|record|card|route|object|clue|answer|result)$/i.test(label);
+const repeatsFinalAction=(label,finalAction)=>{
+  const words=value=>(String(value).toLowerCase().match(/[a-z]{3,}/g)||[]).filter(word=>!['the','and','with','from','into','onto','over','under','before','after','that','this','then','only','just'].includes(word));
+  const current=words(label),final=words(finalAction);
+  return current[0]&&current[0]===final[0]&&current.slice(1).some(word=>final.slice(1).includes(word));
+};
 const completedOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
 const visibleOutcome=/\b(?:rings?|chimes?|sounds?|starts?|turns?|opens?|glows?|shines?|lights?|catches?|moves?|works?|returns?|arrives?|reaches?|restored|repaired|rescued|saved|delivered|completed|finished|recovered|solved)\b/i;
 const sharedResponse=/\b(?:smiles?|cheers?|celebrates?|thanks?|welcomes?|applauds?|continues?|begins?|sets out|heads home|gathers?|reunites?)\b/i;
@@ -211,7 +217,7 @@ export function prepareContextualBlueprint(candidate,spec){
       return text(usesRecords?recordLabel(normalized):spec.packExperienceVersion>=3?fitLabel(normalized):normalized,'Piece label',40);
     });
     if(spec.packExperienceVersion>=3&&i<4&&type==='symbol_key')labels=['1','2','3','4'];
-    if(spec.packExperienceVersion>=3&&i<4&&type==='order_tiles'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||/^check\s+(?:the\s+)?(?:answer|result|code|clue|rule|printed|digit|card|tile)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
+    if(spec.packExperienceVersion>=3&&i<4&&type==='order_tiles'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|match|select|record|sort|write|arrange|decode|number)\b/i.test(label)||/^(?:check|read)\s+(?:the\s+)?(?:answer|result|code|clue|rule|printed|digit|card|tile)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
       if((spec.packQualityVersion||0)>=8)throw Error(`Checkpoint ${i+1} ordering pieces must be unfinished in-world actions, not worksheet steps or completed outcomes.`);
       labels=stableOrderLabels(candidate,spec,i);
     }
@@ -231,10 +237,10 @@ export function prepareContextualBlueprint(candidate,spec){
         throw Error(`Checkpoint ${i+1} needs distinct named story pieces, not lettered placeholders or repeated subjects.`);
     }
     if((spec.packQualityVersion||0)>=8&&i<4&&type==='order_tiles'){
-      if(labels.some(label=>!inWorldAction.test(label)))
+      if(labels.some(label=>!isInWorldAction(label)))
         throw Error(`Checkpoint ${i+1} ordering pieces must each begin with a complete in-world action.`);
       const finalAction=String(candidate.storyFrame?.actions?.[0]||candidate.stages[4]?.material?.items?.[0]?.label||'').trim().toLowerCase();
-      if(finalAction&&labels.some(label=>label.trim().toLowerCase()===finalAction))
+      if(finalAction&&labels.some(label=>label.trim().toLowerCase()===finalAction||repeatsFinalAction(label,finalAction)))
         throw Error(`Checkpoint ${i+1} cannot perform the final action before the last checkpoint.`);
     }
     if(spec.packExperienceVersion>=2&&i<4)assertGoalStillOpen(labels,spec.plan.goal,i+1);
