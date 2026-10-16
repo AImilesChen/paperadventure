@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
-import {prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory} from './staged-story.mjs';
+import {buildContextPuzzle,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
+import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
@@ -79,6 +79,186 @@ test('quality version 6 uses structured causal fields instead of keyword matchin
   assert.throws(()=>prepareStoryFrame(future,6),/already known|later investigation/);
   const unrelated=structuredClockFrame();unrelated.discoveries[0].supportsAction='bell rope';
   assert.throws(()=>prepareStoryFrame(unrelated,6),/intended final action/);
+});
+
+test('quality version 9 reopens a premature frame consequence without another provider call',()=>{
+  const frame=structuredClockFrame();
+  frame.discoveries[2].consequence='The signal gear was repaired and the bell rang.';
+  const prepared=prepareStoryFrame(frame,9);
+  assert.equal(prepared.discoveries[2].finding,frame.discoveries[2].finding);
+  assert.equal(prepared.discoveries[2].consequence,'The safe sequence keeps signal gear ready for the final action.');
+  assert.doesNotMatch(prepared.discoveries[2].consequence,/repaired|rang|completed/i);
+});
+
+test('quality version 8 blocks a concrete story defect and rejects a generic ending',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.storyFrame=structuredClockFrame();
+  raw.storyFrame.discoveries[0].consequence='The missing noon mark points to the gear.';
+  raw.storyFrame.discoveries[2].consequence='The wheel stays aligned during repair.';
+  raw.storyFrame.discoveries[3].consequence='The upper bridge can carry the part.';
+  raw.spine=compileStorySpine(raw.storyFrame,raw.stages,paperContractTypes(spec.plan),8);
+  raw.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const repeated=structuredClone(raw);
+  repeated.stages[0].material.items=['Report A: loose pin','Report B: loose pin','Report C: loose pin'].map(label=>({label}));
+  assert.throws(()=>prepareBlueprintCandidate(repeated,spec),/distinct named story pieces/);
+  const premature=structuredClone(raw);
+  premature.stages[2].material.items[0].label=raw.storyFrame.actions[0];
+  assert.throws(()=>prepareBlueprintCandidate(premature,spec),/cannot perform the final action/);
+  const nounTile=structuredClone(raw);
+  nounTile.stages[2].material.items[1].label='Clapper';
+  assert.throws(()=>prepareBlueprintCandidate(nounTile,spec),/ordering pieces must each begin with a complete in-world action/);
+  const nounPhrase=structuredClone(raw);
+  nounPhrase.stages[2].material.items[1].label='Clapper swing';
+  assert.throws(()=>prepareBlueprintCandidate(nounPhrase,spec),/ordering pieces must each begin with a complete in-world action/);
+  const earlyParaphrase=structuredClone(raw);
+  earlyParaphrase.stages[2].material.items[1].label='Fit the signal gear';
+  assert.throws(()=>prepareBlueprintCandidate(earlyParaphrase,spec),/cannot perform the final action/);
+  const checkedTile=structuredClone(raw);
+  checkedTile.stages[2].material.items[1].label='Check the clapper swing';
+  checkedTile.storyFrame.discoveries[2].consequence='The clapper swing is checked before fitting the signal gear.';
+  checkedTile.spine=compileStorySpine(checkedTile.storyFrame,checkedTile.stages,paperContractTypes(spec.plan),8);
+  assert.equal(prepareBlueprintCandidate(checkedTile,spec).stages[2].material.logic.context.labels[1],'Check the clapper swing');
+  const earnedBecause=structuredClone(raw);
+  earnedBecause.celebration='Because the fitted gear turns, the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  assert.match(prepareBlueprintCandidate(earnedBecause,spec).celebration,/^Because the fitted gear turns/);
+  const genericFeatures=structuredClone(raw);
+  genericFeatures.stages[0].features=['Mentions answer','Names result'];
+  assert.throws(()=>prepareBlueprintCandidate(genericFeatures,spec),/concrete, distinct printed record facts/);
+  const ungrounded=structuredClone(raw);
+  ungrounded.storyFrame.discoveries[0].consequence='A distant cart waits beneath the mist.';
+  ungrounded.spine=compileStorySpine(ungrounded.storyFrame,ungrounded.stages,paperContractTypes(spec.plan),8);
+  assert.throws(()=>prepareBlueprintCandidate(ungrounded,spec),/story link consequence must name a printed piece or fact/);
+  const blueprint=prepareBlueprintCandidate(raw,spec),stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected provider request');})).stage);
+  const story=assembleStagedStory(spec,blueprint,stages);
+  assert.doesNotMatch(story.ending,/carries out that action/i);
+  assert.match(story.ending,/^The four checked results form code /);
+  const overlong=structuredClockFrame();
+  overlong.actions[0]='Fit the clapper pin through the bell crown loop before noon';
+  assert.throws(()=>prepareStoryFrame(overlong,8),/under 40 characters/);
+  const env={OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
+  await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async(_url,request)=>{
+    const input=JSON.parse(JSON.parse(request.body).input);
+    assert.equal(input.checkpoints[2].printedPieces.length,4,'the reviewer sees the actual printed steps');
+    assert.deepEqual(input.checkpoints.map(checkpoint=>checkpoint.printedPieces.length),stages.map(stage=>stage.material.logic.context.labels.length),'engine-supplied rule cards are excluded from candidate review');
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:3,reason:'The tower note is a document, not an action.'}]})}]}]});
+  }),error=>error.code==='GENERATION_QA_FAILED'&&error.stageNumber===3);
+  let reviews=0;
+  const overturned=await auditStagedStory(story,spec,blueprint,env,async(_url,request)=>{
+    reviews++;
+    const name=JSON.parse(request.body).text.format.name;
+    assert.equal(name,reviews===1?'staged_story_audit':'staged_story_adjudication');
+    const data=reviews===1?{pass:false,issues:[{stageNumber:5,reason:'Fit signal gear is a noun phrase.'}]}:{pass:true,issues:[]};
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(data)}]}]});
+  });
+  assert.equal(reviews,2);
+  assert.equal(overturned.advisories,undefined);
+  await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async()=>{throw Error('Review unavailable');}),error=>error.code==='GENERATION_UPSTREAM_FAILED');
+  await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:5,reason:'The ending does not state the observable outcome of the final action.'}]})}]}]})),error=>error.code==='GENERATION_QA_FAILED'&&error.stageNumber===0);
+  await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:0,reason:'The ending claims success, but the selected final action is only a preparation and cannot finish the goal.'}]})}]}]})),error=>error.code==='GENERATION_QA_FAILED'&&error.stageNumber===5);
+  const generic=structuredClone(raw);
+  generic.celebration='The mission result is now visible to everyone in the village. Everyone cheers and thanks the team for completing the mission.';
+  assert.throws(()=>prepareBlueprintCandidate(generic,spec),/concrete result/);
+});
+
+test('quality version 9 completes malformed ordering actions before story grounding',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:9,packLayoutVersion:4};
+  const raw=linkedClockContext(),types=paperContractTypes(spec.plan);
+  const orderIndex=types.indexOf('order_tiles');
+  raw.stages[orderIndex].material.items=['Clapper','Clockwork note','Compare the code','Fit signal gear'].map(label=>({label}));
+  const storyFrame=structuredClockFrame();
+  const normalized=normalizeStoryOrderActions(raw.stages,storyFrame,spec);
+  const labels=normalized[orderIndex].material.items.map(item=>item.label);
+  assert.deepEqual(labels,['Inspect signal gear','Gather signal gear supplies','Prepare signal gear parts','Position signal gear']);
+  assert.ok(labels.every(label=>/^(?:Inspect|Gather|Prepare|Position)\s+\S+/i.test(label)));
+});
+
+test('quality version 8 grounds story consequences after the printable pieces exist',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const materials={celebration:raw.celebration,stages:raw.stages};
+  const initial=structuredClockFrame();
+  const grounded=[
+    'The noon mark identifies the gear the keeper must fit.',
+    'The spare gear can be collected from safe storage.',
+    'Aligning the wheel keeps the gear ready for fitting.',
+    'The upper bridge carries the gear to the tower.',
+  ];
+  const names=[];
+  const env={AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture',DEEPSEEK_MODEL:'deepseek-flash'};
+  const result=await generateBlueprint(spec,env,async(_url,request)=>{
+    const body=JSON.parse(request.body),name=body.text.format.name;
+    names.push(name);
+    assert.equal(body.reasoning.effort,name==='story_frame'?'low':'none');
+    if(name==='story_frame'){
+      assert.match(body.instructions,/last step that directly makes the approved goal true/i);
+      assert.ok(body.max_output_tokens>=14000,'reasoning must leave room for a structured answer');
+    }
+    if(name==='game_blueprint')assert.match(body.instructions,/none may repeat or carry out a final action/i);
+    if(name==='grounded_discoveries'){
+      const input=JSON.parse(body.input);
+      assert.equal(input.printed[0].selectedFinding,'Signal gear report');
+      assert.deepEqual(input.printed[0].features,raw.stages[0].features);
+      assert.equal(input.fixedFinalAction,'Fit signal gear');
+    }
+    const data=name==='story_frame'?initial:name==='game_blueprint'?materials:{consequences:grounded};
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(data)}]}]});
+  });
+  assert.deepEqual(names,['story_frame','game_blueprint','grounded_discoveries']);
+  assert.equal(result.blueprint.storyFrame.discoveries[0].consequence,grounded[0]);
+  assert.match(result.blueprint.storyFrame.discoveries[0].finding,/signal gear report/i);
+  assert.match(result.blueprint.spine.links[0].reason,/noon mark/i);
+  assert.match(result.blueprint.storyFrame.discoveries[3].consequence,/open .* gives the team a route/i);
+  assert.doesNotMatch(result.blueprint.storyFrame.discoveries[3].consequence,/carries the gear/i);
+});
+
+test('quality version 8 re-grounds saved discoveries after repairing one material',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.storyFrame=structuredClockFrame();
+  raw.storyFrame.discoveries[0].consequence='The noon mark identifies the gear the keeper must fit.';
+  raw.storyFrame.discoveries[1].consequence='The spare gear can be collected from safe storage.';
+  raw.storyFrame.discoveries[2].consequence='The wheel stays aligned during repair.';
+  raw.storyFrame.discoveries[3].consequence='The upper bridge can carry the part.';
+  raw.spine=compileStorySpine(raw.storyFrame,raw.stages,paperContractTypes(spec.plan),8);
+  raw.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const repairedStage=structuredClone(raw.stages[2]);
+  repairedStage.material.items=['Inspect the drive wheel','Align the drive wheel','Secure the gear bracket','Test the wheel motion'].map(label=>({label}));
+  const consequences=[
+    'The noon mark identifies the gear the keeper must fit.',
+    'The spare gear can be collected from safe storage.',
+    'The aligned wheel keeps the signal gear ready for fitting.',
+    'The upper bridge carries the gear to the tower.',
+  ];
+  const calls=[];
+  const result=await repairBlueprint(spec,raw,'Checkpoint 3 ordering pieces must each begin with a complete in-world action.',
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+      const body=JSON.parse(request.body),name=body.text.format.name,input=JSON.parse(body.input);
+      calls.push(name);
+      if(name==='checkpoint_material_repair')return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(repairedStage)}]}],usage:{input_tokens:3,output_tokens:5}});
+      assert.equal(name,'grounded_discoveries');
+      assert.deepEqual(input.printed[2].labels,repairedStage.material.items.map(item=>item.label));
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({consequences})}]}],usage:{input_tokens:7,output_tokens:11}});
+    });
+  assert.deepEqual(calls,['checkpoint_material_repair','grounded_discoveries']);
+  assert.deepEqual(result.usage,{input_tokens:10,output_tokens:16});
+  assert.equal(result.blueprint.storyFrame.discoveries[2].consequence,consequences[2]);
+  assert.match(result.blueprint.spine.links[2].reason,/aligned wheel/i);
+  assert.deepEqual(result.blueprint.stages[0].material.logic.context.labels,raw.stages[0].material.items.map(item=>item.label));
+  assert.deepEqual(result.blueprint.stages[1].material.logic.context.labels,raw.stages[1].material.items.map(item=>item.label));
+});
+
+test('quality version 8 replaces a generic code word with an approved story word before grounding',()=>{
+  const plan=structuredClone(clockSpec.plan);
+  plan.goal='Restore the exhibit CASE label before the visitors arrive.';
+  plan.stages[0].mechanic='code';
+  const spec={...clockSpec,packQualityVersion:8,plan,customIdea:'A museum exhibit CASE has a lost label.'};
+  const stages=Array.from({length:5},(_,index)=>({word:index===0?'CODE':'GEAR'}));
+  const normalized=normalizeStoryCodeWords(stages,spec);
+  assert.equal(normalized[0].word,'CASE');
+  assert.equal(stages[0].word,'CODE','the provider candidate is not mutated');
 });
 
 test('quality version 6 repairs only a failed discovery before rebuilding materials',async()=>{
@@ -173,6 +353,27 @@ test('quality version 6 builds a second theme on A4 and Letter with the same del
     assert.match(pdf,/The Garden Lantern at Dusk/);
     assert.match(pdf,/HOST NOTES|Player Pack/);
   }
+  const dense={...story,title:'The Garden Lantern and the Missing Path for the Evening Visitors',
+    spine:{...story.spine,problem:'The garden path remains dark while several visitors wait by the gate. The lantern has a missing part, and the crew must identify the safe supplies and route before the evening walk can begin.'}};
+  const denseSpec={...spec,setting:'classroom',groups:6,paper:'Letter',plan:{...plan,goal:'Light the correct garden lantern so all evening visitors can follow the safe path home before the gate closes.'}};
+  assert.match(new TextDecoder().decode(buildGamePdf(dense,denseSpec,'guide')),/Adult guide \/ Preparation/);
+});
+
+test('repeated code checkpoints print different messages and remain independently solvable',()=>{
+  const words=['SLOT','GATE','MASK'];
+  const stages=words.map((word,index)=>buildContextPuzzle(index+1,'symbol_key',{
+    labels:['1','2','3','4'],features:['Checked fact','Matching fact'],word,title:`Museum message ${index+1}`,
+  },[],3,8));
+  const messages=stages.map(stage=>stage.clue.match(/message is ([1-4](?:-[1-4]){3})/i)?.[1]);
+  assert.equal(new Set(messages).size,3);
+  const evidence=buildContextPuzzle(4,'evidence_cards',{
+    labels:['Curator note','Gallery report','Keeper log'],features:['Mentions label sleeve','Names main gallery'],word:'NOTE',title:'Museum records',
+  },stages.map(stage=>stage.material.logic.resultDigit),3,8);
+  stages.push(evidence);
+  stages.push(buildContextPuzzle(5,'decision_record',{
+    labels:['Set label on plinth','Tape label to case','Store label in box'],features:['Checked fact','Matching fact'],word:'NOTE',title:'Final actions',
+  },stages.map(stage=>stage.material.logic.resultDigit),3,8));
+  assert.equal(verifyPrintedPuzzles({stages}).length,5);
 });
 
 test('a decoded story word CODE is not confused with an answer-code explanation',()=>{
@@ -472,6 +673,24 @@ test('linked records print comparable report labels and content facts',()=>{
   assert.deepEqual(context.features,['Mentions Silent bell','Mentions Worn gear']);
   assert.ok(blueprint.spine.links[recordIndex].reason.includes(context.labels[(recordIndex+2)%3]));
   assert.ok(blueprint.spine.links[recordIndex].reason.includes('Silent bell'));
+});
+
+test('record feature fitting keeps a complete phrase instead of a dangling connector',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext();
+  const recordIndex=paperContractTypes(spec.plan).findIndex(type=>['evidence_cards','decision_record'].includes(type));
+  raw.stages[recordIndex].features=['Mentions brass hammer','Names a cracked peg by its owner'];
+  const blueprint=prepareContextualBlueprint(raw,spec);
+  assert.deepEqual(blueprint.stages[recordIndex].material.logic.context.features,['Mentions brass hammer','Names cracked peg owner']);
+  raw.stages[recordIndex].features=['Mentions storing gear in a dry sack','Names the gear as Signal'];
+  const meaningful=prepareContextualBlueprint(raw,spec).stages[recordIndex].material.logic.context.features;
+  assert.deepEqual(meaningful,['Mentions storing gear dry sack','Names gear Signal']);
+});
+
+test('quality version 8 uses one full-game review instead of four paid checkpoint reviews',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8};
+  const result=await auditCheckpointSemantics({number:1},spec,{},()=>{throw Error('No checkpoint review should be purchased.');});
+  assert.equal(result.usage,null);
 });
 
 test('answer-state record features are replaced from the fixed story frame',()=>{
@@ -797,3 +1016,4 @@ test('each main play style produces printable Home and Classroom packs without a
     for(const paper of ['A4','Letter'])for(const role of ['player','guide'])assert.ok(buildGamePdf(story,{...spec,paper},role).length>1000);
   }
 });
+
