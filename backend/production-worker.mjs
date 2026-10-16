@@ -10,6 +10,7 @@ import { verifyGoogleCredential } from './google-auth.mjs';
 import { signPreview, confirmPreview } from './creator-preview.mjs';
 import { generateSinglePlan, planFailureCategory } from './plan-proposals.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
+import { PLAN_REVIEW_POLICY } from '../shared/plan-quality.mjs';
 import { startPackRemake, retryPackRemake, packRemakeView, processPackRemake, qualityUpgradeEligible } from './pack-remake.mjs';
 import { controlledRevisionStyle } from './controlled-puzzles.mjs';
 
@@ -605,6 +606,7 @@ async function orderView(request, env, orderId) {
     ? await query(env.DB,'SELECT * FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
   const planVersions = paidPlan ? (await query(env.DB,'SELECT version_number,plan_json,request_kind,created_at FROM custom_plan_versions WHERE order_id = ? ORDER BY version_number',order.id).all()).results || [] : [];
   const pendingPlan = paidPlan ? await query(env.DB,"SELECT kind,status FROM custom_plan_requests WHERE order_id = ? AND status IN ('queued','generating') ORDER BY created_at DESC LIMIT 1",order.id).first() : null;
+  const planWork = paidPlan ? await query(env.DB,'SELECT w.phase,w.candidate_saved,w.plan_valid,w.audit_passed,w.provider_calls,w.updated_at,w.error_code FROM custom_plan_work w JOIN custom_plan_requests r ON r.id = w.request_id WHERE w.order_id = ? AND r.base_version = ? ORDER BY r.created_at DESC,r.rowid DESC LIMIT 1',order.id,paidPlan.confirmed_version||paidPlan.active_version||0).first() : null;
   const initialRequests = paidPlan?.status === 'needs_help' && !paidPlan.active_version
     ? await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'initial'",order.id).first() : null;
   const activePlan = planVersions.find(item=>item.version_number===paidPlan?.active_version);
@@ -650,7 +652,7 @@ async function orderView(request, env, orderId) {
     remake,themePlanRepairAvailable,
     revisionRequests: revisionRows.map(item=>({id:item.id,stageNumber:item.stage_number,status:item.status,version:item.version_number||null,createdAt:item.created_at,completedAt:item.completed_at||null})),
     plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
-    ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,qualityReplanUsed:Boolean(paidPlan?.quality_replan_used),themeReplanAttempts,themeReplanFailed,themeReplanFailureCode:themeReplanFailure?.error_code||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
+    ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,qualityReplanUsed:Boolean(paidPlan?.quality_replan_used),progress:planWork?{phase:planWork.phase,candidateSaved:Boolean(planWork.candidate_saved),formatChecked:Boolean(planWork.plan_valid),reviewPassed:Boolean(planWork.audit_passed),providerCalls:planWork.provider_calls,updatedAt:planWork.updated_at,failureCode:planWork.error_code}:null,themeReplanAttempts,themeReplanFailed,themeReplanFailureCode:themeReplanFailure?.error_code||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
 }
 
 async function retryCustomDelivery(request, env, orderId) {
@@ -987,7 +989,19 @@ async function publishPlanRequest(requestId,env) {
     const spec={...JSON.parse(order.purchase_spec_json),...(themeReplan?{packQualityVersion:14}:{})};
     const base=request.base_version ? await query(env.DB,'SELECT plan_json FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',order.id,request.base_version).first() : null;
     if (request.base_version && !base) throw new Error('Previous plan version is missing');
-    const result=await generateSinglePlan(spec,env,env.FETCH||fetch,{kind:request.kind,scope:request.scope,feedback:request.feedback,previousPlan:base?JSON.parse(base.plan_json):null});
+    const previousPlan=base?JSON.parse(base.plan_json):null;
+    const contextHash=await sha256(JSON.stringify({policy:PLAN_REVIEW_POLICY,spec,kind:request.kind,scope:request.scope,feedback:request.feedback,previousPlan}));
+    let work=await query(env.DB,'SELECT * FROM custom_plan_work WHERE request_id = ?',requestId).first();
+    // Persist before calling the provider. A queue redelivery resumes only the
+    // same request, purchase and rules, with its original total call budget.
+    if(work&&work.context_sha256!==contextHash)throw new ApiError(409,'PLAN_INVALID','The saved plan context changed. Review is required.');
+    if(!work){await query(env.DB,'INSERT INTO custom_plan_work (request_id,order_id,context_sha256) VALUES (?,?,?)',requestId,order.id,contextHash).run();work={provider_calls:0};}
+    const result=await generateSinglePlan(spec,env,env.FETCH||fetch,{kind:request.kind,scope:request.scope,feedback:request.feedback,previousPlan,
+      resume:work.checkpoint_json?JSON.parse(work.checkpoint_json):null,previousCalls:work.provider_calls,
+      onBeforeCall:async count=>{const reserved=await query(env.DB,'UPDATE custom_plan_work SET provider_calls = ?,updated_at = CURRENT_TIMESTAMP WHERE request_id = ? AND provider_calls = ?',count,requestId,count-1).run();if(!reserved.meta?.changes)throw new ApiError(409,'PLAN_CALL_BUDGET','This plan call is already reserved.');await query(env.DB,"UPDATE custom_plan_requests SET lease_until = ? WHERE id = ? AND status = 'generating'",nowSeconds()+300,requestId).run();},
+      onPhase:async phase=>{await query(env.DB,'UPDATE custom_plan_work SET phase = ?,updated_at = CURRENT_TIMESTAMP WHERE request_id = ?',phase,requestId).run();},
+      onCheckpoint:async saved=>{await query(env.DB,'UPDATE custom_plan_work SET checkpoint_json = ?,candidate_saved = ?,plan_valid = ?,audit_passed = ?,error_code = ?,updated_at = CURRENT_TIMESTAMP WHERE request_id = ?',JSON.stringify(saved),saved.candidate!==null?1:0,saved.valid?1:0,saved.audit?.pass?1:0,saved.errorCode||null,requestId).run();},
+    });
     const state=await query(env.DB,'SELECT * FROM custom_plan_orders WHERE order_id = ?',order.id).first();
     const currentOrder=await query(env.DB,'SELECT status FROM orders WHERE id = ?',order.id).first();
     if (!state || state.status!=='generating' || !themeReplan&&state.confirmed_version || currentOrder?.status!==order.status) return;
@@ -999,7 +1013,9 @@ async function publishPlanRequest(requestId,env) {
       query(env.DB,'INSERT OR IGNORE INTO generation_usage (order_id,attempt,response_id,model,input_tokens,output_tokens,status,phase,error_detail,completed_at) VALUES (?,?,?,?,?,?,?,\'plan\',?,CURRENT_TIMESTAMP)',order.id,usageAttempt,result.responseId,aiProvider(env)?.model,result.usage?.input_tokens||null,result.usage?.output_tokens||null,'plan-published',`provider_calls=${result.providerCalls||0}`),
     ]);
   } catch (caught) {
-    console.error('Paid plan generation failed', {orderId:order.id,requestId,attempt,code:caught?.code||'UNEXPECTED',message:caught?.message||'Unknown failure'});
+    const safeCode=planFailureCategory(caught);
+    console.error('Paid plan generation failed', {orderId:order.id,requestId,attempt,code:safeCode});
+    await query(env.DB,"UPDATE custom_plan_work SET phase = 'failed',error_code = ?,updated_at = CURRENT_TIMESTAMP WHERE request_id = ?",safeCode,requestId).run();
     await query(env.DB,"INSERT OR IGNORE INTO generation_usage (order_id,attempt,model,input_tokens,output_tokens,status,phase,error_code,error_detail,completed_at) VALUES (?,?,?,?,?,'plan-failed','plan',?,?,CURRENT_TIMESTAMP)",order.id,usageAttempt,aiProvider(env)?.model||'unconfigured',caught?.usage?.input_tokens||0,caught?.usage?.output_tokens||0,planFailureCategory(caught),`provider_calls=${caught?.providerCalls||0}`).run();
     if (attempt>=(order.status==='published'?1:3)) await env.DB.batch([
       query(env.DB,"UPDATE custom_plan_requests SET status = 'failed',lease_until = NULL,completed_at = CURRENT_TIMESTAMP WHERE id = ?",requestId),
@@ -1353,7 +1369,7 @@ export default {
   async queue(batch, env) {
     for (const message of batch.messages) {
       try { if (message.body?.type === 'pack_remake') await processPackRemake(message.body.orderId, env); else if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else if (message.body?.type === 'plan') await publishPlanRequest(message.body.requestId,env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
-      catch (failure) { console.error('Generation job failed', failure); message.retry(); }
+      catch (failure) { console.error('Generation job failed', message.body?.type==='plan'?{type:'plan',code:planFailureCategory(failure)}:failure); message.retry(); }
     }
   },
   async scheduled(_controller, env) {
