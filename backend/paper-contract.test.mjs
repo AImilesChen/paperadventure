@@ -4,7 +4,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {buildContextPuzzle,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep} from './staged-story.mjs';
+import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep,deliverableClosing} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
@@ -286,6 +286,17 @@ test('a short provider closing is completed without another model retry',async()
   assert.ok(result.data.celebration.length>=90&&result.data.celebration.length<=240);
   assert.equal(result.data.celebration.match(/[^.!?]+[.!?]+/g)?.length,2);
   assert.match(result.data.celebration,/restore the noon bell/i);
+});
+
+test('a closing that ends at a connector is rebuilt with a complete approved goal',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:10,plan:{...clockSpec.plan,goal:'Restore the clock tower noon chime so the traveler can set out and finish the journey safely.'}};
+  const frame=structuredClockFrame();
+  const broken='After "Pull the bell rope in the tower", the approved goal succeeds: "Restore the clock tower noon chime so the traveler can set out and". The whole team cheers together.';
+  const closing=deliverableClosing(broken,spec,frame);
+  assert.doesNotMatch(closing,/\band["']?[.!?](?:\s|$)/i);
+  assert.match(closing,/finish the journey safely/i);
+  assert.equal(closing.match(/[^.!?]+[.!?]+/g)?.length,2);
+  assert.ok(closing.length>=90&&closing.length<=240);
 });
 
 test('quality version 8 replaces a generic code word with an approved story word before grounding',()=>{
