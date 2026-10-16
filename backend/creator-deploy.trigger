@@ -1,1 +1,1 @@
-2026-10-15: deploy structured causal story quality v6 with targeted discovery repair.
+2026-10-16: deploy quality v7 with saved blueprint, per-checkpoint record checks and targeted context repair.
