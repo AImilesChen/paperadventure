@@ -21,7 +21,7 @@ jobs:
       - run: npm ci
       - run: npm run test:backend
       - name: Generate only invented QA scenarios
-        # One fixed synthetic plan, one theme and one hard call cap.
+        # One fixed synthetic plan, one theme and a twelve-call cap.
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
           SMOKE_CASE_IDS: home-clock
