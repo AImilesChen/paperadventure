@@ -5,7 +5,7 @@ import {repairBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStaged
   generateBlueprintFrameStep,generateBlueprintMaterialStep,generateBlueprintClosingStep,assembleBlueprintSteps} from '../backend/staged-story.mjs';
 import {buildGamePdf} from '../backend/pdf.mjs';
 import {verifyPrintedPuzzles} from '../backend/paper-proof.mjs';
-import {clockSpec as checkedClockSpec} from '../content/clock-contract-sample.mjs';
+import {clockSpec as checkedClockSpec} from '../content/paper-contract-qa.mjs';
 
 const env={AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:process.env.DEEPSEEK_API_KEY,DEEPSEEK_MODEL:'deepseek-flash'};
 if(!env.DEEPSEEK_API_KEY)throw Error('Private provider credential missing.');
