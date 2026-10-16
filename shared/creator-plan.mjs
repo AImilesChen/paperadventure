@@ -1,4 +1,5 @@
 import {paperContractTypes} from './paper-contract.mjs';
+import {sentenceEnds} from './plan-format.mjs';
 export const CREATOR_VERSION = 2;
 export const mechanics = [
   {id:'reasoning', title:'Clue detective', description:'Compare printed facts and find the one answer that fits.', action:'Compare the clues', sample:{clue:'The parcel has a round seal and two stripes. Which label fits?',options:['Round seal, two stripes','Square seal, two stripes','Round seal, three stripes'],answer:0,explanation:'Both printed features must match.'}},
@@ -80,7 +81,7 @@ export function validatePlan(value, spec) {
   };
   if (!['mystery','mission'].includes(plan.id)) throw new Error('Choose one of the two adventure plans.');
   if(plan.storySceneVersion===1){
-    if(plan.stages.some(stage=>!stage.storyBeat||!/[.!?]$/.test(stage.storyBeat)))throw new Error('Each checkpoint needs a complete story event, not only a location.');
+    if(plan.stages.some(stage=>!stage.storyBeat||!sentenceEnds(stage.storyBeat)))throw new Error('Each checkpoint needs a complete story event, not only a location.');
     if(new Set(plan.stages.map(stage=>stage.storyBeat.toLowerCase().replace(/[^a-z0-9]/g,''))).size!==5)throw new Error('Each checkpoint needs a different story event.');
   }
   if(spec.packContractVersion===1&&(spec.packQualityVersion||0)>=14){

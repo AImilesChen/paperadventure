@@ -1,9 +1,11 @@
 import { planFailureMessage } from '../shared/plan-quality.mjs';
+import {planFormatMessage} from '../shared/plan-format.mjs';
 
 export function themeUpdatePending(order) {
   const review=order.planReview;
   const hasUpdate=order.themePlanRepairAvailable||review?.qualityReplanUsed||review?.themeReplanAttempts>0;
   return Boolean(order.filesReady&&hasUpdate&&(
+    review?.themeReplanFailed||
     review?.qualityReplanUsed&&review.status!=='confirmed'||
     !order.plan?.themeAnchors?.length||!order.remake||order.remake.status!=='ready'));
 }
@@ -18,7 +20,7 @@ export function updateProgressState(order) {
     const labels={queued:'Waiting to prepare the corrected plan',generating:'Preparing the corrected plan',validating:'Checking the plan format',repairing:'Correcting the saved plan',correcting:'Correcting the saved plan',auditing:'Reviewing the theme and story',ready:'Saving the reviewed plan'};
     return {completed,current:waiting?2:Math.min(completed,1),busy:!waiting&&!failed&&['queued','generating'].includes(review.status),
       label:failed?order.themePlanRecoveryAvailable?'Previous plan correction stopped':'Plan correction stopped':waiting?review.storyScenesRequired?'Story scenes need repair before approval':'Your action is needed: review and approve the corrected plan':labels[work?.phase]||labels[review.status]||'Corrected plan not started',
-      failed,waiting,updatedAt:work?.updatedAt,reason:failed?planFailureMessage(work?.failureCode||review.themeReplanFailureCode):null};
+      failed,waiting,updatedAt:work?.updatedAt,reason:failed?planFormatMessage(work?.formatIssue)||planFailureMessage(work?.failureCode||review.themeReplanFailureCode):null};
   }
   if(!remake)return null;
   const complete=remake.status==='ready';

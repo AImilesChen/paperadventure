@@ -1,3 +1,4 @@
+import {sentenceEnds} from './plan-format.mjs';
 // Shared by plan review and generation: the action a purchaser approves is the
 // action that the material renderer will actually print.
 export const paperActions={
@@ -32,7 +33,7 @@ export function paperAction(type,number){
 }
 
 function paperOpening(premise){
-  if(typeof premise!=='string'||!premise.trim()||premise.length>200||!/[.!?]$/.test(premise.trim()))throw Error('The fictional premise needs complete sentences under 200 characters.');
+  if(typeof premise!=='string'||!premise.trim()||premise.length>200||!sentenceEnds(premise))throw Error('The fictional premise needs complete sentences under 200 characters.');
   return `${premise.trim()} Complete four printed checks to collect four result digits. Their combined code identifies the final action that completes this mission.`;
 }
 

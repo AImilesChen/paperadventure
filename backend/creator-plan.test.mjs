@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {validatePurchase,validateGeneratedStory} from './domain.mjs';
 import {signPreview,confirmPreview} from './creator-preview.mjs';
 import {generateProposals,generateStory,reviseStage} from './openai.mjs';
-import {generateSinglePlan,planFailureCategory} from './plan-proposals.mjs';
+import {generateSinglePlan,planFailureCategory,inspectSavedPlan,savedFormatRecovery} from './plan-proposals.mjs';
+import {planFormatIssue,planFormatMessage,safePlanFormatIssue} from '../shared/plan-format.mjs';
 import {contextKey,storySuggestions,validatePlan} from '../shared/creator-plan.mjs';
 import {normalizeDraft,draftSpec,activePlans,readySetup,fromCloudDraft} from '../src/creatorDraft.mjs';
 import {planFixture} from '../tests/fixtures/creator-plan-fixture.mjs';
@@ -98,6 +99,50 @@ test('location-only plans cannot reach approval even when a scripted auditor wou
     return response(locations);
   },{kind:'full'}),error=>error.code==='PLAN_INVALID');
   assert.equal(calls,2,'one candidate and one structural repair; no audit can waive missing story events');
+});
+
+test('format failures retain exact field measurements without exposing candidate text',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec,candidate=planFixture(spec);
+  candidate.stages[1].storyBeat='PRIVATE STORY '.repeat(14)+'.';
+  let saved;
+  await assert.rejects(generateSinglePlan(spec,env,async()=>response(candidate),{kind:'full',resume:{candidate,sceneRepairUsed:true,correctionUsed:true},onCheckpoint:async value=>saved=structuredClone(value)}));
+  assert.deepEqual(saved.formatIssue,{field:'storyBeat',rule:'length',stage:2,length:197,limit:140});
+  assert.match(planFormatMessage(saved.formatIssue),/Checkpoint 2: Story event has 197 characters; the limit is 140/);
+  assert.doesNotMatch(planFormatMessage(saved.formatIssue),/PRIVATE STORY/);
+  assert.equal(safePlanFormatIssue({field:'PRIVATE STORY',rule:'length',length:197,limit:140}),null);
+  assert.equal(savedFormatRecovery({status:'failed',error_code:'PLAN_PRINT_FIT',provider_calls:3,checkpoint_json:JSON.stringify(saved)},spec).available,true);
+  assert.equal(savedFormatRecovery({status:'failed',error_code:'PLAN_PRINT_FIT',provider_calls:4,checkpoint_json:JSON.stringify(saved)},spec).available,false);
+});
+
+test('typographic normalization reuses the candidate and spends at most one remaining audit call',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec,candidate=planFixture(spec);
+  candidate.premise='The Monkey King’s companions pause at a shrine…';
+  candidate.stages[0].storyBeat='The keeper says, “The messenger’s route needs checking.”';
+  const inspection=inspectSavedPlan(candidate,spec);assert.ok(inspection.plan);assert.equal(inspection.issue,null);
+  const checkpoint={candidate,sceneRepairUsed:true,correctionUsed:true};
+  assert.equal(savedFormatRecovery({status:'failed',error_code:'PLAN_PRINT_FIT',provider_calls:4,checkpoint_json:JSON.stringify(checkpoint)},spec).calls,1);
+  let calls=0;
+  const result=await generateSinglePlan(spec,env,async(_url,request)=>{calls++;assert.equal(JSON.parse(request.body).text.format.name,'paid_plan_audit');return response({pass:true,issues:[]});},{kind:'full',resume:checkpoint,previousCalls:4});
+  assert.equal(calls,1);assert.match(result.plan.opening,/Monkey King's/);assert.match(result.plan.stages[0].storyBeat,/"The messenger's route needs checking\."$/);
+  assert.equal(planFormatIssue({...candidate,premise:'An incomplete opening'}).rule,'sentence');
+});
+
+test('format recovery fixes all rejected fields while preserving every passed checkpoint',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec,candidate=planFixture(spec),fixed=structuredClone(candidate);
+  candidate.stages[1].storyBeat='A'.repeat(150)+'.';candidate.stages[3].storyBeat='An incomplete event';
+  const recovery=savedFormatRecovery({status:'failed',error_code:'PLAN_PRINT_FIT',provider_calls:3,checkpoint_json:JSON.stringify({candidate,sceneRepairUsed:true})},spec);
+  assert.equal(recovery.available,true);assert.equal(recovery.fields.length,2);
+  fixed.title='Unrequested title';fixed.stages[0].storyBeat='An unrequested robot takes over the mission.';
+  let calls=0;
+  const result=await generateSinglePlan(spec,env,async(_url,request)=>{
+    calls++;if(calls>1)return response({pass:true,issues:[]});
+    const sent=JSON.parse(request.body);assert.equal(sent.text.format.name,'paid_plan_format_repair');
+    assert.deepEqual(sent.text.format.schema.required,['scene2_storyBeat','scene4_storyBeat']);
+    assert.equal(sent.text.format.schema.properties.title,undefined);
+    return response({scene2_storyBeat:fixed.stages[1].storyBeat,scene4_storyBeat:fixed.stages[3].storyBeat,title:fixed.title});
+  },{kind:'full',previousCalls:3,resume:{candidate,sceneRepairUsed:true,formatResumeUsed:true,correctionUsed:true,formatIssue:recovery.inspected.issue,formatRepairFields:recovery.fields}});
+  assert.equal(calls,2);assert.equal(result.plan.title,candidate.title);assert.equal(result.plan.stages[0].storyBeat,candidate.stages[0].storyBeat);
+  assert.equal(result.plan.stages[1].storyBeat,fixed.stages[1].storyBeat);assert.equal(result.plan.stages[3].storyBeat,fixed.stages[3].storyBeat);
 });
 
 test('saved scene repair preserves passed narrative fields and uses just the remaining request budget',async()=>{

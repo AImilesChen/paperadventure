@@ -59,6 +59,19 @@ test('a delivered order renders its original download card during theme correcti
     const failedHtml=renderToStaticMarkup(createElement(PackRemake,{order:failedOrder,refresh:()=>{}}));
     assert.match(failedHtml,/review returned an invalid result/);
     assert.doesNotMatch(failedHtml,/aria-busy="true"|<progress[^>]*value="7"/);
+    const formatStopped={...failedOrder,qualityUpgradeAvailable:true,plan:{themeAnchors:['Journey to the West']},remake:{status:'ready'},planReview:{...failedOrder.planReview,activeVersion:2,confirmedVersion:1,formatResumeAvailable:true,progress:{phase:'failed',candidateSaved:true,failureCode:'PLAN_PRINT_FIT',formatIssue:{field:'storyBeat',stage:2,rule:'length',length:197,limit:140}}}};
+    const stoppedHtml=renderToStaticMarkup(createElement(PackRemake,{order:formatStopped,refresh:()=>{}}));
+    assert.match(stoppedHtml,/Story plan correction stopped/);
+    assert.match(stoppedHtml,/Checkpoint 2: Story event has 197 characters; the limit is 140/);
+    assert.match(stoppedHtml,/Continue saved plan check at no charge/);
+    assert.doesNotMatch(stoppedHtml,/Create quality-checked pack|Create improved pack|Your new game pack is ready/);
+    assert.equal(themeUpdatePending(formatStopped),true,'an older ready remake does not mean the failed replacement was delivered');
+    const stoppedDownloads=renderToStaticMarkup(createElement(OrderPackage,{order:formatStopped,orderId:order.id,selectedPaper:'A4'}));
+    assert.match(stoppedDownloads,/Original pack ready to download/);
+    const stoppedReview=renderToStaticMarkup(createElement(PaidPlanReview,{order:{...formatStopped,planReview:{...formatStopped.planReview,versions:[]}},refresh:()=>{}}));
+    assert.match(stoppedReview,/Replacement plan not approved/);
+    assert.match(stoppedReview,/Version 2 is saved but has not been approved/);
+    assert.match(stoppedReview,/Version 1 remains approved for your existing files/);
     for(const [phase,storyReady,completed] of [['blueprint',false,3],['checkpoint',false,3],['audit',false,4],['pdf',true,5],['storage',true,5]]){
       const building={...order,plan:{themeAnchors:['a translated theme']},planReview:{status:'confirmed',qualityReplanUsed:true},remake:{status:'generating',phase,storyReady}};
       assert.equal(updateProgressState(building).completed,completed);

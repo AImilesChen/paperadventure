@@ -1,1 +1,1 @@
-2026-10-16: preserve five approved story events and repair location-only replacements within the saved request budget.
+2026-10-16: diagnose saved plan format failures and continue only rejected fields within the original call budget; block unapproved pack rebuilds.
