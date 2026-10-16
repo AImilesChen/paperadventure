@@ -122,7 +122,10 @@ export function prepareStoryFrame(frame,qualityVersion=4){
   let problem;
   try{problem=fitted(frame.problem,'Story-frame problem',180,true);}
   catch{problem='The mission is still blocked, and the team must use four discoveries to decide which action will work.';}
-  const actions=frame.actions.map((value,index)=>compactAction(value,`Final action ${index+1}`,40));
+  // Removing interior words to fit a label can silently turn a valid action
+  // into ungrammatical or ambiguous text. New packs must ask the provider to
+  // shorten the whole phrase instead of publishing that mutation.
+  const actions=frame.actions.map((value,index)=>qualityVersion>=8?plain(value,`Final action ${index+1}`,40):compactAction(value,`Final action ${index+1}`,40));
   if(new Set(actions.map(value=>value.toLowerCase())).size!==3)throw Error('The story frame needs three distinct final actions.');
   if(actions.some(value=>/^(?:(?:restore|fix|solve|complete|save)\b|(?:final\s+)?action\b|option\b|choice\b)/i.test(value)))
     throw Error('Each final action must name a specific story action.');
