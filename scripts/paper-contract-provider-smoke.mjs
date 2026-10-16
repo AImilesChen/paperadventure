@@ -1,4 +1,4 @@
-import {mkdir,writeFile} from 'node:fs/promises';
+import {mkdir,writeFile,readFile,readdir} from 'node:fs/promises';
 import {validatePurchase} from '../backend/domain.mjs';
 import {generateSinglePlan} from '../backend/plan-proposals.mjs';
 import {repairBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,
@@ -13,23 +13,37 @@ const directory=process.env.SMOKE_OUTPUT||'tmp/provider-contract';
 await mkdir(directory,{recursive:true});
 const cases=[
   {id:'home-clock',setting:'home',players:4,age:'8-10',primary:'reasoning',secondary:['discussion'],idea:'A friendly clock keeper needs help restoring the noon bell.'},
+  {id:'classroom-journey',setting:'classroom',players:4,age:'8-10',primary:'discussion',secondary:['reasoning'],idea:'西游记，东方神话元素'},
   {id:'classroom-market',setting:'classroom',players:24,age:'6-8',primary:'discussion',secondary:['reasoning'],idea:'A night market courier needs to find the correct delivery and bring it to a friendly shopkeeper.'},
   {id:'home-garden',setting:'home',players:4,age:'10-12',primary:'sequence',secondary:['reasoning'],idea:'A rooftop garden crew must put a repair plan in order and restore a rain collector.'},
   {id:'classroom-code',setting:'classroom',players:20,age:'8-10',primary:'code',secondary:['reasoning'],idea:'A museum team decodes three short printed messages to restore a lost exhibit label.'},
 ];
-const selectedIds=new Set(String(process.env.SMOKE_CASE_IDS||'').split(',').map(value=>value.trim()).filter(Boolean));
+const selectedIds=new Set(String(process.env.SMOKE_CASE_IDS||'home-clock').split(',').map(value=>value.trim()).filter(Boolean));
 const maxProviderCalls=Number(process.env.SMOKE_MAX_PROVIDER_CALLS||12);
 const summaries=[];
 for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id))){
   let phase='plan',calls=0,blueprintRepairs=0,inputTokens=0,outputTokens=0;
-  const privateFetch=async(url,options)=>{if(calls>=maxProviderCalls){const error=Error(`Synthetic provider-call cap ${maxProviderCalls} reached.`);error.code='SMOKE_BUDGET_EXHAUSTED';throw error;}calls++;const response=await fetch(url,{...options,signal:AbortSignal.timeout(90000)}),body=await response.clone().json();inputTokens+=body.usage?.input_tokens||0;outputTokens+=body.usage?.output_tokens||0;await writeFile(`${directory}/${item.id}-call-${calls}.json`,JSON.stringify({request:JSON.parse(options.body),response:body},null,2));return response;};
+  const replay=[];
+  if(process.env.SMOKE_REPLAY_DIR)for(const file of await readdir(process.env.SMOKE_REPLAY_DIR)){
+    const match=file.match(new RegExp(`^${item.id}-call-(\\d+)\\.json$`));if(!match)continue;
+    const text=await readFile(`${process.env.SMOKE_REPLAY_DIR}/${file}`,'utf8');
+    const saved=JSON.parse(text);replay.push(saved);calls=Math.max(calls,Number(match[1]));inputTokens+=saved.response.usage?.input_tokens||0;outputTokens+=saved.response.usage?.output_tokens||0;await writeFile(`${directory}/${file}`,text);
+  }
+  const privateFetch=async(url,options)=>{
+    const request=JSON.parse(options.body);
+    const index=replay.findIndex(saved=>saved.request.text.format.name===request.text.format.name&&saved.request.input===request.input&&
+      (request.text.format.name==='paid_adventure_plan'||saved.request.instructions===request.instructions));
+    if(index>=0)return Response.json(replay.splice(index,1)[0].response);
+    if(calls>=maxProviderCalls){const error=Error(`Synthetic provider-call cap ${maxProviderCalls} reached.`);error.code='SMOKE_BUDGET_EXHAUSTED';throw error;}
+    calls++;const response=await fetch(url,{...options,signal:AbortSignal.timeout(90000)}),body=await response.clone().json();inputTokens+=body.usage?.input_tokens||0;outputTokens+=body.usage?.output_tokens||0;await writeFile(`${directory}/${item.id}-call-${calls}.json`,JSON.stringify({request,response:body},null,2));return response;
+  };
   try{
     const {spec}=validatePurchase({sku:`custom_${item.setting}`,creatorVersion:3,customIdea:item.idea,setting:item.setting,players:item.players,age:item.age,paper:'A4',...(item.setting==='classroom'?{groups:Math.ceil(item.players/4)}:{}),gameplay:{primary:item.primary,secondary:item.secondary}});
     if(spec.packExperienceVersion!==3)throw Error('Linked-story contract is not enabled for a new purchase.');
     // The one-theme release check exercises pack generation, not another paid
     // plan proposal. Reuse the checked synthetic plan so every provider call is
     // spent on the part being released.
-    const planned=item.id==='home-clock'?{plan:checkedClockSpec.plan}:await generateSinglePlan(spec,env,privateFetch),approved={...spec,plan:planned.plan,planConfirmed:true};
+    const planned=item.id==='home-clock'?{plan:checkedClockSpec.plan}:await generateSinglePlan(spec,env,privateFetch,{kind:'full',maxProviderCalls:2}),approved={...spec,plan:planned.plan,planConfirmed:true};
     phase='blueprint';
     const frame=(await generateBlueprintFrameStep(approved,env,privateFetch)).storyFrame;
     const materials=[];

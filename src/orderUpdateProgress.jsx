@@ -37,11 +37,13 @@ export default function OrderUpdateProgress({order}) {
   return <div className="order-update-progress" aria-label="Replacement game pack progress" aria-busy={state.busy}>
     <p className="order-update-status" role="status">{state.label}</p>
     <progress max={7} {...(hasSavedProgress?{value:state.completed}:{})} aria-label="Saved replacement milestones"/>
-    <p className="live-note">{state.completed} of 7 milestones completed. Progress records saved steps, not elapsed time.</p>
-    <ol className="order-update-steps">{steps.map((label,index)=><li key={label} className={index<state.completed?'is-complete':index===state.current?'is-current':''} aria-current={index===state.current?'step':undefined}><span>{index<state.completed?'✓':index+1}</span>{label}</li>)}</ol>
-    {state.failed&&state.reason&&<p className="live-note">Last plan check: {state.reason}</p>}
-    {state.waiting&&<a className="button" href="#personal-plan-review">{order.planReview?.storyScenesRequired?'Review story scenes before approval':'Review and approve corrected plan'}</a>}
-    {state.updatedAt&&<p className="live-note">Last saved update: {new Date(state.updatedAt.replace(' ','T')+'Z').toLocaleString()}.</p>}
+    <details><summary>View progress details</summary>
+      <p className="live-note">{state.completed} of 7 milestones completed. Progress records saved steps, not elapsed time.</p>
+      <ol className="order-update-steps">{steps.map((label,index)=><li key={label} className={index<state.completed?'is-complete':index===state.current?'is-current':''} aria-current={index===state.current?'step':undefined}><span>{index<state.completed?'✓':index+1}</span>{label}</li>)}</ol>
+      {state.failed&&state.reason&&<p className="live-note">Last plan check: {state.reason}</p>}
+      {state.updatedAt&&<p className="live-note">Last saved update: {new Date(state.updatedAt.replace(' ','T')+'Z').toLocaleString()}.</p>}
+    </details>
+    {state.waiting&&<a className="button" href="#personal-plan-review">Review your plan</a>}
     {state.busy&&<p className="live-note">Status updates automatically while this page is open. You can return to this order later.</p>}
   </div>;
 }
