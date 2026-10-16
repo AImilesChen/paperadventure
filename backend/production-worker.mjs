@@ -631,6 +631,8 @@ async function orderView(request, env, orderId) {
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
     revisionExpiresAt: entitlement?.revision_expires_at || null,
     gamePackVersion: order.product_kind === 'custom' ? Math.max(latestArtifact?.pack_format_version || 1, spec.gamePackVersion || 1) : null,
+    contentReviewPassed: Boolean(order.product_kind === 'custom' && order.status === 'published' &&
+      (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packQualityVersion >= 8 : spec.packContractVersion === 1 && spec.packQualityVersion >= 8 && generationProgress?.auditPassed)),
     packContractVersion: spec.packContractVersion || (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packContractVersion || 0 : 0),
     checkedPuzzleRevision: Boolean(latestArtifact && (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packLogicVersion === 1 : spec.packLogicVersion === 1)),
     qualityUpgradeAvailable: Boolean(order.product_kind === 'custom' && order.status === 'published' && activity?.status === 'published' && order.paid_at && accessActive(entitlement) && (!remake || remake.status === 'ready') &&
@@ -981,8 +983,8 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
   const fetcher=env.FETCH||fetch;
   const countCalls=async (kind,number)=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ?',order.id,kind,number).first())?.count||0);
   const totalCalls=async()=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ?',order.id).first())?.count||0);
-  const call=async (kind,number,produce,expectedHash=null)=>{
-    const cached=await query(env.DB,"SELECT result_json FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id,kind,number).first();
+  const call=async (kind,number,produce,expectedHash=null,reuse=true)=>{
+    const cached=reuse?await query(env.DB,"SELECT result_json FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id,kind,number).first():null;
     if (cached) {
       const value=JSON.parse(cached.result_json);
       if (!expectedHash || value.storySha256===expectedHash) return value;
@@ -1049,10 +1051,36 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
       const audited=await query(env.DB,'SELECT story_sha256 FROM custom_game_audits WHERE order_id = ?',order.id).first();
       if (audited && audited.story_sha256!==storyHash) throw new ApiError(422,'STORY_CHECKPOINT_MISMATCH','The checked story changed after approval.');
       if (!audited) {
-        await call('audit',0,async()=>{
-          const result=await auditStagedStory(story,spec,blueprint,env,fetcher);
-          return {value:{storySha256:storyHash},usage:result.usage,responseId:result.responseId};
-        },storyHash);
+        try {
+          await call('audit',0,async()=>{
+            const result=await auditStagedStory(story,spec,blueprint,env,fetcher);
+            return {value:{storySha256:storyHash},usage:result.usage,responseId:result.responseId};
+          },storyHash);
+        } catch (auditError) {
+          const failedStage=auditError.stageNumber;
+          if(spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&auditError.code==='GENERATION_QA_FAILED'&&
+              Number.isInteger(failedStage)&&failedStage>=0&&failedStage<=5&&
+              await totalCalls()<totalLimit&&await countCalls('audit',0)<stepLimit('audit')) {
+            const repairSlot=failedStage+1;
+            phase='blueprint';stageNumber=repairSlot;
+            const repaired=validateBlueprint(await call('blueprint',repairSlot,async()=>{
+              const result=await repairBlueprint(spec,blueprint,auditError.message,env,fetcher);
+              return {value:result.blueprint,usage:result.usage,responseId:result.responseId};
+            },null,false),spec);
+            const firstChanged=blueprint.stages.findIndex((stage,index)=>JSON.stringify(stage)!==JSON.stringify(repaired.stages[index]));
+            const keep=Math.min(failedStage?failedStage-1:5,firstChanged<0?5:firstChanged);
+            const repairedJson=JSON.stringify(repaired),repairedHash=await sha256(repairedJson);
+            await env.DB.batch([
+              query(env.DB,'UPDATE custom_game_blueprints SET blueprint_json = ?,blueprint_sha256 = ? WHERE order_id = ? AND blueprint_sha256 = ?',repairedJson,repairedHash,order.id,blueprintRow.blueprint_sha256),
+              query(env.DB,'DELETE FROM custom_game_stages WHERE order_id = ? AND stage_number > ?',order.id,keep),
+              query(env.DB,'UPDATE custom_game_stages SET blueprint_sha256 = ? WHERE order_id = ? AND stage_number <= ?',repairedHash,order.id,keep),
+              query(env.DB,"UPDATE custom_generation_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND phase = 'checkpoint' AND stage_number > ? AND status = 'passed'",order.id,keep),
+            ]);
+            phase='checkpoint';stageNumber=keep+1;
+            continue;
+          }
+          throw auditError;
+        }
         try { await query(env.DB,'INSERT OR IGNORE INTO custom_game_audits (order_id,story_sha256) VALUES (?,?)',order.id,storyHash).run(); }
         catch (caught) { caught.persistence=true; throw caught; }
       }
@@ -1069,7 +1097,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
     let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<totalLimit && phaseCalls<stepLimit(phase);
     if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
-    if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&canRetry&&await countCalls('blueprint',0)<stepLimit('blueprint')){
+    if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&(spec.packQualityVersion||0)<8&&canRetry&&await countCalls('blueprint',0)<stepLimit('blueprint')){
       await env.DB.batch([
         query(env.DB,"UPDATE custom_generation_calls SET status = 'failed',error_code = 'AUDIT_REJECTED',error_detail = ? WHERE order_id = ? AND phase = 'blueprint' AND status = 'passed'",String(caught.message).slice(0,1000),order.id),
         query(env.DB,"UPDATE custom_generation_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND phase = 'checkpoint' AND status = 'passed'",order.id),
@@ -1286,5 +1314,4 @@ export default {
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
 };
-
 
