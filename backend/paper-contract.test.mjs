@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
-import {prepareContextualBlueprint} from './contextual-puzzles.mjs';
+import {normalizeStoryCodeWords,prepareContextualBlueprint} from './contextual-puzzles.mjs';
 import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
@@ -129,10 +129,10 @@ test('quality version 8 grounds story consequences after the printable pieces ex
   const materials={celebration:raw.celebration,stages:raw.stages};
   const initial=structuredClockFrame();
   const grounded=[
-    {finding:'The signal gear report names the missing noon mark.',consequence:'The noon mark identifies the gear the keeper must fit.'},
-    {finding:'The gear chamber note names safe storage for the spare gear.',consequence:'The spare gear can be collected from safe storage.'},
-    {finding:'The checked order aligns the wheel before the repair.',consequence:'Aligning the wheel keeps the gear ready for fitting.'},
-    {finding:'The upper bridge is the open route to the tower.',consequence:'The upper bridge carries the gear to the tower.'},
+    'The noon mark identifies the gear the keeper must fit.',
+    'The spare gear can be collected from safe storage.',
+    'Aligning the wheel keeps the gear ready for fitting.',
+    'The upper bridge carries the gear to the tower.',
   ];
   const names=[];
   const env={OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
@@ -145,12 +145,24 @@ test('quality version 8 grounds story consequences after the printable pieces ex
       assert.deepEqual(input.printed[0].features,raw.stages[0].features);
       assert.equal(input.fixedFinalAction,'Fit signal gear');
     }
-    const data=name==='story_frame'?initial:name==='game_blueprint'?materials:{discoveries:grounded};
+    const data=name==='story_frame'?initial:name==='game_blueprint'?materials:{consequences:grounded};
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(data)}]}]});
   });
   assert.deepEqual(names,['story_frame','game_blueprint','grounded_discoveries']);
-  assert.equal(result.blueprint.storyFrame.discoveries[0].consequence,grounded[0].consequence);
+  assert.equal(result.blueprint.storyFrame.discoveries[0].consequence,grounded[0]);
+  assert.match(result.blueprint.storyFrame.discoveries[0].finding,/signal gear report/i);
   assert.match(result.blueprint.spine.links[0].reason,/noon mark/i);
+});
+
+test('quality version 8 replaces a generic code word with an approved story word before grounding',()=>{
+  const plan=structuredClone(clockSpec.plan);
+  plan.goal='Restore the exhibit CASE label before the visitors arrive.';
+  plan.stages[0].mechanic='code';
+  const spec={...clockSpec,packQualityVersion:8,plan,customIdea:'A museum exhibit CASE has a lost label.'};
+  const stages=Array.from({length:5},(_,index)=>({word:index===0?'CODE':'GEAR'}));
+  const normalized=normalizeStoryCodeWords(stages,spec);
+  assert.equal(normalized[0].word,'CASE');
+  assert.equal(stages[0].word,'CODE','the provider candidate is not mutated');
 });
 
 test('quality version 6 repairs only a failed discovery before rebuilding materials',async()=>{
