@@ -1,7 +1,7 @@
 import {mkdir,writeFile} from 'node:fs/promises';
 import {validatePurchase} from '../backend/domain.mjs';
 import {generateSinglePlan} from '../backend/plan-proposals.mjs';
-import {generateBlueprint,repairBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory} from '../backend/staged-story.mjs';
+import {generateBlueprint,repairBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics} from '../backend/staged-story.mjs';
 import {buildGamePdf} from '../backend/pdf.mjs';
 import {verifyPrintedPuzzles} from '../backend/paper-proof.mjs';
 
@@ -30,19 +30,30 @@ for(const item of cases){
         console.log(JSON.stringify({id:item.id,phase:'blueprint-check',attempt:attempt+1,code:error.code||'CHECK_FAILED',rule:String(reason).slice(0,180)}));
         if(attempt===4)throw error;blueprintRepairs++;}
     }
-    let story;
-    for(let attempt=0;attempt<3;attempt++){
-      phase='checkpoints';const stages=[];
-      for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(approved,blueprint,number,stages.at(-1),env,privateFetch)).stage);
-      story=assembleStagedStory(approved,blueprint,stages);phase='audit';
-      try{await auditStagedStory(story,approved,blueprint,env,privateFetch);break;}
-      catch(error){
-        console.log(JSON.stringify({id:item.id,phase:'audit-check',attempt:attempt+1,code:error.code||'CHECK_FAILED',rule:String(error.message).slice(0,160)}));
-        if(attempt===2)throw error;
-        if(error.code==='GENERATION_QA_FAILED'&&blueprintRepairs<4){
-          blueprintRepairs++;
-          blueprint=(await repairBlueprint(approved,blueprint,error.message,env,privateFetch)).blueprint;
+    let story,stages=[];
+    for(let attempt=0;attempt<7&&!story;attempt++){
+      try{
+        phase='checkpoints';
+        while(stages.length<5){
+          const number=stages.length+1;
+          const stage=(await generateStagedCheckpoint(approved,blueprint,number,stages.at(-1),env,privateFetch)).stage;
+          if(number<5)await auditCheckpointSemantics(stage,approved,env,privateFetch);
+          stages.push(stage);
         }
+        const candidate=assembleStagedStory(approved,blueprint,stages);
+        phase='audit';
+        await auditStagedStory(candidate,approved,blueprint,env,privateFetch);
+        story=candidate;
+      }catch(error){
+        const failedStage=Number.isInteger(error.stageNumber)?error.stageNumber:0;
+        console.log(JSON.stringify({id:item.id,phase,attempt:attempt+1,checkpoint:failedStage,code:error.code||'CHECK_FAILED',rule:String(error.message).slice(0,160)}));
+        if(attempt===6||!['STAGE_SEMANTIC_INVALID','GENERATION_QA_FAILED'].includes(error.code))throw error;
+        phase='repair';blueprintRepairs++;
+        const previous=blueprint;
+        blueprint=(await repairBlueprint(approved,previous,error.message,env,privateFetch)).blueprint;
+        const changed=previous.stages.findIndex((stage,index)=>JSON.stringify(stage)!==JSON.stringify(blueprint.stages[index]));
+        const keep=Math.min(stages.length,failedStage?failedStage-1:5,changed<0?5:changed);
+        stages=stages.slice(0,keep);
       }
     }
     phase='pdf';
@@ -62,4 +73,3 @@ for(const item of cases){
 }
 await writeFile(`${directory}/summary.json`,JSON.stringify(summaries,null,2));
 if(summaries.some(item=>!item.passed))process.exitCode=1;
-
