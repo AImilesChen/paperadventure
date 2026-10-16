@@ -1,22 +1,17 @@
-name: Prepare one reviewed replacement plan for authorized order
+name: Check scoped operator repair state without provider calls
 on:
   push:
     branches: [codex-79bb-reviewed-plan-20261016]
     paths: [.github/workflows/repair-authorized-plan.yml]
 permissions:
   contents: read
-concurrency:
-  group: operator-reviewed-plan-79bb-20261016
-  cancel-in-progress: false
 jobs:
-  repair:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     env:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
-      CONFIRM_SCOPED_PLAN_REPAIR: '79bb86c7-93b0-4088-ba7a-4a04cd1b2f34'
     steps:
       - uses: actions/checkout@v7
         with:
@@ -24,5 +19,13 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - name: Save one independently reviewed unapproved plan; maximum two model calls
-        run: node scripts/repair-79bb-plan.mjs
+      - name: Read whitelisted operator and order state
+        shell: bash
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT r.status,r.result_version,w.phase,w.provider_calls,w.error_code,p.status AS plan_status,p.active_version,p.confirmed_version FROM custom_plan_requests r LEFT JOIN custom_plan_work w ON w.request_id=r.id JOIN custom_plan_orders p ON p.order_id=r.order_id WHERE r.id='operator-coherent-plan-79bb-20261016'" > "$RUNNER_TEMP/operator-safe.json"
+          node - "$RUNNER_TEMP/operator-safe.json" <<'NODE'
+          const fs=require('node:fs'),raw=fs.readFileSync(process.argv[2],'utf8'),row=JSON.parse(raw.slice(raw.indexOf('[')))[0]?.results?.[0];
+          if(!row){console.log(JSON.stringify({recordFound:false}));process.exit(0);}
+          const states=['queued','generating','failed','published','confirmed','review'];
+          console.log(JSON.stringify({recordFound:true,status:states.includes(row.status)?row.status:null,version:Number(row.result_version)||null,phase:['queued','generating','ready','failed','validating','auditing','repairing','correcting'].includes(row.phase)?row.phase:null,calls:Number(row.provider_calls)||0,errorCode:/^PLAN_[A-Z_]+$/.test(row.error_code||'')?row.error_code:null,planStatus:states.includes(row.plan_status)?row.plan_status:null,active:Number(row.active_version),confirmed:Number(row.confirmed_version)}));
+          NODE
