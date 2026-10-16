@@ -1006,7 +1006,8 @@ test('the explicitly scoped old-theme recovery is manual, one-use and preserves 
     queueUnavailable=false;
     const attempts=await Promise.all([post('manual-recovery-attempt-0001'),post('manual-recovery-attempt-0002')]);
     assert.deepEqual(attempts.map(r=>r.status).sort(),[202,409]);assert.equal(queued.length,1);assert.equal(calls,0);
-    assert.equal((await post('manual-recovery-attempt-0001')).status,200,'same-key retry returns the existing request');
+    const winningKey=attempts[0].status===202?'manual-recovery-attempt-0001':'manual-recovery-attempt-0002';
+    assert.equal((await post(winningKey)).status,200,'same-key retry returns the existing request regardless of concurrent ordering');
     assert.equal((await view()).themePlanRecoveryAvailable,false);
     await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){}}]},env);
     assert.ok(calls<=5);assert.equal((await view()).filesReady,true);assert.equal(queued.length,0,'only plan work runs before approval');
