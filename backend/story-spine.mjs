@@ -73,6 +73,8 @@ const concealResolution=(problem,action)=>{
 };
 const completedOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
 const pendingDiscovery=/^(?:find|ask|inspect|check|look|search|visit|follow|trace|learn|discover|investigate)\b|\b(?:to|will) (?:reveal|learn|find|see|discover|show|explain|confirm)\b/i;
+const groundingStop=new Set(['this','that','with','from','into','onto','over','under','before','after','through','which','when','where','while','team','crew','keeper','story','final','action','result','piece','record','report','note','route','word','step','there','their','then','must','will','knows','know','helps','help','using','used','needed','needs','means','shows','show','supports','support']);
+const groundingTerms=value=>new Set((String(value||'').toLowerCase().match(/[a-z]{4,}/g)||[]).filter(word=>!groundingStop.has(word)));
 const causalLanguage=/\b(?:because|so|therefore|which (?:means|shows|allows|confirms)|making|makes|enables?|allows?|proves?|confirms?|needed|necessary|can be|can now|must be)\b/i;
 const openPurpose=(value,index)=>completedOutcome.test(value)?[
   'This identifies a condition the team needs before choosing the final action.',
@@ -256,6 +258,13 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
       consequence:typeof value==='object'&&value?.consequence,
       supportsAction:typeof value==='object'&&value?.supportsAction,
     },index,resolution,qualityVersion):null;
+    if(qualityVersion>=8&&structured){
+      const source=types[index]==='symbol_key'?finding:types[index]==='order_tiles'?stages[index].material.items.map(item=>item.label).join(' '):['evidence_cards','decision_record'].includes(types[index])
+        ? [finding,...(stages[index]?.features||stages[index]?.material?.logic?.context?.features||[])].join(' '):finding;
+      const printed=groundingTerms(source),claimed=groundingTerms(structured.consequence);
+      if(![...claimed].some(word=>printed.has(word)))
+        throw Error(`Checkpoint ${index+1} story link consequence must name a printed piece or fact, not introduce an unrelated event.`);
+    }
     let reason=structured?completeStructuredStoryLink(lead,shortStoryLead(stages[index],types[index],index+1),structured,index,resolution,180,qualityVersion):plain(typeof value==='string'?value:value?.reason,`Checkpoint ${index+1} story link`,180);
     if(/\b(?:answer code|result digit|correct answer|matching option)\b/i.test(reason))
       throw Error(`Checkpoint ${index+1} story link needs a fictional reason beyond the answer code.`);
