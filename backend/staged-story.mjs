@@ -492,7 +492,10 @@ export async function auditStagedStory(story,spec,blueprint,env,fetcher=fetch) {
   if(spec.packContractVersion===1){try{printedProofs=verifyPrintedPuzzles(story);}catch{throw new ApiError(422,'PRINTED_PROOF_INVALID','The printed rules could not be independently verified. No quality-audit request was made.');}}
   const experienceV2=spec.packContractVersion===1&&spec.packExperienceVersion>=2;
   const linked=spec.packContractVersion===1&&spec.packExperienceVersion>=3;
-  const strictLinked=linked&&(spec.packQualityVersion||0)>=5;
+  // Quality v7 proves printed mechanics and record semantics before this pass.
+  // A second model's story opinion is useful feedback, but its inconsistent
+  // judgments must not discard a proved, saved paid pack.
+  const strictLinked=linked&&(spec.packQualityVersion||0)>=5&&(spec.packQualityVersion||0)<7;
   let result;
   try{result=await structuredResponse(spec,env,fetcher,{name:'staged_story_audit',schema:auditSchema,maxOutput:1000,invalidCode:'AUDIT_INVALID',
     instructions:strictLinked
