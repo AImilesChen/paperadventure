@@ -6,10 +6,17 @@ import { fileURLToPath } from 'node:url';
 import { publicPages } from '../shared/page-manifest.mjs';
 import { productRights, themes } from '../shared/catalog.mjs';
 import { themeDetailContent } from '../src/themeDetailContent.js';
+import { updateDraftField } from '../src/creatorDraft.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
 const read = file => readFile(path.join(out, file), 'utf8');
+
+test('classroom group selection updates the saved draft', () => {
+  const classroom={setting:'classroom',groups:'',players:'24'};
+  assert.equal(updateDraftField(classroom,'groups','6').groups,'6');
+  assert.equal(updateDraftField({...classroom,groups:'6'},'setting','home').groups,'');
+});
 
 test('every route has visible HTML, canonical metadata and scoped indexing', async () => {
   assert.equal(new Set(publicPages.map(page => page.path)).size, publicPages.length);
