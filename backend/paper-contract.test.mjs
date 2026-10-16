@@ -660,7 +660,10 @@ test('record feature fitting keeps a complete phrase instead of a dangling conne
   const recordIndex=paperContractTypes(spec.plan).findIndex(type=>['evidence_cards','decision_record'].includes(type));
   raw.stages[recordIndex].features=['Mentions brass hammer','Names a cracked peg by its owner'];
   const blueprint=prepareContextualBlueprint(raw,spec);
-  assert.deepEqual(blueprint.stages[recordIndex].material.logic.context.features,['Mentions brass hammer','Names a cracked peg']);
+  assert.deepEqual(blueprint.stages[recordIndex].material.logic.context.features,['Mentions brass hammer','Names cracked peg owner']);
+  raw.stages[recordIndex].features=['Mentions storing gear in a dry sack','Names the gear as Signal'];
+  const meaningful=prepareContextualBlueprint(raw,spec).stages[recordIndex].material.logic.context.features;
+  assert.deepEqual(meaningful,['Mentions storing gear dry sack','Names gear Signal']);
 });
 
 test('quality version 8 uses one full-game review instead of four paid checkpoint reviews',async()=>{
