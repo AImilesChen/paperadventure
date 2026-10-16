@@ -52,6 +52,18 @@ const compactAction=(value,label,max=40)=>{
   if(result.split(/\s+/).length<2)throw Error(`${label} must name a complete action.`);
   return result;
 };
+const compactSafeAction=(value,label,max=40)=>{
+  if(typeof value!=='string'||!value.trim()||/[^\x20-\x7e]/.test(value))
+    throw Error(`${label} must be printable English under ${max} characters.`);
+  const words=value.replace(/\s+/g,' ').trim().replace(/[,:;.!?\s]+$/,'').split(' ');
+  let result=words.join(' ');
+  if(result.length<=max)return result;
+  result=words.filter((word,index)=>index===0||!['friendly','careful','carefully','nearby','correct','chosen','final','proper','safely','safe'].includes(word.toLowerCase())).join(' ');
+  if(result.length<=max)return result;
+  result=result.split(' ').filter((word,index)=>index===0||!['a','an','the'].includes(word.toLowerCase())).join(' ');
+  if(result.length<=max)return result;
+  throw Error(`${label} must be printable English under ${max} characters without removing an action, object or preposition.`);
+};
 
 const resolutionWords=value=>new Set(String(value||'').toLowerCase().match(/[a-z]{4,}/g)?.filter(word=>
   !['with','from','into','onto','over','under','before','after','using','through','bring','take','make','give','hand','place','carry','move','send','open','close','seal','join'].includes(word))||[]);
@@ -125,7 +137,7 @@ export function prepareStoryFrame(frame,qualityVersion=4){
   // Removing interior words to fit a label can silently turn a valid action
   // into ungrammatical or ambiguous text. New packs must ask the provider to
   // shorten the whole phrase instead of publishing that mutation.
-  const actions=frame.actions.map((value,index)=>qualityVersion>=8?plain(value,`Final action ${index+1}`,40):compactAction(value,`Final action ${index+1}`,40));
+  const actions=frame.actions.map((value,index)=>qualityVersion>=8?compactSafeAction(value,`Final action ${index+1}`,40):compactAction(value,`Final action ${index+1}`,40));
   if(new Set(actions.map(value=>value.toLowerCase())).size!==3)throw Error('The story frame needs three distinct final actions.');
   if(actions.some(value=>/^(?:(?:restore|fix|solve|complete|save)\b|(?:final\s+)?action\b|option\b|choice\b)/i.test(value)))
     throw Error('Each final action must name a specific story action.');
