@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
-import {buildContextPuzzle,normalizeStoryCodeWords,prepareContextualBlueprint} from './contextual-puzzles.mjs';
+import {buildContextPuzzle,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
 import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
@@ -151,6 +151,18 @@ test('quality version 8 blocks a concrete story defect and rejects a generic end
   const generic=structuredClone(raw);
   generic.celebration='The mission result is now visible to everyone in the village. Everyone cheers and thanks the team for completing the mission.';
   assert.throws(()=>prepareBlueprintCandidate(generic,spec),/concrete result/);
+});
+
+test('quality version 9 completes malformed ordering actions before story grounding',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:9,packLayoutVersion:4};
+  const raw=linkedClockContext(),types=paperContractTypes(spec.plan);
+  const orderIndex=types.indexOf('order_tiles');
+  raw.stages[orderIndex].material.items=['Clapper','Clockwork note','Compare the code','Fit signal gear'].map(label=>({label}));
+  const storyFrame=structuredClockFrame();
+  const normalized=normalizeStoryOrderActions(raw.stages,storyFrame,spec);
+  const labels=normalized[orderIndex].material.items.map(item=>item.label);
+  assert.deepEqual(labels,['Inspect signal gear','Gather signal gear supplies','Prepare signal gear parts','Position signal gear']);
+  assert.ok(labels.every(label=>/^(?:Inspect|Gather|Prepare|Position)\s+\S+/i.test(label)));
 });
 
 test('quality version 8 grounds story consequences after the printable pieces exist',async()=>{
