@@ -65,12 +65,13 @@ test('theme-plan repair asks for the returned premise and scenes across two them
       return response(value);
     },{kind:'full',feedback:'Restore the purchased theme.',previousPlan:previous});
     assert.equal(sent.length,3);
-    assert.match(sent[0].instructions,/exact anchor in premise and one exact anchor in a scene/);
+    assert.match(sent[0].instructions,/exact anchor in premise and distribute exact anchors across at least three different scenes/);
     assert.match(sent[1].instructions,/Do not return opening, roles, preparation, tasks or answers/);
     assert.match(result.plan.opening,new RegExp(valid.themeAnchors[0],'i'));
     assert.equal(result.providerCalls,3);
   }
   assert.equal(planFailureCategory({code:'PLAN_INVALID',cause:new Error('Theme anchors must appear in the opening')}),'PLAN_THEME_ANCHORS');
+  assert.equal(planFailureCategory({code:'PLAN_QA_FAILED',auditIssueCode:'SCENE_SEQUENCE'}),'PLAN_QA_SCENE_SEQUENCE');
   assert.equal(planFailureCategory({code:'PLAN_INVALID',cause:new Error('Private story text')}),'PLAN_INVALID');
 });
 test('paid plan parser accepts fenced provider JSON and audits the result',async()=>{
@@ -144,12 +145,12 @@ test('a paid plan rejected by audit is corrected and independently rechecked onc
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const first=planFixture(spec),corrected=planFixture(spec);
   corrected.stages[1].task+=' Compare the printed clock hands.';
-  corrected.stages[1].scene='Beside the noon clock face';
+  corrected.stages[1].scene='Beside the Journey to the West clock face';
   let calls=0;
   const result=await generateSinglePlan(spec,env,async(_url,options)=>{
     const sent=JSON.parse(options.body);
-    const value=[first,{pass:false,issues:['Checkpoint 2 needs clearer printed evidence.']},corrected,{pass:true,issues:[]}][calls++];
-    if(calls===3)assert.deepEqual(JSON.parse(sent.input).auditIssues,['Checkpoint 2 needs clearer printed evidence.']);
+    const value=[first,{pass:false,issues:['SCENE_SEQUENCE']},corrected,{pass:true,issues:[]}][calls++];
+    if(calls===3){assert.equal(JSON.parse(sent.input).auditIssueCode,'SCENE_SEQUENCE');assert.match(JSON.parse(sent.input).auditInstruction,/causal journey/);}
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
   });
   assert.equal(calls,4);

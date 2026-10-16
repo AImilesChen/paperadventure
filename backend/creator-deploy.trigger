@@ -1,1 +1,1 @@
-2026-10-16: deploy schema-aligned theme-plan rules, safe failure categories and bounded legacy recovery.
+2026-10-16: align theme coverage with structured story-audit codes and bounded QA recovery.

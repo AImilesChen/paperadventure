@@ -614,7 +614,7 @@ async function orderView(request, env, orderId) {
   const themeReplanFailure=themeReplanFailed
     ? await query(env.DB,"SELECT error_code FROM generation_usage WHERE order_id = ? AND status = 'plan-failed' ORDER BY attempt DESC LIMIT 1",order.id).first() : null;
   const themePlanRepairAvailable=Boolean(order.product_kind==='custom'&&order.status==='published'&&accessActive(entitlement)&&
-    paidPlan?.status==='confirmed'&&paidPlan?.confirmed_version&&!paidPlan?.quality_replan_used&&themeReplanAttempts<2+(paidPlan?.quality_replan_recovery_grant||0)&&
+    paidPlan?.status==='confirmed'&&paidPlan?.confirmed_version&&!paidPlan?.quality_replan_used&&themeReplanAttempts<2+(paidPlan?.quality_replan_recovery_grant||0)+(paidPlan?.quality_replan_qa_grant||0)&&
     (!remake||remake.status==='ready')&&activePlan&&!JSON.parse(activePlan.plan_json).themeAnchors?.length);
   let generationProgress = null;
   if (activity?.generation_version === 2) {
@@ -708,7 +708,7 @@ async function changePaidPlan(request, env, orderId) {
     const attempts=Number((await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'full' AND base_version = ? AND attempts > 0",orderId,state.confirmed_version).first())?.count||0);
     const entitlement=await query(env.DB,'SELECT status,access_expires_at FROM entitlements WHERE order_id = ?',orderId).first();
     const remake=await query(env.DB,'SELECT status FROM custom_pack_remakes WHERE order_id = ?',orderId).first();
-    if(attempts>=2+(state.quality_replan_recovery_grant||0)||!accessActive(entitlement)||!active||JSON.parse(active.plan_json).themeAnchors?.length||remake&&remake.status!=='ready')
+    if(attempts>=2+(state.quality_replan_recovery_grant||0)+(state.quality_replan_qa_grant||0)||!accessActive(entitlement)||!active||JSON.parse(active.plan_json).themeAnchors?.length||remake&&remake.status!=='ready')
       throw new ApiError(409,'THEME_PLAN_REPAIR_UNAVAILABLE','This order needs a quality review before another plan can be prepared.');
     const reserved=await query(env.DB,"UPDATE custom_plan_orders SET status = 'queued',quality_replan_used = 1,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'confirmed' AND quality_replan_used = 0",orderId).run();
     if(!reserved.meta?.changes)throw new ApiError(409,'PLAN_BUSY','The plan status changed. Refresh and try again.');
