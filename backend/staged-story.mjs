@@ -280,11 +280,25 @@ export async function generateBlueprintClosingStep(spec,storyFrame,env,fetcher=f
 
 const closingGeneric=/\b(?:mission result|goal (?:is|was) (?:now )?(?:visible|complete)|result (?:is|was) (?:now )?visible|completed mission)\b/i;
 const closingSentences=value=>String(value||'').match(/[^.!?]+[.!?]+/g)||[];
+const closingEndsMidThought=value=>/(?:\b(?:and|or|but|because|so|to|for|with|without|before|after|while|the|a|an))\s*["')\]]*[.!?](?:\s|$)/i.test(String(value||''));
 const closingFragment=(value,limit)=>{
   const clean=String(value||'').replace(/[^\x20-\x7e]/g,' ').replace(/["\\]+/g,'').replace(/\s+/g,' ').trim().replace(/[,:;.!?\s]+$/,'');
   if(clean.length<=limit)return clean;
   const cut=clean.slice(0,limit),boundary=cut.lastIndexOf(' ');
   return (boundary>=limit*.7?cut.slice(0,boundary):cut).trim().replace(/[,:;.!?\s]+$/,'');
+};
+
+// Shorten only at a complete clause boundary. A raw word cut can leave a
+// paid pack ending with text such as "...set out and", which is visibly
+// unfinished even though the surrounding PDF passes structural checks.
+const closingClause=(value,limit)=>{
+  const clean=closingFragment(value,1000);
+  if(clean.length<=limit)return clean;
+  const head=clean.slice(0,limit+1);
+  const boundaries=[...head.matchAll(/(?:[;:]|,\s+(?=(?:and|but|so|because|while|before|after)\b)|\s+(?=(?:so|because|while|before|after)\b))/gi)];
+  const boundary=boundaries.filter(match=>match.index>=Math.floor(limit*.55)).at(-1);
+  const shortened=(boundary?head.slice(0,boundary.index):closingFragment(clean,limit)).trim().replace(/(?:\b(?:and|or|but|because|so|to|for|with|without|before|after|while|the|a|an))\s*$/i,'').trim().replace(/[,:;.!?\s]+$/,'');
+  return shortened.split(/\s+/).length>=4?shortened:'Complete the approved adventure goal';
 };
 
 // Closing prose is the last small provider-owned field in the resumable
@@ -294,13 +308,13 @@ const closingFragment=(value,limit)=>{
 // printable sentences deterministically.
 export function deliverableClosing(value,spec,storyFrame){
   const proposed=String(value||'').replace(/\s+/g,' ').trim();
-  if(proposed.length>=90&&proposed.length<=240&&closingSentences(proposed).length===2&&!closingGeneric.test(proposed))return proposed;
+  if(proposed.length>=90&&proposed.length<=240&&closingSentences(proposed).length===2&&!closingGeneric.test(proposed)&&!closingEndsMidThought(proposed))return proposed;
   const action=closingFragment(storyFrame?.actions?.[0]||'Complete the final action',40);
-  const goal=closingFragment(spec?.plan?.goal||'Complete the adventure goal',88);
-  const response='The whole team cheers and thanks every explorer for their careful discoveries.';
-  const closing=`After "${action}", the story reaches the approved outcome: "${goal}". ${response}`;
-  if(closing.length<=240)return closing;
-  return `After "${closingFragment(action,32)}", the approved goal succeeds: "${closingFragment(goal,70)}". ${response}`;
+  const response='Everyone in the story cheers and thanks the team.';
+  const prefix=`After "${action}", the team achieves this goal: "`;
+  const goalLimit=Math.max(72,240-prefix.length-response.length-4);
+  const goal=closingClause(spec?.plan?.goal||'Complete the adventure goal',goalLimit);
+  return `${prefix}${goal}". ${response}`;
 }
 
 export async function assembleBlueprintSteps(spec,storyFrame,stages,celebration,env,fetcher=fetch){

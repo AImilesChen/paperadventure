@@ -1171,15 +1171,16 @@ test('quality v7 saves a blueprint and earlier checkpoint while repairing one re
   assert.ok(queue.length>=5);
 });
 
-test('current layout and revised checked packs cannot start the free full-pack upgrade',()=>{
+test('current quality and revised checked packs cannot start the free full-pack upgrade',()=>{
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false),true);
   assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:3},clockSpec,2,false),true);
   assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packQualityVersion:3},2,false),true);
-  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:9,packLayoutVersion:4},{...clockSpec,packQualityVersion:9,packLayoutVersion:4},2,false),false);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:10,packLayoutVersion:4},{...clockSpec,packQualityVersion:10,packLayoutVersion:4},2,false),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packExperienceVersion:2}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:5,packLayoutVersion:3}),true);
-  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:9,packLayoutVersion:4}),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:9,packLayoutVersion:4}),true);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:10,packLayoutVersion:4}),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
@@ -1443,7 +1444,7 @@ test('a failed V2 quality remake migrates to V3 on the same paid order even when
   const saved=db.prepare('SELECT status,phase,spec_json,published_version,recovery_round,logic_epoch,quality_epoch,blueprint_json,stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId);
   const upgraded=JSON.parse(saved.spec_json);
   assert.equal(upgraded.packExperienceVersion,3);
-  assert.equal(upgraded.packQualityVersion,9);
+  assert.equal(upgraded.packQualityVersion,10);
   assert.equal(upgraded.packLayoutVersion,4);
   assert.equal(saved.status,'queued');assert.equal(saved.phase,'blueprint');
   assert.equal(saved.published_version,2,'the downloadable original stays published during the upgrade');
