@@ -91,10 +91,14 @@ test('quality version 8 blocks a concrete story defect and rejects a generic end
   for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected provider request');})).stage);
   const story=assembleStagedStory(spec,blueprint,stages);
   assert.doesNotMatch(story.ending,/carries out that action/i);
+  const overlong=structuredClockFrame();
+  overlong.actions[0]='Fit the clapper pin through the bell crown loop before noon';
+  assert.throws(()=>prepareStoryFrame(overlong,8),/under 40 characters/);
   const env={OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
   await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async(_url,request)=>{
     const input=JSON.parse(JSON.parse(request.body).input);
     assert.equal(input.checkpoints[2].printedPieces.length,4,'the reviewer sees the actual printed steps');
+    assert.deepEqual(input.checkpoints.map(checkpoint=>checkpoint.printedPieces.length),stages.map(stage=>stage.material.logic.context.labels.length),'engine-supplied rule cards are excluded from candidate review');
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:3,reason:'The tower note is a document, not an action.'}]})}]}]});
   }),error=>error.code==='GENERATION_QA_FAILED'&&error.stageNumber===3);
   await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async()=>{throw Error('Review unavailable');}),error=>error.code==='GENERATION_UPSTREAM_FAILED');
