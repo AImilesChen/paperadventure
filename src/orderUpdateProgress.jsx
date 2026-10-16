@@ -17,7 +17,7 @@ export function updateProgressState(order) {
     const completed=waiting?2:work?.reviewPassed?2:work?.candidateSaved?1:0;
     const labels={queued:'Waiting to prepare the corrected plan',generating:'Preparing the corrected plan',validating:'Checking the plan format',repairing:'Correcting the saved plan',correcting:'Correcting the saved plan',auditing:'Reviewing the theme and story',ready:'Saving the reviewed plan'};
     return {completed,current:waiting?2:Math.min(completed,1),busy:!waiting&&!failed&&['queued','generating'].includes(review.status),
-      label:failed?order.themePlanRecoveryAvailable?'Previous plan correction stopped':'Plan correction stopped':waiting?'Your action is needed: review and approve the corrected plan':labels[work?.phase]||labels[review.status]||'Corrected plan not started',
+      label:failed?order.themePlanRecoveryAvailable?'Previous plan correction stopped':'Plan correction stopped':waiting?review.storyScenesRequired?'Story scenes need repair before approval':'Your action is needed: review and approve the corrected plan':labels[work?.phase]||labels[review.status]||'Corrected plan not started',
       failed,waiting,updatedAt:work?.updatedAt,reason:failed?planFailureMessage(work?.failureCode||review.themeReplanFailureCode):null};
   }
   if(!remake)return null;
@@ -38,7 +38,7 @@ export default function OrderUpdateProgress({order}) {
     <p className="live-note">{state.completed} of 7 milestones completed. Progress records saved steps, not elapsed time.</p>
     <ol className="order-update-steps">{steps.map((label,index)=><li key={label} className={index<state.completed?'is-complete':index===state.current?'is-current':''} aria-current={index===state.current?'step':undefined}><span>{index<state.completed?'✓':index+1}</span>{label}</li>)}</ol>
     {state.failed&&state.reason&&<p className="live-note">Last plan check: {state.reason}</p>}
-    {state.waiting&&<a className="button" href="#personal-plan-review">Review and approve corrected plan</a>}
+    {state.waiting&&<a className="button" href="#personal-plan-review">{order.planReview?.storyScenesRequired?'Review story scenes before approval':'Review and approve corrected plan'}</a>}
     {state.updatedAt&&<p className="live-note">Last saved update: {new Date(state.updatedAt.replace(' ','T')+'Z').toLocaleString()}.</p>}
     {state.busy&&<p className="live-note">Status updates automatically while this page is open. You can return to this order later.</p>}
   </div>;

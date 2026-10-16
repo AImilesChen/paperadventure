@@ -1,5 +1,6 @@
 // Narrative fidelity is reviewed by meaning; exact spelling is not puzzle proof.
-export const PLAN_REVIEW_POLICY = 'semantic-theme-1';
+export const PLAN_REVIEW_POLICY = 'semantic-theme-scenes-2';
+export const hasStoryScenes = plan => plan?.storySceneVersion === 1 && plan.stages?.length === 5 && plan.stages.every(stage => typeof stage.storyBeat === 'string' && stage.storyBeat.trim());
 export const themeMeaningRules = 'Preserve the purchased idea, named characters, fictional world and important motifs recognizably in English. Accurate translations, character aliases and relevant places are valid. Judge the premise and five scenes together by meaning, not the number of literal keyword repetitions. A theme label pasted onto an otherwise unrelated generic story is insufficient. A simple theme needs no invented mythology or characters.';
 export const planIssueCodes = ['THEME_WEAK','GOAL_UNRESOLVED','SCENE_SEQUENCE','SETUP_MISMATCH','UNSUPPORTED_ACTIVITY'];
 export const planNarrativeFields = ['title','summary','premise','goal','themeAnchors','scene1','scene2','scene3','scene4','scene5'];

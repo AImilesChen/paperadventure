@@ -98,7 +98,7 @@ function failedRemakeNeedsUpgrade(spec, row) {
 
 export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevision, previousRemakeSpec=null) {
   const previous=previousRemakeSpec||null;
-  const planMeaning=plan=>JSON.stringify({title:plan?.title||'',opening:plan?.opening||'',goal:plan?.goal||'',anchors:plan?.themeAnchors||[],scenes:plan?.stages?.map(stage=>stage.scene||stage.storyContext||'')||[]});
+  const planMeaning=plan=>JSON.stringify({title:plan?.title||'',opening:plan?.opening||'',goal:plan?.goal||'',anchors:plan?.themeAnchors||[],scenes:plan?.stages?.map(stage=>stage.storyContext||stage.scene||'')||[]});
   const qualityOutdated=previous ? (previous.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION || planMeaning(previous.plan)!==planMeaning(activity.plan) :
     (purchase.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION;
   const layoutOutdated=previous ? (previous.packLayoutVersion || 0) < CURRENT_PACK_LAYOUT_VERSION :
@@ -549,4 +549,3 @@ export async function processPackRemake(orderId, env) {
     if (retry) await queueNext(orderId, env);
   }
 }
-

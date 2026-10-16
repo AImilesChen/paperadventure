@@ -10,7 +10,7 @@ import { verifyGoogleCredential } from './google-auth.mjs';
 import { signPreview, confirmPreview } from './creator-preview.mjs';
 import { generateSinglePlan, planFailureCategory } from './plan-proposals.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
-import { PLAN_REVIEW_POLICY } from '../shared/plan-quality.mjs';
+import { PLAN_REVIEW_POLICY, hasStoryScenes } from '../shared/plan-quality.mjs';
 import { startPackRemake, retryPackRemake, packRemakeView, processPackRemake, qualityUpgradeEligible } from './pack-remake.mjs';
 import { controlledRevisionStyle } from './controlled-puzzles.mjs';
 
@@ -610,6 +610,9 @@ async function orderView(request, env, orderId) {
   const initialRequests = paidPlan?.status === 'needs_help' && !paidPlan.active_version
     ? await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'initial'",order.id).first() : null;
   const activePlan = planVersions.find(item=>item.version_number===paidPlan?.active_version);
+  const storyScenesRequired=Boolean(order.status==='published'&&paidPlan?.status==='review'&&paidPlan.quality_replan_used&&paidPlan.active_version>paidPlan.confirmed_version&&!hasStoryScenes(activePlan?JSON.parse(activePlan.plan_json):null));
+  const sceneWork=storyScenesRequired?await query(env.DB,"SELECT w.provider_calls,json_extract(w.checkpoint_json,'$.sceneRepairUsed') AS repaired FROM custom_plan_work w JOIN custom_plan_requests r ON r.id = w.request_id WHERE r.order_id = ? AND r.result_version = ? AND r.kind = 'full' AND r.status = 'published' ORDER BY r.rowid DESC LIMIT 1",order.id,paidPlan.active_version).first():null;
+  const storySceneRepairAvailable=Boolean(storyScenesRequired&&accessActive(entitlement)&&sceneWork&&!sceneWork.repaired&&sceneWork.provider_calls<=3&&(!remake||remake.status==='ready'));
   const themeReplanAttempts=order.status==='published'&&paidPlan?.confirmed_version
     ? Number((await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'full' AND base_version = ? AND attempts > 0",order.id,paidPlan.confirmed_version).first())?.count||0) : 0;
   const themeReplanFailed=order.status==='published'&&paidPlan?.status==='confirmed'&&themeReplanAttempts>0&&!paidPlan.quality_replan_used;
@@ -652,7 +655,7 @@ async function orderView(request, env, orderId) {
     remake,themePlanRepairAvailable,themePlanRecoveryAvailable:Boolean(themePlanRepairAvailable&&paidPlan?.semantic_recovery_remaining===1&&themeReplanAttempts>=2+(paidPlan?.quality_replan_recovery_grant||0)+(paidPlan?.quality_replan_qa_grant||0)),
     revisionRequests: revisionRows.map(item=>({id:item.id,stageNumber:item.stage_number,status:item.status,version:item.version_number||null,createdAt:item.created_at,completedAt:item.completed_at||null})),
     plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
-    ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,qualityReplanUsed:Boolean(paidPlan?.quality_replan_used),progress:planWork?{phase:planWork.phase,candidateSaved:Boolean(planWork.candidate_saved),formatChecked:Boolean(planWork.plan_valid),reviewPassed:Boolean(planWork.audit_passed),providerCalls:planWork.provider_calls,updatedAt:planWork.updated_at,failureCode:planWork.error_code}:null,themeReplanAttempts,themeReplanFailed,themeReplanFailureCode:themeReplanFailure?.error_code||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
+    ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,qualityReplanUsed:Boolean(paidPlan?.quality_replan_used),storyScenesRequired,storySceneRepairAvailable,progress:planWork?{phase:planWork.phase,candidateSaved:Boolean(planWork.candidate_saved),formatChecked:Boolean(planWork.plan_valid),reviewPassed:Boolean(planWork.audit_passed),providerCalls:planWork.provider_calls,updatedAt:planWork.updated_at,failureCode:planWork.error_code}:null,themeReplanAttempts,themeReplanFailed,themeReplanFailureCode:themeReplanFailure?.error_code||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
 }
 
 async function retryCustomDelivery(request, env, orderId) {
@@ -725,6 +728,41 @@ async function changePaidPlan(request, env, orderId) {
     ]);throw caught;}
     return json({requestId,status:'queued'},202);
   }
+  if(body.action==='repair_story_scenes'){
+    const version=Number(body.version);
+    if(!state?.quality_replan_used||order.status!=='published'||version!==state.active_version||version<=state.confirmed_version)
+      throw new ApiError(409,'PLAN_CHANGED','Refresh and review the current replacement plan.');
+    const prior=await query(env.DB,"SELECT r.*,w.context_sha256,w.checkpoint_json,w.provider_calls FROM custom_plan_requests r JOIN custom_plan_work w ON w.request_id = r.id WHERE r.order_id = ? AND r.result_version = ? AND r.kind = 'full' ORDER BY r.rowid DESC LIMIT 1",orderId,version).first();
+    const checkpoint=prior?.checkpoint_json?JSON.parse(prior.checkpoint_json):null;
+    if(checkpoint?.sceneRepairUsed&&['queued','generating'].includes(prior.status))return json({requestId:prior.id,status:prior.status,duplicate:true});
+    const entitlement=await query(env.DB,'SELECT status,access_expires_at FROM entitlements WHERE order_id = ?',orderId).first();
+    const row=await query(env.DB,'SELECT plan_json FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',orderId,version).first();
+    const remake=await query(env.DB,'SELECT status FROM custom_pack_remakes WHERE order_id = ?',orderId).first();
+    if(state.status!=='review'||!accessActive(entitlement)||!prior||prior.status!=='published'||!checkpoint?.candidate||checkpoint.sceneRepairUsed||prior.provider_calls>3||hasStoryScenes(row?JSON.parse(row.plan_json):null)||remake&&remake.status!=='ready')
+      throw new ApiError(409,'STORY_SCENE_REPAIR_UNAVAILABLE','No unused scene repair remains within this plan request budget. Your original files are still available.');
+    const base=await query(env.DB,'SELECT plan_json FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',orderId,prior.base_version).first();
+    const spec={...JSON.parse(order.purchase_spec_json),packQualityVersion:14};
+    const contextHash=await sha256(JSON.stringify({policy:PLAN_REVIEW_POLICY,spec,kind:prior.kind,scope:prior.scope,feedback:prior.feedback,previousPlan:base?JSON.parse(base.plan_json):null}));
+    // Reuse the same private candidate and remaining five-call budget. One
+    // structural repair plus one independent audit; never start a fresh plan.
+    const saved={...checkpoint,valid:false,audit:null,correctionUsed:true,sceneRepairUsed:true,errorCode:null};
+    const reserved=await query(env.DB,"UPDATE custom_plan_orders SET status = 'queued',updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'review' AND active_version = ?",orderId,version).run();
+    if(!reserved.meta?.changes)throw new ApiError(409,'PLAN_BUSY','The plan status changed. Refresh and try again.');
+    try{
+      await env.DB.batch([
+        query(env.DB,"UPDATE custom_plan_requests SET status = 'queued',lease_until = NULL,completed_at = NULL WHERE id = ? AND status = 'published'",prior.id),
+        query(env.DB,"UPDATE custom_plan_work SET context_sha256 = ?,checkpoint_json = ?,phase = 'queued',plan_valid = 0,audit_passed = 0,error_code = NULL,updated_at = CURRENT_TIMESTAMP WHERE request_id = ?",contextHash,JSON.stringify(saved),prior.id),
+      ]);
+      await env.GENERATION_QUEUE.send({type:'plan',requestId:prior.id});
+    }catch(caught){
+      await env.DB.batch([
+        query(env.DB,"UPDATE custom_plan_requests SET status = 'published',completed_at = ? WHERE id = ? AND status = 'queued'",prior.completed_at,prior.id),
+        query(env.DB,"UPDATE custom_plan_work SET context_sha256 = ?,checkpoint_json = ?,phase = 'ready',plan_valid = 1,audit_passed = 1,updated_at = CURRENT_TIMESTAMP WHERE request_id = ?",prior.context_sha256,prior.checkpoint_json,prior.id),
+        query(env.DB,"UPDATE custom_plan_orders SET status = 'review',updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'queued'",orderId),
+      ]);throw caught;
+    }
+    return json({requestId:prior.id,status:'queued'},202);
+  }
   if(order.status==='published'&&body.action!=='confirm')
     throw new ApiError(409,'PLAN_NOT_REVIEWABLE','The original approved plan is locked. Review the replacement theme plan when it is ready.');
   if (body.action==='retry_initial') {
@@ -761,6 +799,7 @@ async function changePaidPlan(request, env, orderId) {
     if(order.status==='published'&&!qualityApproval)throw new ApiError(409,'PLAN_NOT_REVIEWABLE','This order has no replacement theme plan to approve.');
     const spec = {...JSON.parse(order.purchase_spec_json),...(qualityApproval?{packQualityVersion:14}:{})};
     let plan; try { plan=validatePlan(JSON.parse(row?.plan_json),spec); } catch { throw new ApiError(409,'PLAN_INVALID','This plan cannot be confirmed. Contact support.'); }
+    if(qualityApproval&&!hasStoryScenes(plan))throw new ApiError(409,'STORY_SCENES_REQUIRED','This replacement still has location-only scenes. Repair its story scenes before approving PDFs.');
     const updatedSpec = {...spec,plan,direction:plan.id,proposalTitle:plan.title,proposalSummary:plan.summary,planConfirmed:true};
     const locked = await env.DB.batch([
       query(env.DB,"UPDATE custom_plan_orders SET status = 'confirmed',confirmed_version = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'review' AND active_version = ?",version,orderId,version),
@@ -1404,5 +1443,3 @@ export default {
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
 };
-
-

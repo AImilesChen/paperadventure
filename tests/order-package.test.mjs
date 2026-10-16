@@ -7,7 +7,7 @@ import { createServer } from 'vite';
 test('a delivered order renders its original download card during theme correction', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
   try {
-    const { OrderPackage, PackRemake } = await vite.ssrLoadModule('/src/livePages.jsx');
+    const { OrderPackage, PackRemake, PaidPlanReview } = await vite.ssrLoadModule('/src/livePages.jsx');
     const {updateProgressState,themeUpdatePending}=await vite.ssrLoadModule('/src/orderUpdateProgress.jsx');
     const order = {
       id: 'example-order', kind: 'custom', sku: 'custom_classroom', status: 'published',
@@ -35,6 +35,12 @@ test('a delivered order renders its original download card during theme correcti
     assert.match(recoveryHtml,/Start recovery at no charge/);
     assert.match(recoveryHtml,/Previous plan correction stopped/);
     assert.match(recoveryHtml,/review and approve the corrected plan/);
+    const oldScenes={...order,planReview:{status:'review',qualityReplanUsed:true,activeVersion:2,confirmedVersion:1,storyScenesRequired:true,storySceneRepairAvailable:true,versions:[]}};
+    const repairHtml=renderToStaticMarkup(createElement(PaidPlanReview,{order:oldScenes,refresh:()=>{}}));
+    assert.match(repairHtml,/Repair story scenes at no charge/);
+    assert.match(repairHtml,/does not use an included plan edit/);
+    assert.match(repairHtml,/disabled=""[^>]*>Approve corrected plan and rebuild/);
+    assert.match(updateProgressState(oldScenes).label,/need repair before approval/);
     for(const [status,progress,expected] of [
       ['queued',null,'Waiting to prepare'],
       ['generating',{phase:'auditing',candidateSaved:true,formatChecked:true},'Reviewing the theme and story'],

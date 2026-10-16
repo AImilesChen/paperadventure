@@ -854,7 +854,7 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
     if(name==='paid_plan_audit')return failAudit?new Response('fixture audit unavailable',{status:502}):Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:true,issues:[]})}]}]});
     assert.equal(name,'paid_adventure_plan');
     const input=JSON.parse(sent.input),plan=input.kind==='targeted'?structuredClone(input.previousPlan):planFixture(input.spec);
-    if(input.kind==='full'){plan.stages[1].task+=' Check the clock face.';plan.stages[2].task+=' Ask the keeper.';plan.stages[1].scene='Beside the clock tower face';plan.stages[2].scene='At the clock tower paper desk';}
+    if(input.kind==='full'){plan.stages[1].task+=' Check the clock face.';plan.stages[2].task+=' Ask the keeper.';plan.stages[1].scene='Beside the clock tower face';plan.stages[2].scene='At the clock tower paper desk';plan.stages[1].storyBeat='The clock keeper brings conflicting accounts of why the noon bell fell silent.';plan.stages[2].storyBeat='The apprentice brings a coded message about the stalled bell mechanism.';}
     if(input.kind==='targeted'){if(plan.premise)plan.premise+=' The clock has a paper dial.';else plan.opening+=' The clock has a paper dial.';}
     return Response.json({id:'response-plan',output:[{content:[{type:'output_text',text:JSON.stringify(plan)}]}],usage:{input_tokens:100,output_tokens:150}});
   }};
@@ -898,7 +898,7 @@ test('two old theme-plan failures gain one bounded correction without losing ori
   const {db,binding}=database({includeThemeRecovery:false}),owner='theme-correction-owner',queued=[];
   const purchase=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'Journey to the West with the Monkey King',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
   purchase.packQualityVersion=13;
-  const oldPlan=planFixture(purchase);delete oldPlan.themeAnchors;
+  const oldPlan=planFixture(purchase);delete oldPlan.themeAnchors;delete oldPlan.storySceneVersion;for(const stage of oldPlan.stages)delete stage.storyBeat;
   const oldSpec={...purchase,plan:oldPlan,planConfirmed:true},stored=JSON.stringify(purchase);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('theme-price','custom_home','USD',1499,'exclusive',1)").run();
   db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('theme-order','custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(stored,await sha256(stored),owner,'theme-price');
@@ -969,7 +969,7 @@ test('the explicitly scoped old-theme recovery is manual, one-use and preserves 
   for(const succeeds of [true,false]){
     const {db,binding}=database({includeSemanticRecovery:false}),orderId='79bb86c7-93b0-4088-ba7a-4a04cd1b2f34',owner='scoped-recovery-fixture';
     const spec=validatePurchase({sku:'custom_classroom',creatorVersion:3,customIdea:'Journey to the West',players:12,groups:3,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
-    spec.packQualityVersion=13;const oldPlan=planFixture(spec);delete oldPlan.themeAnchors;
+    spec.packQualityVersion=13;const oldPlan=planFixture(spec);delete oldPlan.themeAnchors;delete oldPlan.storySceneVersion;for(const stage of oldPlan.stages)delete stage.storyBeat;
     const stored=JSON.stringify(spec),oldStory=JSON.stringify({...spec,plan:oldPlan,planConfirmed:true});
     for(const id of [orderId,'unrelated-order']){
       db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES (?,'custom_classroom','USD',1999,'exclusive',1)").run('price-'+id);
@@ -1016,6 +1016,63 @@ test('the explicitly scoped old-theme recovery is manual, one-use and preserves 
     assert.equal((await post('manual-recovery-attempt-0003')).status,409,'the one-use recovery cannot be spent twice');
     db.exec(migration.slice(migration.indexOf('UPDATE custom_plan_orders')));
     assert.equal(db.prepare('SELECT semantic_recovery_remaining AS n FROM custom_plan_orders WHERE order_id=?').get(orderId).n,0,'later requests cannot regrant the old-rule recovery');
+  }
+});
+
+test('an unapproved location-only replacement repairs the saved request once without new grants or PDF work',async()=>{
+  for(const auditPasses of [true,false]){
+    const {db,binding}=database(),orderId='scene-repair-order',owner='scene-owner';
+    const spec=validatePurchase({sku:'custom_classroom',creatorVersion:3,customIdea:'Journey to the West',players:4,groups:1,age:'8-10',paper:'A4',gameplay:{primary:'discussion',secondary:['reasoning']}}).spec;
+    const oldPlan=planFixture(spec);delete oldPlan.storySceneVersion;for(const stage of oldPlan.stages)delete stage.storyBeat;
+    const stored=JSON.stringify(spec),oldStory=JSON.stringify({...spec,plan:oldPlan,planConfirmed:true});
+    db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('scene-price','custom_classroom','USD',1999,'exclusive',1)").run();
+    db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_classroom',?,?,?,'scene-price',1999,'USD','published',CURRENT_TIMESTAMP)").run(orderId,stored,await sha256(stored),owner);
+    db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('scene-activity',?,'published',?)").run(orderId,oldStory);
+    db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit,access_expires_at) VALUES ('scene-ent',?,'scene-activity','active',2,datetime('now','+6 months'))").run(orderId);
+    db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version,player_r2_key,guide_r2_key) VALUES ('scene-artifact','scene-activity',1,'published',2,'original/player.pdf','original/guide.pdf')").run();
+    db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version,quality_replan_used) VALUES (?,'review',2,1,1)").run(orderId);
+    for(const version of [1,2])db.prepare("INSERT INTO custom_plan_versions (order_id,version_number,plan_json,request_kind) VALUES (?,?,?,'full')").run(orderId,version,JSON.stringify(oldPlan));
+    db.prepare("INSERT INTO custom_plan_requests (id,order_id,kind,base_version,result_version,status,attempts) VALUES ('scene-request',?,'full',1,2,'published',1)").run(orderId);
+    const checkpoint=JSON.stringify({candidate:oldPlan,valid:true,audit:{pass:true,issues:[]},correctionUsed:false});
+    db.prepare("INSERT INTO custom_plan_work (request_id,order_id,context_sha256,checkpoint_json,phase,candidate_saved,plan_valid,audit_passed,provider_calls) VALUES ('scene-request',?,'old-policy',?,'ready',1,1,1,2)").run(orderId,checkpoint);
+    const queued=[];let calls=0,queueFails=false;
+    const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',PRIVATE_FILES:{},GENERATION_QUEUE:{send:async job=>{if(queueFails)throw Error('fixture queue unavailable');queued.push(job);}},FETCH:async(_url,init)=>{
+      calls++;const sent=JSON.parse(init.body);
+      assert.ok(['repaired_paid_plan','paid_plan_audit'].includes(sent.text.format.name),'never request a fresh plan');
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(sent.text.format.name==='paid_plan_audit'?auditPasses?{pass:true,issues:[]}:{pass:false,issues:[{code:'THEME_WEAK',fields:['scene1','scene2','scene3']}]}:planFixture(spec))}]}]});
+    }};
+    const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+    const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+    const post=(body,extra={})=>handleProductionApi(request(`/api/v1/orders/${orderId}/plan`,'POST',body,{...headers,...extra}),env);
+    const view=()=>handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,headers),env).then(r=>r.json());
+    assert.equal((await view()).planReview.storySceneRepairAvailable,true);assert.equal(calls,0);
+    assert.equal((await post({action:'confirm',version:2})).status,409,'location-only plan cannot start paid PDF generation');
+    assert.equal((await post({action:'repair_story_scenes',version:1})).status,409,'stale version is rejected');
+    assert.equal((await post({action:'repair_story_scenes',version:2},{cookie:''})).status,401,'owner authentication is required');
+    db.prepare("UPDATE custom_plan_work SET provider_calls = 4 WHERE request_id = 'scene-request'").run();
+    assert.equal((await view()).planReview.storySceneRepairAvailable,false);
+    assert.equal((await post({action:'repair_story_scenes',version:2})).status,409,'remaining request budget is enforced');
+    db.prepare("UPDATE custom_plan_work SET provider_calls = 2 WHERE request_id = 'scene-request'").run();
+    queueFails=true;
+    assert.equal((await post({action:'repair_story_scenes',version:2})).status,500);
+    assert.equal((await view()).planReview.storySceneRepairAvailable,true,'failed enqueue returns unused repair');
+    queueFails=false;
+    const started=await Promise.all([post({action:'repair_story_scenes',version:2}),post({action:'repair_story_scenes',version:2})]);
+    assert.ok(started.some(r=>r.status===202));assert.equal(queued.length,1);assert.equal(calls,0);
+    assert.equal((await post({action:'repair_story_scenes',version:2})).status,200,'repeated click reuses queued request');
+    await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){}}]},env);
+    assert.equal(calls,2,'one scene repair plus one independent audit');
+    assert.equal(db.prepare("SELECT provider_calls FROM custom_plan_work WHERE request_id='scene-request'").get().provider_calls,4);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_plan_requests').get().n,1,'no new plan request or grant');
+    assert.equal(db.prepare('SELECT full_used,targeted_used FROM custom_plan_orders').get().full_used,0);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1);
+    assert.equal(db.prepare('SELECT story_spec_json FROM custom_activities').get().story_spec_json,oldStory);
+    assert.equal((await view()).filesReady,true);assert.equal(queued.length,0,'new plan still requires adult approval');
+    const result=await view();assert.equal(result.planReview.storySceneRepairAvailable,false);
+    if(auditPasses){assert.equal(result.planReview.activeVersion,3);assert.equal(result.planReview.storyScenesRequired,false);assert.ok(result.planReview.versions[2].plan.stages.every(stage=>stage.storyBeat));}
+    else{assert.equal(result.planReview.confirmedVersion,1);assert.equal(result.planReview.activeVersion,2);}
+    assert.equal((await post({action:'repair_story_scenes',version:result.planReview.activeVersion})).status,409,'repair cannot be started twice');
+    assert.doesNotMatch(JSON.stringify(result),/checkpoint_json|context_sha256|sceneRepairUsed/);
   }
 });
 
@@ -1729,4 +1786,3 @@ test('quality v8 repairs an ending without rebuilding five saved paid checkpoint
   const view=await handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,{cookie:`paw_session=${token}`}),env).then(response=>response.json());
   assert.equal(view.contentReviewPassed,true);
 });
-
