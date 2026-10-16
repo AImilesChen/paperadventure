@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
-import {normalizeStoryCodeWords,prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory} from './staged-story.mjs';
+import {buildContextPuzzle,normalizeStoryCodeWords,prepareContextualBlueprint} from './contextual-puzzles.mjs';
+import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
@@ -300,6 +300,23 @@ test('quality version 6 builds a second theme on A4 and Letter with the same del
     spine:{...story.spine,problem:'The garden path remains dark while several visitors wait by the gate. The lantern has a missing part, and the crew must identify the safe supplies and route before the evening walk can begin.'}};
   const denseSpec={...spec,setting:'classroom',groups:6,paper:'Letter',plan:{...plan,goal:'Light the correct garden lantern so all evening visitors can follow the safe path home before the gate closes.'}};
   assert.match(new TextDecoder().decode(buildGamePdf(dense,denseSpec,'guide')),/Adult guide \/ Preparation/);
+});
+
+test('repeated code checkpoints print different messages and remain independently solvable',()=>{
+  const words=['SLOT','GATE','MASK'];
+  const stages=words.map((word,index)=>buildContextPuzzle(index+1,'symbol_key',{
+    labels:['1','2','3','4'],features:['Checked fact','Matching fact'],word,title:`Museum message ${index+1}`,
+  },[],3,8));
+  const messages=stages.map(stage=>stage.clue.match(/message is ([1-4](?:-[1-4]){3})/i)?.[1]);
+  assert.equal(new Set(messages).size,3);
+  const evidence=buildContextPuzzle(4,'evidence_cards',{
+    labels:['Curator note','Gallery report','Keeper log'],features:['Mentions label sleeve','Names main gallery'],word:'NOTE',title:'Museum records',
+  },stages.map(stage=>stage.material.logic.resultDigit),3,8);
+  stages.push(evidence);
+  stages.push(buildContextPuzzle(5,'decision_record',{
+    labels:['Set label on plinth','Tape label to case','Store label in box'],features:['Checked fact','Matching fact'],word:'NOTE',title:'Final actions',
+  },stages.map(stage=>stage.material.logic.resultDigit),3,8));
+  assert.equal(verifyPrintedPuzzles({stages}).length,5);
 });
 
 test('a decoded story word CODE is not confused with an answer-code explanation',()=>{
@@ -599,6 +616,21 @@ test('linked records print comparable report labels and content facts',()=>{
   assert.deepEqual(context.features,['Mentions Silent bell','Mentions Worn gear']);
   assert.ok(blueprint.spine.links[recordIndex].reason.includes(context.labels[(recordIndex+2)%3]));
   assert.ok(blueprint.spine.links[recordIndex].reason.includes('Silent bell'));
+});
+
+test('record feature fitting keeps a complete phrase instead of a dangling connector',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
+  const raw=linkedClockContext();
+  const recordIndex=paperContractTypes(spec.plan).findIndex(type=>['evidence_cards','decision_record'].includes(type));
+  raw.stages[recordIndex].features=['Mentions brass hammer','Names a cracked peg by its owner'];
+  const blueprint=prepareContextualBlueprint(raw,spec);
+  assert.deepEqual(blueprint.stages[recordIndex].material.logic.context.features,['Mentions brass hammer','Names a cracked peg']);
+});
+
+test('quality version 8 uses one full-game review instead of four paid checkpoint reviews',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8};
+  const result=await auditCheckpointSemantics({number:1},spec,{},()=>{throw Error('No checkpoint review should be purchased.');});
+  assert.equal(result.usage,null);
 });
 
 test('answer-state record features are replaced from the fixed story frame',()=>{
@@ -924,3 +956,4 @@ test('each main play style produces printable Home and Classroom packs without a
     for(const paper of ['A4','Letter'])for(const role of ['player','guide'])assert.ok(buildGamePdf(story,{...spec,paper},role).length>1000);
   }
 });
+
