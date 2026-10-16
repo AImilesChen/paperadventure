@@ -14,7 +14,7 @@ const MAX_BLUEPRINT_CALLS = 3;
 const MAX_AUDIT_CALLS = 5;
 const stepLimit = (phase,spec) => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? spec?.packExperienceVersion>=2?5:MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
-const CURRENT_PACK_QUALITY_VERSION = 10;
+const CURRENT_PACK_QUALITY_VERSION = 11;
 const CURRENT_PACK_LAYOUT_VERSION = 4;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','STAGE_SEMANTIC_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
 const deterministicCheckpoint = (phase,spec,stageNumber=0) => (phase === 'checkpoint' || phase === 'blueprint_material' && stageNumber === 5) && spec.gamePackVersion === 2 && spec.packLogicVersion === 1;
@@ -115,7 +115,13 @@ export async function startPackRemake(order, activity, env) {
       const story=JSON.parse(existing.story_json);
       const action=story.spine?.resolution||story.stages?.[4]?.material?.logic?.context?.labels?.[0]||'Complete the final action';
       const celebration=deliverableClosing('',spec,{actions:[action]});
-      const digits=(story.stages||[]).slice(0,4).map(stage=>stage.material?.logic?.resultDigit).filter(digit=>Number.isInteger(digit));
+      // Stored checked packs use string result digits, while older fixtures may
+      // still contain numbers. Normalise both forms before rebuilding the
+      // closing; filtering with Number.isInteger erased every production digit
+      // and published "form code ," in both PDFs.
+      const digits=(story.stages||[]).slice(0,4).map(stage=>String(stage.material?.logic?.resultDigit??'').trim());
+      if(digits.length!==4||digits.some(digit=>!/^[1-3]$/.test(digit)))
+        throw new ApiError(409,'REMAKE_STORY_INVALID','The saved game is missing one or more checked result digits.');
       const upgraded=validateGeneratedStory({...story,ending:`The four checked results form code ${digits.join('')}, which matches "${action}" on the final sheet. ${celebration}`},spec);
       upgradedStoryJson=JSON.stringify(upgraded);upgradedStoryHash=await sha256(upgradedStoryJson);
       try{

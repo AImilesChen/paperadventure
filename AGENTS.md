@@ -1,5 +1,7 @@
 # Prototype Instructions
 
+On 2026-10-16 the owner found that the quality-v10 same-order closing refresh printed an empty final code even though all four checkpoint digits were saved. Stored result digits are strings in production, so normalise string and numeric digits, require exactly four values from 1-3 before publishing, and include the checked code in both PDF regression checks. Quality-v11 offers affected quality-v10 deliveries a same-order, no-charge closing/PDF refresh that reuses the saved story and all checkpoints without a provider call.
+
 On 2026-10-16 the owner found a published quality-v9 ending cut after the connector “and.” Quality-v10 endings must preserve the full approved goal when it fits and may shorten longer goals only at complete clause boundaries; reject any ending that stops at a connector. Eligible quality-v9 deliveries receive a same-order, no-charge closing/PDF refresh that reuses all five checked checkpoints and makes no provider call.
 
 On 2026-10-16 the owner found a quality-v9 paid rebuild appearing stuck at 0/8 even though seven blueprint parts had been saved; the assembled blueprint then failed three times because an ending error mentioning the final action was misrouted to story-frame repair. Classify closing and celebration failures before the broader final-action/frame rule, repair only the rejected closing, reuse all passed blueprint parts, and expose saved blueprint-part progress in the order UI. Never repeat the same assembly repair while leaving its rejected field unchanged.
