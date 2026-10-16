@@ -242,8 +242,9 @@ test('a paid plan rejected by audit is corrected and independently rechecked onc
   let calls=0;
   const result=await generateSinglePlan(spec,env,async(_url,options)=>{
     const sent=JSON.parse(options.body);
-    const value=[first,{pass:false,issues:[{code:'SCENE_SEQUENCE',fields:['scene2']}]},corrected,{pass:true,issues:[]}][calls++];
-    if(calls===3){assert.deepEqual(JSON.parse(sent.input).auditIssue,{code:'SCENE_SEQUENCE',fields:['scene2']});assert.match(JSON.parse(sent.input).auditInstruction,/coherent journey/);}
+    const rejection={code:'SCENE_SEQUENCE',fields:['scene2'],reason:'The second scene does not advance the missing-message investigation.',evidence:[{field:'scene2',quote:first.stages[1].scene}]};
+    const value=[first,{pass:false,issues:[rejection]},corrected,{pass:true,issues:[]}][calls++];
+    if(calls===3){assert.deepEqual(JSON.parse(sent.input).auditIssue,rejection);assert.match(JSON.parse(sent.input).auditInstruction,/coherent journey/);}
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
   });
   assert.equal(calls,4);
@@ -271,7 +272,7 @@ test('a genuinely rejected theme stays blocked and only rejected fields can chan
   first.premise='A generic traveller loses a message.';
   badCorrection.premise='An unrelated robot loses a message.';badCorrection.title='Unrequested title change';badCorrection.goal='Unrequested goal change';
   let calls=0;
-  const verdict={pass:false,issues:[{code:'THEME_WEAK',fields:['premise']}]};
+  const verdict={pass:false,issues:[{code:'THEME_WEAK',fields:['premise'],reason:'An anonymous traveller or unrelated robot loses the purchased mythology.',evidence:[{field:'premise',quote:'loses a message.'}]}]};
   await assert.rejects(generateSinglePlan(spec,env,async()=>response([first,verdict,badCorrection,verdict][calls++]),{kind:'full',onCheckpoint:async value=>saved.push(structuredClone(value))}),error=>planFailureCategory(error)==='PLAN_QA_THEME_WEAK');
   assert.equal(calls,4);
   const latest=saved.at(-1);
@@ -299,6 +300,32 @@ test('malformed review results are protocol failures and never become story-mism
     await assert.rejects(generateSinglePlan(spec,env,async()=>response(++calls===1?planFixture(spec):verdict),{kind:'full'}),error=>planFailureCategory(error)==='PLAN_AUDIT_INVALID');
     assert.equal(calls,2);
   }
+});
+
+test('review rejection needs actual plan evidence, and a bounded release check cannot spend extra calls',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec,plan=planFixture(spec);
+  for(const quote of ['invented content absent from the plan','tiny']){
+    let calls=0;
+    await assert.rejects(generateSinglePlan(spec,env,async()=>response(++calls===1?plan:{pass:false,issues:[{code:'THEME_WEAK',fields:['premise'],reason:'The event does not preserve the purchased story world.',evidence:[{field:'premise',quote}]}]}),{kind:'full'}),error=>error.code==='PLAN_AUDIT_INVALID');
+    assert.equal(calls,2);
+  }
+  let calls=0;
+  await assert.rejects(generateSinglePlan(spec,env,async()=>response(++calls===1?plan:{pass:false,issues:[{code:'THEME_WEAK',fields:['premise'],reason:'The premise does not preserve the purchased story world.',evidence:[{field:'premise',quote:plan.premise}]}]}),{kind:'full',maxProviderCalls:2}),error=>error.code==='PLAN_CALL_BUDGET');
+  assert.equal(calls,2);
+});
+
+test('a whole-story rejection can repair all dependent narrative fields together',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec,first=planFixture(spec),corrected=structuredClone(first);
+  corrected.title='The Monkey King and the Missing Message';
+  corrected.premise='The Monkey King must recover a monk\'s lost message at a mountain shrine.';
+  corrected.goal='Help the Monkey King return the message so the monk can continue west.';
+  corrected.themeAnchors=['Monkey King','mountain shrine'];
+  corrected.stages.forEach((stage,index)=>{stage.storyBeat=['The Monkey King questions shrine keepers about the monk\'s missing message.','A river spirit challenges the companions to identify a truthful report.','Pigsy checks two witnesses to trace the message beyond the shrine.','Sandy helps the monk arrange the safe steps across the spirit bridge.','The companions choose how to return the monk\'s message and continue west.'][index];});
+  let calls=0;
+  const issue={code:'THEME_WEAK',fields:['title','summary','premise','goal','themeAnchors','scene1','scene2','scene3','scene4','scene5'],reason:'The generic events do not preserve the requested mythology.',evidence:[{field:'premise',quote:first.premise}]};
+  const result=await generateSinglePlan(spec,env,async()=>response([first,{pass:false,issues:[issue]},corrected,{pass:true,issues:[]}][calls++]),{kind:'full'});
+  assert.equal(calls,4);assert.equal(result.plan.title,corrected.title);assert.equal(result.plan.goal,corrected.goal);
+  assert.equal(result.plan.stages[2].storyBeat,corrected.stages[2].storyBeat);
 });
 
 test('two full five-checkpoint plans are required from the proposal provider',async()=>{
@@ -339,3 +366,4 @@ test('new Player and Guide PDFs include the approved mission, preserve answer se
     assert.match(guide,/Gentle hint:/);assert.match(guide,/Printed player pages and pencils/);
   }
 });
+

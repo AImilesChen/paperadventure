@@ -29,17 +29,17 @@ test('a delivered order renders its original download card during theme correcti
     }, refresh: () => {} }));
     assert.match(retryHtml, /existing allowance/);
     assert.match(retryHtml, /did not record a specific failure reason/);
-    assert.match(retryHtml, /Retry corrected theme plan at no charge/);
+    assert.match(retryHtml, /Update game pack at no charge/);
     const recoveryHtml=renderToStaticMarkup(createElement(PackRemake,{order:{...order,paidAt:'2026-10-16',gamePackVersion:2,themePlanRecoveryAvailable:true,planReview:{...order.planReview,status:'confirmed',themeReplanAttempts:4}},refresh:()=>{}}));
     assert.match(recoveryHtml,/Your plan recovery is ready/);
-    assert.match(recoveryHtml,/Start recovery at no charge/);
+    assert.match(recoveryHtml,/Update game pack at no charge/);
     assert.match(recoveryHtml,/Previous plan correction stopped/);
     assert.match(recoveryHtml,/review and approve the corrected plan/);
     const oldScenes={...order,planReview:{status:'review',qualityReplanUsed:true,activeVersion:2,confirmedVersion:1,storyScenesRequired:true,storySceneRepairAvailable:true,versions:[]}};
     const repairHtml=renderToStaticMarkup(createElement(PaidPlanReview,{order:oldScenes,refresh:()=>{}}));
-    assert.match(repairHtml,/Repair story scenes at no charge/);
+    assert.match(repairHtml,/Update game pack at no charge/);
     assert.match(repairHtml,/does not use an included plan edit/);
-    assert.match(repairHtml,/disabled=""[^>]*>Approve corrected plan and rebuild/);
+    assert.match(repairHtml,/disabled=""[^>]*>Approve this plan and create PDFs/);
     assert.match(updateProgressState(oldScenes).label,/need repair before approval/);
     for(const [status,progress,expected] of [
       ['queued',null,'Waiting to prepare'],
@@ -63,7 +63,7 @@ test('a delivered order renders its original download card during theme correcti
     const stoppedHtml=renderToStaticMarkup(createElement(PackRemake,{order:formatStopped,refresh:()=>{}}));
     assert.match(stoppedHtml,/Story plan correction stopped/);
     assert.match(stoppedHtml,/Checkpoint 2: Story event has 197 characters; the limit is 140/);
-    assert.match(stoppedHtml,/Continue saved plan check at no charge/);
+    assert.match(stoppedHtml,/Update game pack at no charge/);
     assert.doesNotMatch(stoppedHtml,/Create quality-checked pack|Create improved pack|Your new game pack is ready/);
     assert.equal(themeUpdatePending(formatStopped),true,'an older ready remake does not mean the failed replacement was delivered');
     const stoppedDownloads=renderToStaticMarkup(createElement(OrderPackage,{order:formatStopped,orderId:order.id,selectedPaper:'A4'}));

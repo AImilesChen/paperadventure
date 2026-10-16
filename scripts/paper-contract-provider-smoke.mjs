@@ -13,6 +13,7 @@ const directory=process.env.SMOKE_OUTPUT||'tmp/provider-contract';
 await mkdir(directory,{recursive:true});
 const cases=[
   {id:'home-clock',setting:'home',players:4,age:'8-10',primary:'reasoning',secondary:['discussion'],idea:'A friendly clock keeper needs help restoring the noon bell.'},
+  {id:'classroom-journey',setting:'classroom',players:4,age:'8-10',primary:'discussion',secondary:['reasoning'],idea:'西游记，东方神话元素'},
   {id:'classroom-market',setting:'classroom',players:24,age:'6-8',primary:'discussion',secondary:['reasoning'],idea:'A night market courier needs to find the correct delivery and bring it to a friendly shopkeeper.'},
   {id:'home-garden',setting:'home',players:4,age:'10-12',primary:'sequence',secondary:['reasoning'],idea:'A rooftop garden crew must put a repair plan in order and restore a rain collector.'},
   {id:'classroom-code',setting:'classroom',players:20,age:'8-10',primary:'code',secondary:['reasoning'],idea:'A museum team decodes three short printed messages to restore a lost exhibit label.'},
@@ -29,7 +30,7 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
     // The one-theme release check exercises pack generation, not another paid
     // plan proposal. Reuse the checked synthetic plan so every provider call is
     // spent on the part being released.
-    const planned=item.id==='home-clock'?{plan:checkedClockSpec.plan}:await generateSinglePlan(spec,env,privateFetch),approved={...spec,plan:planned.plan,planConfirmed:true};
+    const planned=item.id==='home-clock'?{plan:checkedClockSpec.plan}:await generateSinglePlan(spec,env,privateFetch,{kind:'full',maxProviderCalls:2}),approved={...spec,plan:planned.plan,planConfirmed:true};
     phase='blueprint';
     const frame=(await generateBlueprintFrameStep(approved,env,privateFetch)).storyFrame;
     const materials=[];

@@ -1,7 +1,18 @@
 // Narrative fidelity is reviewed by meaning; exact spelling is not puzzle proof.
-export const PLAN_REVIEW_POLICY = 'semantic-theme-scenes-2';
+export const PLAN_REVIEW_POLICY = 'semantic-theme-scenes-3';
 export const hasStoryScenes = plan => plan?.storySceneVersion === 1 && plan.stages?.length === 5 && plan.stages.every(stage => typeof stage.storyBeat === 'string' && stage.storyBeat.trim());
 export const themeMeaningRules = 'Preserve the purchased idea, named characters, fictional world and important motifs recognizably in English. Accurate translations, character aliases and relevant places are valid. Judge the premise and five scenes together by meaning, not the number of literal keyword repetitions. A theme label pasted onto an otherwise unrelated generic story is insufficient. A simple theme needs no invented mythology or characters.';
+export const planStoryRules = 'Build one coherent narrative: the title, premise, goal and five events must refer to the same purchased world and problem. For an identifiable fictional world, use its recognizable characters, places or distinctive motifs in the events; anonymous companions at a generic inn are not enough. At least three events must use that world to advance the problem. Each event states what a character needs to establish or overcome, leaving the actual printed clues and solution for game construction. Theme anchors must be concrete references from the idea, not a genre label. A simple everyday theme needs no invented mythology. Preserve requested roles and avoidance preferences.';
+export function planReviewText(plan,field){
+  if(/^scene[1-5]$/.test(field)){const stage=plan.stages?.[Number(field.slice(5))-1];return [stage?.scene,stage?.storyBeat].filter(Boolean).join('. ');}
+  if(/^stage[1-5]$/.test(field))return JSON.stringify(plan.stages?.[Number(field.slice(5))-1]||{});
+  return Array.isArray(plan[field])?plan[field].join('; '):String(plan[field]||'');
+}
+export function hasPlanReviewEvidence(issue,plan){
+  return typeof issue.reason==='string'&&issue.reason.trim().length>=12&&issue.reason.length<=240&&
+    Array.isArray(issue.evidence)&&issue.evidence.length>0&&issue.evidence.length<=3&&issue.evidence.every(item=>
+      issue.fields.includes(item.field)&&typeof item.quote==='string'&&item.quote.length>=8&&item.quote.length<=120&&planReviewText(plan,item.field).includes(item.quote));
+}
 export const planIssueCodes = ['THEME_WEAK','GOAL_UNRESOLVED','SCENE_SEQUENCE','SETUP_MISMATCH','UNSUPPORTED_ACTIVITY'];
 export const planNarrativeFields = ['title','summary','premise','goal','themeAnchors','scene1','scene2','scene3','scene4','scene5'];
 export const planIssueInstructions = {

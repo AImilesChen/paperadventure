@@ -911,7 +911,7 @@ test('two old theme-plan failures gain one bounded correction without losing ori
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',PRIVATE_FILES:{},GENERATION_QUEUE:{send:async job=>queued.push(job)},FETCH:async(_url,init)=>{
     if(providerMode==='upstream')return new Response('fixture provider error',{status:502});
     const payload=JSON.parse(init.body),input=JSON.parse(payload.input);
-    const value=payload.text.format.name==='paid_plan_audit'?providerMode==='audit'?{pass:false,issues:[{code:'THEME_WEAK',fields:['premise']}]}:{pass:true,issues:[]}:(()=>{const plan=planFixture(input.spec);plan.premise='The Journey to the West companions search a mountain shrine for their missing travel document.';plan.stages[0].scene='At the Journey to the West shrine';plan.stages[1].scene='At the Journey to the West mountain path';return plan;})();
+    const value=payload.text.format.name==='paid_plan_audit'?providerMode==='audit'?{pass:false,issues:[{code:'THEME_WEAK',fields:['premise'],reason:'The plan does not carry the purchased mythology into the events.',evidence:[{field:'premise',quote:input.plan.premise}]}]}:{pass:true,issues:[]}:(()=>{const plan=planFixture(input.spec);plan.premise='The Journey to the West companions search a mountain shrine for their missing travel document.';plan.stages[0].scene='At the Journey to the West shrine';plan.stages[1].scene='At the Journey to the West mountain path';return plan;})();
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});
   }};
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
@@ -993,7 +993,7 @@ test('the explicitly scoped old-theme recovery is manual, one-use and preserves 
     const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',PRIVATE_FILES:{},GENERATION_QUEUE:{send:async job=>{if(queueUnavailable)throw Error('fixture queue unavailable');queued.push(job);}},FETCH:async(_url,init)=>{
       calls++;const payload=JSON.parse(init.body),input=JSON.parse(payload.input);
       const plan=planFixture(input.spec);plan.premise='The Monkey King must recover a missing message at a mountain shrine.';
-      const value=payload.text.format.name==='paid_plan_audit'?succeeds?{pass:true,issues:[]}:{pass:false,issues:[{code:'THEME_WEAK',fields:['premise']}]}:plan;
+      const value=payload.text.format.name==='paid_plan_audit'?succeeds?{pass:true,issues:[]}:{pass:false,issues:[{code:'THEME_WEAK',fields:['premise'],reason:'The plan does not carry the purchased mythology into the events.',evidence:[{field:'premise',quote:input.plan.premise}]}]}:plan;
       return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
     }};
     const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
@@ -1041,7 +1041,7 @@ test('an unapproved location-only replacement repairs the saved request once wit
       assert.ok(['repaired_paid_plan','paid_plan_format_repair','paid_plan_audit'].includes(sent.text.format.name),'never request a fresh plan');
       const candidate=planFixture(spec);
       if(auditPasses==='format'&&calls===1)candidate.stages[1].storyBeat='PRIVATE STORY '.repeat(14)+'.';
-      const value=sent.text.format.name==='paid_plan_format_repair'?{scene2_storyBeat:candidate.stages[1].storyBeat}:sent.text.format.name==='paid_plan_audit'?auditPasses?{pass:true,issues:[]}:{pass:false,issues:[{code:'THEME_WEAK',fields:['scene1','scene2','scene3']}]}:candidate;
+      const value=sent.text.format.name==='paid_plan_format_repair'?{scene2_storyBeat:candidate.stages[1].storyBeat}:sent.text.format.name==='paid_plan_audit'?auditPasses?{pass:true,issues:[]}:{pass:false,issues:[{code:'THEME_WEAK',fields:['scene1','scene2','scene3'],reason:'The saved events do not carry the purchased mythology.',evidence:[{field:'scene1',quote:candidate.stages[0].scene}]}]}:candidate;
       return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
     }};
     const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
@@ -1830,3 +1830,4 @@ test('quality v8 repairs an ending without rebuilding five saved paid checkpoint
   const view=await handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,{cookie:`paw_session=${token}`}),env).then(response=>response.json());
   assert.equal(view.contentReviewPassed,true);
 });
+
