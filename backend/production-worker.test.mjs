@@ -1121,7 +1121,7 @@ test('quality v7 saves a blueprint and earlier checkpoint while repairing one re
   db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('semantic-activity',?,'published',?)").run(orderId,specJson);
   db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version) VALUES ('semantic-original','semantic-activity',1,'published',2)").run();
   db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,published_version) VALUES (?,'queued','blueprint',?,?,1)").run(orderId,specJson,await sha256(specJson));
-  const calls=[],queue=[];let rejected=false;
+  const calls=[],queue=[];let rejected=false,negativeReviewed=false;
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},PRIVATE_FILES:{get:async()=>null,put:async()=>{}},
     FETCH:async(_url,init)=>{
       const request=JSON.parse(init.body),name=request.text.format.name,input=JSON.parse(request.input);calls.push(name);
@@ -1129,7 +1129,8 @@ test('quality v7 saves a blueprint and earlier checkpoint while repairing one re
       if(name==='story_frame')value=storyFrame;
       else if(name==='game_blueprint')value=materialContext;
       else if(name==='paper_checkpoint_semantics'){
-        value=input.checkpoint===2&&!rejected?(rejected=true,{pass:false,issues:[{stageNumber:2,reason:'The printed finding uses a feature that cannot describe every record.'}]}):{pass:true,issues:[]};
+        value=input.checkpoint===1&&!negativeReviewed?(negativeReviewed=true,{pass:false,issues:[{stageNumber:1,reason:'A feature has answer NO for the second note.'}]})
+          :input.checkpoint===2&&!rejected?(rejected=true,{pass:false,issues:[{stageNumber:2,reason:'The printed finding uses a feature that cannot describe every record.'}]}):{pass:true,issues:[]};
       }else if(name==='checkpoint_material_repair'){
         value=structuredClone(materialContext.stages[1]);value.material.title='Checked tower records';
       }else throw Error(`Unexpected provider call ${name}`);
@@ -1140,6 +1141,7 @@ test('quality v7 saves a blueprint and earlier checkpoint while repairing one re
   await processPackRemake(orderId,env);
   const first=db.prepare('SELECT stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId).stages_json;
   assert.equal(JSON.parse(first).length,1);
+  assert.equal(negativeReviewed,true,'a negative record answer receives a second semantic review');
   await processPackRemake(orderId,env);
   let view=await packRemakeView(binding,orderId);
   assert.equal(view.phase,'repair');assert.deepEqual(view.completedStages,[1]);assert.equal(view.problemStage,2);
