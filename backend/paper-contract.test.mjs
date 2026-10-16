@@ -99,6 +99,14 @@ test('quality version 8 blocks a concrete story defect and rejects a generic end
   const nounTile=structuredClone(raw);
   nounTile.stages[2].material.items[1].label='Clapper';
   assert.throws(()=>prepareBlueprintCandidate(nounTile,spec),/ordering pieces must each begin with a complete in-world action/);
+  const checkedTile=structuredClone(raw);
+  checkedTile.stages[2].material.items[1].label='Check the clapper swing';
+  checkedTile.storyFrame.discoveries[2].consequence='The clapper swing is checked before fitting the signal gear.';
+  checkedTile.spine=compileStorySpine(checkedTile.storyFrame,checkedTile.stages,paperContractTypes(spec.plan),8);
+  assert.equal(prepareBlueprintCandidate(checkedTile,spec).stages[2].material.logic.context.labels[1],'Check the clapper swing');
+  const earnedBecause=structuredClone(raw);
+  earnedBecause.celebration='Because the fitted gear turns, the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  assert.match(prepareBlueprintCandidate(earnedBecause,spec).celebration,/^Because the fitted gear turns/);
   const genericFeatures=structuredClone(raw);
   genericFeatures.stages[0].features=['Mentions answer','Names result'];
   assert.throws(()=>prepareBlueprintCandidate(genericFeatures,spec),/concrete, distinct printed record facts/);
@@ -156,7 +164,7 @@ test('quality version 8 grounds story consequences after the printable pieces ex
   const result=await generateBlueprint(spec,env,async(_url,request)=>{
     const body=JSON.parse(request.body),name=body.text.format.name;
     names.push(name);
-    assert.equal(body.reasoning.effort,'low');
+    assert.equal(body.reasoning.effort,name==='story_frame'?'low':'none');
     if(name==='story_frame'){
       assert.match(body.instructions,/last step that directly makes the approved goal true/i);
       assert.ok(body.max_output_tokens>=14000,'reasoning must leave room for a structured answer');
