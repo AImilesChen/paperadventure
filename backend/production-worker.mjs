@@ -3,7 +3,8 @@ import { ApiError, validateGeneratedStage, validateGeneratedStory, validatePurch
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage } from './openai.mjs';
-import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint } from './staged-story.mjs';
+import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint,
+  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import { verifyGoogleCredential } from './google-auth.mjs';
 import { signPreview, confirmPreview } from './creator-preview.mjs';
@@ -977,7 +978,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
   const lease=await query(env.DB,"UPDATE custom_activities SET status = 'generating',lease_until = ? WHERE id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))",nowSeconds()+900,activity.id,nowSeconds()).run();
   if (!lease.meta?.changes) return;
   await query(env.DB,"UPDATE orders SET status = 'fulfilling' WHERE id = ? AND status = 'paid'",order.id).run();
-  let phase='blueprint',stageNumber=0;
+  let phase='blueprint',budgetPhase='blueprint',stageNumber=0;
   const stepLimit=kind=>spec.packExperienceVersion>=2?(kind==='blueprint'?5:kind==='audit'?3:STAGED_STEP_CALL_LIMIT):STAGED_STEP_CALL_LIMIT;
   const totalLimit=spec.packExperienceVersion>=2?18:STAGED_AI_CALL_LIMIT;
   const fetcher=env.FETCH||fetch;
@@ -991,7 +992,8 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     }
     if (await countCalls(kind,number)>=stepLimit(kind) || await totalCalls()>=totalLimit)
       throw new ApiError(422,'STAGED_BUDGET_EXHAUSTED','The safe generation limit was reached.');
-    const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&kind!=='blueprint'&&!(spec.packContractVersion===1&&kind==='audit');
+    const providerBlueprintSteps=new Set(['blueprint','blueprint_frame','blueprint_material','blueprint_closing']);
+    const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&!providerBlueprintSteps.has(kind)&&!(spec.packContractVersion===1&&kind==='audit');
     const provider=deterministic?null:aiProvider(env);
     if (!deterministic&&!provider) throw new ApiError(503,'GENERATION_NOT_CONFIGURED','Story generation is not configured.');
     const id=crypto.randomUUID();
@@ -1014,12 +1016,42 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
       await query(env.DB,"UPDATE custom_activities SET lease_until = ? WHERE id = ? AND status = 'generating'",nowSeconds()+900,activity.id).run();
       const blueprintRow=await query(env.DB,'SELECT spec_sha256,blueprint_sha256,blueprint_json FROM custom_game_blueprints WHERE order_id = ?',order.id).first();
       if (!blueprintRow) {
-        phase='blueprint';stageNumber=0;
-        const blueprint=validateBlueprint(await call('blueprint',0,async()=>{
-          const prior=spec.packContractVersion===1?await query(env.DB,"SELECT result_json,error_detail FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint' AND status = 'failed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id).first():null;
-          const result=prior?await repairBlueprint(spec,JSON.parse(prior.result_json),prior.error_detail,env,fetcher):await generateBlueprint(spec,env,fetcher);
-          return {value:result.blueprint,usage:result.usage,responseId:result.responseId};
-        }),spec);
+        phase='blueprint';budgetPhase='blueprint';stageNumber=0;
+        const prior=spec.packContractVersion===1?await query(env.DB,"SELECT result_json,error_detail FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'failed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id).first():null;
+        let generatedBlueprint;
+        const resumable=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&!prior;
+        if(resumable){
+          budgetPhase='blueprint_frame';
+          const frame=await call('blueprint_frame',0,async()=>{
+            const result=await generateBlueprintFrameStep(spec,env,fetcher);
+            return {value:result.storyFrame,usage:result.usage,responseId:result.responseId};
+          });
+          const materialSteps=[];
+          for(let number=1;number<=5;number++){
+            budgetPhase='blueprint_material';stageNumber=number;
+            materialSteps.push(await call('blueprint_material',number,async()=>{
+              const result=await generateBlueprintMaterialStep(spec,frame,number,materialSteps,env,fetcher);
+              return {value:result.data,usage:result.usage,responseId:result.responseId};
+            }));
+          }
+          budgetPhase='blueprint_closing';stageNumber=0;
+          const closing=await call('blueprint_closing',0,async()=>{
+            const result=await generateBlueprintClosingStep(spec,frame,env,fetcher);
+            return {value:result.data.celebration,usage:result.usage,responseId:result.responseId};
+          });
+          budgetPhase='blueprint';
+          generatedBlueprint=await call('blueprint',0,async()=>{
+            const result=await assembleBlueprintSteps(spec,frame,materialSteps,closing,env,fetcher);
+            return {value:result.blueprint,usage:result.usage,responseId:result.responseId};
+          });
+        }else{
+          budgetPhase='blueprint';
+          generatedBlueprint=await call('blueprint',0,async()=>{
+            const result=prior?await repairBlueprint(spec,JSON.parse(prior.result_json),prior.error_detail,env,fetcher):await generateBlueprint(spec,env,fetcher);
+            return {value:result.blueprint,usage:result.usage,responseId:result.responseId};
+          });
+        }
+        const blueprint=validateBlueprint(generatedBlueprint,spec);
         const blueprintJson=JSON.stringify(blueprint),blueprintHash=await sha256(blueprintJson);
         try { await query(env.DB,'INSERT OR IGNORE INTO custom_game_blueprints (order_id,spec_sha256,blueprint_sha256,blueprint_json) VALUES (?,?,?,?)',order.id,specHash,blueprintHash,blueprintJson).run(); }
         catch (caught) { caught.persistence=true; throw caught; }
@@ -1032,7 +1064,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
       if (stages.some(row=>row.blueprint_sha256!==blueprintRow.blueprint_sha256)) throw new ApiError(422,'STORY_CHECKPOINT_MISMATCH','A saved checkpoint belongs to another blueprint.');
       const next=[1,2,3,4,5].find(number=>!stages.some(row=>row.stage_number===number));
       if (next) {
-        phase='checkpoint';stageNumber=next;
+        phase='checkpoint';budgetPhase='checkpoint';stageNumber=next;
         const previous=next===1?null:JSON.parse(stages.find(row=>row.stage_number===next-1)?.stage_json||'null');
         if (next>1&&!previous) throw new ApiError(422,'STORY_CHECKPOINT_MISMATCH','The previous checkpoint is missing.');
         const generated=await call('checkpoint',next,async()=>{
@@ -1045,7 +1077,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
         await query(env.DB,'UPDATE custom_activities SET pipeline_failures = 0 WHERE id = ?',activity.id).run();
         continue;
       }
-      phase='audit';stageNumber=0;
+      phase='audit';budgetPhase='audit';stageNumber=0;
       const story=assembleStagedStory(spec,blueprint,stages.map(row=>JSON.parse(row.stage_json)));
       const storyJson=JSON.stringify(story),storyHash=await sha256(storyJson);
       const audited=await query(env.DB,'SELECT story_sha256 FROM custom_game_audits WHERE order_id = ?',order.id).first();
@@ -1062,7 +1094,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
               Number.isInteger(failedStage)&&failedStage>=0&&failedStage<=5&&
               await totalCalls()<totalLimit&&await countCalls('audit',0)<stepLimit('audit')) {
             const repairSlot=failedStage+1;
-            phase='blueprint';stageNumber=repairSlot;
+            phase='blueprint';budgetPhase='blueprint';stageNumber=repairSlot;
             const repaired=validateBlueprint(await call('blueprint',repairSlot,async()=>{
               const result=await repairBlueprint(spec,blueprint,auditError.message,env,fetcher);
               return {value:result.blueprint,usage:result.usage,responseId:result.responseId};
@@ -1076,7 +1108,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
               query(env.DB,'UPDATE custom_game_stages SET blueprint_sha256 = ? WHERE order_id = ? AND stage_number <= ?',repairedHash,order.id,keep),
               query(env.DB,"UPDATE custom_generation_calls SET result_json = NULL,error_code = 'AUDIT_REJECTED' WHERE order_id = ? AND phase = 'checkpoint' AND stage_number > ? AND status = 'passed'",order.id,keep),
             ]);
-            phase='checkpoint';stageNumber=keep+1;
+            phase='checkpoint';budgetPhase='checkpoint';stageNumber=keep+1;
             continue;
           }
           throw auditError;
@@ -1093,9 +1125,9 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     }
   } catch (caught) {
     const code=typeof caught?.code==='string' && /^[A-Z0-9_]{1,60}$/.test(caught.code)?caught.code:'UNEXPECTED';
-    const phaseCalls=await countCalls(phase,stageNumber),calls=await totalCalls();
+    const phaseCalls=await countCalls(budgetPhase,stageNumber),calls=await totalCalls();
     const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
-    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<totalLimit && phaseCalls<stepLimit(phase);
+    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<totalLimit && phaseCalls<stepLimit(budgetPhase);
     if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
     if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&(spec.packQualityVersion||0)<8&&canRetry&&await countCalls('blueprint',0)<stepLimit('blueprint')){
       await env.DB.batch([
@@ -1314,4 +1346,5 @@ export default {
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
 };
+
 
