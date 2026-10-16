@@ -1030,7 +1030,8 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
           for(let number=1;number<=5;number++){
             budgetPhase='blueprint_material';stageNumber=number;
             materialSteps.push(await call('blueprint_material',number,async()=>{
-              const result=await generateBlueprintMaterialStep(spec,frame,number,materialSteps,env,fetcher);
+              const prior=(spec.packQualityVersion||0)>=13?await query(env.DB,"SELECT error_detail FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'failed' ORDER BY created_at DESC,id DESC LIMIT 1",order.id,number).first():null;
+              const result=await generateBlueprintMaterialStep(spec,frame,number,materialSteps,env,fetcher,prior?.error_detail||null);
               return {value:result.data,usage:result.usage,responseId:result.responseId};
             }));
           }
@@ -1090,7 +1091,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
           },storyHash);
         } catch (auditError) {
           const failedStage=auditError.stageNumber;
-          if(spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&auditError.code==='GENERATION_QA_FAILED'&&
+          if(spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&auditError.code==='GENERATION_QA_FAILED'&&!auditError.terminalThemeMismatch&&
               Number.isInteger(failedStage)&&failedStage>=0&&failedStage<=5&&
               await totalCalls()<totalLimit&&await countCalls('audit',0)<stepLimit('audit')) {
             const repairSlot=failedStage+1;

@@ -1073,7 +1073,7 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.equal(blueprintProviderCalls.filter(call=>call.name==='blueprint_material_stage'&&call.checkpoint===1).length,1,'a saved first material is reused after the second material fails');
   assert.equal(blueprintProviderCalls.filter(call=>call.name==='blueprint_material_stage'&&call.checkpoint===2).length,2,'only the failed second material is requested again');
   const earlierPack=new Uint8Array(await (await download()).arrayBuffer());
-  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:9,packLayoutVersion:3};
+  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:13,packLayoutVersion:3};
   const earlierJson=JSON.stringify(earlierSpec);
   const staleBlueprint='{}';
   db.prepare("UPDATE custom_pack_remakes SET spec_json = ?,spec_sha256 = ?,blueprint_json = ?,blueprint_sha256 = ? WHERE order_id = 'quality-order'").run(earlierJson,await sha256(earlierJson),staleBlueprint,await sha256(staleBlueprint));
@@ -1123,6 +1123,21 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   await productionWorker.queue({messages:[{body:queue.shift(),ack(){},retry(){throw Error('scheduled layout recovery should finish from the saved story');}}]},env);
   assert.equal((await view()).remake.publishedVersion,5);
   assert.equal(blueprintCalls,1,'scheduled layout recovery makes no model call');
+
+  const publishedPdf=new Uint8Array(await (await download()).arrayBuffer());
+  const preV13={...JSON.parse(db.prepare("SELECT spec_json FROM custom_pack_remakes WHERE order_id='quality-order'").get().spec_json),packQualityVersion:12};
+  const preV13Json=JSON.stringify(preV13);
+  db.prepare("UPDATE custom_pack_remakes SET spec_json=?,spec_sha256=? WHERE order_id='quality-order'").run(preV13Json,await sha256(preV13Json));
+  assert.equal((await view()).qualityUpgradeAvailable,true);
+  assert.equal((await handleProductionApi(request('/api/v1/orders/quality-order/pack-remake','POST',undefined,headers),env)).status,202);
+  const newQuality=db.prepare("SELECT phase,story_json,blueprint_json,stages_json,published_version FROM custom_pack_remakes WHERE order_id='quality-order'").get();
+  assert.equal(newQuality.phase,'blueprint','content-rule upgrades must rebuild the story, not just its PDF closing');
+  assert.equal(newQuality.story_json,null);
+  assert.equal(newQuality.blueprint_json,null);
+  assert.equal(newQuality.stages_json,'[]');
+  assert.equal(newQuality.published_version,5);
+  assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),publishedPdf,'the last published pack remains downloadable while the new content is checked');
+  assert.equal(blueprintCalls,1,'starting the no-charge rebuild alone does not call the model');
 });
 
 test('quality v7 saves a blueprint and earlier checkpoint while repairing one rejected paper context',async()=>{
@@ -1187,14 +1202,16 @@ test('current quality and revised checked packs cannot start the free full-pack 
   assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packQualityVersion:3},2,false),true);
   assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:10,packLayoutVersion:4},{...clockSpec,packQualityVersion:10,packLayoutVersion:4},2,false),true);
   assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:11,packLayoutVersion:4},{...clockSpec,packQualityVersion:11,packLayoutVersion:4},2,false),true);
-  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:12,packLayoutVersion:4},{...clockSpec,packQualityVersion:12,packLayoutVersion:4},2,false),false);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:12,packLayoutVersion:4},{...clockSpec,packQualityVersion:12,packLayoutVersion:4},2,false),true);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:13,packLayoutVersion:4},{...clockSpec,packQualityVersion:13,packLayoutVersion:4},2,false),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packExperienceVersion:2}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:5,packLayoutVersion:3}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:9,packLayoutVersion:4}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:10,packLayoutVersion:4}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:11,packLayoutVersion:4}),true);
-  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:12,packLayoutVersion:4}),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:12,packLayoutVersion:4}),true);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:13,packLayoutVersion:4}),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
@@ -1458,7 +1475,7 @@ test('a failed V2 quality remake migrates to V3 on the same paid order even when
   const saved=db.prepare('SELECT status,phase,spec_json,published_version,recovery_round,logic_epoch,quality_epoch,blueprint_json,stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId);
   const upgraded=JSON.parse(saved.spec_json);
   assert.equal(upgraded.packExperienceVersion,3);
-  assert.equal(upgraded.packQualityVersion,12);
+  assert.equal(upgraded.packQualityVersion,13);
   assert.equal(upgraded.packLayoutVersion,4);
   assert.equal(saved.status,'queued');assert.equal(saved.phase,'blueprint');
   assert.equal(saved.published_version,2,'the downloadable original stays published during the upgrade');
