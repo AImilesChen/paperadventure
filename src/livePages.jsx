@@ -370,10 +370,11 @@ export function PackRemake({order,refresh}) {
     }
     return <section id="order-remake" className="order-pack-remake" aria-labelledby="order-remake-title">
       <span className="eyebrow">IMPROVED GAME PACK</span>
-      <h2 id="order-remake-title">{themePlanStage?order.planReview.status==='review'?'Review your corrected story plan':'Preparing your corrected story plan':themePlanNeedsHelp?'Story plan correction stopped':order.planReview?.themeReplanFailed?'Story plan needs review':'First, review the story theme'}</h2>
+      <h2 id="order-remake-title">{order.themePlanRecoveryAvailable?'Your plan recovery is ready':themePlanStage?order.planReview.status==='review'?'Review your corrected story plan':'Preparing your corrected story plan':themePlanNeedsHelp?'Story plan correction stopped':order.planReview?.themeReplanFailed?'Story plan needs review':'First, review the story theme'}</h2>
       <p>{themePlanStage?'Your replacement starts with a theme-faithful plan. After it passes review, you approve it before the five checkpoints and PDFs are built.':themePlanNeedsHelp?'The plan correction stopped. No replacement PDFs were created. The original version remains downloadable below; use the order help section for review.':order.planReview?.themeReplanFailed?'The last plan correction stopped. Any saved draft stays on this order for review. A further attempt is available only within this order\'s existing allowance.':'Review a corrected story plan before rebuilding the game on this paid order.'}</p>
       <OrderUpdateProgress order={order}/>
-      {order.themePlanRepairAvailable&&<button type="button" className="button" onClick={repairThemePlan} disabled={busy}>{busy?'Starting…':order.planReview?.themeReplanFailed?'Retry corrected theme plan at no charge':'Prepare corrected theme plan at no charge'} <ArrowRight size={17}/></button>}
+      {order.themePlanRecoveryAvailable&&<p>One recovery attempt is available using the updated theme checks. Start it below, then review and approve the corrected plan before replacement PDFs are created. Your original files remain available.</p>}
+      {order.themePlanRepairAvailable&&<button type="button" className="button" onClick={repairThemePlan} disabled={busy}>{busy?'Starting…':order.themePlanRecoveryAvailable?'Start recovery at no charge':order.planReview?.themeReplanFailed?'Retry corrected theme plan at no charge':'Prepare corrected theme plan at no charge'} <ArrowRight size={17}/></button>}
       {error&&<Alert>{error}</Alert>}
     </section>;
   }

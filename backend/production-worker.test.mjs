@@ -23,11 +23,12 @@ async function approvedCustomInput(env,input) {
   return {...spec,email:input.email};
 }
 
-function database({includeThemeRecovery=true}={}) {
+function database({includeThemeRecovery=true,includeSemanticRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
+    if(name==='0024_scoped_semantic_plan_recovery.sql'&&!includeSemanticRecovery)continue;
     db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   }
   const binding = {
@@ -962,6 +963,59 @@ test('two old theme-plan failures gain one bounded correction without losing ori
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1,'approval queues replacement; it does not publish unchecked PDFs');
   assert.equal(db.prepare("SELECT full_used,quality_replan_used FROM custom_plan_orders WHERE order_id='theme-order'").get().quality_replan_used,1);
   assert.equal((await post({action:'quality_replan'},'free-theme-correction-0005')).status,409,'a fifth full-plan generation is blocked');
+});
+
+test('the explicitly scoped old-theme recovery is manual, one-use and preserves original files on success or failure',async()=>{
+  for(const succeeds of [true,false]){
+    const {db,binding}=database({includeSemanticRecovery:false}),orderId='79bb86c7-93b0-4088-ba7a-4a04cd1b2f34',owner='scoped-recovery-fixture';
+    const spec=validatePurchase({sku:'custom_classroom',creatorVersion:3,customIdea:'Journey to the West',players:12,groups:3,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+    spec.packQualityVersion=13;const oldPlan=planFixture(spec);delete oldPlan.themeAnchors;
+    const stored=JSON.stringify(spec),oldStory=JSON.stringify({...spec,plan:oldPlan,planConfirmed:true});
+    for(const id of [orderId,'unrelated-order']){
+      db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES (?,'custom_classroom','USD',1999,'exclusive',1)").run('price-'+id);
+      db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_classroom',?,?,?,?,1999,'USD','published',CURRENT_TIMESTAMP)").run(id,stored,await sha256(stored),owner,'price-'+id);
+      db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES (?,?,'published',?)").run('activity-'+id,id,oldStory);
+      db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit,access_expires_at) VALUES (?,?,?,'active',2,datetime('now','+6 months'))").run('ent-'+id,id,'activity-'+id);
+      db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version,player_r2_key,guide_r2_key) VALUES (?,?,1,'published',2,'original/player.pdf','original/guide.pdf')").run('artifact-'+id,'activity-'+id);
+      db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version,quality_replan_recovery_grant,quality_replan_qa_grant) VALUES (?,'confirmed',1,1,1,1)").run(id);
+      db.prepare("INSERT INTO custom_plan_versions (order_id,version_number,plan_json,request_kind) VALUES (?,1,?,'initial')").run(id,JSON.stringify(oldPlan));
+      for(let n=1;n<=4;n++){
+        db.prepare("INSERT INTO custom_plan_requests (id,order_id,kind,base_version,status,attempts) VALUES (?,?,'full',1,'failed',1)").run('old-'+id+'-'+n,id);
+        db.prepare("INSERT INTO generation_usage (order_id,attempt,model,status,error_code) VALUES (?,?,'fixture','plan-failed','PLAN_THEME_ANCHORS')").run(id,n);
+      }
+    }
+    const migration=readFileSync(new URL('./migrations/0024_scoped_semantic_plan_recovery.sql',import.meta.url),'utf8');
+    db.exec(migration);
+    assert.equal(db.prepare('SELECT semantic_recovery_remaining AS n FROM custom_plan_orders WHERE order_id=?').get(orderId).n,1);
+    assert.equal(db.prepare("SELECT semantic_recovery_remaining AS n FROM custom_plan_orders WHERE order_id='unrelated-order'").get().n,0);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_plan_requests WHERE status='queued'").get().n,0,'migration never starts work');
+    const queued=[];let calls=0,queueUnavailable=true;
+    const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',PRIVATE_FILES:{},GENERATION_QUEUE:{send:async job=>{if(queueUnavailable)throw Error('fixture queue unavailable');queued.push(job);}},FETCH:async(_url,init)=>{
+      calls++;const payload=JSON.parse(init.body),input=JSON.parse(payload.input);
+      const plan=planFixture(input.spec);plan.premise='The Monkey King must recover a missing message at a mountain shrine.';
+      const value=payload.text.format.name==='paid_plan_audit'?succeeds?{pass:true,issues:[]}:{pass:false,issues:[{code:'THEME_WEAK',fields:['premise']}]}:plan;
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
+    }};
+    const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+    const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+    const view=()=>handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,headers),env).then(r=>r.json());
+    const post=key=>handleProductionApi(request(`/api/v1/orders/${orderId}/plan`,'POST',{action:'quality_replan'},{...headers,'Idempotency-Key':key}),env);
+    assert.equal((await view()).themePlanRecoveryAvailable,true);assert.equal((await view()).themePlanRepairAvailable,true);assert.equal(calls,0);
+    assert.equal((await post('queue-failed-recovery-0001')).status,500);
+    assert.equal((await view()).themePlanRecoveryAvailable,true,'a queue failure before model work returns the unused recovery');
+    queueUnavailable=false;
+    const attempts=await Promise.all([post('manual-recovery-attempt-0001'),post('manual-recovery-attempt-0002')]);
+    assert.deepEqual(attempts.map(r=>r.status).sort(),[202,409]);assert.equal(queued.length,1);assert.equal(calls,0);
+    assert.equal((await post('manual-recovery-attempt-0001')).status,200,'same-key retry returns the existing request');
+    assert.equal((await view()).themePlanRecoveryAvailable,false);
+    await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){}}]},env);
+    assert.ok(calls<=5);assert.equal((await view()).filesReady,true);assert.equal(queued.length,0,'only plan work runs before approval');
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,2,'both orders retain just their original PDF pair');
+    assert.equal((await view()).planReview.status,succeeds?'review':'confirmed');
+    assert.equal((await post('manual-recovery-attempt-0003')).status,409,'the one-use recovery cannot be spent twice');
+    db.exec(migration.slice(migration.indexOf('UPDATE custom_plan_orders')));
+    assert.equal(db.prepare('SELECT semantic_recovery_remaining AS n FROM custom_plan_orders WHERE order_id=?').get(orderId).n,0,'later requests cannot regrant the old-rule recovery');
+  }
 });
 
 test('staged paid generation resumes at a failed checkpoint without regenerating saved work',async()=>{

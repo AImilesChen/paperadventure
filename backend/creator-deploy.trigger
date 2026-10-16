@@ -1,1 +1,1 @@
-2026-10-16: deploy semantic theme review, private resumable plan checkpoints and truthful update progress.
+2026-10-16: restore one explicit semantic-plan recovery on the authorized stopped Classroom order.

@@ -17,7 +17,7 @@ export function updateProgressState(order) {
     const completed=waiting?2:work?.reviewPassed?2:work?.candidateSaved?1:0;
     const labels={queued:'Waiting to prepare the corrected plan',generating:'Preparing the corrected plan',validating:'Checking the plan format',repairing:'Correcting the saved plan',correcting:'Correcting the saved plan',auditing:'Reviewing the theme and story',ready:'Saving the reviewed plan'};
     return {completed,current:waiting?2:Math.min(completed,1),busy:!waiting&&!failed&&['queued','generating'].includes(review.status),
-      label:failed?'Plan correction stopped':waiting?'Your action is needed: review and approve the corrected plan':labels[work?.phase]||labels[review.status]||'Corrected plan not started',
+      label:failed?order.themePlanRecoveryAvailable?'Previous plan correction stopped':'Plan correction stopped':waiting?'Your action is needed: review and approve the corrected plan':labels[work?.phase]||labels[review.status]||'Corrected plan not started',
       failed,waiting,updatedAt:work?.updatedAt,reason:failed?planFailureMessage(work?.failureCode||review.themeReplanFailureCode):null};
   }
   if(!remake)return null;
