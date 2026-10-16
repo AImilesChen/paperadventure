@@ -154,7 +154,11 @@ export function prepareStoryFrame(frame,qualityVersion=4){
   if(purposes.some(value=>value.length<28||/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(value)))
     throw Error('Each discovery purpose must explain a story consequence rather than an answer code.');
   if(qualityVersion===5)strictPurposes(purposes,actions[0]);
-  return {problem:concealResolution(problem,actions[0]),actions,purposes,...(discoveries?{discoveries}:{})};
+  // Older packs hid an over-specific opening by replacing it with a generic
+  // mission sentence. That makes a paid story feel unfinished. New packs keep
+  // the approved fictional problem; the ending and final action are checked
+  // separately for premature success.
+  return {problem:qualityVersion>=8?problem:concealResolution(problem,actions[0]),actions,purposes,...(discoveries?{discoveries}:{})};
 }
 
 export function selectedStoryFinding(stage,type,number){
