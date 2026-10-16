@@ -12,15 +12,17 @@ const requestId='operator-coherent-plan-79bb-20261016';
 const feedback='Restore the purchased story world consistently in the premise, goal and all five events. Preserve the purchased setup and goal; this is an operator repair, not a preference edit.';
 const literal=value=>value==null?'NULL':`'${String(value).replaceAll("'","''")}'`;
 const file=join(process.env.RUNNER_TEMP||'tmp','scoped-plan-repair.sql');
-async function sql(command){
+async function sql(command,read=false){
   await writeFile(file,command);
   try{
-    const raw=execFileSync('npx',['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--json','--file',file],{encoding:'utf8',stdio:['ignore','pipe','pipe'],maxBuffer:8*1024*1024});
+    // D1 --file imports return an execution receipt, not SELECT rows. Reads
+    // use --command with captured output; private writes stay in a temp file.
+    const raw=execFileSync('npx',['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--json',...(read?['--command',command]:['--file',file])],{encoding:'utf8',stdio:['ignore','pipe','pipe'],maxBuffer:8*1024*1024});
     return JSON.parse(raw.slice(raw.indexOf('[')));
   }catch{throw Object.assign(Error('Private database operation failed.'),{code:'OPERATOR_DB_FAILED'});}
   finally{await unlink(file).catch(()=>{});}
 }
-async function first(command){return (await sql(command))[0]?.results?.[0];}
+async function first(command){return (await sql(command,true))[0]?.results?.[0];}
 
 try{
   if(process.env.CONFIRM_SCOPED_PLAN_REPAIR!==orderId)throw Object.assign(Error(),{code:'OPERATOR_SCOPE_REQUIRED'});
@@ -37,6 +39,7 @@ try{
     const spec={...JSON.parse(snapshot.purchase_spec_json),packQualityVersion:14};
     const previousPlan=JSON.parse(snapshot.previous_plan);
     if(spec.creatorVersion!==3||spec.packContractVersion!==1||spec.setting!=='classroom'||!/西游|journey to the west/i.test(spec.customIdea||''))throw Object.assign(Error(),{code:'OPERATOR_SPEC_CHANGED'});
+    if(process.env.PLAN_REPAIR_READ_ONLY==='1'){console.log(JSON.stringify({status:'state_verified',active:snapshot.active_version,confirmed:snapshot.confirmed_version,providerCalls:0}));process.exit(0);}
     const context=await sha256(JSON.stringify({policy:PLAN_REVIEW_POLICY,spec,kind:'full',scope:null,feedback,previousPlan}));
     // A failed-status reservation is deliberately never picked up by the queue
     // or scheduled retries. This fixed ID can spend at most two calls ever.
