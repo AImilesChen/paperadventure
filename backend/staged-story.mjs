@@ -68,8 +68,8 @@ async function structuredResponse(spec, env, fetcher, {name,schema,instructions,
   let response;
   try {
     response=await fetcher(provider.url,{method:'POST',signal:AbortSignal.timeout(90000),headers:{authorization:`Bearer ${provider.key}`,'content-type':'application/json'},body:JSON.stringify({
-      model:provider.model,...(provider.name==='deepseek'?{reasoning:{effort:'none'}}:{}),instructions,
-      input:JSON.stringify(input),max_output_tokens:maxOutput+(spec.packContractVersion===1&&provider.name==='deepseek'?2000:0),text:{format:{type:'json_schema',name,strict:true,schema}},
+      model:provider.model,...(provider.name==='deepseek'?{reasoning:{effort:(spec.packQualityVersion||0)>=8?'low':'none'}}:{}),instructions,
+      input:JSON.stringify(input),max_output_tokens:maxOutput+(spec.packContractVersion===1&&provider.name==='deepseek'?((spec.packQualityVersion||0)>=8?3500:2000):0),text:{format:{type:'json_schema',name,strict:true,schema}},
     })});
   } catch (cause) {
     throw new ApiError(502,'GENERATION_UPSTREAM_FAILED','The story provider could not complete this step.',{cause});
@@ -573,7 +573,8 @@ export async function auditStagedStory(story,spec,blueprint,env,fetcher=fetch) {
     // Providers often label a weak closing paragraph as checkpoint 5 because
     // it follows that action. Repair the closing alone unless the action label
     // itself is wrong, keeping the five printed checkpoints unchanged.
-    if(linked&&qualityVersion>=8&&/\b(?:ending|celebration|closing|payoff)\b/i.test(reason)&&!/\b(?:action label|final choice|final action (?:cannot|does not|fails)|selected action (?:cannot|does not|fails))\b/i.test(reason))stageNumber=0;
+    const actionCannotFinish=/(?:final|selected|chosen|printed|intended) action.{0,110}\b(?:cannot|does not|doesn't|fails|only|merely|insufficient|not enough|preparation)\b|\b(?:action label|final choice)\b/i.test(reason);
+    if(linked&&qualityVersion>=8&&/\b(?:ending|celebration|closing|payoff)\b/i.test(reason)&&!actionCannotFinish)stageNumber=0;
     else if(experienceV2&&stageNumber===0&&/final action|first action|ending.*action|action.*ending|chosen action/i.test(reason))stageNumber=5;
     return {stageNumber,reason};}) : [{stageNumber:0,reason:'The quality response was incomplete.'}];
   if(result.data?.pass!==true&&!issues.length)issues=[{stageNumber:0,reason:'The quality review rejected the story without a usable reason.'}];
