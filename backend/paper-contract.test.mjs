@@ -93,6 +93,12 @@ test('quality version 8 blocks a concrete story defect and rejects a generic end
   const repeated=structuredClone(raw);
   repeated.stages[0].material.items=['Report A: loose pin','Report B: loose pin','Report C: loose pin'].map(label=>({label}));
   assert.throws(()=>prepareBlueprintCandidate(repeated,spec),/distinct named story pieces/);
+  const premature=structuredClone(raw);
+  premature.stages[2].material.items[0].label=raw.storyFrame.actions[0];
+  assert.throws(()=>prepareBlueprintCandidate(premature,spec),/cannot perform the final action/);
+  const nounTile=structuredClone(raw);
+  nounTile.stages[2].material.items[1].label='Clapper';
+  assert.throws(()=>prepareBlueprintCandidate(nounTile,spec),/ordering pieces must each begin with a complete in-world action/);
   const genericFeatures=structuredClone(raw);
   genericFeatures.stages[0].features=['Mentions answer','Names result'];
   assert.throws(()=>prepareBlueprintCandidate(genericFeatures,spec),/concrete, distinct printed record facts/);
@@ -151,7 +157,10 @@ test('quality version 8 grounds story consequences after the printable pieces ex
     const body=JSON.parse(request.body),name=body.text.format.name;
     names.push(name);
     assert.equal(body.reasoning.effort,'low');
-    if(name==='story_frame')assert.match(body.instructions,/last step that directly makes the approved goal true/i);
+    if(name==='story_frame'){
+      assert.match(body.instructions,/last step that directly makes the approved goal true/i);
+      assert.ok(body.max_output_tokens>=14000,'reasoning must leave room for a structured answer');
+    }
     if(name==='game_blueprint')assert.match(body.instructions,/none may repeat or carry out a final action/i);
     if(name==='grounded_discoveries'){
       const input=JSON.parse(body.input);
@@ -166,6 +175,8 @@ test('quality version 8 grounds story consequences after the printable pieces ex
   assert.equal(result.blueprint.storyFrame.discoveries[0].consequence,grounded[0]);
   assert.match(result.blueprint.storyFrame.discoveries[0].finding,/signal gear report/i);
   assert.match(result.blueprint.spine.links[0].reason,/noon mark/i);
+  assert.match(result.blueprint.storyFrame.discoveries[3].consequence,/open .* gives the team a route/i);
+  assert.doesNotMatch(result.blueprint.storyFrame.discoveries[3].consequence,/carries the gear/i);
 });
 
 test('quality version 8 replaces a generic code word with an approved story word before grounding',()=>{
