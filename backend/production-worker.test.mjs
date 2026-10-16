@@ -1033,7 +1033,7 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   let blueprintCalls=0;
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
     PRIVATE_FILES:{get:async key=>files.get(key)||null,put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata})},
-    FETCH:async(_url,init)=>{const name=JSON.parse(init.body).text.format.name;if(name==='game_blueprint')blueprintCalls++;return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(name==='story_frame'?storyFrame:name==='game_blueprint'?materialContext:name==='grounded_discoveries'?{discoveries:storyFrame.discoveries.map(({finding,consequence})=>({finding,consequence}))}:{pass:true,issues:[]})}]}],usage:{input_tokens:10,output_tokens:10}});}};
+    FETCH:async(_url,init)=>{const name=JSON.parse(init.body).text.format.name;if(name==='game_blueprint')blueprintCalls++;return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(name==='story_frame'?storyFrame:name==='game_blueprint'?materialContext:name==='grounded_discoveries'?{consequences:storyFrame.discoveries.map(({consequence})=>consequence)}:{pass:true,issues:[]})}]}],usage:{input_tokens:10,output_tokens:10}});}};
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
   const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
   const view=()=>handleProductionApi(request('/api/v1/orders/quality-order','GET',undefined,headers),env).then(response=>response.json());
@@ -1533,7 +1533,7 @@ test('quality v8 repairs an ending without rebuilding five saved paid checkpoint
     FETCH:async(_url,request)=>{
       const name=JSON.parse(request.body).text.format.name;calls.push(name);
       const value=name==='story_frame'?frame:name==='game_blueprint'?material:name==='grounded_discoveries'
-        ?{discoveries:frame.discoveries.map(({finding,consequence})=>({finding,consequence}))}:name==='closing_repair'
+        ?{consequences:frame.discoveries.map(({consequence})=>consequence)}:name==='closing_repair'
         ?{celebration:'The repaired gear spins and the noon bell rings across the square. Pip cheers, thanks the team, and sets out on the journey.'}
         :name==='staged_story_audit'?reject?(reject=false,{pass:false,issues:[{stageNumber:0,reason:'The ending needs a concrete noon-bell result.'}]}):{pass:true,issues:[]}
         :null;
