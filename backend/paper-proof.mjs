@@ -78,7 +78,9 @@ export function verifyPrintedPuzzles(story){
     }else if(type==='symbol_key'){
       const key=items.slice().sort((a,b)=>Number(a.label)-Number(b.label));
       if(key.map(item=>item.label).join('')!=='1234'||key.some(item=>!/^[A-Z]$/.test(item.detail)))throw Error('The four-letter printed key is incomplete.');
-      const word=key.map(item=>item.detail).join('');
+      const message=stage.clue?.match(/message is ([1-4](?:-[1-4]){3})/i)?.[1]?.split('-').map(Number)||[1,2,3,4];
+      if(new Set(message).size!==4)throw Error('The printed message must use each key row once.');
+      const word=message.map(number=>key[number-1].detail).join('');
       expected=stage.options.find(option=>choiceText(option)===word);digit=digitInChoice(expected||'');
     }else throw Error('The printed material is unsupported.');
     const matches=stage.options.map((option,index)=>option===expected?index:-1).filter(index=>index>=0);
@@ -91,3 +93,4 @@ export function verifyPrintedPuzzles(story){
   }
   return proofs;
 }
+
