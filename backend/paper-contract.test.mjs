@@ -98,6 +98,7 @@ test('quality version 8 blocks a concrete story defect and rejects a generic end
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:3,reason:'The tower note is a document, not an action.'}]})}]}]});
   }),error=>error.code==='GENERATION_QA_FAILED'&&error.stageNumber===3);
   await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async()=>{throw Error('Review unavailable');}),error=>error.code==='GENERATION_UPSTREAM_FAILED');
+  await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:5,reason:'The ending does not state the observable outcome of the final action.'}]})}]}]})),error=>error.code==='GENERATION_QA_FAILED'&&error.stageNumber===0);
   const generic=structuredClone(raw);
   generic.celebration='The mission result is now visible to everyone in the village. Everyone cheers and thanks the team for completing the mission.';
   assert.throws(()=>prepareBlueprintCandidate(generic,spec),/concrete result/);
@@ -572,8 +573,8 @@ test('reading revisions preserve all result digits and the final puzzle',async()
 
 test('provider punctuation and plain label arrays normalize before puzzle checks',async()=>{
   const raw=structuredClone(clockBlueprintContext);
-  raw.ending+=' Everyone’s notes match—nothing is missing.';
-  raw.stages[0].material.items=['Keeper’s bell','Signal gear','Clock cable'];
+  raw.ending+=' Everyone��s notes match��nothing is missing.';
+  raw.stages[0].material.items=['Keeper��s bell','Signal gear','Clock cable'];
   const {blueprint}=await generateBlueprint(clockSpec,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>Response.json({output:[{content:[{type:'output_text',text:'```json\n'+JSON.stringify(raw)+'\n```'}]}]}));
   assert.equal(blueprint.stages[0].material.items[0].label,"Keeper's bell");
   assert.match(blueprint.ending,/Everyone's notes match-nothing is missing/);
