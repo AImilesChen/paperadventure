@@ -290,6 +290,18 @@ export async function assembleBlueprintSteps(spec,storyFrame,stages,celebration,
   }catch(error){error.usage=combinedUsage(grounded?.usage,error.usage);error.responseId=error.responseId||grounded?.responseId;error.candidate=raw;throw error;}
 }
 
+// Validation messages for the closing mention the "final action" because the
+// closing must show its result. Classify those before the broader frame test;
+// otherwise a closing defect repeatedly regenerates the story frame while the
+// rejected closing is kept unchanged.
+const blueprintRepairNumber=reason=>{
+  const text=String(reason||'');
+  const checkpoint=text.match(/Checkpoint\s+([1-5])/i);
+  if(checkpoint)return Number(checkpoint[1]);
+  if(/ending|celebration|closing|two complete sentences|character (?:or|and) community response|concrete result of the final action/i.test(text))return 0;
+  return /spine|resolution|final action|final choice|story problem|linked finding/i.test(text)?5:0;
+};
+
 export async function generateBlueprint(spec,env,fetcher=fetch) {
   const paper=spec.gamePackVersion===2,controlled=paper&&spec.packLogicVersion===1;
   const linked=spec.packContractVersion===1&&spec.packExperienceVersion>=3;
@@ -380,8 +392,7 @@ export async function repairBlueprint(spec,candidate,reason,env,fetcher=fetch) {
       let storyFrame=prepareStoryFrame(raw.storyFrame,spec.packQualityVersion||4);
       raw.stages=normalizeStoryOrderActions(normalizeStoryCodeWords(raw.stages,spec),storyFrame,spec);
       const types=paperContractTypes(spec.plan);
-      const match=String(reason).match(/Checkpoint\s+([1-5])/i);
-      const number=match?Number(match[1]):/spine|resolution|final action|story problem|linked finding/i.test(String(reason))?5:0;
+      const number=blueprintRepairNumber(reason);
       const causalDiscoveryRepair=(spec.packQualityVersion||0)>=6&&number>=1&&number<=4&&!/material facts:/i.test(String(reason))&&/causal|consequence|discovery|finding|story link|supports/i.test(String(reason));
       let result,grounded=null;
       if(causalDiscoveryRepair){
@@ -437,8 +448,7 @@ export async function repairBlueprint(spec,candidate,reason,env,fetcher=fetch) {
       try{return {...result,blueprint:prepareBlueprintCandidate(raw,spec)};}
       catch(error){error.usage=result.usage;error.responseId=result.responseId;error.candidate=raw;throw error;}
     }
-    const match=String(reason).match(/Checkpoint\s+([1-5])/i);
-    const number=match?Number(match[1]):/spine|resolution|final action|story problem|linked finding/i.test(String(reason))?5:0;
+    const number=blueprintRepairNumber(reason);
     const stageSchema=contextualBlueprintSchema.properties.stages.items;
     const schema=number===5?{type:'object',additionalProperties:false,required:['stage','spine'],properties:{stage:stageSchema,spine:storySpineSchema}}
       :number?{type:'object',additionalProperties:false,required:['stage','link'],properties:{stage:stageSchema,link:{type:'string',maxLength:180}}}

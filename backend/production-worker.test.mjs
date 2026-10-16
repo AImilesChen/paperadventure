@@ -1049,6 +1049,14 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1,'original pack remains published until replacement checks finish');
   const download=(suffix='')=>handleProductionApi(request(`/api/v1/files/quality-order/player?paper=A4${suffix}`,'GET',undefined,headers),env);
+  const firstJob=queue.shift();assert.equal(firstJob?.type,'pack_remake');
+  await productionWorker.queue({messages:[{body:firstJob,ack(){},retry(){throw Error('a failed material should resume from its saved parts');}}]},env);
+  const partial=await view();
+  assert.equal(partial.remake.blueprintStepsCompleted,2,'the story frame and first material are visible as saved progress');
+  assert.equal(partial.remake.blueprintStepTotal,8);
+  assert.equal(partial.remake.savedSteps,2);
+  assert.equal(partial.remake.totalSteps,15);
+  assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),original);
   for(let step=0;step<12 && (await view()).remake.status!=='ready';step++){
     const job=queue.shift();assert.equal(job?.type,'pack_remake');
     await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('checked remake should not need queue-level retry');}}]},env);

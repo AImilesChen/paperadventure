@@ -250,6 +250,30 @@ test('quality version 8 re-grounds saved discoveries after repairing one materia
   assert.deepEqual(result.blueprint.stages[1].material.logic.context.labels,raw.stages[1].material.items.map(item=>item.label));
 });
 
+test('a closing error that mentions the final action repairs only the closing',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:9,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.storyFrame=structuredClockFrame();
+  raw.storyFrame.discoveries[0].consequence='The noon mark identifies the gear the keeper must fit.';
+  raw.storyFrame.discoveries[1].consequence='The spare gear stays available for the final action.';
+  raw.storyFrame.discoveries[2].consequence='The aligned wheel keeps the signal gear ready for fitting.';
+  raw.storyFrame.discoveries[3].consequence='The open upper bridge gives the team a route for the final action.';
+  raw.spine=compileStorySpine(raw.storyFrame,raw.stages,paperContractTypes(spec.plan),9);
+  raw.celebration='The mission result is visible. The group celebrates.';
+  const celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const calls=[];
+  const result=await repairBlueprint(spec,raw,'The ending celebration needs two complete sentences: a concrete result of the final action followed by a character response.',
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+      const body=JSON.parse(request.body);
+      calls.push(body.text.format.name);
+      assert.equal(body.text.format.name,'closing_repair');
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({celebration})}]}],usage:{input_tokens:4,output_tokens:8}});
+    });
+  assert.deepEqual(calls,['closing_repair']);
+  assert.equal(result.blueprint.celebration,celebration);
+  assert.deepEqual(result.blueprint.storyFrame.actions,prepareStoryFrame(raw.storyFrame,9).actions);
+});
+
 test('quality version 8 replaces a generic code word with an approved story word before grounding',()=>{
   const plan=structuredClone(clockSpec.plan);
   plan.goal='Restore the exhibit CASE label before the visitors arrive.';

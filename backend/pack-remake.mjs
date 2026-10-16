@@ -184,6 +184,12 @@ export async function packRemakeView(db, orderId) {
   if (!row) return null;
   const stages = JSON.parse(row.stages_json || '[]');
   const spec=JSON.parse(row.spec_json);
+  const resumableBlueprint=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8;
+  const partRow=resumableBlueprint?await query(db,"SELECT COUNT(DISTINCT phase || ':' || stage_number) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND status = 'passed' AND result_json IS NOT NULL AND (phase = 'blueprint_frame' OR phase = 'blueprint_closing' OR (phase = 'blueprint_material' AND stage_number BETWEEN 1 AND 5))",orderId,row.quality_epoch,row.logic_epoch).first():null;
+  const blueprintStepTotal=resumableBlueprint?8:1;
+  const blueprintStepsCompleted=row.blueprint_json?blueprintStepTotal:Math.min(Number(partRow?.n||0),blueprintStepTotal-1);
+  const savedSteps=blueprintStepsCompleted+stages.length+(row.story_json?1:0)+(row.status==='ready'?1:0);
+  const totalSteps=blueprintStepTotal+7;
   const layoutRecoveryAvailable=Boolean(row.status==='failed'&&row.published_version&&row.blueprint_json&&stages.length===5&&row.story_json&&row.error_code==='BLUEPRINT_INVALID'&&!failedRemakeNeedsUpgrade(spec,row));
   const upgradeAvailable=row.status==='failed'&&(row.published_version===null||row.quality_epoch>0)&&failedRemakeNeedsUpgrade(spec,row);
   const savedBlueprintAvailable=row.status==='failed'&&row.phase==='blueprint'&&row.error_code==='BLUEPRINT_INVALID'&&row.recovery_round>=MAX_RECOVERY_ROUNDS&&row.logic_epoch===0&&!row.published_version&&spec.packExperienceVersion>=2&&Boolean(await recoverSavedBlueprint(db,orderId,spec));
@@ -193,6 +199,10 @@ export async function packRemakeView(db, orderId) {
     status: row.status,
     phase: row.phase,
     blueprintReady: Boolean(row.blueprint_json),
+    blueprintStepsCompleted,
+    blueprintStepTotal,
+    savedSteps,
+    totalSteps,
     completedStages: stages.map(stage => stage.number),
     currentStage: [1,2,3,4,5].find(number => !stages.some(stage => stage.number === number)) || null,
     problemStage,
