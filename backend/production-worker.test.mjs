@@ -1081,6 +1081,10 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.equal((await handleProductionApi(request('/api/v1/orders/quality-order/pack-remake','POST',undefined,headers),env)).status,202);
   assert.equal((await view()).qualityUpgradeAvailable,false);
   assert.equal(db.prepare("SELECT quality_epoch,published_version FROM custom_pack_remakes WHERE order_id='quality-order'").get().quality_epoch,1);
+  const closingRefresh=JSON.parse(db.prepare("SELECT story_json FROM custom_pack_remakes WHERE order_id='quality-order'").get().story_json);
+  const closingDigits=closingRefresh.stages.slice(0,4).map(stage=>String(stage.material.logic.resultDigit)).join('');
+  assert.match(closingDigits,/^[1-3]{4}$/);
+  assert.match(closingRefresh.ending,new RegExp(`form code ${closingDigits},`),'the no-charge closing refresh keeps all four stored result digits');
   for(let step=0;step<12 && (await view()).remake.status!=='ready';step++){
     assert.deepEqual(new Uint8Array(await (await download()).arrayBuffer()),earlierPack,'published files remain available during the layout refresh');
     const job=queue.shift();assert.equal(job?.type,'pack_remake');
@@ -1092,6 +1096,8 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.equal(blueprintCalls,1,'a layout-only refresh reuses the checked story and makes no model call');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1,'quality rebuild creates no checkout');
   assert.deepEqual(new Uint8Array(await (await download('&version=2')).arrayBuffer()),earlierPack);
+  const refreshedPdf=new TextDecoder().decode(await (await download()).arrayBuffer());
+  assert.match(refreshedPdf,new RegExp(`form code ${closingDigits},`),'the refreshed Player PDF prints the checked code in its ending');
 
   const versionlessSpec=JSON.parse(db.prepare("SELECT spec_json FROM custom_pack_remakes WHERE order_id='quality-order'").get().spec_json);delete versionlessSpec.packLayoutVersion;
   const versionlessJson=JSON.stringify(versionlessSpec);
@@ -1175,12 +1181,14 @@ test('current quality and revised checked packs cannot start the free full-pack 
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false),true);
   assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:3},clockSpec,2,false),true);
   assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packQualityVersion:3},2,false),true);
-  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:10,packLayoutVersion:4},{...clockSpec,packQualityVersion:10,packLayoutVersion:4},2,false),false);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:10,packLayoutVersion:4},{...clockSpec,packQualityVersion:10,packLayoutVersion:4},2,false),true);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:11,packLayoutVersion:4},{...clockSpec,packQualityVersion:11,packLayoutVersion:4},2,false),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packExperienceVersion:2}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:5,packLayoutVersion:3}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:9,packLayoutVersion:4}),true);
-  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:10,packLayoutVersion:4}),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:10,packLayoutVersion:4}),true);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:11,packLayoutVersion:4}),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
@@ -1444,7 +1452,7 @@ test('a failed V2 quality remake migrates to V3 on the same paid order even when
   const saved=db.prepare('SELECT status,phase,spec_json,published_version,recovery_round,logic_epoch,quality_epoch,blueprint_json,stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId);
   const upgraded=JSON.parse(saved.spec_json);
   assert.equal(upgraded.packExperienceVersion,3);
-  assert.equal(upgraded.packQualityVersion,10);
+  assert.equal(upgraded.packQualityVersion,11);
   assert.equal(upgraded.packLayoutVersion,4);
   assert.equal(saved.status,'queued');assert.equal(saved.phase,'blueprint');
   assert.equal(saved.published_version,2,'the downloadable original stays published during the upgrade');
