@@ -117,12 +117,38 @@ const discoveryText=(value,label,max,allowCompact=false)=>{
 };
 const actionTerms=value=>new Set(String(value||'').toLowerCase().match(/[a-z]{3,}/g)?.filter(word=>
   !['the','and','with','from','into','onto','over','under','before','after','using','through','this','that'].includes(word))||[]);
+const discoverySubject=value=>{
+  const words=String(value||'').replace(/[,:;.!?]+$/,'').trim().split(/\s+/);
+  if(words.length>1&&/^(?:align|bring|carry|check|collect|deliver|fit|gather|guide|hand|install|move|open|place|prepare|repair|replace|reset|restore|ring|secure|set|take|test|turn|use)$/i.test(words[0]))words.shift();
+  return words.join(' ')||'needed part';
+};
+const reopenStructuredDiscovery=(value,index,supportsAction,kind)=>{
+  if(!completedOutcome.test(String(value||'')))return value;
+  const subject=discoverySubject(supportsAction);
+  if(kind==='finding')return [
+    `The needed condition for ${subject} is known.`,
+    `The needed ${subject} is available.`,
+    `The safe sequence for ${subject} is known.`,
+    `The route to ${subject} is known.`,
+  ][index];
+  return [
+    `The condition keeps ${subject} ready for the final action.`,
+    `The available ${subject} is still needed for the final action.`,
+    `The safe sequence keeps ${subject} ready for the final action.`,
+    `The route keeps ${subject} reachable for the final action.`,
+  ][index];
+};
 const normalizeDiscovery=(value,index,action,qualityVersion=6)=>{
   if(!value||typeof value!=='object'||Array.isArray(value))
     throw Error(`Checkpoint ${index+1} discovery needs separate finding, consequence and action support.`);
-  const finding=discoveryText(value.finding,`Checkpoint ${index+1} finding`,qualityVersion>=7?140:70,qualityVersion>=7);
-  const consequence=discoveryText(value.consequence,`Checkpoint ${index+1} consequence`,qualityVersion>=7?100:70,qualityVersion>=7);
   const supportsAction=fitted(value.supportsAction,`Checkpoint ${index+1} supported action`,40);
+  // The provider occasionally describes the successful final state inside an
+  // otherwise usable frame. Quality v9 reopens only that temporary sentence;
+  // the later grounding step replaces it from the actual printed material.
+  const findingInput=qualityVersion>=9?reopenStructuredDiscovery(value.finding,index,supportsAction,'finding'):value.finding;
+  const consequenceInput=qualityVersion>=9?reopenStructuredDiscovery(value.consequence,index,supportsAction,'consequence'):value.consequence;
+  const finding=discoveryText(findingInput,`Checkpoint ${index+1} finding`,qualityVersion>=7?140:70,qualityVersion>=7);
+  const consequence=discoveryText(consequenceInput,`Checkpoint ${index+1} consequence`,qualityVersion>=7?100:70,qualityVersion>=7);
   const intended=actionTerms(action),supported=actionTerms(supportsAction);
   if(qualityVersion<7&&![...supported].some(term=>intended.has(term)))
     throw Error(`Checkpoint ${index+1} discovery must name a concrete part of the intended final action.`);
@@ -304,3 +330,4 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
   if(qualityVersion===5)strictPurposes(links.map(link=>link.reason),resolution);
   return {problem,resolution,links};
 }
+
