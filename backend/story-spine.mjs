@@ -52,6 +52,18 @@ const compactAction=(value,label,max=40)=>{
   if(result.split(/\s+/).length<2)throw Error(`${label} must name a complete action.`);
   return result;
 };
+const compactSafeAction=(value,label,max=40)=>{
+  if(typeof value!=='string'||!value.trim()||/[^\x20-\x7e]/.test(value))
+    throw Error(`${label} must be printable English under ${max} characters.`);
+  const words=value.replace(/\s+/g,' ').trim().replace(/[,:;.!?\s]+$/,'').split(' ');
+  let result=words.join(' ');
+  if(result.length<=max)return result;
+  result=words.filter((word,index)=>index===0||!['friendly','careful','carefully','nearby','correct','chosen','final','proper','safely','safe'].includes(word.toLowerCase())).join(' ');
+  if(result.length<=max)return result;
+  result=result.split(' ').filter((word,index)=>index===0||!['a','an','the'].includes(word.toLowerCase())).join(' ');
+  if(result.length<=max)return result;
+  throw Error(`${label} must be printable English under ${max} characters without removing an action, object or preposition.`);
+};
 
 const resolutionWords=value=>new Set(String(value||'').toLowerCase().match(/[a-z]{4,}/g)?.filter(word=>
   !['with','from','into','onto','over','under','before','after','using','through','bring','take','make','give','hand','place','carry','move','send','open','close','seal','join'].includes(word))||[]);
@@ -61,6 +73,8 @@ const concealResolution=(problem,action)=>{
 };
 const completedOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
 const pendingDiscovery=/^(?:find|ask|inspect|check|look|search|visit|follow|trace|learn|discover|investigate)\b|\b(?:to|will) (?:reveal|learn|find|see|discover|show|explain|confirm)\b/i;
+const groundingStop=new Set(['this','that','with','from','into','onto','over','under','before','after','through','which','when','where','while','team','crew','keeper','story','final','action','result','piece','record','report','note','route','word','step','there','their','then','must','will','knows','know','helps','help','using','used','needed','needs','means','shows','show','supports','support']);
+const groundingTerms=value=>new Set((String(value||'').toLowerCase().match(/[a-z]{4,}/g)||[]).filter(word=>!groundingStop.has(word)));
 const causalLanguage=/\b(?:because|so|therefore|which (?:means|shows|allows|confirms)|making|makes|enables?|allows?|proves?|confirms?|needed|necessary|can be|can now|must be)\b/i;
 const openPurpose=(value,index)=>completedOutcome.test(value)?[
   'This identifies a condition the team needs before choosing the final action.',
@@ -103,12 +117,38 @@ const discoveryText=(value,label,max,allowCompact=false)=>{
 };
 const actionTerms=value=>new Set(String(value||'').toLowerCase().match(/[a-z]{3,}/g)?.filter(word=>
   !['the','and','with','from','into','onto','over','under','before','after','using','through','this','that'].includes(word))||[]);
+const discoverySubject=value=>{
+  const words=String(value||'').replace(/[,:;.!?]+$/,'').trim().split(/\s+/);
+  if(words.length>1&&/^(?:align|bring|carry|check|collect|deliver|fit|gather|guide|hand|install|move|open|place|prepare|repair|replace|reset|restore|ring|secure|set|take|test|turn|use)$/i.test(words[0]))words.shift();
+  return words.join(' ')||'needed part';
+};
+const reopenStructuredDiscovery=(value,index,supportsAction,kind)=>{
+  if(!completedOutcome.test(String(value||'')))return value;
+  const subject=discoverySubject(supportsAction);
+  if(kind==='finding')return [
+    `The needed condition for ${subject} is known.`,
+    `The needed ${subject} is available.`,
+    `The safe sequence for ${subject} is known.`,
+    `The route to ${subject} is known.`,
+  ][index];
+  return [
+    `The condition keeps ${subject} ready for the final action.`,
+    `The available ${subject} is still needed for the final action.`,
+    `The safe sequence keeps ${subject} ready for the final action.`,
+    `The route keeps ${subject} reachable for the final action.`,
+  ][index];
+};
 const normalizeDiscovery=(value,index,action,qualityVersion=6)=>{
   if(!value||typeof value!=='object'||Array.isArray(value))
     throw Error(`Checkpoint ${index+1} discovery needs separate finding, consequence and action support.`);
-  const finding=discoveryText(value.finding,`Checkpoint ${index+1} finding`,qualityVersion>=7?140:70,qualityVersion>=7);
-  const consequence=discoveryText(value.consequence,`Checkpoint ${index+1} consequence`,qualityVersion>=7?100:70,qualityVersion>=7);
   const supportsAction=fitted(value.supportsAction,`Checkpoint ${index+1} supported action`,40);
+  // The provider occasionally describes the successful final state inside an
+  // otherwise usable frame. Quality v9 reopens only that temporary sentence;
+  // the later grounding step replaces it from the actual printed material.
+  const findingInput=qualityVersion>=9?reopenStructuredDiscovery(value.finding,index,supportsAction,'finding'):value.finding;
+  const consequenceInput=qualityVersion>=9?reopenStructuredDiscovery(value.consequence,index,supportsAction,'consequence'):value.consequence;
+  const finding=discoveryText(findingInput,`Checkpoint ${index+1} finding`,qualityVersion>=7?140:70,qualityVersion>=7);
+  const consequence=discoveryText(consequenceInput,`Checkpoint ${index+1} consequence`,qualityVersion>=7?100:70,qualityVersion>=7);
   const intended=actionTerms(action),supported=actionTerms(supportsAction);
   if(qualityVersion<7&&![...supported].some(term=>intended.has(term)))
     throw Error(`Checkpoint ${index+1} discovery must name a concrete part of the intended final action.`);
@@ -122,7 +162,10 @@ export function prepareStoryFrame(frame,qualityVersion=4){
   let problem;
   try{problem=fitted(frame.problem,'Story-frame problem',180,true);}
   catch{problem='The mission is still blocked, and the team must use four discoveries to decide which action will work.';}
-  const actions=frame.actions.map((value,index)=>compactAction(value,`Final action ${index+1}`,40));
+  // Removing interior words to fit a label can silently turn a valid action
+  // into ungrammatical or ambiguous text. New packs must ask the provider to
+  // shorten the whole phrase instead of publishing that mutation.
+  const actions=frame.actions.map((value,index)=>qualityVersion>=8?compactSafeAction(value,`Final action ${index+1}`,40):compactAction(value,`Final action ${index+1}`,40));
   if(new Set(actions.map(value=>value.toLowerCase())).size!==3)throw Error('The story frame needs three distinct final actions.');
   if(actions.some(value=>/^(?:(?:restore|fix|solve|complete|save)\b|(?:final\s+)?action\b|option\b|choice\b)/i.test(value)))
     throw Error('Each final action must name a specific story action.');
@@ -137,7 +180,11 @@ export function prepareStoryFrame(frame,qualityVersion=4){
   if(purposes.some(value=>value.length<28||/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(value)))
     throw Error('Each discovery purpose must explain a story consequence rather than an answer code.');
   if(qualityVersion===5)strictPurposes(purposes,actions[0]);
-  return {problem:concealResolution(problem,actions[0]),actions,purposes,...(discoveries?{discoveries}:{})};
+  // Older packs hid an over-specific opening by replacing it with a generic
+  // mission sentence. That makes a paid story feel unfinished. New packs keep
+  // the approved fictional problem; the ending and final action are checked
+  // separately for premature success.
+  return {problem:qualityVersion>=8?problem:concealResolution(problem,actions[0]),actions,purposes,...(discoveries?{discoveries}:{})};
 }
 
 export function selectedStoryFinding(stage,type,number){
@@ -241,6 +288,13 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
       consequence:typeof value==='object'&&value?.consequence,
       supportsAction:typeof value==='object'&&value?.supportsAction,
     },index,resolution,qualityVersion):null;
+    if(qualityVersion>=8&&structured){
+      const source=types[index]==='symbol_key'?finding:types[index]==='order_tiles'?stages[index].material.items.map(item=>item.label).join(' '):['evidence_cards','decision_record'].includes(types[index])
+        ? [finding,...(stages[index]?.features||stages[index]?.material?.logic?.context?.features||[])].join(' '):finding;
+      const printed=groundingTerms(source),claimed=groundingTerms(structured.consequence);
+      if(![...claimed].some(word=>printed.has(word)))
+        throw Error(`Checkpoint ${index+1} story link consequence must name a printed piece or fact, not introduce an unrelated event.`);
+    }
     let reason=structured?completeStructuredStoryLink(lead,shortStoryLead(stages[index],types[index],index+1),structured,index,resolution,180,qualityVersion):plain(typeof value==='string'?value:value?.reason,`Checkpoint ${index+1} story link`,180);
     if(/\b(?:answer code|result digit|correct answer|matching option)\b/i.test(reason))
       throw Error(`Checkpoint ${index+1} story link needs a fictional reason beyond the answer code.`);
@@ -276,3 +330,4 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
   if(qualityVersion===5)strictPurposes(links.map(link=>link.reason),resolution);
   return {problem,resolution,links};
 }
+
