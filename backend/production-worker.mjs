@@ -608,8 +608,11 @@ async function orderView(request, env, orderId) {
   const initialRequests = paidPlan?.status === 'needs_help' && !paidPlan.active_version
     ? await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'initial'",order.id).first() : null;
   const activePlan = planVersions.find(item=>item.version_number===paidPlan?.active_version);
+  const themeReplanAttempts=order.status==='published'&&paidPlan?.confirmed_version
+    ? Number((await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'full' AND base_version = ? AND attempts > 0",order.id,paidPlan.confirmed_version).first())?.count||0) : 0;
+  const themeReplanFailed=order.status==='published'&&paidPlan?.status==='confirmed'&&themeReplanAttempts>0&&!paidPlan.quality_replan_used;
   const themePlanRepairAvailable=Boolean(order.product_kind==='custom'&&order.status==='published'&&accessActive(entitlement)&&
-    paidPlan?.status==='confirmed'&&paidPlan?.confirmed_version&&!paidPlan?.quality_replan_used&&
+    paidPlan?.status==='confirmed'&&paidPlan?.confirmed_version&&!paidPlan?.quality_replan_used&&themeReplanAttempts<2&&
     (!remake||remake.status==='ready')&&activePlan&&!JSON.parse(activePlan.plan_json).themeAnchors?.length);
   let generationProgress = null;
   if (activity?.generation_version === 2) {
@@ -645,7 +648,7 @@ async function orderView(request, env, orderId) {
     remake,themePlanRepairAvailable,
     revisionRequests: revisionRows.map(item=>({id:item.id,stageNumber:item.stage_number,status:item.status,version:item.version_number||null,createdAt:item.created_at,completedAt:item.completed_at||null})),
     plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
-    ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,qualityReplanUsed:Boolean(paidPlan?.quality_replan_used),fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
+    ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,qualityReplanUsed:Boolean(paidPlan?.quality_replan_used),themeReplanAttempts,themeReplanFailed,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
 }
 
 async function retryCustomDelivery(request, env, orderId) {
@@ -700,15 +703,20 @@ async function changePaidPlan(request, env, orderId) {
     if(order.status!=='published'||state?.status!=='confirmed'||!state.confirmed_version||state.quality_replan_used)
       throw new ApiError(409,'THEME_PLAN_REPAIR_UNAVAILABLE','A free theme-plan correction is not available on this order.');
     const active=await query(env.DB,'SELECT plan_json FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',orderId,state.confirmed_version).first();
+    const attempts=Number((await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'full' AND base_version = ? AND attempts > 0",orderId,state.confirmed_version).first())?.count||0);
     const entitlement=await query(env.DB,'SELECT status,access_expires_at FROM entitlements WHERE order_id = ?',orderId).first();
     const remake=await query(env.DB,'SELECT status FROM custom_pack_remakes WHERE order_id = ?',orderId).first();
-    if(!accessActive(entitlement)||!active||JSON.parse(active.plan_json).themeAnchors?.length||remake&&remake.status!=='ready')
+    if(attempts>=2||!accessActive(entitlement)||!active||JSON.parse(active.plan_json).themeAnchors?.length||remake&&remake.status!=='ready')
       throw new ApiError(409,'THEME_PLAN_REPAIR_UNAVAILABLE','This order needs a quality review before another plan can be prepared.');
     const reserved=await query(env.DB,"UPDATE custom_plan_orders SET status = 'queued',quality_replan_used = 1,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'confirmed' AND quality_replan_used = 0",orderId).run();
     if(!reserved.meta?.changes)throw new ApiError(409,'PLAN_BUSY','The plan status changed. Refresh and try again.');
     try{await query(env.DB,"INSERT INTO custom_plan_requests (id,order_id,kind,feedback,base_version,status) VALUES (?,?,'full',?,?,'queued')",requestId,orderId,feedback,state.confirmed_version).run();}
     catch(caught){await query(env.DB,"UPDATE custom_plan_orders SET status = 'confirmed',quality_replan_used = 0 WHERE order_id = ? AND status = 'queued'",orderId).run();throw caught;}
-    await env.GENERATION_QUEUE.send({type:'plan',requestId});
+    try{await env.GENERATION_QUEUE.send({type:'plan',requestId});}
+    catch(caught){await env.DB.batch([
+      query(env.DB,"UPDATE custom_plan_requests SET status = 'failed',completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'queued'",requestId),
+      query(env.DB,"UPDATE custom_plan_orders SET status = 'confirmed',quality_replan_used = 0,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'queued'",orderId),
+    ]);throw caught;}
     return json({requestId,status:'queued'},202);
   }
   if(order.status==='published'&&body.action!=='confirm')
@@ -993,7 +1001,7 @@ async function publishPlanRequest(requestId,env) {
     await query(env.DB,'INSERT OR IGNORE INTO generation_usage (order_id,attempt,model,status) VALUES (?,?,?,?)',order.id,usageAttempt,aiProvider(env)?.model||'unconfigured','plan-failed').run();
     if (attempt>=(order.status==='published'?1:3)) await env.DB.batch([
       query(env.DB,"UPDATE custom_plan_requests SET status = 'failed',lease_until = NULL,completed_at = CURRENT_TIMESTAMP WHERE id = ?",requestId),
-      query(env.DB,"UPDATE custom_plan_orders SET status = CASE WHEN confirmed_version IS NOT NULL THEN 'confirmed' WHEN active_version > 0 THEN 'review' ELSE 'needs_help' END,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'",order.id),
+      query(env.DB,"UPDATE custom_plan_orders SET status = CASE WHEN confirmed_version IS NOT NULL THEN 'confirmed' WHEN active_version > 0 THEN 'review' ELSE 'needs_help' END,quality_replan_used = CASE WHEN ? = 'published' AND ? = 'full' THEN 0 ELSE quality_replan_used END,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'",order.status,request.kind,order.id),
     ]);
     else await query(env.DB,'UPDATE custom_plan_requests SET lease_until = 0 WHERE id = ?',requestId).run();
     throw caught;
