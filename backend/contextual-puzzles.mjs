@@ -71,9 +71,17 @@ const stableOrderLabels=(candidate,spec,index)=>{
 const shortKeyWord=(value,spec,index,used)=>{
   if((spec.packQualityVersion||0)>=8){
     const word=String(value||'').trim().toUpperCase();
-    if(!/^[A-Z]{4}$/.test(word)||new Set(word).size!==4||used.has(word)||new Set(['CODE','CLUE','NOTE','GAME','PLAY','FIND']).has(word))
-      throw Error(`Checkpoint ${index+1} needs a distinct four-letter story word, not a generic puzzle label.`);
-    return word;
+    const generic=new Set(['CODE','CLUE','NOTE','GAME','PLAY','FIND']);
+    const valid=candidate=>/^[A-Z]{4}$/.test(candidate)&&new Set(candidate).size===4&&!used.has(candidate)&&!generic.has(candidate);
+    if(valid(word))return word;
+    // A generic model label is not a reason to discard the entire paid pack.
+    // Prefer an exact four-letter word already present in the approved story.
+    const approved=[spec.plan?.goal,spec.plan?.stages?.[index]?.scene,spec.plan?.stages?.[index]?.storyContext,
+      spec.plan?.opening,spec.customIdea,spec.storyLocation].filter(item=>typeof item==='string');
+    const tokens=approved.flatMap(item=>item.toUpperCase().match(/[A-Z]+/g)||[]);
+    const replacement=tokens.find(valid);
+    if(replacement)return replacement;
+    throw Error(`Checkpoint ${index+1} needs a distinct four-letter story word, not a generic puzzle label.`);
   }
   const tokens=[value,spec.plan?.title,spec.customIdea].filter(item=>typeof item==='string').flatMap(item=>item.toUpperCase().match(/[A-Z]+/g)||[]);
   for(const token of tokens)for(let start=0;start<=token.length-4;start++){
@@ -81,6 +89,16 @@ const shortKeyWord=(value,spec,index,used)=>{
     if(new Set(word).size===4&&!used.has(word))return word;
   }
   return ['CLUE','FIND','PATH','LAMP'].find(word=>!used.has(word))||'NOTE';
+};
+export const normalizeStoryCodeWords=(stages,spec)=>{
+  if((spec.packQualityVersion||0)<8)return stages;
+  const types=paperContractTypes(spec.plan),used=new Set();
+  return stages.map((stage,index)=>{
+    if(types[index]!=='symbol_key')return stage;
+    const word=shortKeyWord(stage.word||stage.material?.logic?.context?.word,spec,index,used);
+    used.add(word);
+    return {...stage,word};
+  });
 };
 export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1,qualityVersion=2){
   const labels=context.labels;
