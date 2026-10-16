@@ -72,7 +72,7 @@ async function structuredResponse(spec, env, fetcher, {name,schema,instructions,
   try {
     response=await fetcher(provider.url,{method:'POST',signal:AbortSignal.timeout(90000),headers:{authorization:`Bearer ${provider.key}`,'content-type':'application/json'},body:JSON.stringify({
       model:provider.model,...(provider.name==='deepseek'?{reasoning:{effort:careful?'low':'none'}}:{}),instructions,
-      input:JSON.stringify(input),max_output_tokens:maxOutput+(spec.packContractVersion===1&&provider.name==='deepseek'?(careful?9000:2000):0),text:{format:{type:'json_schema',name,strict:true,schema}},
+      input:JSON.stringify(input),max_output_tokens:maxOutput+(spec.packContractVersion===1&&provider.name==='deepseek'?(careful?(['story_frame','story_frame_repair'].includes(name)?14000:9000):2000):0),text:{format:{type:'json_schema',name,strict:true,schema}},
     })});
   } catch (cause) {
     throw new ApiError(502,'GENERATION_UPSTREAM_FAILED','The story provider could not complete this step.',{cause});
@@ -230,7 +230,12 @@ async function groundDiscoveriesAfterMaterials(spec,storyFrame,stages,env,fetche
       discoveries:storyFrame.discoveries,printed:printed.map((item,index)=>({...item,fixedFinding:fixedFindings[index]}))},
   });
   const discoveries=storyFrame.discoveries.map((item,index)=>({...item,
-    finding:fixedFindings[index],consequence:result.data.consequences[index]}));
+    finding:fixedFindings[index],
+    // An OPEN/CLOSED route proves traversal, not a repair or delivery. Keep
+    // this inference deterministic so the model cannot invent what lies there.
+    consequence:types[index]==='route_board'
+      ? `The open ${printed[index].selectedFinding} gives the team a route for the final action.`
+      :result.data.consequences[index]}));
   return {storyFrame:prepareStoryFrame({...storyFrame,discoveries},spec.packQualityVersion),usage:result.usage,responseId:result.responseId};
 }
 
