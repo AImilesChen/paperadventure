@@ -25,7 +25,7 @@ async function approvedCustomInput(env,input) {
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -884,7 +884,7 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
   assert.equal((await post({action:'rework',feedback:'Try again after approval.'},'paid-plan-change-0003')).status,409);
 });
 
-test('an older delivered plan gets one free theme correction before rebuilding either PDF',async()=>{
+test('a failed free theme correction can be retried once without losing the original PDFs',async()=>{
   const {db,binding}=database(),owner='theme-correction-owner',queued=[];
   const purchase=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'Journey to the West with the Monkey King',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
   purchase.packQualityVersion=13;
@@ -897,7 +897,9 @@ test('an older delivered plan gets one free theme correction before rebuilding e
   db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version,player_r2_key,guide_r2_key) VALUES ('theme-artifact','theme-activity',1,'published',2,'old/player.pdf','old/guide.pdf')").run();
   db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version) VALUES ('theme-order','confirmed',1,1)").run();
   db.prepare("INSERT INTO custom_plan_versions (order_id,version_number,plan_json,request_kind) VALUES ('theme-order',1,?,'initial')").run(JSON.stringify(oldPlan));
+  let failFirst=true;
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',PRIVATE_FILES:{},GENERATION_QUEUE:{send:async job=>queued.push(job)},FETCH:async(_url,init)=>{
+    if(failFirst)return new Response('fixture provider error',{status:502});
     const payload=JSON.parse(init.body),input=JSON.parse(payload.input);
     const value=payload.text.format.name==='paid_plan_audit'?{pass:true,issues:[]}:(()=>{const plan=planFixture(input.spec);plan.premise='The Journey to the West companions search a mountain shrine for their missing travel document.';plan.stages[0].scene='At the Journey to the West shrine';plan.stages[1].scene='At the Monkey King mountain path';return plan;})();
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});
@@ -910,6 +912,16 @@ test('an older delivered plan gets one free theme correction before rebuilding e
   assert.equal((await post({action:'quality_replan'})).status,202);
   assert.equal((await post({action:'quality_replan'})).status,200,'the same request is idempotent');
   assert.equal((await view()).themePlanRepairAvailable,false);
+  await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){}}]},env);
+  assert.equal(db.prepare("SELECT quality_replan_used FROM custom_plan_orders WHERE order_id='theme-order'").get().quality_replan_used,0);
+  assert.equal((await view()).planReview.themeReplanAttempts,1);
+  assert.equal((await view()).themePlanRepairAvailable,true);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1,'failed correction leaves original PDF available');
+  db.prepare("UPDATE custom_plan_orders SET quality_replan_used = 1 WHERE order_id = 'theme-order'").run();
+  db.exec(readFileSync(new URL('./migrations/0020_failed_theme_plan_retry.sql', import.meta.url),'utf8'));
+  assert.equal((await view()).themePlanRepairAvailable,true,'migration recovers previously stuck orders');
+  failFirst=false;
+  assert.equal((await post({action:'quality_replan'},'free-theme-correction-0002')).status,202);
   await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){throw Error('unexpected plan retry');}}]},env);
   const reviewed=await view();
   assert.equal(reviewed.planReview.status,'review');
@@ -920,7 +932,10 @@ test('an older delivered plan gets one free theme correction before rebuilding e
   assert.equal(queued.at(-1)?.type,'pack_remake');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1,'approval queues replacement; it does not publish unchecked PDFs');
   assert.equal(db.prepare("SELECT full_used,quality_replan_used FROM custom_plan_orders WHERE order_id='theme-order'").get().quality_replan_used,1);
-  assert.equal((await post({action:'quality_replan'},'free-theme-correction-0002')).status,409,'a second free full-plan generation is blocked');
+  db.prepare("DELETE FROM custom_plan_versions WHERE order_id = 'theme-order' AND version_number = 2").run();
+  db.prepare("UPDATE custom_plan_orders SET status = 'confirmed',active_version = 1,quality_replan_used = 0 WHERE order_id = 'theme-order'").run();
+  assert.equal((await view()).themePlanRepairAvailable,false,'two provider attempts exhaust self-service retries');
+  assert.equal((await post({action:'quality_replan'},'free-theme-correction-0003')).status,409,'a third full-plan generation is blocked');
 });
 
 test('staged paid generation resumes at a failed checkpoint without regenerating saved work',async()=>{

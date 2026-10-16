@@ -289,6 +289,7 @@ function DeliveryRecovery({order,refresh}) {
 function OrderNextStep({order,refresh,Link}) {
   if (order.kind !== 'custom' || !order.paidAt || !order.planReview?.confirmedVersion || order.status === 'failed' || order.status === 'refunded' || order.status === 'published' && !order.filesReady) return null;
   const ready = order.filesReady;
+  const correctingTheme = ready && !order.plan?.themeAnchors?.length && (order.themePlanRepairAvailable || order.planReview?.themeReplanAttempts > 0 || order.planReview?.qualityReplanUsed);
   return <section className={'order-next-step ' + (ready ? 'is-ready' : '')} aria-live="polite">
     <span className="eyebrow">{ready ? 'NEXT STEP · DOWNLOAD' : 'NEXT STEP · WAIT FOR DELIVERY'}</span>
     <h3>{ready ? 'Your game package is ready' : order.generationProgress && !order.generationProgress.storyReady ? 'Your game is being built one checkpoint at a time' : 'Your PDFs are being created and checked'}</h3>
@@ -309,7 +310,7 @@ function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
   const ready = order.filesReady;
   const guide = order.sku.includes('classroom') ? 'Teacher Guide' : 'Host Guide';
   const approved = order.kind === 'ready' || Boolean(order.planReview?.confirmedVersion || order.plan?.planConfirmed);
-  const state = ready ? order.remake && order.remake.status !== 'ready' ? 'Original pack ready to download' : 'Ready to download' : order.status === 'failed' ? 'Game package creation stopped' : !approved ? 'Waiting for plan approval' : order.status === 'pending_payment' ? 'Waiting for payment confirmation' : order.generationProgress && !order.generationProgress.storyReady ? 'Creating and checking your game' : order.status === 'fulfilling' ? 'Creating and checking your PDFs' : 'PDF creation is queued';
+  const state = ready ? correctingTheme || order.remake && order.remake.status !== 'ready' ? 'Original pack ready to download' : 'Ready to download' : order.status === 'failed' ? 'Game package creation stopped' : !approved ? 'Waiting for plan approval' : order.status === 'pending_payment' ? 'Waiting for payment confirmation' : order.generationProgress && !order.generationProgress.storyReady ? 'Creating and checking your game' : order.status === 'fulfilling' ? 'Creating and checking your PDFs' : 'PDF creation is queued';
   const paper = order.kind === 'ready' ? selectedPaper : order.paper;
   const progress = order.generationProgress;
   const progressLabel = progress?.phase === 'delivered' ? 'Complete' : progress?.phase === 'pdf' ? 'Building and checking PDFs' : progress?.phase === 'audit' ? 'Checking the complete game' : progress?.phase === 'checkpoint' ? `Creating checkpoint ${progress.currentStage} of 5` : 'Creating the game blueprint';
@@ -317,7 +318,7 @@ function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
   return <section className={'order-package' + (order.status === 'failed' ? ' order-package-failed' : '')} aria-labelledby="order-package-title">
     <span className="eyebrow">YOUR GAME PACKAGE</span>
     <h2 id="order-package-title">{state}</h2>
-    <p>{ready ? order.remake && order.remake.status !== 'ready' ? 'These are your earlier PDFs. The new paper-material version has not been published yet; its current status is shown above.' : 'Your complete printable adventure is ready below.' : order.status === 'failed' ? 'No complete game package was delivered. There are no files to download at the moment.' : order.status === 'pending_payment' ? 'Payment has not been confirmed for this order.' : approved ? 'The full game package is being prepared. You can return to this order later.' : 'Approve a personal plan before the full PDFs can be created.'}</p>
+    <p>{ready ? correctingTheme ? 'These are the original PDFs. The corrected theme plan and replacement PDFs have not been delivered; follow the status above before using this pack.' : order.remake && order.remake.status !== 'ready' ? 'These are your earlier PDFs. The new paper-material version has not been published yet; its current status is shown above.' : 'Your complete printable adventure is ready below.' : order.status === 'failed' ? 'No complete game package was delivered. There are no files to download at the moment.' : order.status === 'pending_payment' ? 'Payment has not been confirmed for this order.' : approved ? 'The full game package is being prepared. You can return to this order later.' : 'Approve a personal plan before the full PDFs can be created.'}</p>
     {ready && order.kind === 'custom' && <p className="live-note">{order.contentReviewPassed ? 'Game content check passed · Both PDF files checked and ready.' : 'Both PDF files are ready. This edition predates the current full-game content check.'}</p>}
     {progress && approved && <div className="order-game-progress" aria-label="Game creation progress">
       <strong>{order.status === 'failed' ? 'Stopped while ' + progressLabel.toLowerCase() : progressLabel}</strong>
@@ -341,7 +342,7 @@ function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
 function PackRemake({order,refresh}) {
   const [busy,setBusy] = useState(false), [error,setError] = useState('');
   const remake = order.remake;
-  if (order.kind !== 'custom' || !order.paidAt || !order.filesReady || ((order.gamePackVersion || 1) >= 2 && !order.qualityUpgradeAvailable && !order.themePlanRepairAvailable && !order.planReview?.qualityReplanUsed && !remake)) return null;
+  if (order.kind !== 'custom' || !order.paidAt || !order.filesReady || ((order.gamePackVersion || 1) >= 2 && !order.qualityUpgradeAvailable && !order.themePlanRepairAvailable && !order.planReview?.qualityReplanUsed && !order.planReview?.themeReplanFailed && !remake)) return null;
   const active = remake && ['queued','generating'].includes(remake.status);
   const waiting = remake?.status === 'queued';
   const done = remake?.status === 'ready';
@@ -358,14 +359,14 @@ function PackRemake({order,refresh}) {
     catch (failure) { setError(failure.message); } finally { setBusy(false); }
   }
   const themePlanStage=order.planReview?.qualityReplanUsed&&order.planReview.status!=='confirmed';
-  const themePlanNeedsHelp=order.planReview?.qualityReplanUsed&&order.planReview.status==='confirmed'&&!order.plan?.themeAnchors?.length;
+  const themePlanNeedsHelp=order.planReview?.themeReplanFailed&&!order.themePlanRepairAvailable&&!order.plan?.themeAnchors?.length;
   if((order.themePlanRepairAvailable||themePlanStage||themePlanNeedsHelp)&&(!remake||remake.status==='ready')){
     async function repairThemePlan(){
       setBusy(true);setError('');
       try{await api(`/api/v1/orders/${order.id}/plan`,{method:'POST',headers:{'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({action:'quality_replan'})});await refresh();}
       catch(failure){setError(failure.message);}finally{setBusy(false);}
     }
-    return <section id="order-remake" className="order-pack-remake" aria-labelledby="order-remake-title"><span className="eyebrow">IMPROVED GAME PACK</span><h2 id="order-remake-title">{themePlanStage?order.planReview.status==='review'?'Review a stronger story plan':'Preparing a stronger story plan':themePlanNeedsHelp?'Your story plan needs help':'First, correct the story theme'}</h2><p>{themePlanStage?order.planReview.status==='review'?'A new plan is ready below. Check that it reflects your original theme, then approve it to rebuild the complete game.':'We are preparing a theme-faithful plan. Your current PDFs remain downloadable while it is checked.':themePlanNeedsHelp?'The free plan correction did not produce an approved new plan. Your current PDFs are still available; use the order help section for review.':'Your earlier approved plan does not carry the original story theme strongly enough. Review a corrected five-checkpoint plan before we rebuild the PDFs. This stays on your paid order and does not use an included preference change.'}</p>{order.themePlanRepairAvailable&&<button type="button" className="button" onClick={repairThemePlan} disabled={busy}>{busy?'Starting…':'Prepare corrected theme plan at no charge'} <ArrowRight size={17}/></button>}{themePlanStage&&order.planReview.status==='review'&&<a className="button-quiet" href="#personal-plan-review">Review corrected plan <ArrowRight size={17}/></a>}{error&&<Alert>{error}</Alert>}</section>;
+    return <section id="order-remake" className="order-pack-remake" aria-labelledby="order-remake-title"><span className="eyebrow">IMPROVED GAME PACK</span><h2 id="order-remake-title">{themePlanStage?order.planReview.status==='review'?'Review a stronger story plan':'Preparing a stronger story plan':themePlanNeedsHelp?'Your story plan needs help':order.planReview?.themeReplanFailed?'Retry the corrected story plan':'First, correct the story theme'}</h2><p>{themePlanStage?order.planReview.status==='review'?'A new plan is ready below. Check that it reflects your original theme, then approve it to rebuild the complete game.':'We are preparing a theme-faithful plan. Your current PDFs remain downloadable while it is checked.':themePlanNeedsHelp?'Two theme-plan attempts stopped before a replacement could be approved. The original PDFs are still downloadable, but no corrected pack has been delivered. Please use the order help section for review.':order.planReview?.themeReplanFailed?'The first correction stopped before a new plan was approved. You can try once more on this paid order at no charge. The original PDFs remain downloadable; no corrected pack has been delivered.':'Your earlier approved plan does not carry the original story theme strongly enough. Review a corrected five-checkpoint plan before we rebuild the PDFs. This stays on your paid order and does not use an included preference change.'}</p>{order.themePlanRepairAvailable&&<button type="button" className="button" onClick={repairThemePlan} disabled={busy}>{busy?'Starting…':order.planReview?.themeReplanFailed?'Retry corrected theme plan at no charge':'Prepare corrected theme plan at no charge'} <ArrowRight size={17}/></button>}{themePlanStage&&order.planReview.status==='review'&&<a className="button-quiet" href="#personal-plan-review">Review corrected plan <ArrowRight size={17}/></a>}{error&&<Alert>{error}</Alert>}</section>;
   }
   return <section id="order-remake" className="order-pack-remake" aria-labelledby="order-remake-title">
     <span className="eyebrow">IMPROVED GAME PACK</span>
@@ -452,13 +453,14 @@ export function LiveOrder({ Link, orderId }) {
   const title = order.plan?.title || (order.kind === 'ready' ? order.sku.replaceAll('_',' ') : 'Your custom adventure');
   const paid = Boolean(order.paidAt);
   const approved = Boolean(order.planReview?.confirmedVersion);
+  const correctingTheme = order.filesReady && !order.plan?.themeAnchors?.length && (order.themePlanRepairAvailable || order.planReview?.themeReplanAttempts > 0 || order.planReview?.qualityReplanUsed);
   const awaitingApproval = order.kind === 'custom' && order.status === 'paid' && order.planReview?.status === 'review' && !order.planReview.pending && !approved;
   return <main className="extended-page live-page order-page">
     <div className="order-workspace">
       <Link className="order-back" to="/en/my-adventures/">← My adventures</Link>
       <header className="order-heading">
         <div><span className="eyebrow">YOUR ADVENTURE ORDER</span><h1>{title}</h1><p>Order {order.id.slice(0,8).toUpperCase()} · {order.kind === 'ready' ? 'Ready-made' : order.sku.includes('classroom') ? 'Custom Classroom' : 'Custom Home'}</p></div>
-        <span className={'order-current-status status-' + order.status}>{order.filesReady && order.remake && order.remake.status !== 'ready' ? 'Original files ready' : orderLabel[order.status] || order.status}</span>
+        <span className={'order-current-status status-' + order.status}>{order.filesReady && (correctingTheme || order.remake && order.remake.status !== 'ready') ? 'Original files ready' : orderLabel[order.status] || order.status}</span>
       </header>
       <div className="order-layout">
         <div className="order-main">
@@ -472,7 +474,7 @@ export function LiveOrder({ Link, orderId }) {
         </div>
         <aside className="order-sidebar" aria-label="Order details">
           <h2>Order details</h2>
-          <dl><div><dt>Payment</dt><dd>{paid ? 'Confirmed' : 'Not confirmed'}</dd></div><div><dt>Total</dt><dd>{formatUsd(order.amountTotal)} · {order.currency}</dd></div><div><dt>Paper</dt><dd>{order.paper === 'Letter' ? 'US Letter' : order.paper || 'Choose on download'}</dd></div>{order.kind === 'custom' && <div><dt>Plan</dt><dd>{approved ? `Version ${order.planReview.confirmedVersion} approved` : 'Awaiting approval'}</dd></div>}<div><dt>Files</dt><dd>{order.filesReady ? order.remake && order.remake.status !== 'ready' ? 'Original ready · new pending' : 'Ready' : 'Not available yet'}</dd></div></dl>
+          <dl><div><dt>Payment</dt><dd>{paid ? 'Confirmed' : 'Not confirmed'}</dd></div><div><dt>Total</dt><dd>{formatUsd(order.amountTotal)} · {order.currency}</dd></div><div><dt>Paper</dt><dd>{order.paper === 'Letter' ? 'US Letter' : order.paper || 'Choose on download'}</dd></div>{order.kind === 'custom' && <div><dt>Plan</dt><dd>{approved ? `Version ${order.planReview.confirmedVersion} approved` : 'Awaiting approval'}</dd></div>}<div><dt>Files</dt><dd>{order.filesReady ? correctingTheme ? order.planReview?.themeReplanFailed ? 'Original ready · correction stopped' : 'Original ready · correction pending' : order.remake && order.remake.status !== 'ready' ? 'Original ready · new pending' : 'Ready' : 'Not available yet'}</dd></div></dl>
           {order.filesReady && order.accessExpiresAt && <p>Online re-download until {new Date(order.accessExpiresAt.replace(' ','T') + 'Z').toLocaleDateString()}.</p>}
           {order.kind === 'custom' && paid && <p>Plan changes happen before approval. Checkpoint revisions appear after your complete game is delivered.</p>}
           {awaitingApproval ? <div className="order-status-action">
