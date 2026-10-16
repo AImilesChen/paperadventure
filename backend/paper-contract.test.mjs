@@ -91,6 +91,7 @@ test('quality version 8 blocks a concrete story defect and rejects a generic end
   for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Unexpected provider request');})).stage);
   const story=assembleStagedStory(spec,blueprint,stages);
   assert.doesNotMatch(story.ending,/carries out that action/i);
+  assert.match(story.ending,/^The four checked results form code /);
   const overlong=structuredClockFrame();
   overlong.actions[0]='Fit the clapper pin through the bell crown loop before noon';
   assert.throws(()=>prepareStoryFrame(overlong,8),/under 40 characters/);
