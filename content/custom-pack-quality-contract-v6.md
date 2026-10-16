@@ -9,6 +9,8 @@ New creator-v3 orders and eligible same-order rebuilds snapshot `packQualityVers
 - The three final choices are complete natural-English actions. The selected action must achieve the approved goal.
 - The ending names an observable result of that action and a character or community response. A generic claim that the result is visible is not a valid ending.
 
+Generation instructions distinguish action tiles from record and code pieces. The mechanical ending check enforces complete sentences and rejects generic outcomes; the full-game audit judges whether the specific outcome actually fulfils the goal. An ending-only audit issue repairs only the closing paragraph, even if the provider labels it checkpoint 5.
+
 Independent printed-puzzle proof still establishes unique answers and result digits. The full-game editorial audit receives the actual printed pieces, story links and ending. One concrete defect blocks publication and identifies the affected checkpoint or closing; an unavailable audit also cannot publish a version-8 pack. Subjective style preferences are outside this blocking review.
 
 ## Repair and release
