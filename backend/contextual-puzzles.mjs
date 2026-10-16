@@ -69,6 +69,12 @@ const stableOrderLabels=(candidate,spec,index)=>{
   return [`Inspect ${subject}`,`Gather ${subject} supplies`,`Prepare ${subject} parts`,`Position ${subject}`].map(value=>fitLabel(value));
 };
 const shortKeyWord=(value,spec,index,used)=>{
+  if((spec.packQualityVersion||0)>=8){
+    const word=String(value||'').trim().toUpperCase();
+    if(!/^[A-Z]{4}$/.test(word)||new Set(word).size!==4||used.has(word)||new Set(['CODE','CLUE','NOTE','GAME','PLAY','FIND']).has(word))
+      throw Error(`Checkpoint ${index+1} needs a distinct four-letter story word, not a generic puzzle label.`);
+    return word;
+  }
   const tokens=[value,spec.plan?.title,spec.customIdea].filter(item=>typeof item==='string').flatMap(item=>item.toUpperCase().match(/[A-Z]+/g)||[]);
   for(const token of tokens)for(let start=0;start<=token.length-4;start++){
     const word=token.slice(start,start+4);
@@ -195,6 +201,12 @@ export function prepareContextualBlueprint(candidate,spec){
       labels=['North','Garden','Market'].map(name=>fitLabel(`${name} ${subject} route`));
     }
     if(labels?.length!==count||!unique(labels)||labels.some(label=>/^(?:plain fact|rule clue|witness|final action|journey clue)\s+[a-z0-9]+$/i.test(label)))throw Error(`Checkpoint ${i+1} needs ${count} distinct story-specific labels, not placeholder names.`);
+    if((spec.packQualityVersion||0)>=8&&i<4&&type!=='symbol_key'){
+      const scaffold=/^(?:report|note|route|card|record|piece|option)\s+[a-d1-4]\s*:/i;
+      const substance=labels.map(label=>label.replace(scaffold,'').replace(/\s+(?:report|note|route|card|record|log|letter)$/i,'').trim().toLowerCase());
+      if(labels.some(label=>scaffold.test(label))||!unique(substance))
+        throw Error(`Checkpoint ${i+1} needs distinct named story pieces, not lettered placeholders or repeated subjects.`);
+    }
     if(spec.packExperienceVersion>=2&&i<4)assertGoalStillOpen(labels,spec.plan.goal,i+1);
     if(spec.packExperienceVersion>=2&&i<4&&type!=='symbol_key'&&labels.some(label=>worksheetLanguage.test(label)||/^(?:compare|match|select|record)\s+(?:card|facts|conditions|the printed)\b/i.test(label)))
       throw Error(`Checkpoint ${i+1} labels must name fictional story pieces or actions, not instructions about the worksheet.`);
@@ -202,8 +214,10 @@ export function prepareContextualBlueprint(candidate,spec){
       throw Error(`Checkpoint ${i+1} witness candidates must name story objects or actions, not the witness notes or answer roles.`);
     const usesPrintedFeatures=type==='evidence_cards'||type==='decision_record'&&spec.packExperienceVersion>=2||type==='route_board'&&spec.packExperienceVersion<2;
     let features=usesPrintedFeatures&&i<4?raw.features?.map(value=>text(spec.packExperienceVersion>=3&&['evidence_cards','decision_record'].includes(type)?fitRecordFeature(value):value,`Checkpoint ${i+1} printed feature`,32)):['Checked fact','Matching fact'];
-    if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)&&(features?.some(value=>featureBanned.test(value))||(spec.packQualityVersion||0)>=7&&features?.length===2&&!unique(features)))
+    if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)&&(features?.some(value=>featureBanned.test(value))||(spec.packQualityVersion||0)>=7&&features?.length===2&&!unique(features))){
+      if((spec.packQualityVersion||0)>=8)throw Error(`Checkpoint ${i+1} needs two concrete, distinct printed record facts; generic features cannot be substituted.`);
       features=fallbackRecordFeatures(candidate,spec,i);
+    }
     if(features?.length!==2||!unique(features))throw Error(`Checkpoint ${i+1} needs two distinct story-specific feature names.`);
     if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)){
       if(labels.some(label=>!/(?:note|report|log|letter|ledger|record|card|message|ticket|journal|entry|file|memo|clipping|receipt|statement|page|sheet|slip|document)$/i.test(label)))
