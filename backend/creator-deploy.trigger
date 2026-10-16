@@ -1,1 +1,1 @@
-2026-10-16: deploy quality v7 with saved blueprint, per-checkpoint record checks and targeted context repair.
+2026-10-16: deploy quality v9 with resumable blueprint parts, deterministic paper normalization and final quality gates.
