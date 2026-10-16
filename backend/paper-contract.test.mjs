@@ -99,6 +99,12 @@ test('quality version 8 blocks a concrete story defect and rejects a generic end
   const nounTile=structuredClone(raw);
   nounTile.stages[2].material.items[1].label='Clapper';
   assert.throws(()=>prepareBlueprintCandidate(nounTile,spec),/ordering pieces must each begin with a complete in-world action/);
+  const nounPhrase=structuredClone(raw);
+  nounPhrase.stages[2].material.items[1].label='Clapper swing';
+  assert.throws(()=>prepareBlueprintCandidate(nounPhrase,spec),/ordering pieces must each begin with a complete in-world action/);
+  const earlyParaphrase=structuredClone(raw);
+  earlyParaphrase.stages[2].material.items[1].label='Fit the signal gear';
+  assert.throws(()=>prepareBlueprintCandidate(earlyParaphrase,spec),/cannot perform the final action/);
   const checkedTile=structuredClone(raw);
   checkedTile.stages[2].material.items[1].label='Check the clapper swing';
   checkedTile.storyFrame.discoveries[2].consequence='The clapper swing is checked before fitting the signal gear.';
