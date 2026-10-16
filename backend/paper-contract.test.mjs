@@ -487,6 +487,17 @@ test('a decoded story word CODE is not confused with an answer-code explanation'
   assert.match(spine.links[0].reason,/CODE/);
 });
 
+test('quality 14 material generation permits related in-world wording without literal theme labels',async()=>{
+  const spec={...clockSpec,packQualityVersion:14},raw=linkedClockContext(),frame=structuredClockFrame();
+  spec.plan={...spec.plan,themeAnchors:['clock tower']};
+  const result=await generateBlueprintMaterialStep(spec,frame,1,[],{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'},async(_url,init)=>{
+    const sent=JSON.parse(init.body);
+    assert.match(sent.instructions,/character aliases and relevant places are valid/);
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(raw.stages[0])}]}]});
+  });
+  assert.deepEqual(result.data.material,raw.stages[0].material);
+});
+
 test('quality 14 refuses a generic story ending instead of publishing fallback copy',()=>{
   const spec={...clockSpec,packQualityVersion:14};
   assert.throws(()=>deliverableClosing('',spec,{actions:['Align signal gear']}),/specific two-sentence outcome/);

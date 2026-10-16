@@ -43,12 +43,15 @@ test('a code-led paid plan may use two reasoning support tasks so printable mate
   const impossible={...plan,stages:plan.stages.map(stage=>({...stage,mechanic:'code'}))};
   assert.throws(()=>validatePlan(impossible,spec),/varied paper actions/);
 });
-test('quality 14 keeps a purchased theme in the approved opening and checkpoint scene',()=>{
+test('quality 14 validates theme metadata without rejecting translations and aliases',()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const plan=planFixture(spec);
   assert.deepEqual(validatePlan(plan,spec).themeAnchors,['Journey to the West']);
   assert.throws(()=>validatePlan({...plan,themeAnchors:[]},spec),/purchased-theme anchors/);
-  assert.throws(()=>validatePlan({...plan,stages:plan.stages.map((stage,index)=>({...stage,scene:`At generic desk ${index+1}`}))},spec),/Theme anchors/);
+  assert.throws(()=>validatePlan({...plan,themeAnchors:['same','SAME']},spec),error=>error.code==='PLAN_THEME_INVALID');
+  assert.throws(()=>validatePlan({...plan,themeAnchors:[]},spec),error=>error.code==='PLAN_THEME_MISSING');
+  const aliases={...plan,opening:'The Monkey King helps his companions recover a lost message.',stages:plan.stages.map((stage,index)=>({...stage,scene:['At Sun Wukong\'s mountain','Beside the monk\'s shrine','At the pilgrim inn','At the river crossing','Beside the temple gate'][index]}))};
+  assert.equal(validatePlan(aliases,spec).opening,aliases.opening);
 });
 test('theme-plan repair asks for the returned premise and scenes across two themes',async()=>{
   for(const customIdea of ['西游记，东方神话元素','A clock tower that stopped at noon']){
@@ -57,7 +60,7 @@ test('theme-plan repair asks for the returned premise and scenes across two them
     valid.premise=`The ${valid.themeAnchors[0]} guardians find that a vital message has gone missing.`;
     valid.stages[1].scene=`At the ${valid.themeAnchors[0]} archive`;
     const previous={...valid,themeAnchors:undefined,stages:valid.stages.map((stage,index)=>index<2?{...stage,scene:`At a generic desk ${index+1}`} : stage)};
-    const invalid={...valid,premise:'A generic station has a missing message.'};
+    const invalid={...valid,themeAnchors:[]};
     const sent=[];
     const result=await generateSinglePlan(spec,env,async(_url,request)=>{
       const body=JSON.parse(request.body);sent.push(body);
@@ -65,7 +68,7 @@ test('theme-plan repair asks for the returned premise and scenes across two them
       return response(value);
     },{kind:'full',feedback:'Restore the purchased theme.',previousPlan:previous});
     assert.equal(sent.length,3);
-    assert.match(sent[0].instructions,/exact anchor in premise and distribute exact anchors across at least three different scenes/);
+    assert.match(sent[0].instructions,/Judge the premise and five scenes together by meaning/);
     assert.match(sent[1].instructions,/Do not return opening, roles, preparation, tasks or answers/);
     assert.match(result.plan.opening,new RegExp(valid.themeAnchors[0],'i'));
     assert.equal(result.providerCalls,3);
@@ -116,7 +119,7 @@ test('an overlong paid plan is repaired before audit and usage includes the repa
   assert.equal(result.usage.input_tokens,30);assert.equal(result.usage.output_tokens,60);
 });
 
-test('failed initial plan validation retries once and preserves usage from every provider response',async()=>{
+test('failed initial validation repairs the saved candidate without regenerating it',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const invalid={...planFixture(spec),premise:'R'.repeat(400)};
   let calls=0;
@@ -124,10 +127,10 @@ test('failed initial plan validation retries once and preserves usage from every
     calls++;return Response.json({id:`failed-${calls}`,output:[{content:[{type:'output_text',text:JSON.stringify(invalid)}]}],usage:{input_tokens:10,output_tokens:20}});
   }),error=>{
     assert.equal(error.code,'PLAN_INVALID');
-    assert.deepEqual(error.usage,{input_tokens:40,output_tokens:80});
-    assert.equal(error.responseId,'failed-4');return true;
+    assert.deepEqual(error.usage,{input_tokens:30,output_tokens:60});
+    assert.equal(error.responseId,'failed-3');return true;
   });
-  assert.equal(calls,4);
+  assert.equal(calls,3);
 });
 test('a transient invalid initial plan recovers without using a customer change',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
@@ -149,8 +152,8 @@ test('a paid plan rejected by audit is corrected and independently rechecked onc
   let calls=0;
   const result=await generateSinglePlan(spec,env,async(_url,options)=>{
     const sent=JSON.parse(options.body);
-    const value=[first,{pass:false,issues:['SCENE_SEQUENCE']},corrected,{pass:true,issues:[]}][calls++];
-    if(calls===3){assert.equal(JSON.parse(sent.input).auditIssueCode,'SCENE_SEQUENCE');assert.match(JSON.parse(sent.input).auditInstruction,/causal journey/);}
+    const value=[first,{pass:false,issues:[{code:'SCENE_SEQUENCE',fields:['scene2']}]},corrected,{pass:true,issues:[]}][calls++];
+    if(calls===3){assert.deepEqual(JSON.parse(sent.input).auditIssue,{code:'SCENE_SEQUENCE',fields:['scene2']});assert.match(JSON.parse(sent.input).auditInstruction,/coherent journey/);}
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
   });
   assert.equal(calls,4);
@@ -158,6 +161,56 @@ test('a paid plan rejected by audit is corrected and independently rechecked onc
   assert.equal(result.usage.input_tokens,40);
   assert.equal(result.usage.output_tokens,80);
 });
+test('Chinese mythology aliases and a simple English theme reach semantic review without keyword-count rejection',async()=>{
+  for(const idea of ['西游记，东方神话元素','A clock tower that stopped at noon']){
+    const spec=validatePurchase({...input,creatorVersion:3,customIdea:idea}).spec,plan=planFixture(spec),requests=[];
+    plan.premise=idea.startsWith('西游')?'The Monkey King helps a monk recover a message.':'The town bell has fallen silent at noon.';
+    plan.stages.forEach((stage,index)=>{stage.scene=['At the mountain shrine','Beside the river','At the keeper\'s workshop','At the narrow bridge','Beside the final gate'][index];});
+    const result=await generateSinglePlan(spec,env,async(_url,options)=>{
+      const sent=JSON.parse(options.body);requests.push(sent);
+      return response(sent.text.format.name==='paid_plan_audit'?{pass:true,issues:[]}:plan);
+    },{kind:'full'});
+    assert.equal(requests.length,2);
+    assert.match(requests[1].instructions,/Accurate translations, character aliases and relevant places are valid/);
+    assert.match(result.plan.opening,new RegExp(plan.premise.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  }
+});
+
+test('a genuinely rejected theme stays blocked and only rejected fields can change',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec,first=planFixture(spec),badCorrection=structuredClone(first),saved=[];
+  first.premise='A generic traveller loses a message.';
+  badCorrection.premise='An unrelated robot loses a message.';badCorrection.title='Unrequested title change';badCorrection.goal='Unrequested goal change';
+  let calls=0;
+  const verdict={pass:false,issues:[{code:'THEME_WEAK',fields:['premise']}]};
+  await assert.rejects(generateSinglePlan(spec,env,async()=>response([first,verdict,badCorrection,verdict][calls++]),{kind:'full',onCheckpoint:async value=>saved.push(structuredClone(value))}),error=>planFailureCategory(error)==='PLAN_QA_THEME_WEAK');
+  assert.equal(calls,4);
+  const latest=saved.at(-1);
+  assert.equal(latest.candidate.title,first.title);assert.equal(latest.candidate.goal,first.goal);
+  assert.equal(latest.candidate.premise,badCorrection.premise);assert.equal(latest.audit.issues[0].code,'THEME_WEAK');
+});
+
+test('a failed audit resumes the saved candidate and the total provider budget survives redelivery',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec,plan=planFixture(spec);let saved=null,calls=0;
+  await assert.rejects(generateSinglePlan(spec,env,async(_url,options)=>{
+    const sent=JSON.parse(options.body);calls++;
+    return sent.text.format.name==='paid_plan_audit'?new Response('',{status:502}):response(plan);
+  },{kind:'full',onCheckpoint:async value=>{saved=structuredClone(value);}}),error=>error.code==='PLAN_AUDIT_FAILED');
+  assert.equal(calls,2);assert.equal(saved.valid,true);
+  const result=await generateSinglePlan(spec,env,async(_url,options)=>{
+    assert.equal(JSON.parse(options.body).text.format.name,'paid_plan_audit');calls++;return response({pass:true,issues:[]});
+  },{kind:'full',resume:saved,previousCalls:calls});
+  assert.equal(calls,3);assert.equal(result.providerCalls,1);
+  await assert.rejects(generateSinglePlan(spec,env,async()=>{throw Error('budget bypass');},{kind:'full',resume:{candidate:plan,valid:true},previousCalls:5}),error=>error.code==='PLAN_CALL_BUDGET');
+});
+
+test('malformed review results are protocol failures and never become story-mismatch diagnoses',async()=>{
+  for(const verdict of [{pass:true,issues:['THEME_WEAK']},{pass:false,issues:[]},{pass:false,issues:[{code:'invented-private-text',fields:['premise']}]}]){
+    const spec=validatePurchase({...input,creatorVersion:3}).spec;let calls=0;
+    await assert.rejects(generateSinglePlan(spec,env,async()=>response(++calls===1?planFixture(spec):verdict),{kind:'full'}),error=>planFailureCategory(error)==='PLAN_AUDIT_INVALID');
+    assert.equal(calls,2);
+  }
+});
+
 test('two full five-checkpoint plans are required from the proposal provider',async()=>{
   const spec=base();let sent;
   const result=await generateProposals(spec,env,async(_,options)=>{sent=JSON.parse(options.body);return response({proposals:[planFixture(spec),planFixture(spec,'mission')]});});

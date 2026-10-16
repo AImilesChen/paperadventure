@@ -25,7 +25,7 @@ async function approvedCustomInput(env,input) {
 
 function database({includeThemeRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
     db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
@@ -850,7 +850,7 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture-model',GENERATION_QUEUE:{send:async job=>queued.push(job)},FETCH:async(_url,init)=>{
     providerCalls++;
     const sent=JSON.parse(init.body),name=sent.text.format.name;
-    if(name==='paid_plan_audit')return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:!failAudit,issues:failAudit?['Mismatch']:[]})}]}]});
+    if(name==='paid_plan_audit')return failAudit?new Response('fixture audit unavailable',{status:502}):Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:true,issues:[]})}]}]});
     assert.equal(name,'paid_adventure_plan');
     const input=JSON.parse(sent.input),plan=input.kind==='targeted'?structuredClone(input.previousPlan):planFixture(input.spec);
     if(input.kind==='full'){plan.stages[1].task+=' Check the clock face.';plan.stages[2].task+=' Ask the keeper.';plan.stages[1].scene='Beside the clock tower face';plan.stages[2].scene='At the clock tower paper desk';}
@@ -872,8 +872,13 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
   failAudit=true;
   await productionWorker.queue({messages:[{body:{type:'plan',requestId},ack(){throw Error('failed audit cannot ack');},retry(){}}]},env);
   assert.equal(db.prepare("SELECT full_used FROM custom_plan_orders WHERE order_id='v3-order'").get().full_used,0);
+  const checkpoint=db.prepare('SELECT checkpoint_json,plan_valid,provider_calls FROM custom_plan_work WHERE request_id=?').get(requestId);
+  assert.equal(checkpoint.plan_valid,1);assert.equal(checkpoint.provider_calls,2);
+  assert.ok(JSON.parse(checkpoint.checkpoint_json).candidate);
+  const beforeResumeCalls=providerCalls;
   failAudit=false;
   await productionWorker.queue({messages:[{body:{type:'plan',requestId},ack(){},retry(){throw Error('unexpected retry');}}]},env);
+  assert.equal(providerCalls-beforeResumeCalls,1,'redelivery only repeats the failed audit');
   assert.equal(db.prepare("SELECT full_used FROM custom_plan_orders WHERE order_id='v3-order'").get().full_used,1);
   assert.equal((await post({action:'edit',scope:'opening',feedback:'Please mention the paper clock earlier.'},'paid-plan-change-0002')).status,202);
   await productionWorker.queue({messages:[{body:queued.at(-1),ack(){},retry(){throw Error('unexpected retry');}}]},env);
@@ -905,7 +910,7 @@ test('two old theme-plan failures gain one bounded correction without losing ori
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',PRIVATE_FILES:{},GENERATION_QUEUE:{send:async job=>queued.push(job)},FETCH:async(_url,init)=>{
     if(providerMode==='upstream')return new Response('fixture provider error',{status:502});
     const payload=JSON.parse(init.body),input=JSON.parse(payload.input);
-    const value=payload.text.format.name==='paid_plan_audit'?providerMode==='audit'?{pass:false,issues:['THEME_WEAK']}:{pass:true,issues:[]}:(()=>{const plan=planFixture(input.spec);plan.premise='The Journey to the West companions search a mountain shrine for their missing travel document.';plan.stages[0].scene='At the Journey to the West shrine';plan.stages[1].scene='At the Journey to the West mountain path';return plan;})();
+    const value=payload.text.format.name==='paid_plan_audit'?providerMode==='audit'?{pass:false,issues:[{code:'THEME_WEAK',fields:['premise']}]}:{pass:true,issues:[]}:(()=>{const plan=planFixture(input.spec);plan.premise='The Journey to the West companions search a mountain shrine for their missing travel document.';plan.stages[0].scene='At the Journey to the West shrine';plan.stages[1].scene='At the Journey to the West mountain path';return plan;})();
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});
   }};
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
@@ -937,6 +942,10 @@ test('two old theme-plan failures gain one bounded correction without losing ori
   assert.equal((await post({action:'quality_replan'},'free-theme-correction-0003')).status,202);
   await productionWorker.queue({messages:[{body:queued.shift(),ack(){throw Error('failed audit cannot ack');},retry(){}}]},env);
   assert.equal((await view()).planReview.themeReplanFailureCode,'PLAN_QA_THEME_WEAK');
+  const failureView=await view();
+  assert.equal(failureView.planReview.progress.phase,'failed');assert.equal(failureView.planReview.progress.candidateSaved,true);
+  assert.equal(failureView.planReview.progress.providerCalls,4);
+  assert.doesNotMatch(JSON.stringify(failureView.planReview.progress),/candidate_json|checkpoint_json|premise|candidate":/,'private candidate stays out of the public progress object');
   assert.equal((await view()).themePlanRepairAvailable,false,'the old recovery grant is consumed by the QA mismatch');
   db.exec(readFileSync(new URL('./migrations/0022_theme_plan_qa_recovery.sql', import.meta.url),'utf8'));
   assert.equal((await view()).themePlanRepairAvailable,true,'the QA migration grants one explicit aligned-rule attempt');
