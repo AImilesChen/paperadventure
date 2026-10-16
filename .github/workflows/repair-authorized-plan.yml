@@ -1,0 +1,28 @@
+name: Prepare one reviewed replacement plan for authorized order
+on:
+  push:
+    branches: [codex-79bb-reviewed-plan-20261016]
+    paths: [.github/workflows/repair-authorized-plan.yml]
+permissions:
+  contents: read
+concurrency:
+  group: operator-reviewed-plan-79bb-20261016
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
+      CONFIRM_SCOPED_PLAN_REPAIR: '79bb86c7-93b0-4088-ba7a-4a04cd1b2f34'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Save one independently reviewed unapproved plan; maximum two model calls
+        run: node scripts/repair-79bb-plan.mjs
