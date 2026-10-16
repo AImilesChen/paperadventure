@@ -2,7 +2,8 @@ import { ApiError, validateGeneratedStory } from './domain.mjs';
 import { aiProvider } from './openai.mjs';
 import { sha256, sha256Bytes } from './security.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
-import { generateBlueprint, repairBlueprint, validateBlueprint, prepareBlueprintCandidate, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory, auditCheckpointSemantics } from './staged-story.mjs';
+import { generateBlueprint, repairBlueprint, validateBlueprint, prepareBlueprintCandidate, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory, auditCheckpointSemantics,
+  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
@@ -13,10 +14,10 @@ const MAX_BLUEPRINT_CALLS = 3;
 const MAX_AUDIT_CALLS = 5;
 const stepLimit = (phase,spec) => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? spec?.packExperienceVersion>=2?5:MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
-const CURRENT_PACK_QUALITY_VERSION = 7;
+const CURRENT_PACK_QUALITY_VERSION = 9;
 const CURRENT_PACK_LAYOUT_VERSION = 4;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','STAGE_SEMANTIC_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
-const deterministicCheckpoint = (phase,spec) => phase === 'checkpoint' && spec.gamePackVersion === 2 && spec.packLogicVersion === 1;
+const deterministicCheckpoint = (phase,spec,stageNumber=0) => (phase === 'checkpoint' || phase === 'blueprint_material' && stageNumber === 5) && spec.gamePackVersion === 2 && spec.packLogicVersion === 1;
 
 async function recoverSavedBlueprint(db,orderId,spec){
   const last=await query(db,"SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND logic_epoch = 0 AND phase = 'blueprint' AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1",orderId).first();
@@ -212,7 +213,7 @@ async function recordCall(remake, phase, stageNumber, produce, env, {reuse=true}
   const db = env.DB;
   const spec=JSON.parse(remake.spec_json);
   const round = remake.recovery_round + 1;
-  const deterministic = deterministicCheckpoint(phase,spec);
+  const deterministic = deterministicCheckpoint(phase,spec,stageNumber);
   const cached = reuse ? await query(db, "SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", remake.order_id, remake.quality_epoch, remake.logic_epoch, phase, stageNumber).first() : null;
   if (cached) return JSON.parse(cached.result_json);
   const stepCount = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', remake.order_id, remake.quality_epoch, remake.logic_epoch, phase, stageNumber, round).first();
@@ -308,7 +309,7 @@ export async function processPackRemake(orderId, env) {
   const lease = await query(db, "UPDATE custom_pack_remakes SET status = 'generating',lease_until = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))", nowSeconds() + 900, orderId, nowSeconds()).run();
   if (!lease.meta?.changes) return;
   const spec = JSON.parse(remake.spec_json);
-  let phase = 'blueprint', stageNumber = 0;
+  let phase = 'blueprint', budgetPhase='blueprint', stageNumber = 0;
   try {
     if(remake.phase==='repair'&&remake.blueprint_json&&(spec.packQualityVersion||0)>=7){
       phase='repair';
@@ -335,8 +336,36 @@ export async function processPackRemake(orderId, env) {
       return;
     }
     if (!remake.blueprint_json) {
-      const blueprint = validateBlueprint(await recordCall(remake, 'blueprint', 0, async () => {
-        const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", orderId,remake.quality_epoch,remake.logic_epoch).first();
+      const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", orderId,remake.quality_epoch,remake.logic_epoch).first();
+      let generatedBlueprint;
+      const resumable=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&!prior;
+      if(resumable){
+        budgetPhase='blueprint_frame';stageNumber=0;
+        const frame=await recordCall(remake,budgetPhase,0,async()=>{
+          const result=await generateBlueprintFrameStep(spec,env,env.FETCH||fetch);
+          return {value:result.storyFrame,usage:result.usage,responseId:result.responseId};
+        },env);
+        const materials=[];
+        for(let number=1;number<=5;number++){
+          budgetPhase='blueprint_material';stageNumber=number;
+          materials.push(await recordCall(remake,budgetPhase,number,async()=>{
+            const result=await generateBlueprintMaterialStep(spec,frame,number,materials,env,env.FETCH||fetch);
+            return {value:result.data,usage:result.usage,responseId:result.responseId};
+          },env));
+        }
+        budgetPhase='blueprint_closing';stageNumber=0;
+        const closing=await recordCall(remake,budgetPhase,0,async()=>{
+          const result=await generateBlueprintClosingStep(spec,frame,env,env.FETCH||fetch);
+          return {value:result.data.celebration,usage:result.usage,responseId:result.responseId};
+        },env);
+        budgetPhase='blueprint';stageNumber=0;
+        generatedBlueprint=await recordCall(remake,'blueprint',0,async()=>{
+          const result=await assembleBlueprintSteps(spec,frame,materials,closing,env,env.FETCH||fetch);
+          return {value:result.blueprint,usage:result.usage,responseId:result.responseId};
+        },env);
+      }else{
+        budgetPhase='blueprint';stageNumber=0;
+        generatedBlueprint=await recordCall(remake, 'blueprint', 0, async () => {
         // Audit reports are about different candidates. Replaying older issues against the
         // newest candidate can undo a corrected checkpoint and make repairs oscillate.
         const result = prior ? await repairBlueprint(spec, JSON.parse(prior.result_json), prior.error_detail, env, env.FETCH || fetch)
@@ -364,7 +393,9 @@ export async function processPackRemake(orderId, env) {
           }
         }
         return { value: result.blueprint, usage: result.usage, responseId: result.responseId };
-      }, env), spec);
+        }, env);
+      }
+      const blueprint = validateBlueprint(generatedBlueprint, spec);
       const blueprintJson = JSON.stringify(blueprint);
       await query(db, "UPDATE custom_pack_remakes SET blueprint_json = ?,blueprint_sha256 = ?,status = 'queued',phase = 'checkpoint',lease_until = NULL,failure_count = 0,updated_at = CURRENT_TIMESTAMP WHERE order_id = ?", blueprintJson, await sha256(blueprintJson), orderId).run();
       await queueNext(orderId, env);
@@ -375,7 +406,7 @@ export async function processPackRemake(orderId, env) {
     const stages = JSON.parse(remake.stages_json || '[]');
     const next = stages.length + 1;
     if (next <= 5) {
-      phase = 'checkpoint'; stageNumber = next;
+      phase = 'checkpoint'; budgetPhase='checkpoint'; stageNumber = next;
       const previous = stages.at(-1) || null;
       const stage = await recordCall(remake, phase, next, async () => {
         const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'checkpoint' AND stage_number = ? AND generation_round = ? AND status = 'failed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1", orderId, remake.quality_epoch, remake.logic_epoch, next, remake.recovery_round + 1).first();
@@ -394,7 +425,7 @@ export async function processPackRemake(orderId, env) {
       return;
     }
     if (!remake.story_json) {
-      phase = 'audit'; stageNumber = 0;
+      phase = 'audit'; budgetPhase='audit'; stageNumber = 0;
       const story = assembleStagedStory(spec, blueprint, stages);
       const storyJson = JSON.stringify(story);
       const storyHash = await sha256(storyJson);
@@ -413,14 +444,14 @@ export async function processPackRemake(orderId, env) {
     const code = typeof caught?.code === 'string' && /^[A-Z0-9_]{1,60}$/.test(caught.code) ? caught.code : 'UNEXPECTED';
     const detail=(phase==='repair'&&stageNumber?`Checkpoint ${stageNumber}: `:'')+String(caught?.message||'Unknown failure');
     const total = await query(db, "SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND model != 'checked-rules-v1'", orderId, remake.quality_epoch, remake.logic_epoch, remake.recovery_round + 1).first();
-    const step = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', orderId, remake.quality_epoch, remake.logic_epoch, phase, stageNumber, remake.recovery_round + 1).first();
+    const step = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', orderId, remake.quality_epoch, remake.logic_epoch, budgetPhase, stageNumber, remake.recovery_round + 1).first();
     if((spec.packQualityVersion||0)>=7&&remake.blueprint_json&&['STAGE_SEMANTIC_INVALID','GENERATION_QA_FAILED'].includes(code)&&Number.isInteger(caught.stageNumber)&&caught.stageNumber>=0&&caught.stageNumber<=5&&total.n<MAX_CALLS&&remake.failure_count<2){
       await query(db,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'repair',lease_until = NULL,failure_count = failure_count + 1,error_code = ?,error_detail = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'",code,detail.slice(0,1000),orderId).run();
       await queueNext(orderId,env);
       return;
     }
-    let retry = total.n < MAX_CALLS && (deterministicCheckpoint(phase,spec) || step.n < stepLimit(phase,spec)) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING','REMAKE_BUDGET_EXHAUSTED'].includes(code);
-    if (deterministicCheckpoint(phase,spec) && code === 'GENERATION_INVALID') retry = false;
+    let retry = total.n < MAX_CALLS && (deterministicCheckpoint(budgetPhase,spec,stageNumber) || step.n < stepLimit(budgetPhase,spec)) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING','REMAKE_BUDGET_EXHAUSTED'].includes(code);
+    if (deterministicCheckpoint(budgetPhase,spec,stageNumber) && code === 'GENERATION_INVALID') retry = false;
     if (code === 'GENERATION_QA_FAILED') {
       const failedStage = caught.stageNumber;
       retry = retry && failedStage >= 1 && failedStage <= 5;
@@ -449,3 +480,4 @@ export async function processPackRemake(orderId, env) {
     if (retry) await queueNext(orderId, env);
   }
 }
+
