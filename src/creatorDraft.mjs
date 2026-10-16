@@ -13,6 +13,11 @@ export function normalizeDraft(saved = {}) {
 export function fromCloudDraft(spec) {
   return normalizeDraft({...spec,idea:spec.customIdea || '',step:1});
 }
+export function updateDraftField(current,name,value) {
+  const next={...current,[name]:value};
+  if(name==='setting'&&value==='home')next.groups='';
+  return next;
+}
 export function activePlans(draft) {
   if (!draft.cache || draft.cache.key!==contextKey(draftSpec(draft))) return [];
   try { return draft.cache.proposals.map(item=>({...validatePlan(item,draftSpec(draft)),previewToken:item.previewToken})); } catch { return []; }
