@@ -234,7 +234,7 @@ function PaidPlanReview({order,refresh}) {
   const selectedText=selectedStage?[selectedStage.storyContext,selectedStage.task].filter(Boolean).join(' '):activePlan?.[scope];
   const scopeOptions=[['title','Title'],['summary','Summary'],['opening','Opening'],['roles','Team roles'],['goal','Goal'],['preparation','Preparation'],...[1,2,3,4,5].map(n=>[`stage${n}`,`Checkpoint ${n}`])].filter(([value])=>!order.packContractVersion||!['roles','preparation'].includes(value));
 
-  return <section className="paid-plan-review" aria-label="Personal plan review">
+  return <section id="personal-plan-review" className="paid-plan-review" aria-label="Personal plan review">
     <header className="paid-plan-heading">
       <span className="eyebrow">YOUR PAID PLAN</span>
       <h2>{review.status==='confirmed'?'Approved plan':review.status==='needs_help'?'Plan generation stopped':review.status==='review'?'Review your plan':'Preparing your personal plan'}</h2>
@@ -396,7 +396,7 @@ export function LiveOrder({ Link, orderId }) {
   const refresh = async ({ announce = false } = {}) => {
     if (refreshLock.current) return;
     refreshLock.current = true;
-    setRefreshing(true);
+    if (announce) setRefreshing(true);
     try {
       const data = await api(`/api/v1/orders/${orderId}`);
       if (data?.id !== orderId || !['ready', 'custom'].includes(data.kind)) throw new Error('The order service returned an invalid response. Please try again later.');
@@ -418,7 +418,7 @@ export function LiveOrder({ Link, orderId }) {
       if (announce) setRefreshNotice('');
     } finally {
       refreshLock.current = false;
-      setRefreshing(false);
+      if (announce) setRefreshing(false);
     }
   };
   const openHelp = (kind,description) => {
@@ -427,12 +427,13 @@ export function LiveOrder({ Link, orderId }) {
   };
   useEffect(() => { setOrder(null); setError(''); setRefreshNotice(''); refresh(); }, [orderId]);
   useEffect(() => {
-    if (!order || !['pending_payment','paid','fulfilling'].includes(order.status) && !['queued','generating'].includes(order.remake?.status)) return;
+    const awaitingApproval = order?.kind === 'custom' && order.status === 'paid' && order.planReview?.status === 'review' && !order.planReview.pending && !order.planReview.confirmedVersion;
+    if (!order || awaitingApproval || !['pending_payment','paid','fulfilling'].includes(order.status) && !['queued','generating'].includes(order.remake?.status)) return;
     const update = () => { if (document.visibilityState === 'visible') refresh(); };
     const timer = setInterval(update, 5000);
     document.addEventListener('visibilitychange', update);
     return () => { clearInterval(timer); document.removeEventListener('visibilitychange', update); };
-  }, [orderId,order?.status,order?.remake?.status]);
+  }, [orderId,order?.status,order?.remake?.status,order?.planReview?.status,order?.planReview?.pending,order?.planReview?.confirmedVersion]);
 
   if (error) return <main className="extended-page live-page order-page"><div className="order-workspace"><Alert>{error}</Alert><button className="button" type="button" onClick={() => refresh({ announce: true })} disabled={refreshing}>{refreshing ? 'Checking order…' : 'Retry order status'} {refreshing ? <ArrowClockwise className="is-spinning" size={18}/> : <ArrowRight size={18}/>}</button><p><Link to="/en/account/">Sign in with Google</Link> if your session has expired.</p></div></main>;
   if (!order) return <main className="extended-page live-page order-page"><div className="order-workspace" role="status">Checking your order…</div></main>;
@@ -440,6 +441,7 @@ export function LiveOrder({ Link, orderId }) {
   const title = order.plan?.title || (order.kind === 'ready' ? order.sku.replaceAll('_',' ') : 'Your custom adventure');
   const paid = Boolean(order.paidAt);
   const approved = Boolean(order.planReview?.confirmedVersion);
+  const awaitingApproval = order.kind === 'custom' && order.status === 'paid' && order.planReview?.status === 'review' && !order.planReview.pending && !approved;
   return <main className="extended-page live-page order-page">
     <div className="order-workspace">
       <Link className="order-back" to="/en/my-adventures/">← My adventures</Link>
@@ -462,14 +464,18 @@ export function LiveOrder({ Link, orderId }) {
           <dl><div><dt>Payment</dt><dd>{paid ? 'Confirmed' : 'Not confirmed'}</dd></div><div><dt>Total</dt><dd>{formatUsd(order.amountTotal)} · {order.currency}</dd></div><div><dt>Paper</dt><dd>{order.paper === 'Letter' ? 'US Letter' : order.paper || 'Choose on download'}</dd></div>{order.kind === 'custom' && <div><dt>Plan</dt><dd>{approved ? `Version ${order.planReview.confirmedVersion} approved` : 'Awaiting approval'}</dd></div>}<div><dt>Files</dt><dd>{order.filesReady ? order.remake && order.remake.status !== 'ready' ? 'Original ready · new pending' : 'Ready' : 'Not available yet'}</dd></div></dl>
           {order.filesReady && order.accessExpiresAt && <p>Online re-download until {new Date(order.accessExpiresAt.replace(' ','T') + 'Z').toLocaleDateString()}.</p>}
           {order.kind === 'custom' && paid && <p>Plan changes happen before approval. Checkpoint revisions appear after your complete game is delivered.</p>}
-          <div className={'order-status-action ' + (['queued', 'generating'].includes(order.remake?.status) ? 'is-pending' : '')}>
+          {awaitingApproval ? <div className="order-status-action">
+            <strong>Next step: review your plan</strong>
+            <p>Your payment is confirmed. PDF creation begins after you approve the five-checkpoint plan.</p>
+            <a className="button order-refresh-button" href="#personal-plan-review">Review your plan <ArrowRight size={18}/></a>
+          </div> : <div className={'order-status-action ' + (['queued', 'generating'].includes(order.remake?.status) ? 'is-pending' : '')}>
             <strong>{['queued', 'generating'].includes(order.remake?.status) ? 'New pack in progress' : 'Need the latest status?'}</strong>
             <p>This checks the server for updated files and progress. It does not create a new order or charge you.</p>
             <button type="button" className="button order-refresh-button" onClick={() => refresh({ announce: true })} disabled={refreshing}>
               {refreshing ? 'Checking status…' : 'Check for updates'} <ArrowClockwise className={refreshing ? 'is-spinning' : ''} size={18}/>
             </button>
             {refreshNotice && <p className="order-refresh-notice" role="status">{refreshNotice}</p>}
-          </div>
+          </div>}
         </aside>
       </div>
       <section className="order-help-footer" aria-label="Help with this order">
