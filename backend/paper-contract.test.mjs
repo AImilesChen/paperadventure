@@ -122,6 +122,37 @@ test('quality version 8 blocks a concrete story defect and rejects a generic end
   assert.throws(()=>prepareBlueprintCandidate(generic,spec),/concrete result/);
 });
 
+test('quality version 8 grounds story consequences after the printable pieces exist',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const materials={celebration:raw.celebration,stages:raw.stages};
+  const initial=structuredClockFrame();
+  const grounded=[
+    {finding:'The signal gear report names the missing noon mark.',consequence:'The noon mark identifies the gear the keeper must fit.'},
+    {finding:'The gear chamber note names safe storage for the spare gear.',consequence:'The spare gear can be collected from safe storage.'},
+    {finding:'The checked order aligns the wheel before the repair.',consequence:'Aligning the wheel keeps the gear ready for fitting.'},
+    {finding:'The upper bridge is the open route to the tower.',consequence:'The upper bridge carries the gear to the tower.'},
+  ];
+  const names=[];
+  const env={OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
+  const result=await generateBlueprint(spec,env,async(_url,request)=>{
+    const body=JSON.parse(request.body),name=body.text.format.name;
+    names.push(name);
+    if(name==='grounded_discoveries'){
+      const input=JSON.parse(body.input);
+      assert.equal(input.printed[0].selectedFinding,'Signal gear report');
+      assert.deepEqual(input.printed[0].features,raw.stages[0].features);
+      assert.equal(input.fixedFinalAction,'Fit signal gear');
+    }
+    const data=name==='story_frame'?initial:name==='game_blueprint'?materials:{discoveries:grounded};
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(data)}]}]});
+  });
+  assert.deepEqual(names,['story_frame','game_blueprint','grounded_discoveries']);
+  assert.equal(result.blueprint.storyFrame.discoveries[0].consequence,grounded[0].consequence);
+  assert.match(result.blueprint.spine.links[0].reason,/noon mark/i);
+});
+
 test('quality version 6 repairs only a failed discovery before rebuilding materials',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:6,packLayoutVersion:4};
   const frame=structuredClockFrame();
