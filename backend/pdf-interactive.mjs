@@ -403,13 +403,18 @@ function finish(story,spec,role){
     }
   } else if(spec.packExperienceVersion>=2){
     page.text('FINAL HOST CHECK',48,y,12,true);y-=26;
-    for(const [label,value] of [
+    const hostChecks=(spec.packQualityVersion||0)>=7?[
+      ['1. Four recorded results','Check the result digit from each of checkpoints 1-4 in order. Keep the adult answers private.'],
+      ['2. Matching action','Compare those four digits with the three printed final actions. Ask the team to explain the matching choice using its paper discoveries.'],
+      ['3. Close the game','Read the ending after the final choice. Invite each player to share a discovery. If a rule is unclear, check its adult checkpoint page before adding any explanation.'],
+    ]:[
       ['1. Four recorded results','Each of checkpoints 1-4 has one checked digit. Read them in checkpoint order; do not reorder them.'],
       ['2. Matching action','The final action is the only one whose printed code matches all four digits. Ask the team to name the matching action and show its record.'],
       ['3. Story ending','Read the ending after the final choice. Invite each player to share one discovery or paper action that helped the team.'],
       ['4. If a rule seems unclear','Use the corresponding adult checkpoint page to compare the printed clue, answer and explanation. Do not invent an extra clue or require outside knowledge.'],
       ['5. Keep answers private','Keep this guide separate from the Player Pack if the group wants to play again. The Player Pack can be printed again within your purchase rights.'],
-    ]){
+    ];
+    for(const [label,value] of hostChecks){
       page.text(label.toUpperCase(),48,y,10,true,'0.77 0.19 0.13');y-=20;
       y=page.block(value,48,y,77,11,18)-22;
     }
