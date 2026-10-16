@@ -1535,6 +1535,7 @@ test('quality v8 repairs an ending without rebuilding five saved paid checkpoint
       const value=name==='story_frame'?frame:name==='game_blueprint'?material:name==='grounded_discoveries'
         ?{consequences:frame.discoveries.map(({consequence})=>consequence)}:name==='closing_repair'
         ?{celebration:'The repaired gear spins and the noon bell rings across the square. Pip cheers, thanks the team, and sets out on the journey.'}
+        :name==='staged_story_adjudication'?{pass:false,issues:[{stageNumber:0,reason:'The ending needs a concrete noon-bell result.'}]}
         :name==='staged_story_audit'?reject?(reject=false,{pass:false,issues:[{stageNumber:0,reason:'The ending needs a concrete noon-bell result.'}]}):{pass:true,issues:[]}
         :null;
       assert.ok(value,`unexpected provider request ${name}`);
@@ -1543,7 +1544,7 @@ test('quality v8 repairs an ending without rebuilding five saved paid checkpoint
   const process=()=>productionWorker.queue({messages:[{body:{orderId},ack(){},retry(){throw Error('Unexpected queue retry');}}]},env);
   for(let step=0;step<4&&db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status!=='published';step++)await process();
   assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'published');
-  assert.deepEqual(calls,['story_frame','game_blueprint','grounded_discoveries','staged_story_audit','closing_repair','staged_story_audit']);
+  assert.deepEqual(calls,['story_frame','game_blueprint','grounded_discoveries','staged_story_audit','staged_story_adjudication','closing_repair','staged_story_audit']);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_generation_calls WHERE order_id=? AND phase='checkpoint'").get(orderId).n,5);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
   assert.equal(files.size,3);
