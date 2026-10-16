@@ -236,12 +236,14 @@ export function prepareContextualBlueprint(candidate,spec){
   let celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration)?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
   if((spec.packQualityVersion||0)>=5){
     const sentences=celebration.match(/[^.!?]+[.!?]+/g)||[];
-    if(celebration.length<90||sentences.length<2||!visibleOutcome.test(celebration)||!sharedResponse.test(celebration)){
+    const genericOutcome=/\b(?:mission result|goal (?:is|was) (?:now )?(?:visible|complete)|result (?:is|was) (?:now )?visible|completed mission)\b/i;
+    if(celebration.length<90||sentences.length<2||!visibleOutcome.test(celebration)||!sharedResponse.test(celebration)||genericOutcome.test(celebration)){
+      if((spec.packQualityVersion||0)>=8)throw Error('The ending celebration must show a concrete result of the final action and a character response.');
       if((spec.packQualityVersion||0)<7)throw Error('The ending celebration needs two complete beats: a visible result and a character or community response.');
       celebration=`The team carries out "${stages[4].material.items[0].label}", and the mission result is now visible to everyone. The whole group cheers and thanks each player for the discoveries they shared.`;
     }
   }
-  const ending=spine?`${spine.problem} The four checked results form code ${digits.join('')}, which matches "${spine.resolution}" on the final sheet. The team carries out that action. ${celebration}`:
+  const ending=spine?`${spine.problem} The four checked results form code ${digits.join('')}, which matches "${spine.resolution}" on the final sheet. ${(spec.packQualityVersion||0)>=8?'':'The team carries out that action. '}${celebration}`:
     usePrintedEnding?`The four checked results form the code ${digits.join('')}. This code matches "${stages[4].material.items[0].label}" on the final sheet. The team completes that action and reaches its mission goal. ${celebration}`:text(candidate.ending,'Ending',1000);
   if(!/[.!?]$/.test(ending))throw Error('The ending must be a complete sentence.');
   return {ending,...(usePrintedEnding?{celebration}:{}),...(spine?{spine}:{}),...(candidate.storyFrame?{storyFrame:candidate.storyFrame}:{}),groupInstructions:spec.setting==='classroom'?'Each crew uses its own complete Player set and keeps its own four result digits. Rotate the four jobs after each checkpoint; the teacher checks each result before releasing the next pages.':'',stages};
