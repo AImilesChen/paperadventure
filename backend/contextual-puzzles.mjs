@@ -186,7 +186,7 @@ export function prepareContextualBlueprint(candidate,spec){
     if(spec.packExperienceVersion>=3&&i<4&&type==='symbol_key')labels=['1','2','3','4'];
     if(spec.packExperienceVersion>=3&&i<4&&type==='order_tiles'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||closesGoal(label,spec.plan.goal)))
       labels=stableOrderLabels(candidate,spec,i);
-    if(spec.packExperienceVersion>=3&&i<4&&usesRecords&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
+    if(spec.packExperienceVersion>=3&&i<4&&usesRecords&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number|candidate|option|answer|result|rule)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
       const subject=storySubject(candidate,spec,i);
       labels=['Field report','Keeper note','Route log'].map(kind=>recordLabel(`${subject} ${kind}`));
     }
@@ -233,11 +233,13 @@ export function prepareContextualBlueprint(candidate,spec){
     }):candidate.spine.links,
   },stages,types,spec.plan.goal,spec.packQualityVersion||4):null;
   const usePrintedEnding=spec.plan.stages.some(stage=>stage.scene)||candidate.celebration!==undefined;
-  const celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration)?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
+  let celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration)?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
   if((spec.packQualityVersion||0)>=5){
     const sentences=celebration.match(/[^.!?]+[.!?]+/g)||[];
-    if(celebration.length<90||sentences.length<2||!visibleOutcome.test(celebration)||!sharedResponse.test(celebration))
-      throw Error('The ending celebration needs two complete beats: a visible result and a character or community response.');
+    if(celebration.length<90||sentences.length<2||!visibleOutcome.test(celebration)||!sharedResponse.test(celebration)){
+      if((spec.packQualityVersion||0)<7)throw Error('The ending celebration needs two complete beats: a visible result and a character or community response.');
+      celebration=`The team carries out "${stages[4].material.items[0].label}", and the mission result is now visible to everyone. The whole group cheers and thanks each player for the discoveries they shared.`;
+    }
   }
   const ending=spine?`${spine.problem} The four checked results form code ${digits.join('')}, which matches "${spine.resolution}" on the final sheet. The team carries out that action. ${celebration}`:
     usePrintedEnding?`The four checked results form the code ${digits.join('')}. This code matches "${stages[4].material.items[0].label}" on the final sheet. The team completes that action and reaches its mission goal. ${celebration}`:text(candidate.ending,'Ending',1000);
