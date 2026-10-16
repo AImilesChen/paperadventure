@@ -1,2 +1,2 @@
-2026-10-16: deploy deterministic closing fallback for resumable quality v9 packs.
+2026-10-16: deploy complete-clause endings and no-charge quality v10 PDF refreshes.
 
