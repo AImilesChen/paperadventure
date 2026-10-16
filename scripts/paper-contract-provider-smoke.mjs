@@ -50,7 +50,16 @@ for(const item of cases){
         if(attempt===6||!['STAGE_SEMANTIC_INVALID','GENERATION_QA_FAILED'].includes(error.code))throw error;
         phase='repair';blueprintRepairs++;
         const previous=blueprint;
-        blueprint=(await repairBlueprint(approved,previous,error.message,env,privateFetch)).blueprint;
+        let repairReason=error.message,repaired;
+        for(let repairTry=0;repairTry<3&&!repaired;repairTry++){
+          try{repaired=(await repairBlueprint(approved,previous,repairReason,env,privateFetch)).blueprint;}
+          catch(repairError){
+            console.log(JSON.stringify({id:item.id,phase:'repair-check',checkpoint:failedStage,attempt:repairTry+1,code:repairError.code||'CHECK_FAILED',rule:String(repairError.message).slice(0,160)}));
+            if(repairTry===2)throw repairError;
+            repairReason=`Checkpoint ${failedStage}: ${repairError.message}`;
+          }
+        }
+        blueprint=repaired;
         const changed=previous.stages.findIndex((stage,index)=>JSON.stringify(stage)!==JSON.stringify(blueprint.stages[index]));
         const keep=Math.min(stages.length,failedStage?failedStage-1:5,changed<0?5:changed);
         stages=stages.slice(0,keep);
