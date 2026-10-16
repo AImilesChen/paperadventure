@@ -487,6 +487,12 @@ test('a decoded story word CODE is not confused with an answer-code explanation'
   assert.match(spine.links[0].reason,/CODE/);
 });
 
+test('quality 14 refuses a generic story ending instead of publishing fallback copy',()=>{
+  const spec={...clockSpec,packQualityVersion:14};
+  assert.throws(()=>deliverableClosing('',spec,{actions:['Align signal gear']}),/specific two-sentence outcome/);
+  assert.equal(deliverableClosing('The keeper aligns the signal gear, so the noon bell rings again and Pip can continue home. The people at the tower welcome Pip back and thank the children for restoring their signal.',spec,{actions:['Align signal gear']}).includes('noon bell'),true);
+});
+
 test('symbol-key rows are compiled by the engine and do not depend on model labels',()=>{
   const plan=alignPaperPlan({...structuredClone(clockSpec.plan),stages:clockSpec.plan.stages.map((stage,index)=>({...stage,mechanic:index<3?'code':'reasoning'}))});
   const spec={...clockSpec,plan,packExperienceVersion:3,packQualityVersion:3};

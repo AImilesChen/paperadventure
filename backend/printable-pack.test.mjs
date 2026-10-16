@@ -11,7 +11,7 @@ test('new custom checkouts request the interactive paper-pack format',()=>{
   const result=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A paper lighthouse',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:['sequence','code']}});
   assert.equal(result.spec.gamePackVersion,2);
   assert.equal(result.spec.packLogicVersion,1);
-  assert.equal(result.spec.packQualityVersion,13);
+  assert.equal(result.spec.packQualityVersion,14);
   assert.equal(result.spec.packLayoutVersion,4);
 });
 

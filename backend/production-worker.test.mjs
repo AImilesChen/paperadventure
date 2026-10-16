@@ -25,7 +25,7 @@ async function approvedCustomInput(env,input) {
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -884,6 +884,45 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
   assert.equal((await post({action:'rework',feedback:'Try again after approval.'},'paid-plan-change-0003')).status,409);
 });
 
+test('an older delivered plan gets one free theme correction before rebuilding either PDF',async()=>{
+  const {db,binding}=database(),owner='theme-correction-owner',queued=[];
+  const purchase=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'Journey to the West with the Monkey King',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  purchase.packQualityVersion=13;
+  const oldPlan=planFixture(purchase);delete oldPlan.themeAnchors;
+  const oldSpec={...purchase,plan:oldPlan,planConfirmed:true},stored=JSON.stringify(purchase);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('theme-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('theme-order','custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(stored,await sha256(stored),owner,'theme-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('theme-activity','theme-order','published',?)").run(JSON.stringify(oldSpec));
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit,access_expires_at) VALUES ('theme-entitlement','theme-order','theme-activity','active',2,datetime('now','+6 months'))").run();
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version,player_r2_key,guide_r2_key) VALUES ('theme-artifact','theme-activity',1,'published',2,'old/player.pdf','old/guide.pdf')").run();
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version) VALUES ('theme-order','confirmed',1,1)").run();
+  db.prepare("INSERT INTO custom_plan_versions (order_id,version_number,plan_json,request_kind) VALUES ('theme-order',1,?,'initial')").run(JSON.stringify(oldPlan));
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',PRIVATE_FILES:{},GENERATION_QUEUE:{send:async job=>queued.push(job)},FETCH:async(_url,init)=>{
+    const payload=JSON.parse(init.body),input=JSON.parse(payload.input);
+    const value=payload.text.format.name==='paid_plan_audit'?{pass:true,issues:[]}:(()=>{const plan=planFixture(input.spec);plan.premise='The Journey to the West companions search a mountain shrine for their missing travel document.';plan.stages[0].scene='At the Journey to the West shrine';plan.stages[1].scene='At the Monkey King mountain path';return plan;})();
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});
+  }};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN,'Idempotency-Key':'free-theme-correction-0001'};
+  const post=(body,key='free-theme-correction-0001')=>handleProductionApi(request('/api/v1/orders/theme-order/plan','POST',body,{...headers,'Idempotency-Key':key}),env);
+  const view=()=>handleProductionApi(request('/api/v1/orders/theme-order','GET',undefined,headers),env).then(response=>response.json());
+  assert.equal((await view()).themePlanRepairAvailable,true);
+  assert.equal((await post({action:'quality_replan'})).status,202);
+  assert.equal((await post({action:'quality_replan'})).status,200,'the same request is idempotent');
+  assert.equal((await view()).themePlanRepairAvailable,false);
+  await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){throw Error('unexpected plan retry');}}]},env);
+  const reviewed=await view();
+  assert.equal(reviewed.planReview.status,'review');
+  assert.equal(reviewed.planReview.fullUsed,0);
+  assert.deepEqual(reviewed.plan.themeAnchors,['Journey to the West']);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1,'original PDF remains published while the new plan waits');
+  assert.equal((await post({action:'confirm',version:2})).status,202);
+  assert.equal(queued.at(-1)?.type,'pack_remake');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1,'approval queues replacement; it does not publish unchecked PDFs');
+  assert.equal(db.prepare("SELECT full_used,quality_replan_used FROM custom_plan_orders WHERE order_id='theme-order'").get().quality_replan_used,1);
+  assert.equal((await post({action:'quality_replan'},'free-theme-correction-0002')).status,409,'a second free full-plan generation is blocked');
+});
+
 test('staged paid generation resumes at a failed checkpoint without regenerating saved work',async()=>{
   const {db,binding}=database();
   const purchase=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
@@ -1073,7 +1112,7 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.equal(blueprintProviderCalls.filter(call=>call.name==='blueprint_material_stage'&&call.checkpoint===1).length,1,'a saved first material is reused after the second material fails');
   assert.equal(blueprintProviderCalls.filter(call=>call.name==='blueprint_material_stage'&&call.checkpoint===2).length,2,'only the failed second material is requested again');
   const earlierPack=new Uint8Array(await (await download()).arrayBuffer());
-  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:13,packLayoutVersion:3};
+  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:14,packLayoutVersion:3};
   const earlierJson=JSON.stringify(earlierSpec);
   const staleBlueprint='{}';
   db.prepare("UPDATE custom_pack_remakes SET spec_json = ?,spec_sha256 = ?,blueprint_json = ?,blueprint_sha256 = ? WHERE order_id = 'quality-order'").run(earlierJson,await sha256(earlierJson),staleBlueprint,await sha256(staleBlueprint));
@@ -1203,7 +1242,7 @@ test('current quality and revised checked packs cannot start the free full-pack 
   assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:10,packLayoutVersion:4},{...clockSpec,packQualityVersion:10,packLayoutVersion:4},2,false),true);
   assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:11,packLayoutVersion:4},{...clockSpec,packQualityVersion:11,packLayoutVersion:4},2,false),true);
   assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:12,packLayoutVersion:4},{...clockSpec,packQualityVersion:12,packLayoutVersion:4},2,false),true);
-  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:13,packLayoutVersion:4},{...clockSpec,packQualityVersion:13,packLayoutVersion:4},2,false),false);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:13,packLayoutVersion:4},{...clockSpec,packQualityVersion:13,packLayoutVersion:4},2,false),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packExperienceVersion:2}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:5,packLayoutVersion:3}),true);
@@ -1211,7 +1250,7 @@ test('current quality and revised checked packs cannot start the free full-pack 
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:10,packLayoutVersion:4}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:11,packLayoutVersion:4}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:12,packLayoutVersion:4}),true);
-  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:13,packLayoutVersion:4}),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:14,packLayoutVersion:4}),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
@@ -1475,7 +1514,7 @@ test('a failed V2 quality remake migrates to V3 on the same paid order even when
   const saved=db.prepare('SELECT status,phase,spec_json,published_version,recovery_round,logic_epoch,quality_epoch,blueprint_json,stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId);
   const upgraded=JSON.parse(saved.spec_json);
   assert.equal(upgraded.packExperienceVersion,3);
-  assert.equal(upgraded.packQualityVersion,13);
+  assert.equal(upgraded.packQualityVersion,14);
   assert.equal(upgraded.packLayoutVersion,4);
   assert.equal(saved.status,'queued');assert.equal(saved.phase,'blueprint');
   assert.equal(saved.published_version,2,'the downloadable original stays published during the upgrade');

@@ -43,6 +43,13 @@ test('a code-led paid plan may use two reasoning support tasks so printable mate
   const impossible={...plan,stages:plan.stages.map(stage=>({...stage,mechanic:'code'}))};
   assert.throws(()=>validatePlan(impossible,spec),/varied paper actions/);
 });
+test('quality 14 keeps a purchased theme in the approved opening and checkpoint scene',()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec;
+  const plan=planFixture(spec);
+  assert.deepEqual(validatePlan(plan,spec).themeAnchors,['Journey to the West']);
+  assert.throws(()=>validatePlan({...plan,themeAnchors:[]},spec),/purchased-theme anchors/);
+  assert.throws(()=>validatePlan({...plan,stages:plan.stages.map((stage,index)=>({...stage,scene:`At generic desk ${index+1}`}))},spec),/Theme anchors/);
+});
 test('paid plan parser accepts fenced provider JSON and audits the result',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const plan=planFixture(spec);let calls=0;
@@ -63,7 +70,7 @@ test('new paid plans generate narrative only; setup and selected main-style allo
   const result=await generateSinglePlan(spec,env,async(url,request)=>{
     const body=JSON.parse(request.body);
     if(!calls){
-      assert.deepEqual(body.text.format.schema.required,['id','title','summary','premise','goal','stages']);
+      assert.deepEqual(body.text.format.schema.required,['id','title','summary','premise','goal','themeAnchors','stages']);
       assert.equal(body.text.format.schema.properties.stages.items.properties.mechanic,undefined);
     }
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(calls++?{pass:true,issues:[]}:candidate)}]}]});
