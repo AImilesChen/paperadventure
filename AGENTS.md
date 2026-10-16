@@ -1,3 +1,5 @@
+On 2026-10-16 the owner approved a delivery-boundary fix after a quality-checked replacement still printed an empty final code. Quality version 12 rebuilds the ending from the four validated checkpoint result digits immediately before rendering, verifies that both Player Pack and Adult Guide contain that exact code, and stores the repaired story with the published artifact. Earlier ready quality packs may use the same paid order for a PDF-only refresh with no provider call or new charge; keep the earlier files available until both replacement PDFs pass.
+
 # Prototype Instructions
 
 On 2026-10-16 the owner found that the quality-v10 same-order closing refresh printed an empty final code even though all four checkpoint digits were saved. Stored result digits are strings in production, so normalise string and numeric digits, require exactly four values from 1-3 before publishing, and include the checked code in both PDF regression checks. Quality-v11 offers affected quality-v10 deliveries a same-order, no-charge closing/PDF refresh that reuses the saved story and all checkpoints without a provider call.

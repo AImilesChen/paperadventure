@@ -14,7 +14,7 @@ const MAX_BLUEPRINT_CALLS = 3;
 const MAX_AUDIT_CALLS = 5;
 const stepLimit = (phase,spec) => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? spec?.packExperienceVersion>=2?5:MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
-const CURRENT_PACK_QUALITY_VERSION = 11;
+const CURRENT_PACK_QUALITY_VERSION = 12;
 const CURRENT_PACK_LAYOUT_VERSION = 4;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','STAGE_SEMANTIC_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
 const deterministicCheckpoint = (phase,spec,stageNumber=0) => (phase === 'checkpoint' || phase === 'blueprint_material' && stageNumber === 5) && spec.gamePackVersion === 2 && spec.packLogicVersion === 1;
@@ -32,6 +32,24 @@ function shorten(value, limit) {
   const cut = text.slice(0, limit);
   const boundary = cut.lastIndexOf(' ');
   return (boundary >= limit * .75 ? cut.slice(0, boundary) : cut).trim().replace(/[,:;.!?\s]+$/, '');
+}
+
+function checkedResultCode(story,spec){
+  if(spec?.packContractVersion!==1||(spec.packExperienceVersion||0)<3)return null;
+  const digits=(story.stages||[]).slice(0,4).map(stage=>String(stage.material?.logic?.resultDigit??'').trim());
+  if(digits.length!==4||digits.some(digit=>!/^[1-3]$/.test(digit)))
+    throw new ApiError(409,'REMAKE_STORY_INVALID','The saved game is missing one or more checked result digits.');
+  return digits.join('');
+}
+
+function storyWithCheckedClosing(story,spec){
+  const code=checkedResultCode(story,spec);
+  if(!code)return story;
+  const current=String(story.ending||'').trim();
+  if(new RegExp(`\\bform code\\s+${code}\\b`,'i').test(current))return story;
+  const action=story.spine?.resolution||story.stages?.[4]?.material?.logic?.context?.labels?.[0]||'Complete the final action';
+  const celebration=deliverableClosing('',spec,{actions:[action]});
+  return validateGeneratedStory({...story,ending:`The four checked results form code ${code}, which matches "${action}" on the final sheet. ${celebration}`},spec);
 }
 
 export function remakeSpec(original) {
@@ -112,17 +130,9 @@ export async function startPackRemake(order, activity, env) {
     const layoutOnly=Boolean(existing.blueprint_json&&existing.story_json&&previousSpec?.packExperienceVersion>=3&&previousSpec?.packQualityVersion>=CURRENT_PACK_QUALITY_VERSION&&(previousSpec.packLayoutVersion||0)<CURRENT_PACK_LAYOUT_VERSION);
     let upgradedStoryJson=null,upgradedStoryHash=null,upgradedBlueprintJson=existing.blueprint_json,upgradedBlueprintHash=null;
     if(closingOnly){
-      const story=JSON.parse(existing.story_json);
-      const action=story.spine?.resolution||story.stages?.[4]?.material?.logic?.context?.labels?.[0]||'Complete the final action';
+      const upgraded=storyWithCheckedClosing(JSON.parse(existing.story_json),spec);
+      const action=upgraded.spine?.resolution||upgraded.stages?.[4]?.material?.logic?.context?.labels?.[0]||'Complete the final action';
       const celebration=deliverableClosing('',spec,{actions:[action]});
-      // Stored checked packs use string result digits, while older fixtures may
-      // still contain numbers. Normalise both forms before rebuilding the
-      // closing; filtering with Number.isInteger erased every production digit
-      // and published "form code ," in both PDFs.
-      const digits=(story.stages||[]).slice(0,4).map(stage=>String(stage.material?.logic?.resultDigit??'').trim());
-      if(digits.length!==4||digits.some(digit=>!/^[1-3]$/.test(digit)))
-        throw new ApiError(409,'REMAKE_STORY_INVALID','The saved game is missing one or more checked result digits.');
-      const upgraded=validateGeneratedStory({...story,ending:`The four checked results form code ${digits.join('')}, which matches "${action}" on the final sheet. ${celebration}`},spec);
       upgradedStoryJson=JSON.stringify(upgraded);upgradedStoryHash=await sha256(upgradedStoryJson);
       try{
         const blueprint=JSON.parse(existing.blueprint_json||'{}');
@@ -290,13 +300,24 @@ function checkedPdf(bytes, expectedPages, label) {
   }
 }
 
+function checkedClosingInPdf(bytes,label,code){
+  if(!code)return;
+  const text=new TextDecoder().decode(bytes);
+  if(!new RegExp(`\\bform code\\s+${code}\\b`,'i').test(text))
+    throw new ApiError(422,'REMAKE_PDF_INVALID',`${label} is missing the checked final code.`);
+}
+
 async function publishRemadeFiles(remake, order, env) {
   const db = env.DB;
   const spec = JSON.parse(remake.spec_json);
-  const story = validateGeneratedStory(JSON.parse(remake.story_json), spec);
+  const savedStory = validateGeneratedStory(JSON.parse(remake.story_json), spec);
+  const savedStoryJson = JSON.stringify(savedStory);
+  if (await sha256(savedStoryJson) !== remake.story_sha256) throw new ApiError(422, 'REMAKE_STORY_CHANGED', 'The checked story changed before PDF delivery.');
+  // Rebuild the ending from the checked checkpoint digits at the publication
+  // boundary so a stale saved row can never publish "form code ," again.
+  const story=storyWithCheckedClosing(savedStory,spec);
   const storyJson = JSON.stringify(story);
   const storyHash = await sha256(storyJson);
-  if (storyHash !== remake.story_sha256) throw new ApiError(422, 'REMAKE_STORY_CHANGED', 'The checked story changed before PDF delivery.');
   const activity = await query(db, "SELECT id FROM custom_activities WHERE order_id = ? AND status = 'published'", order.id).first();
   if (!activity) throw new ApiError(409, 'REMAKE_SOURCE_MISSING', 'The original files are unavailable.');
   const prior = await query(db, "SELECT version_number,pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", activity?.id).first();
@@ -307,6 +328,9 @@ async function publishRemadeFiles(remake, order, env) {
   const guide = buildGamePdf(story, spec, 'guide');
   checkedPdf(player, 12, 'Player Pack');
   checkedPdf(guide, 7, 'Adult guide');
+  const closingCode=checkedResultCode(story,spec);
+  checkedClosingInPdf(player,'Player Pack',closingCode);
+  checkedClosingInPdf(guide,'Adult guide',closingCode);
   const playerHash = await sha256Bytes(player);
   const guideHash = await sha256Bytes(guide);
   await Promise.all([
@@ -326,7 +350,7 @@ async function publishRemadeFiles(remake, order, env) {
     throw new ApiError(503, 'REMAKE_STORAGE_INVALID', 'The replacement files did not pass the final checksum.');
   await db.batch([
     query(db, "INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,guide_r2_key,player_sha256,guide_sha256,story_r2_key,story_sha256,pack_format_version) VALUES (?, ?, ?, 'published', ?, ?, ?, ?, ?, ?, 2)", `artifact-${order.id}-${version}`, activity.id, version, `${prefix}/player.pdf`, `${prefix}/guide.pdf`, playerHash, guideHash, `${prefix}/story.json`, storyHash),
-    query(db, "UPDATE custom_pack_remakes SET status = 'ready',phase = 'delivered',published_version = ?,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = CURRENT_TIMESTAMP,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'", version, order.id),
+    query(db, "UPDATE custom_pack_remakes SET status = 'ready',phase = 'delivered',published_version = ?,story_json = ?,story_sha256 = ?,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = CURRENT_TIMESTAMP,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'", version, storyJson, storyHash, order.id),
     query(db,"UPDATE custom_delivery_incidents SET status = 'resolved' WHERE order_id = ?",order.id),
     query(db, "UPDATE entitlements SET access_expires_at = CASE WHEN access_expires_at < datetime('now','+12 months') THEN datetime('now','+12 months') ELSE access_expires_at END, revision_expires_at = datetime('now','+30 days') WHERE order_id = ? AND status = 'active'", order.id),
     query(db, "INSERT INTO delivery_notifications (order_id,kind,status,attempts) VALUES (?,'files_ready','pending',0) ON CONFLICT(order_id,kind) DO UPDATE SET status = 'pending',attempts = 0,sent_at = NULL", order.id),
