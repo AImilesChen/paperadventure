@@ -3,7 +3,7 @@ import { aiProvider } from './openai.mjs';
 import { sha256, sha256Bytes } from './security.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
 import { generateBlueprint, repairBlueprint, validateBlueprint, prepareBlueprintCandidate, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory, auditCheckpointSemantics,
-  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps } from './staged-story.mjs';
+  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, deliverableClosing } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
@@ -14,7 +14,7 @@ const MAX_BLUEPRINT_CALLS = 3;
 const MAX_AUDIT_CALLS = 5;
 const stepLimit = (phase,spec) => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? spec?.packExperienceVersion>=2?5:MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
-const CURRENT_PACK_QUALITY_VERSION = 9;
+const CURRENT_PACK_QUALITY_VERSION = 10;
 const CURRENT_PACK_LAYOUT_VERSION = 4;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','STAGE_SEMANTIC_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
 const deterministicCheckpoint = (phase,spec,stageNumber=0) => (phase === 'checkpoint' || phase === 'blueprint_material' && stageNumber === 5) && spec.gamePackVersion === 2 && spec.packLogicVersion === 1;
@@ -89,7 +89,7 @@ export async function startPackRemake(order, activity, env) {
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
   if (order.product_kind !== 'custom' || order.status !== 'published' || !order.paid_at || activity?.status !== 'published')
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'Only a delivered paid custom order can be remade.');
-  const existing = await query(env.DB, 'SELECT status,spec_json,published_version,quality_epoch,blueprint_json,story_json FROM custom_pack_remakes WHERE order_id = ?', order.id).first();
+  const existing = await query(env.DB, 'SELECT status,spec_json,published_version,quality_epoch,blueprint_json,stages_json,story_json FROM custom_pack_remakes WHERE order_id = ?', order.id).first();
   if (existing?.status !== 'ready' && existing) return { status: existing.status, queued: false };
   const latest = await query(env.DB, "SELECT pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", activity.id).first();
   const purchase = JSON.parse(order.purchase_spec_json);
@@ -107,8 +107,26 @@ export async function startPackRemake(order, activity, env) {
   const specJson = JSON.stringify(spec);
   const specHash = await sha256(specJson);
   if (existing?.status === 'ready') {
+    const savedStages=JSON.parse(existing.stages_json||'[]');
+    const closingOnly=Boolean(existing.story_json&&savedStages.length===5&&previousSpec?.packExperienceVersion>=3&&(previousSpec.packQualityVersion||0)>=9&&(previousSpec.packQualityVersion||0)<CURRENT_PACK_QUALITY_VERSION);
     const layoutOnly=Boolean(existing.blueprint_json&&existing.story_json&&previousSpec?.packExperienceVersion>=3&&previousSpec?.packQualityVersion>=CURRENT_PACK_QUALITY_VERSION&&(previousSpec.packLayoutVersion||0)<CURRENT_PACK_LAYOUT_VERSION);
-    const changed=layoutOnly
+    let upgradedStoryJson=null,upgradedStoryHash=null,upgradedBlueprintJson=existing.blueprint_json,upgradedBlueprintHash=null;
+    if(closingOnly){
+      const story=JSON.parse(existing.story_json);
+      const action=story.spine?.resolution||story.stages?.[4]?.material?.logic?.context?.labels?.[0]||'Complete the final action';
+      const celebration=deliverableClosing('',spec,{actions:[action]});
+      const digits=(story.stages||[]).slice(0,4).map(stage=>stage.material?.logic?.resultDigit).filter(digit=>Number.isInteger(digit));
+      const upgraded=validateGeneratedStory({...story,ending:`The four checked results form code ${digits.join('')}, which matches "${action}" on the final sheet. ${celebration}`},spec);
+      upgradedStoryJson=JSON.stringify(upgraded);upgradedStoryHash=await sha256(upgradedStoryJson);
+      try{
+        const blueprint=JSON.parse(existing.blueprint_json||'{}');
+        upgradedBlueprintJson=JSON.stringify({...blueprint,celebration,ending:upgraded.ending});
+        upgradedBlueprintHash=await sha256(upgradedBlueprintJson);
+      }catch{upgradedBlueprintJson=existing.blueprint_json;}
+    }
+    const changed=closingOnly
+      ? await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'pdf',spec_json = ?,spec_sha256 = ?,blueprint_json = ?,blueprint_sha256 = COALESCE(?,blueprint_sha256),story_json = ?,story_sha256 = ?,failure_count = 0,recovery_round = 0,quality_epoch = quality_epoch + 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'ready' AND quality_epoch = ? AND published_version = ? AND story_json IS NOT NULL",specJson,specHash,upgradedBlueprintJson,upgradedBlueprintHash,upgradedStoryJson,upgradedStoryHash,order.id,existing.quality_epoch,existing.published_version).run()
+      : layoutOnly
       ? await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'pdf',spec_json = ?,spec_sha256 = ?,failure_count = 0,recovery_round = 0,quality_epoch = quality_epoch + 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'ready' AND quality_epoch = ? AND published_version = ? AND blueprint_json IS NOT NULL AND story_json IS NOT NULL",specJson,specHash,order.id,existing.quality_epoch,existing.published_version).run()
       : await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'blueprint',spec_json = ?,spec_sha256 = ?,blueprint_json = NULL,blueprint_sha256 = NULL,stages_json = '[]',story_json = NULL,story_sha256 = NULL,failure_count = 0,recovery_round = 0,quality_epoch = quality_epoch + 1,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'ready' AND quality_epoch = ? AND published_version = ?",specJson,specHash,order.id,existing.quality_epoch,existing.published_version).run();
     if (!changed.meta?.changes) return {status:'queued',queued:false};
