@@ -15,7 +15,7 @@ import { compileControlledPuzzle, controlledStageText } from './controlled-puzzl
 import { clockSpec,clockBlueprintContext } from '../content/paper-contract-qa.mjs';
 import { linkedClockContext } from '../content/linked-contract-qa.mjs';
 import { prepareBlueprintCandidate } from './staged-story.mjs';
-import { packRemakeView, qualityUpgradeEligible, retryPackRemake } from './pack-remake.mjs';
+import { packRemakeView, qualityUpgradeEligible, retryPackRemake, processPackRemake } from './pack-remake.mjs';
 async function approvedCustomInput(env,input) {
   const spec=validatePurchase({...input,creatorVersion:2,gameplay:{primary:'reasoning',secondary:[]}}).spec;
   spec.plan=planFixture(spec,spec.direction);spec.planConfirmed=true;
@@ -1062,7 +1062,7 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.deepEqual(new Uint8Array(await (await download('&version=1')).arrayBuffer()),original);
   assert.equal(blueprintCalls,1);
   const earlierPack=new Uint8Array(await (await download()).arrayBuffer());
-  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:6,packLayoutVersion:3};
+  const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:7,packLayoutVersion:3};
   const earlierJson=JSON.stringify(earlierSpec);
   const staleBlueprint='{}';
   db.prepare("UPDATE custom_pack_remakes SET spec_json = ?,spec_sha256 = ?,blueprint_json = ?,blueprint_sha256 = ? WHERE order_id = 'quality-order'").run(earlierJson,await sha256(earlierJson),staleBlueprint,await sha256(staleBlueprint));
@@ -1104,15 +1104,69 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.equal(blueprintCalls,1,'scheduled layout recovery makes no model call');
 });
 
+test('quality v7 saves a blueprint and earlier checkpoint while repairing one rejected paper context',async()=>{
+  const {db,binding}=database(),orderId='semantic-repair-order';
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:7,packLayoutVersion:4};
+  const specJson=JSON.stringify(spec),context=linkedClockContext();
+  const storyFrame={problem:context.spine.problem,actions:context.stages[4].material.items.map(item=>item.label),discoveries:[
+    {finding:'The signal gear is missing.',consequence:'The drive path becomes usable.',supportsAction:'signal gear'},
+    {finding:'The spare gear fits the shaft.',consequence:'The gear can turn without binding.',supportsAction:'signal gear'},
+    {finding:'The checked order protects the teeth.',consequence:'The parts stay aligned during repair.',supportsAction:'signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The replacement can reach the tower.',supportsAction:'signal gear'},
+  ]};
+  const materialContext=structuredClone(context);delete materialContext.spine;
+  materialContext.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('semantic-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(orderId,specJson,await sha256(specJson),'semantic-owner','semantic-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('semantic-activity',?,'published',?)").run(orderId,specJson);
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version) VALUES ('semantic-original','semantic-activity',1,'published',2)").run();
+  db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,published_version) VALUES (?,'queued','blueprint',?,?,1)").run(orderId,specJson,await sha256(specJson));
+  const calls=[],queue=[];let rejected=false;
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},PRIVATE_FILES:{get:async()=>null,put:async()=>{}},
+    FETCH:async(_url,init)=>{
+      const request=JSON.parse(init.body),name=request.text.format.name,input=JSON.parse(request.input);calls.push(name);
+      let value;
+      if(name==='story_frame')value=storyFrame;
+      else if(name==='game_blueprint')value=materialContext;
+      else if(name==='paper_checkpoint_semantics'){
+        value=input.checkpoint===2&&!rejected?(rejected=true,{pass:false,issues:[{stageNumber:2,reason:'The printed finding uses a feature that cannot describe every record.'}]}):{pass:true,issues:[]};
+      }else if(name==='checkpoint_material_repair'){
+        value=structuredClone(materialContext.stages[1]);value.material.title='Checked tower records';
+      }else throw Error(`Unexpected provider call ${name}`);
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});
+    }};
+  await processPackRemake(orderId,env);
+  assert.equal((await packRemakeView(binding,orderId)).blueprintReady,true,'blueprint is saved before any editorial audit');
+  await processPackRemake(orderId,env);
+  const first=db.prepare('SELECT stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId).stages_json;
+  assert.equal(JSON.parse(first).length,1);
+  await processPackRemake(orderId,env);
+  let view=await packRemakeView(binding,orderId);
+  assert.equal(view.phase,'repair');assert.deepEqual(view.completedStages,[1]);assert.equal(view.problemStage,2);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1);
+  await processPackRemake(orderId,env);
+  view=await packRemakeView(binding,orderId);
+  assert.equal(view.phase,'checkpoint');assert.deepEqual(view.completedStages,[1]);
+  assert.equal(db.prepare('SELECT stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId).stages_json,first,'the first checkpoint survives the repair');
+  await processPackRemake(orderId,env);
+  view=await packRemakeView(binding,orderId);
+  assert.deepEqual(view.completedStages,[1,2]);
+  assert.equal(calls.filter(name=>name==='story_frame').length,1);
+  assert.equal(calls.filter(name=>name==='game_blueprint').length,1);
+  assert.equal(calls.filter(name=>name==='checkpoint_material_repair').length,1);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1,'the original artifact remains published');
+  assert.ok(queue.length>=5);
+});
+
 test('current layout and revised checked packs cannot start the free full-pack upgrade',()=>{
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false),true);
   assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:3},clockSpec,2,false),true);
   assert.equal(qualityUpgradeEligible(clockSpec,{...clockSpec,packQualityVersion:3},2,false),true);
-  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:6,packLayoutVersion:4},{...clockSpec,packQualityVersion:6,packLayoutVersion:4},2,false),false);
+  assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:7,packLayoutVersion:4},{...clockSpec,packQualityVersion:7,packLayoutVersion:4},2,false),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packExperienceVersion:2}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:3}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:5,packLayoutVersion:3}),true);
-  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:6,packLayoutVersion:4}),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:7,packLayoutVersion:4}),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
@@ -1220,6 +1274,20 @@ test('an audit-stopped quality upgrade repairs its saved blueprint instead of au
   assert.equal(db.prepare("SELECT result_json FROM custom_pack_remake_calls WHERE id='audit-recovery-stage'").get().result_json,null);
   assert.deepEqual(queue,[{type:'pack_remake',orderId}]);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders WHERE id=?').get(orderId).n,1);
+});
+
+test('quality v7 manual recovery keeps a saved blueprint and checkpoints after an audit failure',async()=>{
+  const {db,binding}=database(),orderId='v7-audit-recovery',specJson=JSON.stringify({...clockSpec,packExperienceVersion:3,packQualityVersion:7});
+  const blueprintJson=JSON.stringify({saved:'validated-blueprint'});
+  const stagesJson=JSON.stringify([{number:1}]);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('v7-audit-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,?,1499,'USD','published',CURRENT_TIMESTAMP)").run(orderId,specJson,await sha256(specJson),'v7-audit-owner','v7-audit-price');
+  db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,blueprint_json,blueprint_sha256,stages_json,error_code,error_detail,logic_epoch,quality_epoch,recovery_round) VALUES (?,'failed','audit',?,?,?,?,?,'GENERATION_QA_FAILED','The completed game did not pass its quality check: Checkpoint 2: story link needs repair.',1,1,0)").run(orderId,specJson,await sha256(specJson),blueprintJson,await sha256(blueprintJson),stagesJson);
+  const queue=[],env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)}};
+  await retryPackRemake({id:orderId,product_kind:'custom',status:'published',paid_at:'2026-10-15'},env);
+  const row=db.prepare('SELECT status,phase,blueprint_json,stages_json,recovery_round FROM custom_pack_remakes WHERE order_id=?').get(orderId);
+  assert.deepEqual({...row},{status:'queued',phase:'audit',blueprint_json:blueprintJson,stages_json:stagesJson,recovery_round:1});
+  assert.deepEqual(queue,[{type:'pack_remake',orderId}]);
 });
 
 test('an exhausted blueprint remake reuses its saved candidate and publishes a new pack without another blueprint call',async()=>{
@@ -1362,7 +1430,7 @@ test('a failed V2 quality remake migrates to V3 on the same paid order even when
   const saved=db.prepare('SELECT status,phase,spec_json,published_version,recovery_round,logic_epoch,quality_epoch,blueprint_json,stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId);
   const upgraded=JSON.parse(saved.spec_json);
   assert.equal(upgraded.packExperienceVersion,3);
-  assert.equal(upgraded.packQualityVersion,6);
+  assert.equal(upgraded.packQualityVersion,7);
   assert.equal(upgraded.packLayoutVersion,4);
   assert.equal(saved.status,'queued');assert.equal(saved.phase,'blueprint');
   assert.equal(saved.published_version,2,'the downloadable original stays published during the upgrade');
