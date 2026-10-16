@@ -1023,10 +1023,10 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   const queue=[],files=new Map([['original/player.pdf',{body:original,customMetadata:{sha256:originalHash}}],['original/guide.pdf',{body:original,customMetadata:{sha256:originalHash}}]]);
   const context=linkedClockContext();
   const storyFrame={problem:context.spine.problem,actions:context.stages[4].material.items.map(item=>item.label),discoveries:[
-    {finding:'The signal gear is missing.',consequence:'The drive path becomes usable.',supportsAction:'signal gear'},
+    {finding:'The signal gear is missing.',consequence:'The missing noon mark points to the gear.',supportsAction:'signal gear'},
     {finding:'The spare gear fits the shaft.',consequence:'The gear can turn without binding.',supportsAction:'signal gear'},
-    {finding:'The checked order protects the teeth.',consequence:'The parts stay aligned during repair.',supportsAction:'signal gear'},
-    {finding:'The upper bridge reaches the gear room.',consequence:'The replacement can reach the tower.',supportsAction:'signal gear'},
+    {finding:'The checked order protects the teeth.',consequence:'The wheel stays aligned during repair.',supportsAction:'signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The upper bridge can carry the part.',supportsAction:'signal gear'},
   ]};
   const materialContext=structuredClone(context);delete materialContext.spine;
   materialContext.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
@@ -1110,10 +1110,10 @@ test('quality v7 saves a blueprint and earlier checkpoint while repairing one re
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:7,packLayoutVersion:4};
   const specJson=JSON.stringify(spec),context=linkedClockContext();
   const storyFrame={problem:context.spine.problem,actions:context.stages[4].material.items.map(item=>item.label),discoveries:[
-    {finding:'The signal gear is missing.',consequence:'The drive path becomes usable.',supportsAction:'signal gear'},
+    {finding:'The signal gear is missing.',consequence:'The missing noon mark points to the gear.',supportsAction:'signal gear'},
     {finding:'The spare gear fits the shaft.',consequence:'The gear can turn without binding.',supportsAction:'signal gear'},
-    {finding:'The checked order protects the teeth.',consequence:'The parts stay aligned during repair.',supportsAction:'signal gear'},
-    {finding:'The upper bridge reaches the gear room.',consequence:'The replacement can reach the tower.',supportsAction:'signal gear'},
+    {finding:'The checked order protects the teeth.',consequence:'The wheel stays aligned during repair.',supportsAction:'signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The upper bridge can carry the part.',supportsAction:'signal gear'},
   ]};
   const materialContext=structuredClone(context);delete materialContext.spine;
   materialContext.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
@@ -1521,10 +1521,10 @@ test('quality v8 repairs an ending without rebuilding five saved paid checkpoint
   db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit) VALUES (?,?,'v8-activity','active',2)").run('v8-entitlement',orderId);
   db.prepare("INSERT INTO custom_plan_orders (order_id,status,confirmed_version) VALUES (?,'confirmed',1)").run(orderId);
   const context=linkedClockContext(),frame={problem:context.spine.problem,actions:context.stages[4].material.items.map(item=>item.label),discoveries:[
-    {finding:'The signal gear is missing.',consequence:'The drive path becomes usable.',supportsAction:'signal gear'},
+    {finding:'The signal gear is missing.',consequence:'The missing noon mark points to the gear.',supportsAction:'signal gear'},
     {finding:'The spare gear fits the shaft.',consequence:'The gear can turn without binding.',supportsAction:'signal gear'},
-    {finding:'The checked order protects the teeth.',consequence:'The parts stay aligned during repair.',supportsAction:'Fit signal gear'},
-    {finding:'The upper bridge reaches the gear room.',consequence:'The replacement can reach the tower.',supportsAction:'signal gear'},
+    {finding:'The checked order protects the teeth.',consequence:'The wheel stays aligned during repair.',supportsAction:'Fit signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The upper bridge can carry the part.',supportsAction:'signal gear'},
   ]};
   const material={celebration:'The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.',stages:context.stages};
   const files=new Map(),calls=[];let reject=true;
