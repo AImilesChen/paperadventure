@@ -127,6 +127,7 @@ test('quality version 8 blocks a concrete story defect and rejects a generic end
   assert.equal(overturned.advisories,undefined);
   await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async()=>{throw Error('Review unavailable');}),error=>error.code==='GENERATION_UPSTREAM_FAILED');
   await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:5,reason:'The ending does not state the observable outcome of the final action.'}]})}]}]})),error=>error.code==='GENERATION_QA_FAILED'&&error.stageNumber===0);
+  await assert.rejects(()=>auditStagedStory(story,spec,blueprint,env,async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:0,reason:'The ending claims success, but the selected final action is only a preparation and cannot finish the goal.'}]})}]}]})),error=>error.code==='GENERATION_QA_FAILED'&&error.stageNumber===5);
   const generic=structuredClone(raw);
   generic.celebration='The mission result is now visible to everyone in the village. Everyone cheers and thanks the team for completing the mission.';
   assert.throws(()=>prepareBlueprintCandidate(generic,spec),/concrete result/);
@@ -145,10 +146,11 @@ test('quality version 8 grounds story consequences after the printable pieces ex
     'The upper bridge carries the gear to the tower.',
   ];
   const names=[];
-  const env={OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
+  const env={AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture',DEEPSEEK_MODEL:'deepseek-flash'};
   const result=await generateBlueprint(spec,env,async(_url,request)=>{
     const body=JSON.parse(request.body),name=body.text.format.name;
     names.push(name);
+    assert.equal(body.reasoning.effort,'low');
     if(name==='story_frame')assert.match(body.instructions,/last step that directly makes the approved goal true/i);
     if(name==='game_blueprint')assert.match(body.instructions,/none may repeat or carry out a final action/i);
     if(name==='grounded_discoveries'){
