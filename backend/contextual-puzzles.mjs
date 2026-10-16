@@ -335,11 +335,12 @@ export function prepareContextualBlueprint(candidate,spec){
   if((spec.packQualityVersion||0)>=5){
     const sentences=celebration.match(/[^.!?]+[.!?]+/g)||[];
     const genericOutcome=/\b(?:mission result|goal (?:is|was) (?:now )?(?:visible|complete)|result (?:is|was) (?:now )?visible|completed mission)\b/i;
+    const unfinishedSentence=/(?:\b(?:and|or|but|because|so|to|for|with|without|before|after|while|the|a|an))\s*["')\]]*[.!?](?:\s|$)/i;
     if((spec.packQualityVersion||0)>=8){
       // The editorial audit checks whether the outcome actually fulfils this
       // particular goal. A short verb allow-list rejected valid outcomes such
       // as water flowing or a courier handing over a parcel.
-      if(celebration.length<90||sentences.length<2||genericOutcome.test(celebration))
+      if(celebration.length<90||sentences.length<2||genericOutcome.test(celebration)||((spec.packQualityVersion||0)>=10&&unfinishedSentence.test(celebration)))
         throw Error('The ending celebration needs two complete sentences: a concrete result of the final action followed by a character response.');
     }else if(celebration.length<90||sentences.length<2||!visibleOutcome.test(celebration)||!sharedResponse.test(celebration)||genericOutcome.test(celebration)){
       if((spec.packQualityVersion||0)<7)throw Error('The ending celebration needs two complete beats: a visible result and a character or community response.');
