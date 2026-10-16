@@ -545,7 +545,11 @@ function causalAuditOutline(story,spec){
 }
 
 export async function auditCheckpointSemantics(stage,spec,env,fetcher=fetch){
-  if((spec.packQualityVersion||0)<7 || stage?.number>=5)
+  // V8 validates every printable field deterministically and then reviews the
+  // complete causal game once. Four extra per-checkpoint model reviews added
+  // cost and repeatedly rejected valid NO facts or text that had already been
+  // normalized. Keep the older review only for V7 recovery compatibility.
+  if((spec.packQualityVersion||0)<7 || (spec.packQualityVersion||0)>=8 || stage?.number>=5)
     return {usage:null,responseId:null};
   const records=['evidence_cards','decision_record'].includes(stage.material.type);
   const input={checkpoint:stage.number,materialType:stage.material.type,printedPieces:stage.material.items.slice(0,stage.material.logic.context.labels.length).map(item=>({label:item.label,detail:item.detail})),...(records?{features:stage.material.logic?.context?.features||[]}:{}),approvedGoal:spec.plan.goal,scene:spec.plan.stages[stage.number-1]?.scene||''};
