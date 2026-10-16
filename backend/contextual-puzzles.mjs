@@ -225,6 +225,11 @@ export function prepareContextualBlueprint(candidate,spec){
       if(labels.some(label=>scaffold.test(label))||!unique(substance))
         throw Error(`Checkpoint ${i+1} needs distinct named story pieces, not lettered placeholders or repeated subjects.`);
     }
+    if((spec.packQualityVersion||0)>=8&&i<4&&type==='order_tiles'){
+      const finalAction=String(candidate.storyFrame?.actions?.[0]||candidate.stages[4]?.material?.items?.[0]?.label||'').trim().toLowerCase();
+      if(finalAction&&labels.some(label=>label.trim().toLowerCase()===finalAction))
+        throw Error(`Checkpoint ${i+1} cannot perform the final action before the last checkpoint.`);
+    }
     if(spec.packExperienceVersion>=2&&i<4)assertGoalStillOpen(labels,spec.plan.goal,i+1);
     if(spec.packExperienceVersion>=2&&i<4&&type!=='symbol_key'&&labels.some(label=>worksheetLanguage.test(label)||/^(?:compare|match|select|record)\s+(?:card|facts|conditions|the printed)\b/i.test(label)))
       throw Error(`Checkpoint ${i+1} labels must name fictional story pieces or actions, not instructions about the worksheet.`);
@@ -251,6 +256,16 @@ export function prepareContextualBlueprint(candidate,spec){
     const compiled=buildContextPuzzle(i+1,type,context,digits.slice(),spec.packExperienceVersion||1,spec.packQualityVersion||2);
     const stage={...compiled,title:spec.plan.stages[i].title,mechanic:spec.plan.stages[i].mechanic};
     stages.push(stage);if(i<4)digits.push(compiled.material.logic.resultDigit);
+  }
+  if((spec.packQualityVersion||0)>=8){
+    const seen=new Map();
+    for(const stage of stages.slice(0,4))if(stage.material.type==='order_tiles'){
+      for(const label of stage.material.logic.context.labels){
+        const key=label.toLowerCase().replace(/\b(?:the|a|an)\b/g,'').replace(/[^a-z]+/g,' ').trim().replace(/\s+/g,' ');
+        if(seen.has(key))throw Error(`Checkpoint ${stage.number} repeats a printed action from checkpoint ${seen.get(key)}.`);
+        seen.set(key,stage.number);
+      }
+    }
   }
   if(new Set(stages.slice(0,4).map(stage=>stage.material.logic.signature)).size!==4)throw Error('The first four activities repeat the same puzzle; distinct variations are required.');
   const spine=spec.packExperienceVersion>=3?validateStorySpine(candidate.spine&&{
