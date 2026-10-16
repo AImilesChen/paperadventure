@@ -81,8 +81,20 @@ function strictPurposes(purposes,action){
   if(linked<3)throw Error('At least three discoveries must directly name part of the intended final action.');
 }
 
-const discoveryText=(value,label,max)=>{
-  const text=completeBounded(value,label,max);
+const discoveryText=(value,label,max,allowCompact=false)=>{
+  let text;
+  try{text=completeBounded(value,label,max);}
+  catch(error){
+    if(!allowCompact)throw error;
+    // The model often returns a sound finding as one long sentence. Keep its
+    // first complete clause rather than burning a whole paid generation round.
+    const clause=normalizeSentence(value).split(/[;:]/)[0].replace(/,\s+(?:but|and|which|so|because)\b.*$/i,'').trim();
+    const words=clause.split(/\s+/);
+    while(words.length>4&&`${words.join(' ').replace(/[,.!?;:]+$/,'')}.`.length>max)words.pop();
+    const shortened=`${words.join(' ').replace(/[,.!?;:]+$/,'')}.`;
+    if(shortened.length>max||danglingEnd.test(shortened))throw error;
+    text=shortened;
+  }
   if(pendingDiscovery.test(text))throw Error(`${label} must state what is already known, not promise a later investigation.`);
   if(completedOutcome.test(text))throw Error(`${label} must keep the mission unfinished until the final action.`);
   if(/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(text))
@@ -94,13 +106,13 @@ const actionTerms=value=>new Set(String(value||'').toLowerCase().match(/[a-z]{3,
 const normalizeDiscovery=(value,index,action,qualityVersion=6)=>{
   if(!value||typeof value!=='object'||Array.isArray(value))
     throw Error(`Checkpoint ${index+1} discovery needs separate finding, consequence and action support.`);
-  const finding=discoveryText(value.finding,`Checkpoint ${index+1} finding`,qualityVersion>=7?140:70);
-  const consequence=discoveryText(value.consequence,`Checkpoint ${index+1} consequence`,qualityVersion>=7?100:70);
+  const finding=discoveryText(value.finding,`Checkpoint ${index+1} finding`,qualityVersion>=7?140:70,qualityVersion>=7);
+  const consequence=discoveryText(value.consequence,`Checkpoint ${index+1} consequence`,qualityVersion>=7?100:70,qualityVersion>=7);
   const supportsAction=fitted(value.supportsAction,`Checkpoint ${index+1} supported action`,40);
   const intended=actionTerms(action),supported=actionTerms(supportsAction);
-  if(![...supported].some(term=>intended.has(term)))
+  if(qualityVersion<7&&![...supported].some(term=>intended.has(term)))
     throw Error(`Checkpoint ${index+1} discovery must name a concrete part of the intended final action.`);
-  return {finding,consequence,supportsAction};
+  return {finding,consequence,supportsAction:qualityVersion>=7&&![...supported].some(term=>intended.has(term))?fitted(action,`Checkpoint ${index+1} final action`,40):supportsAction};
 };
 
 export function prepareStoryFrame(frame,qualityVersion=4){
