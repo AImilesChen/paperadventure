@@ -1067,7 +1067,7 @@ test('an unapproved location-only replacement repairs the saved request once wit
     if(auditPasses==='format'){
       assert.equal(calls,1,'the format failure happens before the independent audit');
       const failed=await view();
-      assert.deepEqual(failed.planReview.progress.formatIssue,{field:'storyBeat',rule:'length',stage:2,length:197,limit:140});
+      assert.deepEqual(failed.planReview.progress.formatIssue,{field:'storyBeat',rule:'length',stage:2,length:197,limit:180});
       assert.equal(failed.qualityUpgradeAvailable,false,'a rejected replacement cannot expose a full-pack upgrade');
       assert.equal(failed.planReview.formatResumeAvailable,true);assert.equal(failed.planReview.formatResumeCalls,2);
       assert.doesNotMatch(JSON.stringify(failed),/PRIVATE STORY/,'failed candidate prose remains private');

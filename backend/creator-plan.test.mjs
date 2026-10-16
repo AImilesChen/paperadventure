@@ -106,10 +106,10 @@ test('format failures retain exact field measurements without exposing candidate
   candidate.stages[1].storyBeat='PRIVATE STORY '.repeat(14)+'.';
   let saved;
   await assert.rejects(generateSinglePlan(spec,env,async()=>response(candidate),{kind:'full',resume:{candidate,sceneRepairUsed:true,correctionUsed:true},onCheckpoint:async value=>saved=structuredClone(value)}));
-  assert.deepEqual(saved.formatIssue,{field:'storyBeat',rule:'length',stage:2,length:197,limit:140});
-  assert.match(planFormatMessage(saved.formatIssue),/Checkpoint 2: Story event has 197 characters; the limit is 140/);
+  assert.deepEqual(saved.formatIssue,{field:'storyBeat',rule:'length',stage:2,length:197,limit:180});
+  assert.match(planFormatMessage(saved.formatIssue),/Checkpoint 2: Story event has 197 characters; the limit is 180/);
   assert.doesNotMatch(planFormatMessage(saved.formatIssue),/PRIVATE STORY/);
-  assert.equal(safePlanFormatIssue({field:'PRIVATE STORY',rule:'length',length:197,limit:140}),null);
+  assert.equal(safePlanFormatIssue({field:'PRIVATE STORY',rule:'length',length:197,limit:180}),null);
   assert.equal(savedFormatRecovery({status:'failed',error_code:'PLAN_PRINT_FIT',provider_calls:3,checkpoint_json:JSON.stringify(saved)},spec).available,true);
   assert.equal(savedFormatRecovery({status:'failed',error_code:'PLAN_PRINT_FIT',provider_calls:4,checkpoint_json:JSON.stringify(saved)},spec).available,false);
 });
@@ -129,7 +129,7 @@ test('typographic normalization reuses the candidate and spends at most one rema
 
 test('format recovery fixes all rejected fields while preserving every passed checkpoint',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec,candidate=planFixture(spec),fixed=structuredClone(candidate);
-  candidate.stages[1].storyBeat='A'.repeat(150)+'.';candidate.stages[3].storyBeat='An incomplete event';
+  candidate.stages[1].storyBeat='A'.repeat(190)+'.';candidate.stages[3].storyBeat='An incomplete event';
   const recovery=savedFormatRecovery({status:'failed',error_code:'PLAN_PRINT_FIT',provider_calls:3,checkpoint_json:JSON.stringify({candidate,sceneRepairUsed:true})},spec);
   assert.equal(recovery.available,true);assert.equal(recovery.fields.length,2);
   fixed.title='Unrequested title';fixed.stages[0].storyBeat='An unrequested robot takes over the mission.';

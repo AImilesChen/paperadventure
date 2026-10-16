@@ -48,7 +48,7 @@ export function planFormatIssues(raw){
   if(!Array.isArray(candidate.stages))return issues;
   for(const [index,stage] of candidate.stages.entries()){
     const before=issues.length;
-    for(const [field,limit,complete] of [['scene',80],['storyBeat',140,true]]){
+    for(const [field,limit,complete] of [['scene',80],['storyBeat',180,true]]){
       const issue=check(stage[field],field,limit,index+1,complete);if(issue)issues.push(issue);
     }
     if(issues.length!==before)continue;

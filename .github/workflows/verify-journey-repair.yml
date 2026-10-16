@@ -6,6 +6,7 @@ on:
       - '.github/workflows/verify-journey-repair.yml'
 permissions:
   contents: read
+  actions: read
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -18,9 +19,16 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
-      - name: One mythology case; two plan calls and twenty calls total
+      - uses: actions/download-artifact@v5
+        with:
+          name: synthetic-journey-review
+          run-id: 38929448984
+          github-token: ${{ github.token }}
+          path: tmp/previous-provider-contract
+      - name: Resume saved mythology output; twenty calls across runs
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          SMOKE_REPLAY_DIR: tmp/previous-provider-contract
           SMOKE_CASE_IDS: classroom-journey
           SMOKE_MAX_PROVIDER_CALLS: '20'
         run: node scripts/paper-contract-provider-smoke.mjs

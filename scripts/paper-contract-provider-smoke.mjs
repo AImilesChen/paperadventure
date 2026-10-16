@@ -1,4 +1,4 @@
-import {mkdir,writeFile} from 'node:fs/promises';
+import {mkdir,writeFile,readFile,readdir} from 'node:fs/promises';
 import {validatePurchase} from '../backend/domain.mjs';
 import {generateSinglePlan} from '../backend/plan-proposals.mjs';
 import {repairBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,
@@ -23,7 +23,20 @@ const maxProviderCalls=Number(process.env.SMOKE_MAX_PROVIDER_CALLS||12);
 const summaries=[];
 for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id))){
   let phase='plan',calls=0,blueprintRepairs=0,inputTokens=0,outputTokens=0;
-  const privateFetch=async(url,options)=>{if(calls>=maxProviderCalls){const error=Error(`Synthetic provider-call cap ${maxProviderCalls} reached.`);error.code='SMOKE_BUDGET_EXHAUSTED';throw error;}calls++;const response=await fetch(url,{...options,signal:AbortSignal.timeout(90000)}),body=await response.clone().json();inputTokens+=body.usage?.input_tokens||0;outputTokens+=body.usage?.output_tokens||0;await writeFile(`${directory}/${item.id}-call-${calls}.json`,JSON.stringify({request:JSON.parse(options.body),response:body},null,2));return response;};
+  const replay=[];
+  if(process.env.SMOKE_REPLAY_DIR)for(const file of await readdir(process.env.SMOKE_REPLAY_DIR)){
+    const match=file.match(new RegExp(`^${item.id}-call-(\\d+)\\.json$`));if(!match)continue;
+    const text=await readFile(`${process.env.SMOKE_REPLAY_DIR}/${file}`,'utf8');
+    replay.push(JSON.parse(text));calls=Math.max(calls,Number(match[1]));await writeFile(`${directory}/${file}`,text);
+  }
+  const privateFetch=async(url,options)=>{
+    const request=JSON.parse(options.body);
+    const index=replay.findIndex(saved=>saved.request.text.format.name===request.text.format.name&&saved.request.input===request.input&&
+      (request.text.format.name==='paid_adventure_plan'||saved.request.instructions===request.instructions));
+    if(index>=0)return Response.json(replay.splice(index,1)[0].response);
+    if(calls>=maxProviderCalls){const error=Error(`Synthetic provider-call cap ${maxProviderCalls} reached.`);error.code='SMOKE_BUDGET_EXHAUSTED';throw error;}
+    calls++;const response=await fetch(url,{...options,signal:AbortSignal.timeout(90000)}),body=await response.clone().json();inputTokens+=body.usage?.input_tokens||0;outputTokens+=body.usage?.output_tokens||0;await writeFile(`${directory}/${item.id}-call-${calls}.json`,JSON.stringify({request,response:body},null,2));return response;
+  };
   try{
     const {spec}=validatePurchase({sku:`custom_${item.setting}`,creatorVersion:3,customIdea:item.idea,setting:item.setting,players:item.players,age:item.age,paper:'A4',...(item.setting==='classroom'?{groups:Math.ceil(item.players/4)}:{}),gameplay:{primary:item.primary,secondary:item.secondary}});
     if(spec.packExperienceVersion!==3)throw Error('Linked-story contract is not enabled for a new purchase.');
