@@ -44,11 +44,11 @@ export function paperPlanMechanics(gameplay={}){
 
 export function completePaperPlan(candidate,gameplay){
   if(candidate?.stages?.length!==5)throw Error('Five planned checkpoints are required.');
-  for(let index=0;index<4;index++)assertGoalStillOpen([candidate.stages[index]?.scene||''],candidate.goal,index+1);
+  for(let index=0;index<4;index++)assertGoalStillOpen([candidate.stages[index]?.scene||'',candidate.stages[index]?.storyBeat||''],candidate.goal,index+1);
   const mechanics=paperPlanMechanics(gameplay);
   const types=paperContractTypes({stages:mechanics.map(mechanic=>({mechanic}))});
   return alignPaperPlan({...candidate,...(candidate.premise?{opening:paperOpening(candidate.premise)}:{}),id:['mystery','mission'].includes(candidate.id)?candidate.id:'mission',stages:candidate.stages.map((stage,index)=>({...stage,
-    number:index+1,mechanic:mechanics[index],scene:stage.scene||`At printed checkpoint ${index+1}`,storyContext:paperStoryMoment(stage.scene||`At printed checkpoint ${index+1}`,types[index],index+1)}))});
+    number:index+1,mechanic:mechanics[index],scene:stage.scene||`At printed checkpoint ${index+1}`,storyContext:stage.storyBeat?`${stage.scene.trim().replace(/[.!?]+$/,'')}. ${stage.storyBeat.trim()}`:paperStoryMoment(stage.scene||`At printed checkpoint ${index+1}`,types[index],index+1)}))});
 }
 
 export function paperStoryMoment(scene,type,number){

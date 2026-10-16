@@ -67,6 +67,7 @@ export function validatePlan(value, spec) {
   if (!Array.isArray(value.stages) || value.stages.length !== 5) throw new Error('The preview must have five checkpoints.');
   const plan = {
     id:value.id,title:text(value.title,'Title',100),summary:text(value.summary,'Summary',600),
+    ...(value.storySceneVersion===1?{storySceneVersion:1}:{}),
     opening:text(value.opening,'Opening',900),roles:text(value.roles,'Roles',300),goal:text(value.goal,'Goal',260),
     preparation:text(value.preparation,'Preparation',500),...(spec.packContractVersion===1&&value.premise?{premise:text(value.premise,'Premise',200)}:{}),
     ...(spec.packContractVersion===1&&Array.isArray(value.themeAnchors)?{themeAnchors:value.themeAnchors.map(anchor=>{try{return text(anchor,'Theme anchor',45);}catch(error){error.code='PLAN_THEME_INVALID';throw error;}})}:{}),
@@ -74,10 +75,14 @@ export function validatePlan(value, spec) {
       if (item.number !== index+1 || !selected.includes(item.mechanic)) throw new Error('A checkpoint has an unsupported number or play style.');
       return {number:index+1,title:text(item.title,'Checkpoint title',100),mechanic:item.mechanic,
         task:text(item.task,'Player task',350),teamwork:text(item.teamwork,'Team action',260),connection:text(item.connection,'Connection',260),
-        ...(spec.packContractVersion===1?{storyContext:text(item.storyContext||item.title,'Story context',220),...(item.scene?{scene:text(item.scene,'Scene',80)}:{})}:{})};
+        ...(spec.packContractVersion===1?{storyContext:text(item.storyContext||item.title,'Story context',220),...(item.scene?{scene:text(item.scene,'Scene',80)}:{}),...(item.storyBeat?{storyBeat:text(item.storyBeat,'Story event',140)}:{})}:{})};
     }),
   };
   if (!['mystery','mission'].includes(plan.id)) throw new Error('Choose one of the two adventure plans.');
+  if(plan.storySceneVersion===1){
+    if(plan.stages.some(stage=>!stage.storyBeat||!/[.!?]$/.test(stage.storyBeat)))throw new Error('Each checkpoint needs a complete story event, not only a location.');
+    if(new Set(plan.stages.map(stage=>stage.storyBeat.toLowerCase().replace(/[^a-z0-9]/g,''))).size!==5)throw new Error('Each checkpoint needs a different story event.');
+  }
   if(spec.packContractVersion===1&&(spec.packQualityVersion||0)>=14){
     const anchors=plan.themeAnchors||[];
     if(!anchors.length){const error=new Error('The plan needs purchased-theme anchors.');error.code='PLAN_THEME_MISSING';throw error;}

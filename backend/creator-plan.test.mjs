@@ -59,7 +59,7 @@ test('theme-plan repair asks for the returned premise and scenes across two them
     const valid=planFixture(spec);
     valid.premise=`The ${valid.themeAnchors[0]} guardians find that a vital message has gone missing.`;
     valid.stages[1].scene=`At the ${valid.themeAnchors[0]} archive`;
-    const previous={...valid,themeAnchors:undefined,stages:valid.stages.map((stage,index)=>index<2?{...stage,scene:`At a generic desk ${index+1}`} : stage)};
+    const previous={...valid,themeAnchors:undefined,stages:valid.stages.map((stage,index)=>({...stage,storyBeat:undefined,scene:`At a generic desk ${index+1}`}))};
     const invalid={...valid,themeAnchors:[]};
     const sent=[];
     const result=await generateSinglePlan(spec,env,async(_url,request)=>{
@@ -87,6 +87,51 @@ test('paid plan parser accepts fenced provider JSON and audits the result',async
     return Response.json({output:[{content:[{type:'output_text',text:fence+'json\n'+JSON.stringify(value)+'\n'+fence}]}]});
   });
   assert.equal(calls,2);assert.equal(result.plan.title,plan.title);
+});
+
+test('location-only plans cannot reach approval even when a scripted auditor would pass them',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec;
+  const locations=planFixture(spec);for(const stage of locations.stages)delete stage.storyBeat;
+  let calls=0;
+  await assert.rejects(generateSinglePlan(spec,env,async(_url,request)=>{
+    calls++;assert.notEqual(JSON.parse(request.body).text.format.name,'paid_plan_audit');
+    return response(locations);
+  },{kind:'full'}),error=>error.code==='PLAN_INVALID');
+  assert.equal(calls,2,'one candidate and one structural repair; no audit can waive missing story events');
+});
+
+test('saved scene repair preserves passed narrative fields and uses just the remaining request budget',async()=>{
+  for(const customIdea of ['西游记，东方神话元素','A clock tower that stopped at noon']){
+    const spec=validatePurchase({...input,creatorVersion:3,customIdea}).spec;
+    const original=planFixture(spec);for(const stage of original.stages)delete stage.storyBeat;
+    const fixed=planFixture(spec);fixed.title='Unrequested replacement title';fixed.goal='Unrequested replacement goal';
+    let calls=0,saved;
+    const result=await generateSinglePlan(spec,env,async(_url,request)=>{
+      const sent=JSON.parse(request.body);calls++;
+      if(calls===1){assert.equal(sent.text.format.name,'repaired_paid_plan');return response(fixed);}
+      const audited=JSON.parse(sent.input).plan;
+      assert.equal(audited.title,original.title);assert.equal(audited.goal,original.goal);
+      assert.ok(audited.stages.every(stage=>stage.storyContext.includes(stage.storyBeat)));
+      assert.match(sent.instructions,/mentally remove the theme title/);
+      return response({pass:true,issues:[]});
+    },{kind:'full',previousCalls:3,resume:{candidate:original,sceneRepairUsed:true,correctionUsed:true},onCheckpoint:async value=>saved=value});
+    assert.equal(calls,2);assert.equal(result.plan.storySceneVersion,1);assert.equal(saved.sceneRepairUsed,true);
+    assert.equal(new Set(result.plan.stages.map(stage=>stage.storyBeat)).size,5);
+  }
+});
+
+test('repeated events and premature goal completion are blocked before story review',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec;
+  const duplicate=planFixture(spec);duplicate.stages[2].storyBeat=duplicate.stages[0].storyBeat;
+  assert.throws(()=>validatePlan(duplicate,spec),/different story event/);
+  const premature=planFixture(spec);premature.stages[0].storyBeat='The travellers recovered the missing travel document.';
+  await assert.rejects(generateSinglePlan(spec,env,async()=>response(premature),{kind:'full'}),error=>error.code==='PLAN_INVALID');
+});
+
+test('a changed title and opening cannot disguise unchanged story events in a whole-plan rework',async()=>{
+  const spec=validatePurchase({...input,creatorVersion:3}).spec,previous=planFixture(spec),candidate=structuredClone(previous);
+  candidate.title='A new title over the old scenes';candidate.premise='The Monkey King and his companions lose a vital message at a mountain inn.';
+  await assert.rejects(generateSinglePlan(spec,env,async()=>response(candidate),{kind:'full',previousPlan:previous}),error=>planFailureCategory(error)==='PLAN_REWORK_UNCHANGED');
 });
 
 test('new paid plans generate narrative only; setup and selected main-style allocation cannot drift',async()=>{
@@ -249,4 +294,3 @@ test('new Player and Guide PDFs include the approved mission, preserve answer se
     assert.match(guide,/Gentle hint:/);assert.match(guide,/Printed player pages and pencils/);
   }
 });
-
