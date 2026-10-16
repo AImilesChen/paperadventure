@@ -1,1 +1,1 @@
-2026-10-16: restore one explicit semantic-plan recovery on the authorized stopped Classroom order.
+2026-10-16: verify scoped semantic-plan recovery with concurrency-order-independent regression checks.
