@@ -65,8 +65,11 @@ const combinedUsage=(...values)=>values.reduce((usage,value)=>({input_tokens:usa
 async function structuredResponse(spec, env, fetcher, {name,schema,instructions,input,maxOutput,invalidCode}) {
   const provider=aiProvider(env);
   if (!provider) throw new ApiError(503,'GENERATION_NOT_CONFIGURED','Story generation is not configured.');
-  const reasoningNames=new Set(['story_frame','story_frame_repair','story_discovery_repair','game_blueprint',
-    'grounded_discoveries','checkpoint_material_repair','closing_repair','staged_story_audit','staged_story_adjudication']);
+  // DeepSeek counts hidden reasoning against max_output_tokens. The fixed
+  // materials and short consequence steps repeatedly exhausted that budget;
+  // reserve thinking for the causal frame and independent full-game review.
+  const reasoningNames=new Set(['story_frame','story_frame_repair',
+    'staged_story_audit','staged_story_adjudication']);
   const careful=(spec.packQualityVersion||0)>=8&&reasoningNames.has(name);
   let response;
   try {
