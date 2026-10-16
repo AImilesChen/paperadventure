@@ -1,4 +1,4 @@
-name: Check final paid quality repair result without story logs
+name: Inspect current paid remake state without story logs
 on:
   push:
     branches: [codex-remake-diagnostic-20261015]
@@ -19,34 +19,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - name: Read failure metadata into temporary runner storage
+      - name: Read remake state metadata only
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT r.status,r.phase,r.error_code AS remake_error_code,r.error_detail AS remake_error_detail,r.logic_epoch,r.quality_epoch,r.recovery_round,json_extract(r.spec_json,'$.packExperienceVersion') AS experience_version,json_extract(r.spec_json,'$.packQualityVersion') AS quality_version,json_extract(r.spec_json,'$.packContractVersion') AS contract_version,json_array_length(r.stages_json) AS saved_stages,c.phase AS call_phase,c.stage_number,c.status AS call_status,c.error_code AS call_error_code,c.error_detail AS call_error_detail FROM custom_pack_remakes r LEFT JOIN custom_pack_remake_calls c ON c.order_id=r.order_id AND c.logic_epoch=r.logic_epoch AND c.quality_epoch=r.quality_epoch WHERE r.order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' ORDER BY c.created_at,c.id" > "$RUNNER_TEMP/remake-metadata.json"
-      - name: Print error codes and rule categories only
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status,phase,error_code,lease_until,unixepoch() AS now_epoch,failure_count,recovery_round,logic_epoch,quality_epoch,json_extract(spec_json,'$.packQualityVersion') AS quality_version,CASE WHEN blueprint_json IS NULL THEN 0 ELSE 1 END AS blueprint_ready,COALESCE(json_array_length(stages_json),0) AS saved_stages,CASE WHEN story_json IS NULL THEN 0 ELSE 1 END AS story_ready,created_at,updated_at,completed_at FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd'"
+      - name: Read current call state metadata only
         run: |
-          node - "$RUNNER_TEMP/remake-metadata.json" <<'NODE'
-          const fs=require('node:fs');
-          const data=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
-          const rows=(Array.isArray(data)?data:[data]).flatMap(item=>item.results||[]);
-          function category(value){
-            const message=String(value||'');
-            const rules=[
-              [/paper puzzle .* differs|unified paper contract|checked paper puzzle|contract wording/i,'CONTRACT_MISMATCH'],
-              [/task or teamwork|approved paper action|play style/i,'ACTION_MISMATCH'],
-              [/answer explanation|clue|hint|stage title|under [0-9]+ characters|too long/i,'TEXT_LIMIT'],
-              [/paper piece|paper activity|material/i,'MATERIAL'],
-              [/approved plan|plan is unavailable/i,'PLAN'],
-              [/safe generation limit|budget/i,'BUDGET'],
-              [/provider|upstream/i,'PROVIDER'],
-              [/checksum|storage|source/i,'STORAGE']
-            ];
-            if(/completed game did not pass its quality check/i.test(message)) return /final action|ending|mission goal|goal|selected finding|earlier finding/i.test(message)?'FINAL_ACTION_COHERENCE':/feature|YES|NO|properties/i.test(message)?'FEATURE_SEMANTICS':/candidate|same kind|comparable/i.test(message)?'CANDIDATE_COHERENCE':'GAME_AUDIT_OTHER';
-            return rules.find(([pattern])=>pattern.test(message))?.[1]||'OTHER';
-          }
-          const first=rows[0];
-          if(!first){console.log(JSON.stringify({found:false}));process.exit(0);}
-          console.log(JSON.stringify({status:first.status,phase:first.phase,logicEpoch:first.logic_epoch,qualityEpoch:first.quality_epoch,recoveryRound:first.recovery_round,experienceVersion:first.experience_version,qualityVersion:first.quality_version,contractVersion:first.contract_version,savedStages:first.saved_stages,remakeErrorCode:first.remake_error_code,remakeIssue:category(first.remake_error_detail),calls:rows.filter(row=>row.call_phase).map(row=>({phase:row.call_phase,stage:row.stage_number,status:row.call_status,errorCode:row.call_error_code,issue:category(row.call_error_detail),issueStage:Number(String(row.call_error_detail||'').match(/Checkpoint\s+([1-5])/i)?.[1])||null,auditSignals:row.call_phase==='audit'?{findings:/finding|discovery|discoveries/i.test(row.call_error_detail||''),finalAction:/final action|first action/i.test(row.call_error_detail||''),goal:/goal|mission/i.test(row.call_error_detail||''),ending:/ending|celebration/i.test(row.call_error_detail||''),digits:/digit|code/i.test(row.call_error_detail||''),candidate:/candidate|comparable|same kind/i.test(row.call_error_detail||'')}:null}))}));
-          NODE
-# Safe post-preflight diagnostic; no story fields are printed.
-
-# Final joint repair status, safe categories only.
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase,stage_number,status,error_code,COUNT(*) AS row_count,MAX(created_at) AS last_started,MAX(completed_at) AS last_completed,COALESCE(SUM(input_tokens),0) AS input_tokens,COALESCE(SUM(output_tokens),0) AS output_tokens FROM custom_pack_remake_calls WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd' AND quality_epoch=(SELECT quality_epoch FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd') AND logic_epoch=(SELECT logic_epoch FROM custom_pack_remakes WHERE order_id='f72e24d9-6a9e-4f1f-8d16-af1432b459bd') GROUP BY phase,stage_number,status,error_code ORDER BY phase,stage_number,status"
