@@ -4,7 +4,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {buildContextPuzzle,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics} from './staged-story.mjs';
+import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
@@ -272,6 +272,20 @@ test('a closing error that mentions the final action repairs only the closing',a
   assert.deepEqual(calls,['closing_repair']);
   assert.equal(result.blueprint.celebration,celebration);
   assert.deepEqual(result.blueprint.storyFrame.actions,prepareStoryFrame(raw.storyFrame,9).actions);
+});
+
+test('a short provider closing is completed without another model retry',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:9};
+  const frame=structuredClockFrame();
+  let calls=0;
+  const result=await generateBlueprintClosingStep(spec,frame,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{
+    calls++;
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({celebration:'The bell rings.'})}]}],usage:{input_tokens:4,output_tokens:3}});
+  });
+  assert.equal(calls,1);
+  assert.ok(result.data.celebration.length>=90&&result.data.celebration.length<=240);
+  assert.equal(result.data.celebration.match(/[^.!?]+[.!?]+/g)?.length,2);
+  assert.match(result.data.celebration,/restore the noon bell/i);
 });
 
 test('quality version 8 replaces a generic code word with an approved story word before grounding',()=>{

@@ -1,2 +1,2 @@
-2026-10-16: deploy targeted closing repair and truthful resumable progress for quality v9.
+2026-10-16: deploy deterministic closing fallback for resumable quality v9 packs.
 
