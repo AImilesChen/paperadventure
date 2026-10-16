@@ -1,2 +1,1 @@
-2026-10-16: deploy complete-clause endings and no-charge quality v10 PDF refreshes.
-
+2026-10-16: deploy quality v11 final-code preservation and PDF-only refresh.
