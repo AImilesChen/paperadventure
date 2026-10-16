@@ -15,8 +15,9 @@ const cases=[
   {id:'home-garden',setting:'home',players:4,age:'10-12',primary:'sequence',secondary:['reasoning'],idea:'A rooftop garden crew must put a repair plan in order and restore a rain collector.'},
   {id:'classroom-code',setting:'classroom',players:20,age:'8-10',primary:'code',secondary:['reasoning'],idea:'A museum team decodes three short printed messages to restore a lost exhibit label.'},
 ];
+const selectedIds=new Set(String(process.env.SMOKE_CASE_IDS||'').split(',').map(value=>value.trim()).filter(Boolean));
 const summaries=[];
-for(const item of cases){
+for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id))){
   let phase='plan',calls=0,blueprintRepairs=0;
   const privateFetch=async(url,options)=>{calls++;const response=await fetch(url,{...options,signal:AbortSignal.timeout(90000)});await writeFile(`${directory}/${item.id}-call-${calls}.json`,JSON.stringify({request:JSON.parse(options.body),response:await response.clone().json()},null,2));return response;};
   try{
@@ -25,7 +26,7 @@ for(const item of cases){
     const planned=await generateSinglePlan(spec,env,privateFetch),approved={...spec,plan:planned.plan,planConfirmed:true};
     phase='blueprint';let blueprint,candidate=null,reason='';
     for(let attempt=0;attempt<5&&!blueprint;attempt++){
-      try{blueprint=(attempt?await repairBlueprint(approved,candidate,reason,env,privateFetch):await generateBlueprint(approved,env,privateFetch)).blueprint;}
+      try{blueprint=(attempt&&candidate?await repairBlueprint(approved,candidate,reason,env,privateFetch):await generateBlueprint(approved,env,privateFetch)).blueprint;}
       catch(error){candidate=error.candidate;reason=error.message;
         console.log(JSON.stringify({id:item.id,phase:'blueprint-check',attempt:attempt+1,code:error.code||'CHECK_FAILED',rule:String(reason).slice(0,180)}));
         if(attempt===4)throw error;blueprintRepairs++;}
