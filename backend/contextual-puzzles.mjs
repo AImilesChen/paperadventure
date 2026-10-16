@@ -50,6 +50,7 @@ const recordLabel=value=>{
 };
 const storyPieceLabel=value=>typeof value==='string'?value.replace(/^(?:Compare|Check|Match|Select|Record|Sort|Read)\s+(?:the\s+)?/i,'').trim():value;
 const worksheetLanguage=/\b(?:checkpoint|digit|digits|tile|tiles|printed|rule|rules|choice|choices|option|options|answer|answers|decoded word|report cards)\b/i;
+const inWorldAction=/^(?:align|ask|attach|balance|bring|carry|climb|clean|close|collect|connect|cover|cross|deliver|drain|draw|examine|fasten|fill|find|fit|follow|gather|give|guide|hand|hang|hold|hook|inspect|install|join|label|lay|lift|light|line|locate|mark|move|open|place|polish|position|prepare|press|pull|push|release|replace|reset|ring|roll|seal|secure|set|slide|smooth|spot|start|stop|strike|switch|take|test|thread|tie|trace|turn|uncoil|unlock|untie|visit|walk|wash|wind|wipe|wrap)\s+\S+/i;
 const completedOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
 const visibleOutcome=/\b(?:rings?|chimes?|sounds?|starts?|turns?|opens?|glows?|shines?|lights?|catches?|moves?|works?|returns?|arrives?|reaches?|restored|repaired|rescued|saved|delivered|completed|finished|recovered|solved)\b/i;
 const sharedResponse=/\b(?:smiles?|cheers?|celebrates?|thanks?|welcomes?|applauds?|continues?|begins?|sets out|heads home|gathers?|reunites?)\b/i;
@@ -208,8 +209,10 @@ export function prepareContextualBlueprint(candidate,spec){
       return text(usesRecords?recordLabel(normalized):spec.packExperienceVersion>=3?fitLabel(normalized):normalized,'Piece label',40);
     });
     if(spec.packExperienceVersion>=3&&i<4&&type==='symbol_key')labels=['1','2','3','4'];
-    if(spec.packExperienceVersion>=3&&i<4&&type==='order_tiles'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||closesGoal(label,spec.plan.goal)))
+    if(spec.packExperienceVersion>=3&&i<4&&type==='order_tiles'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
+      if((spec.packQualityVersion||0)>=8)throw Error(`Checkpoint ${i+1} ordering pieces must be unfinished in-world actions, not worksheet steps or completed outcomes.`);
       labels=stableOrderLabels(candidate,spec,i);
+    }
     if(spec.packExperienceVersion>=3&&i<4&&usesRecords&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number|candidate|option|answer|result|rule)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
       const subject=storySubject(candidate,spec,i);
       labels=['Field report','Keeper note','Route log'].map(kind=>recordLabel(`${subject} ${kind}`));
@@ -226,6 +229,8 @@ export function prepareContextualBlueprint(candidate,spec){
         throw Error(`Checkpoint ${i+1} needs distinct named story pieces, not lettered placeholders or repeated subjects.`);
     }
     if((spec.packQualityVersion||0)>=8&&i<4&&type==='order_tiles'){
+      if(labels.some(label=>!inWorldAction.test(label)))
+        throw Error(`Checkpoint ${i+1} ordering pieces must each begin with a complete in-world action.`);
       const finalAction=String(candidate.storyFrame?.actions?.[0]||candidate.stages[4]?.material?.items?.[0]?.label||'').trim().toLowerCase();
       if(finalAction&&labels.some(label=>label.trim().toLowerCase()===finalAction))
         throw Error(`Checkpoint ${i+1} cannot perform the final action before the last checkpoint.`);
