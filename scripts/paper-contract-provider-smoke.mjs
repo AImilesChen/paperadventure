@@ -5,6 +5,7 @@ import {repairBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStaged
   generateBlueprintFrameStep,generateBlueprintMaterialStep,generateBlueprintClosingStep,assembleBlueprintSteps} from '../backend/staged-story.mjs';
 import {buildGamePdf} from '../backend/pdf.mjs';
 import {verifyPrintedPuzzles} from '../backend/paper-proof.mjs';
+import {clockSpec as checkedClockSpec} from '../content/clock-contract-sample.mjs';
 
 const env={AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:process.env.DEEPSEEK_API_KEY,DEEPSEEK_MODEL:'deepseek-flash'};
 if(!env.DEEPSEEK_API_KEY)throw Error('Private provider credential missing.');
@@ -17,7 +18,7 @@ const cases=[
   {id:'classroom-code',setting:'classroom',players:20,age:'8-10',primary:'code',secondary:['reasoning'],idea:'A museum team decodes three short printed messages to restore a lost exhibit label.'},
 ];
 const selectedIds=new Set(String(process.env.SMOKE_CASE_IDS||'').split(',').map(value=>value.trim()).filter(Boolean));
-const maxProviderCalls=Number(process.env.SMOKE_MAX_PROVIDER_CALLS||18);
+const maxProviderCalls=Number(process.env.SMOKE_MAX_PROVIDER_CALLS||12);
 const summaries=[];
 for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id))){
   let phase='plan',calls=0,blueprintRepairs=0,inputTokens=0,outputTokens=0;
@@ -25,7 +26,10 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
   try{
     const {spec}=validatePurchase({sku:`custom_${item.setting}`,creatorVersion:3,customIdea:item.idea,setting:item.setting,players:item.players,age:item.age,paper:'A4',...(item.setting==='classroom'?{groups:Math.ceil(item.players/4)}:{}),gameplay:{primary:item.primary,secondary:item.secondary}});
     if(spec.packExperienceVersion!==3)throw Error('Linked-story contract is not enabled for a new purchase.');
-    const planned=await generateSinglePlan(spec,env,privateFetch),approved={...spec,plan:planned.plan,planConfirmed:true};
+    // The one-theme release check exercises pack generation, not another paid
+    // plan proposal. Reuse the checked synthetic plan so every provider call is
+    // spent on the part being released.
+    const planned=item.id==='home-clock'?{plan:checkedClockSpec.plan}:await generateSinglePlan(spec,env,privateFetch),approved={...spec,plan:planned.plan,planConfirmed:true};
     phase='blueprint';
     const frame=(await generateBlueprintFrameStep(approved,env,privateFetch)).storyFrame;
     const materials=[];
