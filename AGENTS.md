@@ -1,3 +1,5 @@
+On 2026-10-16 the owner found that the Classroom group-count field could receive focus but immediately discarded every typed value because the shared draft updater restored the previous groups value. Keep group changes in draft state, clear them only when switching to Home, and use an explicit 1-10 group selector bounded by the student count. Show the selected group count in the setup summary and explain that each group receives one complete Player Pack.
+
 On 2026-10-16 the owner approved a delivery-boundary fix after a quality-checked replacement still printed an empty final code. Quality version 12 rebuilds the ending from the four validated checkpoint result digits immediately before rendering, verifies that both Player Pack and Adult Guide contain that exact code, and stores the repaired story with the published artifact. Earlier ready quality packs may use the same paid order for a PDF-only refresh with no provider call or new charge; keep the earlier files available until both replacement PDFs pass.
 
 # Prototype Instructions
