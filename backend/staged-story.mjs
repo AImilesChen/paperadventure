@@ -65,11 +65,14 @@ const combinedUsage=(...values)=>values.reduce((usage,value)=>({input_tokens:usa
 async function structuredResponse(spec, env, fetcher, {name,schema,instructions,input,maxOutput,invalidCode}) {
   const provider=aiProvider(env);
   if (!provider) throw new ApiError(503,'GENERATION_NOT_CONFIGURED','Story generation is not configured.');
+  const reasoningNames=new Set(['story_frame','story_frame_repair','story_discovery_repair','game_blueprint',
+    'grounded_discoveries','checkpoint_material_repair','closing_repair','staged_story_audit','staged_story_adjudication']);
+  const careful=(spec.packQualityVersion||0)>=8&&reasoningNames.has(name);
   let response;
   try {
     response=await fetcher(provider.url,{method:'POST',signal:AbortSignal.timeout(90000),headers:{authorization:`Bearer ${provider.key}`,'content-type':'application/json'},body:JSON.stringify({
-      model:provider.model,...(provider.name==='deepseek'?{reasoning:{effort:(spec.packQualityVersion||0)>=8?'low':'none'}}:{}),instructions,
-      input:JSON.stringify(input),max_output_tokens:maxOutput+(spec.packContractVersion===1&&provider.name==='deepseek'?((spec.packQualityVersion||0)>=8?3500:2000):0),text:{format:{type:'json_schema',name,strict:true,schema}},
+      model:provider.model,...(provider.name==='deepseek'?{reasoning:{effort:careful?'low':'none'}}:{}),instructions,
+      input:JSON.stringify(input),max_output_tokens:maxOutput+(spec.packContractVersion===1&&provider.name==='deepseek'?(careful?9000:2000):0),text:{format:{type:'json_schema',name,strict:true,schema}},
     })});
   } catch (cause) {
     throw new ApiError(502,'GENERATION_UPSTREAM_FAILED','The story provider could not complete this step.',{cause});
@@ -213,6 +216,8 @@ async function groundDiscoveriesAfterMaterials(spec,storyFrame,stages,env,fetche
     checkpoint:index+1,type:types[index],selectedFinding:selectedStoryFinding(stage,types[index],index+1),
     labels:stage.material.items.map(item=>item.label),features:stage.features||[],
   }));
+  for(const item of printed)if(['evidence_cards','decision_record'].includes(item.type)&&item.features.length!==2)
+    throw Error(`Checkpoint ${item.checkpoint} needs two printed record facts before story grounding.`);
   const fixedFindings=printed.map(item=>item.type==='order_tiles'
     ? `The checked order starts with ${item.labels[0]} and ends with ${item.labels.at(-1)}.`
     :item.type==='symbol_key'?`The decoded word is ${item.selectedFinding}.`
