@@ -10,6 +10,7 @@ New creator-v3 orders and eligible same-order rebuilds snapshot `packQualityVers
 - The ending names an observable result of that action and a character or community response. A generic claim that the result is visible is not a valid ending.
 
 Generation instructions distinguish action tiles from record and code pieces. The mechanical ending check enforces complete sentences and rejects generic outcomes; the full-game audit judges whether the specific outcome actually fulfils the goal. An ending-only audit issue repairs only the closing paragraph, even if the provider labels it checkpoint 5.
+The checkpoint audit receives candidate pieces without engine-supplied rule cards, and an overlong final action is returned for rewriting rather than shortened by removing grammatical words.
 
 Independent printed-puzzle proof still establishes unique answers and result digits. The full-game editorial audit receives the actual printed pieces, story links and ending. One concrete defect blocks publication and identifies the affected checkpoint or closing; an unavailable audit also cannot publish a version-8 pack. Subjective style preferences are outside this blocking review.
 
