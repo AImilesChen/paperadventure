@@ -91,11 +91,11 @@ const discoveryText=(value,label,max)=>{
 };
 const actionTerms=value=>new Set(String(value||'').toLowerCase().match(/[a-z]{3,}/g)?.filter(word=>
   !['the','and','with','from','into','onto','over','under','before','after','using','through','this','that'].includes(word))||[]);
-const normalizeDiscovery=(value,index,action)=>{
+const normalizeDiscovery=(value,index,action,qualityVersion=6)=>{
   if(!value||typeof value!=='object'||Array.isArray(value))
     throw Error(`Checkpoint ${index+1} discovery needs separate finding, consequence and action support.`);
-  const finding=discoveryText(value.finding,`Checkpoint ${index+1} finding`,70);
-  const consequence=discoveryText(value.consequence,`Checkpoint ${index+1} consequence`,70);
+  const finding=discoveryText(value.finding,`Checkpoint ${index+1} finding`,qualityVersion>=7?140:70);
+  const consequence=discoveryText(value.consequence,`Checkpoint ${index+1} consequence`,qualityVersion>=7?100:70);
   const supportsAction=fitted(value.supportsAction,`Checkpoint ${index+1} supported action`,40);
   const intended=actionTerms(action),supported=actionTerms(supportsAction);
   if(![...supported].some(term=>intended.has(term)))
@@ -114,7 +114,7 @@ export function prepareStoryFrame(frame,qualityVersion=4){
   if(new Set(actions.map(value=>value.toLowerCase())).size!==3)throw Error('The story frame needs three distinct final actions.');
   if(actions.some(value=>/^(?:(?:restore|fix|solve|complete|save)\b|(?:final\s+)?action\b|option\b|choice\b)/i.test(value)))
     throw Error('Each final action must name a specific story action.');
-  const discoveries=qualityVersion>=6?frame.discoveries.map((value,index)=>normalizeDiscovery(value,index,actions[0])):null;
+  const discoveries=qualityVersion>=6?frame.discoveries.map((value,index)=>normalizeDiscovery(value,index,actions[0],qualityVersion)):null;
   const purposeInput=discoveries?discoveries.map(value=>`${value.finding} ${value.consequence}`):frame.purposes;
   const purposes=purposeInput.map((value,index)=>{
     let purpose;
@@ -173,13 +173,29 @@ const completeStoryLink=(lead,purpose,index,max=180)=>{
   }
   throw Error(`Checkpoint ${index+1} printed names leave no room for a complete story link.`);
 };
-const completeStructuredStoryLink=(lead,discovery,index,action,max=180)=>{
-  const consequence=discoveryText(discovery.consequence,`Checkpoint ${index+1} consequence`,70);
-  const support=fitted(action,`Checkpoint ${index+1} final action`,40);
-  const full=`${lead} ${consequence} This supports "${support}".`;
-  if(full.length<=max)return full;
-  const compact=`${lead} This supports "${support}".`;
-  if(compact.length<=max)return compact;
+const shortStoryLead=(stage,type,number)=>{
+  const finding=selectedStoryFinding(stage,type,number);
+  if(type==='order_tiles'){
+    const labels=stage.material?.items?.map(item=>item.label)||[];
+    return `"${labels[0]}" comes before "${labels.at(-1)}".`;
+  }
+  if(type==='symbol_key')return `"${finding}" is the decoded message.`;
+  if(type==='route_board')return `"${finding}" is an open route.`;
+  return `"${finding}" confirms the printed record facts.`;
+};
+const completeStructuredStoryLink=(lead,shortLead,discovery,index,action,max=180,qualityVersion=6)=>{
+  const consequence=discoveryText(discovery.consequence,`Checkpoint ${index+1} consequence`,qualityVersion>=7?100:70);
+  if(qualityVersion<7){
+    const support=fitted(action,`Checkpoint ${index+1} final action`,40);
+    const full=`${lead} ${consequence} This supports "${support}".`;
+    if(full.length<=max)return full;
+    const compact=`${lead} This supports "${support}".`;
+    if(compact.length<=max)return compact;
+    throw Error(`Checkpoint ${index+1} printed names leave no room for a complete story link.`);
+  }
+  const support=fitted(discovery.supportsAction||action,`Checkpoint ${index+1} supported action`,40);
+  for(const sentence of [`${lead} ${consequence} This supports "${support}".`,`${shortLead} ${consequence} This supports "${support}".`,`${lead} ${consequence}`,`${shortLead} ${consequence}`])
+    if(sentence.length<=max)return sentence;
   throw Error(`Checkpoint ${index+1} printed names leave no room for a complete story link.`);
 };
 
@@ -189,7 +205,7 @@ export function compileStorySpine(frame,stages,types,qualityVersion=4){
     const {finding,lead}=storyLead(stage,types[index],index+1);
     if(qualityVersion>=6){
       const discovery=checked.discoveries[index];
-      return {finding,reason:completeStructuredStoryLink(lead,discovery,index,resolution),consequence:discovery.consequence,supportsAction:discovery.supportsAction};
+      return {finding,reason:completeStructuredStoryLink(lead,shortStoryLead(stage,types[index],index+1),discovery,index,resolution,180,qualityVersion),consequence:discovery.consequence,supportsAction:discovery.supportsAction};
     }
     return completeStoryLink(lead,checked.purposes[index],index);
   });
@@ -212,8 +228,8 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
       finding:'The printed finding is confirmed.',
       consequence:typeof value==='object'&&value?.consequence,
       supportsAction:typeof value==='object'&&value?.supportsAction,
-    },index,resolution):null;
-    let reason=structured?completeStructuredStoryLink(lead,structured,index,resolution):plain(typeof value==='string'?value:value?.reason,`Checkpoint ${index+1} story link`,180);
+    },index,resolution,qualityVersion):null;
+    let reason=structured?completeStructuredStoryLink(lead,shortStoryLead(stages[index],types[index],index+1),structured,index,resolution,180,qualityVersion):plain(typeof value==='string'?value:value?.reason,`Checkpoint ${index+1} story link`,180);
     if(/\b(?:answer code|result digit|correct answer|matching option)\b/i.test(reason))
       throw Error(`Checkpoint ${index+1} story link needs a fictional reason beyond the answer code.`);
     const exactFinding=reason.toLowerCase().includes(String(finding).toLowerCase());
@@ -221,11 +237,11 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
       const features=stages[index]?.features||stages[index]?.material?.logic?.context?.features||[];
       if(features.length!==2)throw Error(`Checkpoint ${index+1} story link must cite both printed record facts.`);
       const missing=features.map(feature=>String(feature).replace(/^(?:Mentions|Names)\s+/i,'')).filter(subject=>!reason.toLowerCase().includes(subject.toLowerCase()));
-      if(!exactFinding||missing.length){
+      if(qualityVersion<7&&(!exactFinding||missing.length)){
         const originalPurpose=reason.replace(/^[^.!?]+[.!?]\s*/, '').trim()||purposeFallbacks[index];
         reason=completeStoryLink(lead,originalPurpose,index);
       }
-    }else if(!exactFinding){
+    }else if(qualityVersion<7&&!exactFinding){
       const originalPurpose=reason.replace(/^[^.!?]+[.!?]\s*/, '').trim()||purposeFallbacks[index];
       reason=completeStoryLink(lead,originalPurpose,index);
     }
