@@ -290,6 +290,10 @@ test('quality version 6 builds a second theme on A4 and Letter with the same del
     assert.match(pdf,/The Garden Lantern at Dusk/);
     assert.match(pdf,/HOST NOTES|Player Pack/);
   }
+  const dense={...story,title:'The Garden Lantern and the Missing Path for the Evening Visitors',
+    spine:{...story.spine,problem:'The garden path remains dark while several visitors wait by the gate. The lantern has a missing part, and the crew must identify the safe supplies and route before the evening walk can begin.'}};
+  const denseSpec={...spec,setting:'classroom',groups:6,paper:'Letter',plan:{...plan,goal:'Light the correct garden lantern so all evening visitors can follow the safe path home before the gate closes.'}};
+  assert.match(new TextDecoder().decode(buildGamePdf(dense,denseSpec,'guide')),/Adult guide \/ Preparation/);
 });
 
 test('a decoded story word CODE is not confused with an answer-code explanation',()=>{
