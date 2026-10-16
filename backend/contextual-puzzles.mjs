@@ -202,7 +202,7 @@ export function prepareContextualBlueprint(candidate,spec){
       throw Error(`Checkpoint ${i+1} witness candidates must name story objects or actions, not the witness notes or answer roles.`);
     const usesPrintedFeatures=type==='evidence_cards'||type==='decision_record'&&spec.packExperienceVersion>=2||type==='route_board'&&spec.packExperienceVersion<2;
     let features=usesPrintedFeatures&&i<4?raw.features?.map(value=>text(spec.packExperienceVersion>=3&&['evidence_cards','decision_record'].includes(type)?fitRecordFeature(value):value,`Checkpoint ${i+1} printed feature`,32)):['Checked fact','Matching fact'];
-    if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)&&features?.some(value=>featureBanned.test(value)))
+    if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)&&(features?.some(value=>featureBanned.test(value))||(spec.packQualityVersion||0)>=7&&features?.length===2&&!unique(features)))
       features=fallbackRecordFeatures(candidate,spec,i);
     if(features?.length!==2||!unique(features))throw Error(`Checkpoint ${i+1} needs two distinct story-specific feature names.`);
     if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)){
