@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {validatePurchase,validateGeneratedStory} from './domain.mjs';
 import {signPreview,confirmPreview} from './creator-preview.mjs';
 import {generateProposals,generateStory,reviseStage} from './openai.mjs';
-import {generateSinglePlan} from './plan-proposals.mjs';
+import {generateSinglePlan,planFailureCategory} from './plan-proposals.mjs';
 import {contextKey,storySuggestions,validatePlan} from '../shared/creator-plan.mjs';
 import {normalizeDraft,draftSpec,activePlans,readySetup,fromCloudDraft} from '../src/creatorDraft.mjs';
 import {planFixture} from '../tests/fixtures/creator-plan-fixture.mjs';
@@ -49,6 +49,29 @@ test('quality 14 keeps a purchased theme in the approved opening and checkpoint 
   assert.deepEqual(validatePlan(plan,spec).themeAnchors,['Journey to the West']);
   assert.throws(()=>validatePlan({...plan,themeAnchors:[]},spec),/purchased-theme anchors/);
   assert.throws(()=>validatePlan({...plan,stages:plan.stages.map((stage,index)=>({...stage,scene:`At generic desk ${index+1}`}))},spec),/Theme anchors/);
+});
+test('theme-plan repair asks for the returned premise and scenes across two themes',async()=>{
+  for(const customIdea of ['西游记，东方神话元素','A clock tower that stopped at noon']){
+    const spec=validatePurchase({...input,creatorVersion:3,customIdea}).spec;
+    const valid=planFixture(spec);
+    valid.premise=`The ${valid.themeAnchors[0]} guardians find that a vital message has gone missing.`;
+    valid.stages[1].scene=`At the ${valid.themeAnchors[0]} archive`;
+    const previous={...valid,themeAnchors:undefined,stages:valid.stages.map((stage,index)=>index<2?{...stage,scene:`At a generic desk ${index+1}`} : stage)};
+    const invalid={...valid,premise:'A generic station has a missing message.'};
+    const sent=[];
+    const result=await generateSinglePlan(spec,env,async(_url,request)=>{
+      const body=JSON.parse(request.body);sent.push(body);
+      const value=[invalid,valid,{pass:true,issues:[]}][sent.length-1];
+      return response(value);
+    },{kind:'full',feedback:'Restore the purchased theme.',previousPlan:previous});
+    assert.equal(sent.length,3);
+    assert.match(sent[0].instructions,/exact anchor in premise and one exact anchor in a scene/);
+    assert.match(sent[1].instructions,/Do not return opening, roles, preparation, tasks or answers/);
+    assert.match(result.plan.opening,new RegExp(valid.themeAnchors[0],'i'));
+    assert.equal(result.providerCalls,3);
+  }
+  assert.equal(planFailureCategory({code:'PLAN_INVALID',cause:new Error('Theme anchors must appear in the opening')}),'PLAN_THEME_ANCHORS');
+  assert.equal(planFailureCategory({code:'PLAN_INVALID',cause:new Error('Private story text')}),'PLAN_INVALID');
 });
 test('paid plan parser accepts fenced provider JSON and audits the result',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;

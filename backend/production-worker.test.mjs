@@ -23,9 +23,12 @@ async function approvedCustomInput(env,input) {
   return {...spec,email:input.email};
 }
 
-function database() {
+function database({includeThemeRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql']) {
+    if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
+    db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  }
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -884,8 +887,8 @@ test('paid v3 plan is reviewed before PDFs and only successful changes spend all
   assert.equal((await post({action:'rework',feedback:'Try again after approval.'},'paid-plan-change-0003')).status,409);
 });
 
-test('a failed free theme correction can be retried once without losing the original PDFs',async()=>{
-  const {db,binding}=database(),owner='theme-correction-owner',queued=[];
+test('two old theme-plan failures gain one bounded correction without losing original PDFs',async()=>{
+  const {db,binding}=database({includeThemeRecovery:false}),owner='theme-correction-owner',queued=[];
   const purchase=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'Journey to the West with the Monkey King',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
   purchase.packQualityVersion=13;
   const oldPlan=planFixture(purchase);delete oldPlan.themeAnchors;
@@ -915,13 +918,22 @@ test('a failed free theme correction can be retried once without losing the orig
   await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){}}]},env);
   assert.equal(db.prepare("SELECT quality_replan_used FROM custom_plan_orders WHERE order_id='theme-order'").get().quality_replan_used,0);
   assert.equal((await view()).planReview.themeReplanAttempts,1);
+  assert.equal((await view()).planReview.themeReplanFailureCode,'PLAN_UPSTREAM_FAILED');
+  assert.equal(db.prepare("SELECT error_code,error_detail FROM generation_usage WHERE order_id='theme-order' AND status='plan-failed'").get().error_detail,'provider_calls=1');
   assert.equal((await view()).themePlanRepairAvailable,true);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1,'failed correction leaves original PDF available');
   db.prepare("UPDATE custom_plan_orders SET quality_replan_used = 1 WHERE order_id = 'theme-order'").run();
   db.exec(readFileSync(new URL('./migrations/0020_failed_theme_plan_retry.sql', import.meta.url),'utf8'));
   assert.equal((await view()).themePlanRepairAvailable,true,'migration recovers previously stuck orders');
-  failFirst=false;
   assert.equal((await post({action:'quality_replan'},'free-theme-correction-0002')).status,202);
+  await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){}}]},env);
+  assert.equal((await view()).planReview.themeReplanAttempts,2);
+  assert.equal((await view()).themePlanRepairAvailable,false,'two failed provider attempts stop the old self-service route');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1);
+  db.exec(readFileSync(new URL('./migrations/0021_theme_plan_failure_recovery.sql', import.meta.url),'utf8'));
+  assert.equal((await view()).themePlanRepairAvailable,true,'the migration grants one explicit post-fix attempt');
+  failFirst=false;
+  assert.equal((await post({action:'quality_replan'},'free-theme-correction-0003')).status,202);
   await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){throw Error('unexpected plan retry');}}]},env);
   const reviewed=await view();
   assert.equal(reviewed.planReview.status,'review');
@@ -932,10 +944,7 @@ test('a failed free theme correction can be retried once without losing the orig
   assert.equal(queued.at(-1)?.type,'pack_remake');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1,'approval queues replacement; it does not publish unchecked PDFs');
   assert.equal(db.prepare("SELECT full_used,quality_replan_used FROM custom_plan_orders WHERE order_id='theme-order'").get().quality_replan_used,1);
-  db.prepare("DELETE FROM custom_plan_versions WHERE order_id = 'theme-order' AND version_number = 2").run();
-  db.prepare("UPDATE custom_plan_orders SET status = 'confirmed',active_version = 1,quality_replan_used = 0 WHERE order_id = 'theme-order'").run();
-  assert.equal((await view()).themePlanRepairAvailable,false,'two provider attempts exhaust self-service retries');
-  assert.equal((await post({action:'quality_replan'},'free-theme-correction-0003')).status,409,'a third full-plan generation is blocked');
+  assert.equal((await post({action:'quality_replan'},'free-theme-correction-0004')).status,409,'a fourth full-plan generation is blocked');
 });
 
 test('staged paid generation resumes at a failed checkpoint without regenerating saved work',async()=>{
