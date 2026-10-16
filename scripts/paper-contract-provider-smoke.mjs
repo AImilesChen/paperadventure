@@ -35,7 +35,14 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
     const materials=[];
     for(let number=1;number<=5;number++)materials.push((await generateBlueprintMaterialStep(approved,frame,number,materials,env,privateFetch)).data);
     const closing=(await generateBlueprintClosingStep(approved,frame,env,privateFetch)).data.celebration;
-    let blueprint=(await assembleBlueprintSteps(approved,frame,materials,closing,env,privateFetch)).blueprint;
+    let blueprint;
+    try{blueprint=(await assembleBlueprintSteps(approved,frame,materials,closing,env,privateFetch)).blueprint;}
+    catch(error){
+      if(!error.candidate||!/^Checkpoint [1-5]/i.test(String(error.message)))throw error;
+      blueprintRepairs++;
+      console.log(JSON.stringify({id:item.id,phase:'blueprint-check',attempt:1,code:error.code||'CHECK_FAILED',rule:String(error.message).slice(0,180)}));
+      blueprint=(await repairBlueprint(approved,error.candidate,error.message,env,privateFetch)).blueprint;
+    }
     let story,stages=[];
     for(let attempt=0;attempt<3&&!story;attempt++){
       try{
