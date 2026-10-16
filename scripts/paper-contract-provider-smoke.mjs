@@ -18,8 +18,8 @@ const cases=[
 const selectedIds=new Set(String(process.env.SMOKE_CASE_IDS||'').split(',').map(value=>value.trim()).filter(Boolean));
 const summaries=[];
 for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id))){
-  let phase='plan',calls=0,blueprintRepairs=0;
-  const privateFetch=async(url,options)=>{calls++;const response=await fetch(url,{...options,signal:AbortSignal.timeout(90000)});await writeFile(`${directory}/${item.id}-call-${calls}.json`,JSON.stringify({request:JSON.parse(options.body),response:await response.clone().json()},null,2));return response;};
+  let phase='plan',calls=0,blueprintRepairs=0,inputTokens=0,outputTokens=0;
+  const privateFetch=async(url,options)=>{calls++;const response=await fetch(url,{...options,signal:AbortSignal.timeout(90000)}),body=await response.clone().json();inputTokens+=body.usage?.input_tokens||0;outputTokens+=body.usage?.output_tokens||0;await writeFile(`${directory}/${item.id}-call-${calls}.json`,JSON.stringify({request:JSON.parse(options.body),response:body},null,2));return response;};
   try{
     const {spec}=validatePurchase({sku:`custom_${item.setting}`,creatorVersion:3,customIdea:item.idea,setting:item.setting,players:item.players,age:item.age,paper:'A4',...(item.setting==='classroom'?{groups:Math.ceil(item.players/4)}:{}),gameplay:{primary:item.primary,secondary:item.secondary}});
     if(spec.packExperienceVersion!==3)throw Error('Linked-story contract is not enabled for a new purchase.');
@@ -77,8 +77,8 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
       await writeFile(`${directory}/${item.id}-${role}-${paper}.pdf`,pdf);
     }
     // All fixtures are invented for this workflow. Never read customer orders here.
-    summaries.push({id:item.id,passed:true,calls,blueprintRepairs,stages:story.stages.length});
-  }catch(error){summaries.push({id:item.id,passed:false,phase,calls,blueprintRepairs,code:error.code||'CHECK_FAILED',detail:String(error.message).slice(0,160)});}
+    summaries.push({id:item.id,passed:true,calls,blueprintRepairs,inputTokens,outputTokens,stages:story.stages.length});
+  }catch(error){summaries.push({id:item.id,passed:false,phase,calls,blueprintRepairs,inputTokens,outputTokens,code:error.code||'CHECK_FAILED',detail:String(error.message).slice(0,160)});}
   console.log(JSON.stringify(summaries.at(-1)));
 }
 await writeFile(`${directory}/summary.json`,JSON.stringify(summaries,null,2));
