@@ -8,12 +8,22 @@ import {planFormatIssue,planFormatMessage,safePlanFormatIssue} from '../shared/p
 import {contextKey,storySuggestions,validatePlan} from '../shared/creator-plan.mjs';
 import {normalizeDraft,draftSpec,activePlans,readySetup,fromCloudDraft} from '../src/creatorDraft.mjs';
 import {planFixture} from '../tests/fixtures/creator-plan-fixture.mjs';
+import {journeyProviderPlan} from '../tests/fixtures/journey-provider-plan.mjs';
 import {buildGamePdf} from './pdf.mjs';
 const input={sku:'custom_home',creatorVersion:2,customIdea:'西游记',players:4,age:'8-10',paper:'A4',direction:'mystery',storyLocation:'A stop on the journey',mood:'Gentle mystery',gameplay:{primary:'reasoning',secondary:['code','discussion'],request:''}};
 const base=()=>validatePurchase(input).spec;
 const response=value=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
 const env={AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture-key'};
 function storyFixture(plan) {return {title:plan.title,introduction:plan.opening,ending:'The team restores the document.',groupInstructions:'',stages:plan.stages.map((item,index)=>({title:item.title,mechanic:item.mechanic,clue:'The target has a round seal and two stripes. Choose the matching record.',options:['Round seal, two stripes','Square seal, two stripes','Round seal, three stripes'],answerIndex:0,explanation:'Both stated features match only the first record.',hint:'Check both the seal and stripe count.',prerequisite:index?'STOP-'+index:'START',unlock:'STOP-'+(index+1)}))};}
+
+test('saved provider story events fit the real 220-character printed story moment without truncation',()=>{
+  const spec=validatePurchase({...input,creatorVersion:3,gameplay:{primary:'discussion',secondary:['reasoning']}}).spec;
+  const inspected=inspectSavedPlan(journeyProviderPlan,spec);
+  assert.ok(inspected.plan);assert.deepEqual(inspected.issues,[]);
+  inspected.plan.stages.forEach((stage,index)=>{assert.ok(stage.storyContext.length<=220);assert.equal(stage.storyBeat,journeyProviderPlan.stages[index].storyBeat);});
+  const tooLong=structuredClone(journeyProviderPlan);tooLong.stages[0].scene='A'.repeat(79);tooLong.stages[0].storyBeat='B'.repeat(179)+'.';
+  assert.equal(inspectSavedPlan(tooLong,spec).plan,null,'the actual combined print boundary still blocks overflow');
+});
 test('a preview is bound to its owner, settings, play choices and content',async()=>{
   const spec=base();spec.plan=planFixture(spec);spec.previewToken=await signPreview(spec.plan,spec,'owner','secret');
   await confirmPreview(spec,'owner','secret');

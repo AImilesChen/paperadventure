@@ -18,7 +18,7 @@ const cases=[
   {id:'home-garden',setting:'home',players:4,age:'10-12',primary:'sequence',secondary:['reasoning'],idea:'A rooftop garden crew must put a repair plan in order and restore a rain collector.'},
   {id:'classroom-code',setting:'classroom',players:20,age:'8-10',primary:'code',secondary:['reasoning'],idea:'A museum team decodes three short printed messages to restore a lost exhibit label.'},
 ];
-const selectedIds=new Set(String(process.env.SMOKE_CASE_IDS||'').split(',').map(value=>value.trim()).filter(Boolean));
+const selectedIds=new Set(String(process.env.SMOKE_CASE_IDS||'home-clock').split(',').map(value=>value.trim()).filter(Boolean));
 const maxProviderCalls=Number(process.env.SMOKE_MAX_PROVIDER_CALLS||12);
 const summaries=[];
 for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id))){
@@ -27,7 +27,7 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
   if(process.env.SMOKE_REPLAY_DIR)for(const file of await readdir(process.env.SMOKE_REPLAY_DIR)){
     const match=file.match(new RegExp(`^${item.id}-call-(\\d+)\\.json$`));if(!match)continue;
     const text=await readFile(`${process.env.SMOKE_REPLAY_DIR}/${file}`,'utf8');
-    replay.push(JSON.parse(text));calls=Math.max(calls,Number(match[1]));await writeFile(`${directory}/${file}`,text);
+    const saved=JSON.parse(text);replay.push(saved);calls=Math.max(calls,Number(match[1]));inputTokens+=saved.response.usage?.input_tokens||0;outputTokens+=saved.response.usage?.output_tokens||0;await writeFile(`${directory}/${file}`,text);
   }
   const privateFetch=async(url,options)=>{
     const request=JSON.parse(options.body);

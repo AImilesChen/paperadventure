@@ -1,1 +1,1 @@
-2026-10-16: diagnose saved plan format failures and continue only rejected fields within the original call budget; block unapproved pack rebuilds.
+2026-10-16: align evidenced story review, actual print limits and printed action facts; simplify same-order updates and verify bounded Journey generation.

@@ -76,6 +76,8 @@ export function validatePlan(value, spec) {
       if (item.number !== index+1 || !selected.includes(item.mechanic)) throw new Error('A checkpoint has an unsupported number or play style.');
       return {number:index+1,title:text(item.title,'Checkpoint title',100),mechanic:item.mechanic,
         task:text(item.task,'Player task',350),teamwork:text(item.teamwork,'Team action',260),connection:text(item.connection,'Connection',260),
+        // The combined printed moment remains capped at 220. A natural event
+        // can exceed the model's 140-character writing target and still fit.
         ...(spec.packContractVersion===1?{storyContext:text(item.storyContext||item.title,'Story context',220),...(item.scene?{scene:text(item.scene,'Scene',80)}:{}),...(item.storyBeat?{storyBeat:text(item.storyBeat,'Story event',180)}:{})}:{})};
     }),
   };

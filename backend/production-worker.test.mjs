@@ -946,6 +946,7 @@ test('two old theme-plan failures gain one bounded correction without losing ori
   const failureView=await view();
   assert.equal(failureView.planReview.progress.phase,'failed');assert.equal(failureView.planReview.progress.candidateSaved,true);
   assert.equal(failureView.planReview.progress.providerCalls,4);
+  assert.doesNotMatch(JSON.stringify(failureView.planReview.progress),/"reason"|"evidence"|"quote"/,'private audit explanation and quotations never enter public progress');
   assert.doesNotMatch(JSON.stringify(failureView.planReview.progress),/candidate_json|checkpoint_json|premise|candidate":/,'private candidate stays out of the public progress object');
   assert.equal((await view()).themePlanRepairAvailable,false,'the old recovery grant is consumed by the QA mismatch');
   db.exec(readFileSync(new URL('./migrations/0022_theme_plan_qa_recovery.sql', import.meta.url),'utf8'));

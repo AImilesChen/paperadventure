@@ -4,7 +4,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {buildContextPuzzle,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {assembleBlueprintSteps,generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep,generateBlueprintMaterialStep,deliverableClosing} from './staged-story.mjs';
+import {alignPrintedActionLinks,missingPrintedActionLinks,assembleBlueprintSteps,generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep,generateBlueprintMaterialStep,deliverableClosing} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
@@ -63,6 +63,31 @@ const structuredClockFrame=()=>({
     {finding:'The checked order protects the teeth.',consequence:'The parts stay aligned during repair.',supportsAction:'Fit signal gear'},
     {finding:'The upper bridge reaches the gear room.',consequence:'The replacement can reach the tower.',supportsAction:'signal gear'},
   ],
+});
+
+test('printed support comes from the selected finding and facts, never a decoy label or later invented consequence',()=>{
+  const frame={actions:['Bind pieces at Western Gate'],discoveries:Array.from({length:4},()=>({supportsAction:'pieces'}))};
+  const stages=Array.from({length:4},()=>({material:{items:[{label:'A report'},{label:'B report'},{label:'C report'}]},features:['Names the owner','Mentions the depth']}));
+  const types=['decision_record','evidence_cards','decision_record','order_tiles'];
+  assert.deepEqual(missingPrintedActionLinks(frame,stages,types),[1,2,3,4]);
+  stages[0].material.items[0].label='Pieces decoy report';
+  assert.equal(missingPrintedActionLinks(frame,stages,types).includes(1),true);
+  stages[0].features=['Names scroll pieces','Mentions binding'];
+  stages[1].features=['Names scroll pieces','Mentions Western Gate'];
+  stages[2].features=['Names binding order','Mentions scroll pieces'];
+  assert.deepEqual(missingPrintedActionLinks(frame,stages,types),[4]);
+});
+
+test('missing record facts are printed from the fixed method, object and destination without a model call',()=>{
+  const spec={...clockSpec,packQualityVersion:14,plan:{...clockSpec.plan,stages:clockSpec.plan.stages.map((stage,index)=>({...stage,mechanic:index<3?'discussion':'reasoning'}))}};
+  const types=paperContractTypes(spec.plan),frame={actions:['Bind pieces at Western Gate'],discoveries:Array.from({length:4},()=>({supportsAction:'pieces'}))};
+  const stages=Array.from({length:5},()=>({material:{title:'Pilgrim records',items:[{label:'Wukong note'},{label:'Bajie note'},{label:'Sandy note'}]},features:['Names the owner','Mentions the depth']}));
+  const before=structuredClone(stages),result=alignPrintedActionLinks(spec,frame,stages);
+  assert.deepEqual(stages,before,'saved provider material is not mutated');
+  assert.equal(result.usage,null);assert.deepEqual(missingPrintedActionLinks(frame,result.stages,types),[4]);
+  assert.equal(new Set(result.stages.slice(0,3).map(stage=>stage.features.join('|'))).size,3);
+  assert.deepEqual(result.stages[3],before[3]);assert.deepEqual(result.stages[4],before[4]);
+  assert.deepEqual(alignPrintedActionLinks(spec,frame,result.stages).stages,result.stages,'passed materials are reused');
 });
 
 test('quality version 6 uses structured causal fields instead of keyword matching',()=>{
