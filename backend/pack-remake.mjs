@@ -108,11 +108,18 @@ export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevi
     (qualityOutdated || layoutOutdated);
 }
 
+async function requireApprovedReplacement(orderId,db){
+  const planState=await query(db,'SELECT active_version,confirmed_version FROM custom_plan_orders WHERE order_id = ?',orderId).first();
+  if(planState?.confirmed_version&&planState.active_version>planState.confirmed_version)
+    throw new ApiError(409,'REPLACEMENT_PLAN_NOT_APPROVED','The replacement story plan has not been approved. Resolve its plan check before rebuilding PDFs.');
+}
+
 export async function startPackRemake(order, activity, env) {
   if (!env.DB || !env.GENERATION_QUEUE || !env.PRIVATE_FILES || !aiProvider(env))
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
   if (order.product_kind !== 'custom' || order.status !== 'published' || !order.paid_at || activity?.status !== 'published')
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'Only a delivered paid custom order can be remade.');
+  await requireApprovedReplacement(order.id,env.DB);
   const existing = await query(env.DB, 'SELECT status,spec_json,published_version,quality_epoch,blueprint_json,stages_json,story_json FROM custom_pack_remakes WHERE order_id = ?', order.id).first();
   if (existing?.status !== 'ready' && existing) return { status: existing.status, queued: false };
   const latest = await query(env.DB, "SELECT pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", activity.id).first();
@@ -168,6 +175,7 @@ export async function startPackRemake(order, activity, env) {
 }
 
 export async function retryPackRemake(order, env) {
+  await requireApprovedReplacement(order.id,env.DB);
   if (!env.DB || !env.GENERATION_QUEUE || !env.PRIVATE_FILES || !aiProvider(env))
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
   if (order.product_kind !== 'custom' || order.status !== 'published' || !order.paid_at)

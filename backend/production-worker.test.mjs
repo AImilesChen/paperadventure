@@ -1020,7 +1020,7 @@ test('the explicitly scoped old-theme recovery is manual, one-use and preserves 
 });
 
 test('an unapproved location-only replacement repairs the saved request once without new grants or PDF work',async()=>{
-  for(const auditPasses of [true,false]){
+  for(const auditPasses of [true,false,'format']){
     const {db,binding}=database(),orderId='scene-repair-order',owner='scene-owner';
     const spec=validatePurchase({sku:'custom_classroom',creatorVersion:3,customIdea:'Journey to the West',players:4,groups:1,age:'8-10',paper:'A4',gameplay:{primary:'discussion',secondary:['reasoning']}}).spec;
     const oldPlan=planFixture(spec);delete oldPlan.storySceneVersion;for(const stage of oldPlan.stages)delete stage.storyBeat;
@@ -1038,8 +1038,11 @@ test('an unapproved location-only replacement repairs the saved request once wit
     const queued=[];let calls=0,queueFails=false;
     const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',PRIVATE_FILES:{},GENERATION_QUEUE:{send:async job=>{if(queueFails)throw Error('fixture queue unavailable');queued.push(job);}},FETCH:async(_url,init)=>{
       calls++;const sent=JSON.parse(init.body);
-      assert.ok(['repaired_paid_plan','paid_plan_audit'].includes(sent.text.format.name),'never request a fresh plan');
-      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(sent.text.format.name==='paid_plan_audit'?auditPasses?{pass:true,issues:[]}:{pass:false,issues:[{code:'THEME_WEAK',fields:['scene1','scene2','scene3']}]}:planFixture(spec))}]}]});
+      assert.ok(['repaired_paid_plan','paid_plan_format_repair','paid_plan_audit'].includes(sent.text.format.name),'never request a fresh plan');
+      const candidate=planFixture(spec);
+      if(auditPasses==='format'&&calls===1)candidate.stages[1].storyBeat='PRIVATE STORY '.repeat(14)+'.';
+      const value=sent.text.format.name==='paid_plan_format_repair'?{scene2_storyBeat:candidate.stages[1].storyBeat}:sent.text.format.name==='paid_plan_audit'?auditPasses?{pass:true,issues:[]}:{pass:false,issues:[{code:'THEME_WEAK',fields:['scene1','scene2','scene3']}]}:candidate;
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
     }};
     const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
     const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
@@ -1061,6 +1064,47 @@ test('an unapproved location-only replacement repairs the saved request once wit
     assert.ok(started.some(r=>r.status===202));assert.equal(queued.length,1);assert.equal(calls,0);
     assert.equal((await post({action:'repair_story_scenes',version:2})).status,200,'repeated click reuses queued request');
     await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){}}]},env);
+    if(auditPasses==='format'){
+      assert.equal(calls,1,'the format failure happens before the independent audit');
+      const failed=await view();
+      assert.deepEqual(failed.planReview.progress.formatIssue,{field:'storyBeat',rule:'length',stage:2,length:197,limit:140});
+      assert.equal(failed.qualityUpgradeAvailable,false,'a rejected replacement cannot expose a full-pack upgrade');
+      assert.equal(failed.planReview.formatResumeAvailable,true);assert.equal(failed.planReview.formatResumeCalls,2);
+      assert.doesNotMatch(JSON.stringify(failed),/PRIVATE STORY/,'failed candidate prose remains private');
+      const remake=await handleProductionApi(request(`/api/v1/orders/${orderId}/pack-remake`,'POST',{},headers),env);
+      assert.equal(remake.status,409);assert.equal((await remake.json()).error.code,'REPLACEMENT_PLAN_NOT_APPROVED');assert.equal(calls,1);
+      const retryRemake=await handleProductionApi(request(`/api/v1/orders/${orderId}/pack-remake/retry`,'POST',{},headers),env);
+      assert.equal(retryRemake.status,409);assert.equal(calls,1);
+      assert.equal((await post({action:'resume_saved_plan',version:2},{cookie:''})).status,401);
+      assert.equal((await post({action:'resume_saved_plan',version:1})).status,409);
+      const bound=db.prepare("SELECT context_sha256 FROM custom_plan_work WHERE request_id='scene-request'").get().context_sha256;
+      db.prepare("UPDATE custom_plan_work SET context_sha256='wrong-context' WHERE request_id='scene-request'").run();
+      assert.equal((await post({action:'resume_saved_plan',version:2})).status,409,'saved work cannot cross a request context');
+      db.prepare("UPDATE custom_plan_work SET context_sha256=? WHERE request_id='scene-request'").run(bound);
+      db.prepare("UPDATE custom_plan_work SET provider_calls=4 WHERE request_id='scene-request'").run();
+      assert.equal((await view()).planReview.formatResumeAvailable,false);
+      assert.equal((await post({action:'resume_saved_plan',version:2})).status,409);
+      db.prepare("UPDATE custom_plan_work SET provider_calls=3 WHERE request_id='scene-request'").run();
+      queueFails=true;
+      assert.equal((await post({action:'resume_saved_plan',version:2})).status,500);
+      assert.equal((await view()).planReview.formatResumeAvailable,true,'enqueue failure returns the unused continuation');
+      assert.equal((await view()).planReview.progress.failureCode,'PLAN_PRINT_FIT');
+      queueFails=false;
+      const resumed=await Promise.all([post({action:'resume_saved_plan',version:2}),post({action:'resume_saved_plan',version:2})]);
+      assert.ok(resumed.some(r=>r.status===202));assert.equal(queued.length,1);assert.equal(calls,1);
+      assert.equal((await post({action:'resume_saved_plan',version:2})).status,200);
+      await productionWorker.queue({messages:[{body:queued.shift(),ack(){},retry(){}}]},env);
+      assert.equal(calls,3,'one exact-field repair and one audit; no fresh plan generation');
+      assert.equal(db.prepare("SELECT provider_calls FROM custom_plan_work WHERE request_id='scene-request'").get().provider_calls,5);
+      const checked=await view();assert.equal(checked.planReview.activeVersion,3);assert.equal(checked.planReview.confirmedVersion,1);
+      assert.equal(checked.planReview.formatResumeAvailable,false);
+      assert.equal((await post({action:'resume_saved_plan',version:3})).status,409);
+      assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_plan_requests').get().n,1);
+      assert.equal(db.prepare('SELECT full_used FROM custom_plan_orders').get().full_used,0);
+      assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1);assert.equal(queued.length,0);
+      assert.equal(db.prepare('SELECT story_spec_json FROM custom_activities').get().story_spec_json,oldStory);
+      continue;
+    }
     assert.equal(calls,2,'one scene repair plus one independent audit');
     assert.equal(db.prepare("SELECT provider_calls FROM custom_plan_work WHERE request_id='scene-request'").get().provider_calls,4);
     assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_plan_requests').get().n,1,'no new plan request or grant');

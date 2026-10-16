@@ -8,8 +8,9 @@ import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBluepri
 import { buildGamePdf } from './pdf.mjs';
 import { verifyGoogleCredential } from './google-auth.mjs';
 import { signPreview, confirmPreview } from './creator-preview.mjs';
-import { generateSinglePlan, planFailureCategory } from './plan-proposals.mjs';
+import { generateSinglePlan, planFailureCategory, savedFormatRecovery } from './plan-proposals.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
+import {safePlanFormatIssue} from '../shared/plan-format.mjs';
 import { PLAN_REVIEW_POLICY, hasStoryScenes } from '../shared/plan-quality.mjs';
 import { startPackRemake, retryPackRemake, packRemakeView, processPackRemake, qualityUpgradeEligible } from './pack-remake.mjs';
 import { controlledRevisionStyle } from './controlled-puzzles.mjs';
@@ -606,7 +607,7 @@ async function orderView(request, env, orderId) {
     ? await query(env.DB,'SELECT * FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
   const planVersions = paidPlan ? (await query(env.DB,'SELECT version_number,plan_json,request_kind,created_at FROM custom_plan_versions WHERE order_id = ? ORDER BY version_number',order.id).all()).results || [] : [];
   const pendingPlan = paidPlan ? await query(env.DB,"SELECT kind,status FROM custom_plan_requests WHERE order_id = ? AND status IN ('queued','generating') ORDER BY created_at DESC LIMIT 1",order.id).first() : null;
-  const planWork = paidPlan ? await query(env.DB,'SELECT w.phase,w.candidate_saved,w.plan_valid,w.audit_passed,w.provider_calls,w.updated_at,w.error_code FROM custom_plan_work w JOIN custom_plan_requests r ON r.id = w.request_id WHERE w.order_id = ? AND r.base_version = ? ORDER BY r.created_at DESC,r.rowid DESC LIMIT 1',order.id,paidPlan.confirmed_version||paidPlan.active_version||0).first() : null;
+  const planWork = paidPlan ? await query(env.DB,'SELECT w.phase,w.candidate_saved,w.plan_valid,w.audit_passed,w.provider_calls,w.updated_at,w.error_code,w.checkpoint_json,r.status,r.result_version FROM custom_plan_work w JOIN custom_plan_requests r ON r.id = w.request_id WHERE w.order_id = ? AND r.base_version = ? ORDER BY r.created_at DESC,r.rowid DESC LIMIT 1',order.id,paidPlan.confirmed_version||paidPlan.active_version||0).first() : null;
   const initialRequests = paidPlan?.status === 'needs_help' && !paidPlan.active_version
     ? await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'initial'",order.id).first() : null;
   const activePlan = planVersions.find(item=>item.version_number===paidPlan?.active_version);
@@ -616,6 +617,9 @@ async function orderView(request, env, orderId) {
   const themeReplanAttempts=order.status==='published'&&paidPlan?.confirmed_version
     ? Number((await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'full' AND base_version = ? AND attempts > 0",order.id,paidPlan.confirmed_version).first())?.count||0) : 0;
   const themeReplanFailed=order.status==='published'&&paidPlan?.status==='confirmed'&&themeReplanAttempts>0&&!paidPlan.quality_replan_used;
+  const stoppedFormat=savedFormatRecovery(planWork,{...spec,packQualityVersion:14});
+  const formatResumeAvailable=Boolean(themeReplanFailed&&paidPlan.active_version>paidPlan.confirmed_version&&planWork?.result_version===paidPlan.active_version&&accessActive(entitlement)&&(!remake||remake.status==='ready')&&stoppedFormat.available);
+  const replacementPlanBlocked=Boolean(paidPlan?.confirmed_version&&paidPlan.active_version>paidPlan.confirmed_version&&paidPlan.status==='confirmed');
   const themeReplanFailure=themeReplanFailed
     ? await query(env.DB,"SELECT error_code FROM generation_usage WHERE order_id = ? AND status = 'plan-failed' ORDER BY attempt DESC LIMIT 1",order.id).first() : null;
   const themePlanRepairAvailable=Boolean(order.product_kind==='custom'&&order.status==='published'&&accessActive(entitlement)&&
@@ -649,13 +653,13 @@ async function orderView(request, env, orderId) {
       (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packQualityVersion >= 8 : spec.packContractVersion === 1 && spec.packQualityVersion >= 8 && generationProgress?.auditPassed)),
     packContractVersion: spec.packContractVersion || (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packContractVersion || 0 : 0),
     checkedPuzzleRevision: Boolean(latestArtifact && (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packLogicVersion === 1 : spec.packLogicVersion === 1)),
-    qualityUpgradeAvailable: Boolean(order.product_kind === 'custom' && order.status === 'published' && activity?.status === 'published' && order.paid_at && accessActive(entitlement) && (!remake || remake.status === 'ready') &&
+    qualityUpgradeAvailable: Boolean(order.product_kind === 'custom' && order.status === 'published' && activity?.status === 'published' && order.paid_at && accessActive(entitlement) && !replacementPlanBlocked && (!remake || remake.status === 'ready') &&
       qualityUpgradeEligible(spec, activity?.story_spec_json ? JSON.parse(activity.story_spec_json) : null,
         latestArtifact?.pack_format_version, Boolean(entitlement?.revision_success_used || revisionRows.some(item => ['queued','generating','published'].includes(item.status))), readyRemakeSpec?.spec_json ? JSON.parse(readyRemakeSpec.spec_json) : null)),
     remake,themePlanRepairAvailable,themePlanRecoveryAvailable:Boolean(themePlanRepairAvailable&&paidPlan?.semantic_recovery_remaining===1&&themeReplanAttempts>=2+(paidPlan?.quality_replan_recovery_grant||0)+(paidPlan?.quality_replan_qa_grant||0)),
     revisionRequests: revisionRows.map(item=>({id:item.id,stageNumber:item.stage_number,status:item.status,version:item.version_number||null,createdAt:item.created_at,completedAt:item.completed_at||null})),
     plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
-    ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,qualityReplanUsed:Boolean(paidPlan?.quality_replan_used),storyScenesRequired,storySceneRepairAvailable,progress:planWork?{phase:planWork.phase,candidateSaved:Boolean(planWork.candidate_saved),formatChecked:Boolean(planWork.plan_valid),reviewPassed:Boolean(planWork.audit_passed),providerCalls:planWork.provider_calls,updatedAt:planWork.updated_at,failureCode:planWork.error_code}:null,themeReplanAttempts,themeReplanFailed,themeReplanFailureCode:themeReplanFailure?.error_code||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
+    ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,qualityReplanUsed:Boolean(paidPlan?.quality_replan_used),formatResumeAvailable,formatResumeCalls:formatResumeAvailable?stoppedFormat.calls:0,storyScenesRequired,storySceneRepairAvailable,progress:planWork?{phase:planWork.phase,candidateSaved:Boolean(planWork.candidate_saved),formatChecked:Boolean(planWork.plan_valid),reviewPassed:Boolean(planWork.audit_passed),providerCalls:planWork.provider_calls,updatedAt:planWork.updated_at,failureCode:planWork.error_code,formatIssue:safePlanFormatIssue(stoppedFormat.inspected?.issue||stoppedFormat.saved?.formatIssue)}:null,themeReplanAttempts,themeReplanFailed,themeReplanFailureCode:themeReplanFailure?.error_code||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
 }
 
 async function retryCustomDelivery(request, env, orderId) {
@@ -728,37 +732,41 @@ async function changePaidPlan(request, env, orderId) {
     ]);throw caught;}
     return json({requestId,status:'queued'},202);
   }
-  if(body.action==='repair_story_scenes'){
+  if(body.action==='repair_story_scenes'||body.action==='resume_saved_plan'){
+    const formatResume=body.action==='resume_saved_plan';
     const version=Number(body.version);
-    if(!state?.quality_replan_used||order.status!=='published'||version!==state.active_version||version<=state.confirmed_version)
+    if(!state||!formatResume&&!state.quality_replan_used||order.status!=='published'||version!==state.active_version||version<=state.confirmed_version)
       throw new ApiError(409,'PLAN_CHANGED','Refresh and review the current replacement plan.');
-    const prior=await query(env.DB,"SELECT r.*,w.context_sha256,w.checkpoint_json,w.provider_calls FROM custom_plan_requests r JOIN custom_plan_work w ON w.request_id = r.id WHERE r.order_id = ? AND r.result_version = ? AND r.kind = 'full' ORDER BY r.rowid DESC LIMIT 1",orderId,version).first();
+    const prior=await query(env.DB,"SELECT r.*,w.context_sha256,w.checkpoint_json,w.provider_calls,w.error_code,w.phase AS work_phase,w.plan_valid,w.audit_passed FROM custom_plan_requests r JOIN custom_plan_work w ON w.request_id = r.id WHERE r.order_id = ? AND r.result_version = ? AND r.kind = 'full' ORDER BY r.rowid DESC LIMIT 1",orderId,version).first();
     const checkpoint=prior?.checkpoint_json?JSON.parse(prior.checkpoint_json):null;
-    if(checkpoint?.sceneRepairUsed&&['queued','generating'].includes(prior.status))return json({requestId:prior.id,status:prior.status,duplicate:true});
+    if((formatResume?checkpoint?.formatResumeUsed:checkpoint?.sceneRepairUsed)&&['queued','generating'].includes(prior.status))return json({requestId:prior.id,status:prior.status,duplicate:true});
     const entitlement=await query(env.DB,'SELECT status,access_expires_at FROM entitlements WHERE order_id = ?',orderId).first();
     const row=await query(env.DB,'SELECT plan_json FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',orderId,version).first();
     const remake=await query(env.DB,'SELECT status FROM custom_pack_remakes WHERE order_id = ?',orderId).first();
-    if(state.status!=='review'||!accessActive(entitlement)||!prior||prior.status!=='published'||!checkpoint?.candidate||checkpoint.sceneRepairUsed||prior.provider_calls>3||hasStoryScenes(row?JSON.parse(row.plan_json):null)||remake&&remake.status!=='ready')
+    const spec={...JSON.parse(order.purchase_spec_json),packQualityVersion:14};
+    const recovery=savedFormatRecovery(prior,spec);
+    const eligible=formatResume?state.status==='confirmed'&&!state.quality_replan_used&&recovery.available:state.status==='review'&&prior?.status==='published'&&checkpoint?.candidate&&!checkpoint.sceneRepairUsed&&prior.provider_calls<=3;
+    if(!eligible||!accessActive(entitlement)||hasStoryScenes(row?JSON.parse(row.plan_json):null)||remake&&remake.status!=='ready')
       throw new ApiError(409,'STORY_SCENE_REPAIR_UNAVAILABLE','No unused scene repair remains within this plan request budget. Your original files are still available.');
     const base=await query(env.DB,'SELECT plan_json FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',orderId,prior.base_version).first();
-    const spec={...JSON.parse(order.purchase_spec_json),packQualityVersion:14};
     const contextHash=await sha256(JSON.stringify({policy:PLAN_REVIEW_POLICY,spec,kind:prior.kind,scope:prior.scope,feedback:prior.feedback,previousPlan:base?JSON.parse(base.plan_json):null}));
+    if(formatResume&&prior.context_sha256!==contextHash)throw new ApiError(409,'PLAN_CHANGED','The saved plan context changed; a manual review is required.');
     // Reuse the same private candidate and remaining five-call budget. One
     // structural repair plus one independent audit; never start a fresh plan.
-    const saved={...checkpoint,valid:false,audit:null,correctionUsed:true,sceneRepairUsed:true,errorCode:null};
-    const reserved=await query(env.DB,"UPDATE custom_plan_orders SET status = 'queued',updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'review' AND active_version = ?",orderId,version).run();
+    const saved={...checkpoint,...(formatResume?{candidate:recovery.inspected.candidate,formatResumeUsed:true,formatRepairFields:recovery.fields,formatIssue:recovery.inspected.issue}:{}),valid:false,audit:null,correctionUsed:true,sceneRepairUsed:true,errorCode:null};
+    const reserved=await query(env.DB,"UPDATE custom_plan_orders SET status = 'queued',quality_replan_used = 1,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = ? AND active_version = ?",orderId,state.status,version).run();
     if(!reserved.meta?.changes)throw new ApiError(409,'PLAN_BUSY','The plan status changed. Refresh and try again.');
     try{
       await env.DB.batch([
-        query(env.DB,"UPDATE custom_plan_requests SET status = 'queued',lease_until = NULL,completed_at = NULL WHERE id = ? AND status = 'published'",prior.id),
+        query(env.DB,"UPDATE custom_plan_requests SET status = 'queued',lease_until = NULL,completed_at = NULL WHERE id = ? AND status = ?",prior.id,prior.status),
         query(env.DB,"UPDATE custom_plan_work SET context_sha256 = ?,checkpoint_json = ?,phase = 'queued',plan_valid = 0,audit_passed = 0,error_code = NULL,updated_at = CURRENT_TIMESTAMP WHERE request_id = ?",contextHash,JSON.stringify(saved),prior.id),
       ]);
       await env.GENERATION_QUEUE.send({type:'plan',requestId:prior.id});
     }catch(caught){
       await env.DB.batch([
-        query(env.DB,"UPDATE custom_plan_requests SET status = 'published',completed_at = ? WHERE id = ? AND status = 'queued'",prior.completed_at,prior.id),
-        query(env.DB,"UPDATE custom_plan_work SET context_sha256 = ?,checkpoint_json = ?,phase = 'ready',plan_valid = 1,audit_passed = 1,updated_at = CURRENT_TIMESTAMP WHERE request_id = ?",prior.context_sha256,prior.checkpoint_json,prior.id),
-        query(env.DB,"UPDATE custom_plan_orders SET status = 'review',updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'queued'",orderId),
+        query(env.DB,"UPDATE custom_plan_requests SET status = ?,completed_at = ? WHERE id = ? AND status = 'queued'",prior.status,prior.completed_at,prior.id),
+        query(env.DB,"UPDATE custom_plan_work SET context_sha256 = ?,checkpoint_json = ?,phase = ?,plan_valid = ?,audit_passed = ?,error_code = ?,updated_at = CURRENT_TIMESTAMP WHERE request_id = ?",prior.context_sha256,prior.checkpoint_json,prior.work_phase,prior.plan_valid,prior.audit_passed,prior.error_code,prior.id),
+        query(env.DB,"UPDATE custom_plan_orders SET status = ?,quality_replan_used = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'queued'",state.status,state.quality_replan_used,orderId),
       ]);throw caught;
     }
     return json({requestId:prior.id,status:'queued'},202);
