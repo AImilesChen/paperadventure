@@ -289,7 +289,6 @@ function DeliveryRecovery({order,refresh}) {
 function OrderNextStep({order,refresh,Link}) {
   if (order.kind !== 'custom' || !order.paidAt || !order.planReview?.confirmedVersion || order.status === 'failed' || order.status === 'refunded' || order.status === 'published' && !order.filesReady) return null;
   const ready = order.filesReady;
-  const correctingTheme = ready && !order.plan?.themeAnchors?.length && (order.themePlanRepairAvailable || order.planReview?.themeReplanAttempts > 0 || order.planReview?.qualityReplanUsed);
   return <section className={'order-next-step ' + (ready ? 'is-ready' : '')} aria-live="polite">
     <span className="eyebrow">{ready ? 'NEXT STEP · DOWNLOAD' : 'NEXT STEP · WAIT FOR DELIVERY'}</span>
     <h3>{ready ? 'Your game package is ready' : order.generationProgress && !order.generationProgress.storyReady ? 'Your game is being built one checkpoint at a time' : 'Your PDFs are being created and checked'}</h3>
@@ -306,8 +305,9 @@ const pdfPhaseText = {
   delivered: 'completed',
 };
 
-function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
+export function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
   const ready = order.filesReady;
+  const correctingTheme = ready && !order.plan?.themeAnchors?.length && (order.themePlanRepairAvailable || order.planReview?.themeReplanAttempts > 0 || order.planReview?.qualityReplanUsed);
   const guide = order.sku.includes('classroom') ? 'Teacher Guide' : 'Host Guide';
   const approved = order.kind === 'ready' || Boolean(order.planReview?.confirmedVersion || order.plan?.planConfirmed);
   const state = ready ? correctingTheme || order.remake && order.remake.status !== 'ready' ? 'Original pack ready to download' : 'Ready to download' : order.status === 'failed' ? 'Game package creation stopped' : !approved ? 'Waiting for plan approval' : order.status === 'pending_payment' ? 'Waiting for payment confirmation' : order.generationProgress && !order.generationProgress.storyReady ? 'Creating and checking your game' : order.status === 'fulfilling' ? 'Creating and checking your PDFs' : 'PDF creation is queued';
