@@ -152,7 +152,9 @@ const normalizeDiscovery=(value,index,action,qualityVersion=6)=>{
   const intended=actionTerms(action),supported=actionTerms(supportsAction);
   if(qualityVersion<7&&![...supported].some(term=>intended.has(term)))
     throw Error(`Checkpoint ${index+1} discovery must name a concrete part of the intended final action.`);
-  return {finding,consequence,supportsAction:qualityVersion>=7&&![...supported].some(term=>intended.has(term))?fitted(action,`Checkpoint ${index+1} final action`,40):supportsAction};
+  if(qualityVersion>=14&&![...supported].some(term=>intended.has(term)))
+    throw Error(`Checkpoint ${index+1} discovery must support a named part of the final action.`);
+  return {finding,consequence,supportsAction:qualityVersion>=7&&qualityVersion<14&&![...supported].some(term=>intended.has(term))?fitted(action,`Checkpoint ${index+1} final action`,40):supportsAction};
 };
 
 export function prepareStoryFrame(frame,qualityVersion=4){
@@ -280,6 +282,7 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
   if(/^(?:restore|fix|solve|complete|save)\b/i.test(firstAction))
     throw Error('The final choice must name a specific repair or action, not restate the mission goal.');
   const resolution=firstAction;
+  let printedActionLinks=0;
   const links=spine.links.map((value,index)=>{
     const {finding,lead}=storyLead(stages[index],types[index],index+1);
     if(!finding)throw Error(`Checkpoint ${index+1} has no selected finding.`);
@@ -294,6 +297,13 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
       const printed=groundingTerms(source),claimed=groundingTerms(structured.consequence);
       if(![...claimed].some(word=>printed.has(word)))
         throw Error(`Checkpoint ${index+1} story link consequence must name a printed piece or fact, not introduce an unrelated event.`);
+      if(qualityVersion>=14){
+        const action=actionTerms(resolution),support=actionTerms(structured.supportsAction);
+        const grounded=[...support].filter(word=>action.has(word)&&printed.has(word));
+        if(grounded.length)printedActionLinks++;
+        else if(![...support].some(word=>action.has(word)))
+          throw Error(`Checkpoint ${index+1} story link does not name part of the final action.`);
+      }
     }
     let reason=structured?completeStructuredStoryLink(lead,shortStoryLead(stages[index],types[index],index+1),structured,index,resolution,180,qualityVersion):plain(typeof value==='string'?value:value?.reason,`Checkpoint ${index+1} story link`,180);
     if(/\b(?:answer code|result digit|correct answer|matching option)\b/i.test(reason))
@@ -327,6 +337,8 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
     assertGoalStillOpen([reason],goal,index+1);
     return {finding,reason,...(structured?{consequence:structured.consequence,supportsAction:structured.supportsAction}:{})};
   });
+  if(qualityVersion>=14&&printedActionLinks<3)
+    throw Error('At least three checkpoint discoveries must print a concrete fact used by the final action.');
   if(qualityVersion===5)strictPurposes(links.map(link=>link.reason),resolution);
   return {problem,resolution,links};
 }

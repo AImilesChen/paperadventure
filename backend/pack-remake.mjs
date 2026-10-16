@@ -14,7 +14,7 @@ const MAX_BLUEPRINT_CALLS = 3;
 const MAX_AUDIT_CALLS = 5;
 const stepLimit = (phase,spec) => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? spec?.packExperienceVersion>=2?5:MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
-const CURRENT_PACK_QUALITY_VERSION = 13;
+const CURRENT_PACK_QUALITY_VERSION = 14;
 const CURRENT_PACK_LAYOUT_VERSION = 4;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','STAGE_SEMANTIC_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
 const deterministicCheckpoint = (phase,spec,stageNumber=0) => (phase === 'checkpoint' || phase === 'blueprint_material' && stageNumber === 5) && spec.gamePackVersion === 2 && spec.packLogicVersion === 1;
@@ -47,6 +47,11 @@ function storyWithCheckedClosing(story,spec){
   if(!code)return story;
   const current=String(story.ending||'').trim();
   if(new RegExp(`\\bform code\\s+${code}\\b`,'i').test(current))return story;
+  if((spec.packQualityVersion||0)>=14){
+    if(/\bform code\s*,/i.test(current))
+      return validateGeneratedStory({...story,ending:current.replace(/\bform code\s*,/i,`form code ${code},`)},spec);
+    throw new ApiError(409,'REMAKE_STORY_INVALID','The saved ending needs a full checked game rebuild.');
+  }
   const action=story.spine?.resolution||story.stages?.[4]?.material?.logic?.context?.labels?.[0]||'Complete the final action';
   const celebration=deliverableClosing('',spec,{actions:[action]});
   return validateGeneratedStory({...story,ending:`The four checked results form code ${code}, which matches "${action}" on the final sheet. ${celebration}`},spec);
@@ -93,8 +98,9 @@ function failedRemakeNeedsUpgrade(spec, row) {
 
 export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevision, previousRemakeSpec=null) {
   const previous=previousRemakeSpec||null;
-  const qualityOutdated=previous ? (previous.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION :
-    (purchase.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION && (activity.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION;
+  const planMeaning=plan=>JSON.stringify({title:plan?.title||'',opening:plan?.opening||'',goal:plan?.goal||'',anchors:plan?.themeAnchors||[],scenes:plan?.stages?.map(stage=>stage.scene||stage.storyContext||'')||[]});
+  const qualityOutdated=previous ? (previous.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION || planMeaning(previous.plan)!==planMeaning(activity.plan) :
+    (purchase.packQualityVersion || 0) < CURRENT_PACK_QUALITY_VERSION;
   const layoutOutdated=previous ? (previous.packLayoutVersion || 0) < CURRENT_PACK_LAYOUT_VERSION :
     (purchase.packLayoutVersion || 0) < CURRENT_PACK_LAYOUT_VERSION && (activity.packLayoutVersion || 0) < CURRENT_PACK_LAYOUT_VERSION;
   return purchase?.gamePackVersion === 2 && purchase.packContractVersion === 1 &&

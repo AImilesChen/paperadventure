@@ -69,6 +69,7 @@ export function validatePlan(value, spec) {
     id:value.id,title:text(value.title,'Title',100),summary:text(value.summary,'Summary',600),
     opening:text(value.opening,'Opening',900),roles:text(value.roles,'Roles',300),goal:text(value.goal,'Goal',260),
     preparation:text(value.preparation,'Preparation',500),...(spec.packContractVersion===1&&value.premise?{premise:text(value.premise,'Premise',200)}:{}),
+    ...(spec.packContractVersion===1&&Array.isArray(value.themeAnchors)?{themeAnchors:value.themeAnchors.map(anchor=>text(anchor,'Theme anchor',45))}:{}),
     stages:value.stages.map((item,index) => {
       if (item.number !== index+1 || !selected.includes(item.mechanic)) throw new Error('A checkpoint has an unsupported number or play style.');
       return {number:index+1,title:text(item.title,'Checkpoint title',100),mechanic:item.mechanic,
@@ -77,6 +78,17 @@ export function validatePlan(value, spec) {
     }),
   };
   if (!['mystery','mission'].includes(plan.id)) throw new Error('Choose one of the two adventure plans.');
+  if(spec.packContractVersion===1&&(spec.packQualityVersion||0)>=14){
+    const anchors=plan.themeAnchors||[];
+    if(anchors.length<1||anchors.length>3||new Set(anchors.map(anchor=>anchor.toLowerCase())).size!==anchors.length)
+      throw new Error('The plan needs one to three distinct purchased-theme anchors.');
+    const textOf=(value)=>String(value||'').toLowerCase();
+    const narrative=[plan.title,plan.summary,plan.opening,plan.goal,...plan.stages.map(stage=>stage.scene||stage.storyContext)].join(' ').toLowerCase();
+    if(anchors.some(anchor=>!narrative.includes(anchor.toLowerCase()))||
+       !anchors.some(anchor=>textOf(plan.opening).includes(anchor.toLowerCase()))||
+       !plan.stages.some(stage=>anchors.some(anchor=>textOf(stage.scene||stage.storyContext).includes(anchor.toLowerCase()))))
+      throw new Error('Theme anchors must appear in the opening and at least one fictional checkpoint scene.');
+  }
   if (plan.stages.filter(item=>item.mechanic===requested[0]).length < 3 || requested.some(id=>!plan.stages.some(item=>item.mechanic===id))) throw new Error('The plan must use the main style at least three times and every selected supporting style.');
   if (!spec.packContractVersion && spec.gamePackVersion===2 && spec.packLogicVersion===1 &&
       (!plan.stages.some(item=>['reasoning','discussion'].includes(item.mechanic)) || !plan.stages.some(item=>['reasoning','sequence'].includes(item.mechanic))))

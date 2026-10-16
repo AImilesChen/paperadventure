@@ -221,7 +221,8 @@ function PaidPlanReview({order,refresh}) {
     finally { setBusy(false); }
   }
 
-  const reviewable=order.status==='paid'&&review.status==='review';
+  const qualityReview=order.status==='published'&&review.qualityReplanUsed&&review.status==='review'&&review.activeVersion>review.confirmedVersion;
+  const reviewable=order.status==='paid'&&review.status==='review'||qualityReview;
   const targetedLeft=Math.max(0,review.targetedLimit-review.targetedUsed);
   const reworksLeft=Math.max(0,review.fullLimit-review.fullUsed);
   const changeAvailable=mode==='edit'?targetedLeft>0:reworksLeft>0;
@@ -237,17 +238,17 @@ function PaidPlanReview({order,refresh}) {
   return <section id="personal-plan-review" className="paid-plan-review" aria-label="Personal plan review">
     <header className="paid-plan-heading">
       <span className="eyebrow">YOUR PAID PLAN</span>
-      <h2>{review.status==='confirmed'?'Approved plan':review.status==='needs_help'?'Plan generation stopped':review.status==='review'?'Review your plan':'Preparing your personal plan'}</h2>
-      {reviewable ? <><p>Read the five checkpoints, then choose whether to change the plan or approve it for PDF creation.</p><div className="paid-plan-allowances" aria-label="Included plan changes remaining"><span><strong>{targetedLeft}</strong> focused edits left</span><span><strong>{reworksLeft}</strong> whole-plan reworks left</span></div><a className="paid-plan-skip" href="#paid-plan-next">Go to next step ↓</a></> : review.confirmedVersion ? <p>Version {review.confirmedVersion} was approved for PDF generation.</p> : review.status==='needs_help' ? <p>Your payment is confirmed, but we could not finish a valid plan. No PDF generation has started, and no plan change was used.</p> : <p>Plan generation and quality checks are in progress.</p>}
+      <h2>{qualityReview?'Review your corrected theme plan':review.status==='confirmed'?'Approved plan':review.status==='needs_help'?'Plan generation stopped':review.status==='review'?'Review your plan':'Preparing your personal plan'}</h2>
+      {qualityReview?<p>Compare this new plan with your original theme. Your existing PDFs stay available. Approve only if the characters, world, goal and five scenes fit your idea; approval then starts a no-charge replacement pack.</p>:reviewable ? <><p>Read the five checkpoints, then choose whether to change the plan or approve it for PDF creation.</p><div className="paid-plan-allowances" aria-label="Included plan changes remaining"><span><strong>{targetedLeft}</strong> focused edits left</span><span><strong>{reworksLeft}</strong> whole-plan reworks left</span></div><a className="paid-plan-skip" href="#paid-plan-next">Go to next step ↓</a></> : review.confirmedVersion ? <p>Version {review.confirmedVersion} was approved for PDF generation.</p> : review.status==='needs_help' ? <p>Your payment is confirmed, but we could not finish a valid plan. No PDF generation has started, and no plan change was used.</p> : <p>Plan generation and quality checks are in progress.</p>}
     </header>
 
-    {review.pending&&<p className="paid-plan-pending" role="status">{review.pending==='initial'?'Creating your first plan':'Preparing your requested change'}… You can return later through My adventures.</p>}
+    {review.pending&&<p className="paid-plan-pending" role="status">{review.qualityReplanUsed?'Preparing a corrected theme plan':review.pending==='initial'?'Creating your first plan':'Preparing your requested change'}… You can return later through My adventures.</p>}
     {review.status==='needs_help'&&<div className="paid-plan-recovery" role="status"><p>{review.activeVersion ? 'Your earlier valid plan is saved. Return to it to review, edit or approve it.' : review.retryAvailable ? 'You can try the first plan again once at no charge. If it still fails, report the problem below for help or refund-policy review.' : 'This plan needs manual help. Report the problem below for assistance or refund-policy review.'}</p>{review.retryAvailable&&<button type="button" className="button" disabled={busy} onClick={()=>action({action:'retry_initial'})}>{busy?'Requesting…':'Retry my plan at no charge'} <ArrowRight size={17}/></button>}{review.activeVersion>0&&<button type="button" className="button" disabled={busy} onClick={()=>action({action:'resume_review'})}>Return to my saved plan <ArrowRight size={17}/></button>}</div>}
 
-    {review.versions.length>0&&<div className="paid-plan-versions"><h3>Your saved plans</h3><p>Earlier valid versions stay available without using another change.</p><div className="creator-plan-options">{review.versions.map(item=><article key={item.version} className={item.version===review.activeVersion?'selected':''}><h4>Version {item.version} · {item.plan.title}</h4><p>{item.plan.summary}</p><details open={item.version===review.activeVersion&&reviewable}><summary>Read this five-checkpoint plan</summary><PlanPreview plan={item.plan} showPreparation={false}/></details>{reviewable&&item.version!==review.activeVersion&&<button type="button" className="button-quiet" disabled={busy} onClick={()=>action({action:'select',version:item.version})}>Use this version</button>}</article>)}</div></div>}
+    {review.versions.length>0&&<div className="paid-plan-versions"><h3>Your saved plans</h3><p>Earlier valid versions stay available without using another change.</p><div className="creator-plan-options">{review.versions.map(item=><article key={item.version} className={item.version===review.activeVersion?'selected':''}><h4>Version {item.version} · {item.plan.title}</h4><p>{item.plan.summary}</p><details open={item.version===review.activeVersion&&reviewable}><summary>Read this five-checkpoint plan</summary><PlanPreview plan={item.plan} showPreparation={false}/></details>{reviewable&&!qualityReview&&item.version!==review.activeVersion&&<button type="button" className="button-quiet" disabled={busy} onClick={()=>action({action:'select',version:item.version})}>Use this version</button>}</article>)}</div></div>}
 
     {reviewable&&<div id="paid-plan-next" className="paid-plan-next">
-      <div className="paid-plan-change">
+      {!qualityReview&&<div className="paid-plan-change">
         <span className="eyebrow">OPTIONAL CHANGE</span>
         <h3>Want to change the plan?</h3>
         <p>Your selected version stays saved. A change is used only when a valid new plan is ready for review.</p>
@@ -260,13 +261,13 @@ function PaidPlanReview({order,refresh}) {
           <div className="paid-plan-field"><label htmlFor="paid-plan-feedback">What should change?</label><textarea id="paid-plan-feedback" rows={6} minLength={10} maxLength={500} required value={feedback} onChange={event=>setFeedback(event.target.value)} aria-describedby="paid-plan-feedback-hint paid-plan-feedback-count" placeholder={mode==='edit'?'For example: Make checkpoint 2 easier to read, but keep the clue and the team decision.':'For example: Keep the setting, but make the five checkpoints feel more like a mystery.'}/><div className="paid-plan-field-meta"><span id="paid-plan-feedback-hint">Say what felt wrong and what should stay.</span><span id="paid-plan-feedback-count">{feedback.length}/500{feedback&&<button type="button" className="paid-plan-clear" onClick={()=>setFeedback('')}>Clear draft</button>}</span></div></div>
           <button type="submit" className="paid-plan-submit" disabled={busy}>{busy?'Submitting…':mode==='edit'?'Request this edit':'Request a new plan direction'} <ArrowRight size={17}/></button>
         </form> : <p className="paid-plan-limit" role="status">No {mode==='edit'?'focused edits':'whole-plan reworks'} remain. You can review a saved version or ask for help before approving.</p>}
-      </div>
+      </div>}
 
       <section className="paid-plan-approval" aria-label="Approve your plan">
         <span className="eyebrow">FINAL STEP</span>
         <h3>Ready to make your game?</h3>
-        <p>Approve version {review.activeVersion} to begin creating and checking the Player Pack and adult guide. You can follow progress on this order.</p>
-        <button type="button" className="button" disabled={busy||hasUnsentFeedback} onClick={()=>action({action:'confirm',version:review.activeVersion})}>Approve this plan and create PDFs <ArrowRight size={17}/></button>
+        <p>{qualityReview?'Approving this corrected plan starts a replacement game on this paid order. Your current PDFs stay available until the new files pass every check.':`Approve version ${review.activeVersion} to begin creating and checking the Player Pack and adult guide. You can follow progress on this order.`}</p>
+        <button type="button" className="button" disabled={busy||!qualityReview&&hasUnsentFeedback} onClick={()=>action({action:'confirm',version:review.activeVersion})}>{qualityReview?'Approve corrected plan and rebuild at no charge':'Approve this plan and create PDFs'} <ArrowRight size={17}/></button>
         {hasUnsentFeedback ? <p className="paid-plan-approval-note">You have an unsent change request. Return to that change type to submit or clear it before approving.</p> : <p className="paid-plan-approval-note">If a plan does not work for you, use the help form below before approval.</p>}
       </section>
     </div>}
@@ -340,7 +341,7 @@ function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
 function PackRemake({order,refresh}) {
   const [busy,setBusy] = useState(false), [error,setError] = useState('');
   const remake = order.remake;
-  if (order.kind !== 'custom' || !order.paidAt || !order.filesReady || ((order.gamePackVersion || 1) >= 2 && !order.qualityUpgradeAvailable && !remake)) return null;
+  if (order.kind !== 'custom' || !order.paidAt || !order.filesReady || ((order.gamePackVersion || 1) >= 2 && !order.qualityUpgradeAvailable && !order.themePlanRepairAvailable && !order.planReview?.qualityReplanUsed && !remake)) return null;
   const active = remake && ['queued','generating'].includes(remake.status);
   const waiting = remake?.status === 'queued';
   const done = remake?.status === 'ready';
@@ -355,6 +356,16 @@ function PackRemake({order,refresh}) {
     setBusy(true); setError('');
     try { await api(`/api/v1/orders/${order.id}/pack-remake${retry?'/retry':''}`,{method:'POST'}); await refresh(); }
     catch (failure) { setError(failure.message); } finally { setBusy(false); }
+  }
+  const themePlanStage=order.planReview?.qualityReplanUsed&&order.planReview.status!=='confirmed';
+  const themePlanNeedsHelp=order.planReview?.qualityReplanUsed&&order.planReview.status==='confirmed'&&!order.plan?.themeAnchors?.length;
+  if((order.themePlanRepairAvailable||themePlanStage||themePlanNeedsHelp)&&(!remake||remake.status==='ready')){
+    async function repairThemePlan(){
+      setBusy(true);setError('');
+      try{await api(`/api/v1/orders/${order.id}/plan`,{method:'POST',headers:{'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({action:'quality_replan'})});await refresh();}
+      catch(failure){setError(failure.message);}finally{setBusy(false);}
+    }
+    return <section id="order-remake" className="order-pack-remake" aria-labelledby="order-remake-title"><span className="eyebrow">IMPROVED GAME PACK</span><h2 id="order-remake-title">{themePlanStage?order.planReview.status==='review'?'Review a stronger story plan':'Preparing a stronger story plan':themePlanNeedsHelp?'Your story plan needs help':'First, correct the story theme'}</h2><p>{themePlanStage?order.planReview.status==='review'?'A new plan is ready below. Check that it reflects your original theme, then approve it to rebuild the complete game.':'We are preparing a theme-faithful plan. Your current PDFs remain downloadable while it is checked.':themePlanNeedsHelp?'The free plan correction did not produce an approved new plan. Your current PDFs are still available; use the order help section for review.':'Your earlier approved plan does not carry the original story theme strongly enough. Review a corrected five-checkpoint plan before we rebuild the PDFs. This stays on your paid order and does not use an included preference change.'}</p>{order.themePlanRepairAvailable&&<button type="button" className="button" onClick={repairThemePlan} disabled={busy}>{busy?'Starting…':'Prepare corrected theme plan at no charge'} <ArrowRight size={17}/></button>}{themePlanStage&&order.planReview.status==='review'&&<a className="button-quiet" href="#personal-plan-review">Review corrected plan <ArrowRight size={17}/></a>}{error&&<Alert>{error}</Alert>}</section>;
   }
   return <section id="order-remake" className="order-pack-remake" aria-labelledby="order-remake-title">
     <span className="eyebrow">IMPROVED GAME PACK</span>
@@ -427,8 +438,8 @@ export function LiveOrder({ Link, orderId }) {
   };
   useEffect(() => { setOrder(null); setError(''); setRefreshNotice(''); refresh(); }, [orderId]);
   useEffect(() => {
-    const awaitingApproval = order?.kind === 'custom' && order.status === 'paid' && order.planReview?.status === 'review' && !order.planReview.pending && !order.planReview.confirmedVersion;
-    if (!order || awaitingApproval || !['pending_payment','paid','fulfilling'].includes(order.status) && !['queued','generating'].includes(order.remake?.status)) return;
+    const awaitingApproval = order?.kind === 'custom' && order.planReview?.status === 'review' && !order.planReview.pending;
+    if (!order || awaitingApproval || !['pending_payment','paid','fulfilling'].includes(order.status) && !['queued','generating'].includes(order.remake?.status) && !['queued','generating'].includes(order.planReview?.status)) return;
     const update = () => { if (document.visibilityState === 'visible') refresh(); };
     const timer = setInterval(update, 5000);
     document.addEventListener('visibilitychange', update);
@@ -456,7 +467,7 @@ export function LiveOrder({ Link, orderId }) {
           <OrderQualityActions order={order} onHelp={openHelp}/>
           <RevisionForm order={order} refresh={refresh}/>
           <PdfGenerationHistory order={order}/>
-          {order.planReview && (approved ? <details className="order-approved-plan"><summary>View your approved five-checkpoint plan</summary><PaidPlanReview order={order} refresh={refresh}/></details> : <PaidPlanReview order={order} refresh={refresh}/>)}
+          {order.planReview && (approved&&!(order.planReview.qualityReplanUsed&&order.planReview.status!=='confirmed') ? <details className="order-approved-plan"><summary>View your approved five-checkpoint plan</summary><PaidPlanReview order={order} refresh={refresh}/></details> : <PaidPlanReview order={order} refresh={refresh}/>)}
           {!order.planReview && order.plan && <details className="order-plan-review"><summary>Review the story and five-checkpoint plan</summary><PlanPreview plan={order.plan}/></details>}
         </div>
         <aside className="order-sidebar" aria-label="Order details">
