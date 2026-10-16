@@ -70,7 +70,7 @@ const sharedResponse=/\b(?:smiles?|cheers?|celebrates?|thanks?|welcomes?|applaud
 const subjectStop=new Set(['this','that','with','from','into','before','after','using','used','final','first','action','story','discovery','identifies','identify','gives','give','provides','provide','allows','allow','required','requires','complete','completes','mission','team','children','must','which','will','work']);
 const storySubject=(candidate,spec,index)=>{
   const discovery=candidate.storyFrame?.discoveries?.[index];
-  const source=[discovery?.finding,discovery?.consequence,candidate.storyFrame?.purposes?.[index],candidate.storyFrame?.actions?.[0],spec.plan?.stages?.[index]?.scene,spec.plan?.goal]
+  const source=[discovery?.supportsAction,discovery?.finding,discovery?.consequence,candidate.storyFrame?.purposes?.[index],candidate.storyFrame?.actions?.[0],spec.plan?.stages?.[index]?.scene,spec.plan?.goal]
     .filter(Boolean).join(' ').toLowerCase();
   const words=[...new Set((source.match(/[a-z]{4,}/g)||[]).filter(word=>!subjectStop.has(word)&&!featureBanned.test(word)))];
   return words.slice(0,2).join(' ')||'mission';
@@ -82,6 +82,34 @@ const stableOrderLabels=(candidate,spec,index)=>{
   const subject=storySubject(candidate,spec,index);
   return [`Inspect ${subject}`,`Gather ${subject} supplies`,`Prepare ${subject} parts`,`Position ${subject}`].map(value=>fitLabel(value));
 };
+
+// Quality v9 treats malformed ordering labels as a formatting defect rather
+// than paying the provider to rewrite the checkpoint. The four replacement
+// labels are derived only from the approved story frame and therefore remain
+// stable across retries. Call this before story grounding so every causal link
+// is written against the exact actions that will appear on paper.
+export function normalizeStoryOrderActions(stages,storyFrame,spec){
+  if((spec.packQualityVersion||0)<9||!Array.isArray(stages))return stages;
+  const normalized=structuredClone(stages),types=paperContractTypes(spec.plan);
+  const candidate={storyFrame,stages:normalized};
+  for(let index=0;index<4;index++){
+    if(types[index]!=='order_tiles')continue;
+    const items=normalized[index]?.material?.items;
+    if(!Array.isArray(items)||items.length!==4)continue;
+    const labels=items.map(item=>typeof item==='string'?item:item?.label);
+    const finalAction=String(storyFrame?.actions?.[0]||'').trim().toLowerCase();
+    const invalid=labels.some(label=>typeof label!=='string'||worksheetLanguage.test(label)
+      ||/^(?:compare|match|select|record|sort|write|arrange|decode|number)\b/i.test(label)
+      ||/^(?:check|read)\s+(?:the\s+)?(?:answer|result|code|clue|rule|printed|digit|card|tile)\b/i.test(label)
+      ||closesGoal(label,spec.plan.goal)||!isInWorldAction(label)
+      ||finalAction&&(label.trim().toLowerCase()===finalAction||repeatsFinalAction(label,finalAction)));
+    if(!invalid)continue;
+    const replacements=stableOrderLabels(candidate,spec,index);
+    normalized[index]={...normalized[index],material:{...normalized[index].material,
+      items:items.map((item,itemIndex)=>typeof item==='string'?replacements[itemIndex]:{...item,label:replacements[itemIndex]})}};
+  }
+  return normalized;
+}
 const shortKeyWord=(value,spec,index,used)=>{
   if((spec.packQualityVersion||0)>=8){
     const word=String(value||'').trim().toUpperCase();
@@ -214,6 +242,7 @@ export function buildContextPuzzle(number,type,context,previousDigits=[],experie
 export function prepareContextualBlueprint(candidate,spec){
   validatePaperPlan(spec.plan);
   if(candidate?.stages?.length!==5)throw Error('A five-checkpoint contextual blueprint is required.');
+  candidate={...candidate,stages:normalizeStoryOrderActions(candidate.stages,candidate.storyFrame,spec)};
   const types=paperContractTypes(spec.plan),digits=[],stages=[];
   for(let i=0;i<5;i++){
     const raw=candidate.stages[i],type=types[i],count=i===4?3:type==='order_tiles'?4:type==='symbol_key'?4:3;
