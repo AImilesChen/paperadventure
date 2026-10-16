@@ -237,8 +237,13 @@ export function prepareContextualBlueprint(candidate,spec){
   if((spec.packQualityVersion||0)>=5){
     const sentences=celebration.match(/[^.!?]+[.!?]+/g)||[];
     const genericOutcome=/\b(?:mission result|goal (?:is|was) (?:now )?(?:visible|complete)|result (?:is|was) (?:now )?visible|completed mission)\b/i;
-    if(celebration.length<90||sentences.length<2||!visibleOutcome.test(celebration)||!sharedResponse.test(celebration)||genericOutcome.test(celebration)){
-      if((spec.packQualityVersion||0)>=8)throw Error('The ending celebration must show a concrete result of the final action and a character response.');
+    if((spec.packQualityVersion||0)>=8){
+      // The editorial audit checks whether the outcome actually fulfils this
+      // particular goal. A short verb allow-list rejected valid outcomes such
+      // as water flowing or a courier handing over a parcel.
+      if(celebration.length<90||sentences.length<2||genericOutcome.test(celebration))
+        throw Error('The ending celebration needs two complete sentences: a concrete result of the final action followed by a character response.');
+    }else if(celebration.length<90||sentences.length<2||!visibleOutcome.test(celebration)||!sharedResponse.test(celebration)||genericOutcome.test(celebration)){
       if((spec.packQualityVersion||0)<7)throw Error('The ending celebration needs two complete beats: a visible result and a character or community response.');
       celebration=`The team carries out "${stages[4].material.items[0].label}", and the mission result is now visible to everyone. The whole group cheers and thanks each player for the discoveries they shared.`;
     }
