@@ -206,6 +206,9 @@ function guideStart(story,spec){
   const page=makePage(spec.paper==='A4'?595:612,spec.paper==='A4'?842:792,'Adult guide / Preparation');
   let y=heading(page,'Keep this guide with the adult',story.title);
   if(spec.packExperienceVersion>=2){
+    // US Letter gives this page 50 fewer points than A4. Keep the full host
+    // instructions and tighten only their spacing on the shorter sheet.
+    const compact=spec.paper==='Letter';
     const sections=[
       ['THE MISSION',spec.plan.goal],
       ...(story.spine?[['THE PROBLEM TO SOLVE',story.spine.problem]]:[]),
@@ -216,8 +219,8 @@ function guideStart(story,spec){
       ['SUCCESS CHECK','The first four checkpoint digits must be recorded in order. Check each answer and digit before moving on. The fifth checkpoint combines all four digits; it does not give a new digit.'],
     ];
     for(const [label,value] of sections){
-      page.text(label,48,y,10,true,'0.77 0.19 0.13');y-=18;
-      y=page.block(value,48,y,77,10,16)-14;
+      page.text(label,48,y,compact?9:10,true,'0.77 0.19 0.13');y-=compact?15:18;
+      y=page.block(value,48,y,compact?84:77,compact?9:10,compact?13:16)-(compact?8:14);
     }
     const quickChecks=story.stages.map(stage=>`Checkpoint ${stage.number}: answer ${String.fromCharCode(65+stage.answerIndex)}${stage.number<5?`; save digit ${stage.material.logic.resultDigit}`:'; combine the four saved digits'}`);
     const quickHeight=20+quickChecks.reduce((height,line)=>height+wrap(line,77).length*12+2,0);
