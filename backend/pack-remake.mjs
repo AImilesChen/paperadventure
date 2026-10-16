@@ -14,7 +14,7 @@ const MAX_BLUEPRINT_CALLS = 3;
 const MAX_AUDIT_CALLS = 5;
 const stepLimit = (phase,spec) => phase === 'audit' ? MAX_AUDIT_CALLS : phase === 'blueprint' ? spec?.packExperienceVersion>=2?5:MAX_BLUEPRINT_CALLS : MAX_STEP_CALLS;
 const MAX_RECOVERY_ROUNDS = 2;
-const CURRENT_PACK_QUALITY_VERSION = 12;
+const CURRENT_PACK_QUALITY_VERSION = 13;
 const CURRENT_PACK_LAYOUT_VERSION = 4;
 const recoverableErrors = ['BLUEPRINT_INVALID','STAGE_INVALID','STAGE_SEMANTIC_INVALID','GENERATION_UPSTREAM_FAILED','GENERATION_QA_FAILED','REMAKE_STORAGE_INVALID','UNEXPECTED'];
 const deterministicCheckpoint = (phase,spec,stageNumber=0) => (phase === 'checkpoint' || phase === 'blueprint_material' && stageNumber === 5) && spec.gamePackVersion === 2 && spec.packLogicVersion === 1;
@@ -126,7 +126,10 @@ export async function startPackRemake(order, activity, env) {
   const specHash = await sha256(specJson);
   if (existing?.status === 'ready') {
     const savedStages=JSON.parse(existing.stages_json||'[]');
-    const closingOnly=Boolean(existing.story_json&&savedStages.length===5&&previousSpec?.packExperienceVersion>=3&&(previousSpec.packQualityVersion||0)>=9&&(previousSpec.packQualityVersion||0)<CURRENT_PACK_QUALITY_VERSION);
+    // V13 changes the playable story and material checks. An older ready pack
+    // needs a full checked rebuild; a PDF-only closing refresh would keep the
+    // very content defects that prompted this upgrade.
+    const closingOnly=Boolean(CURRENT_PACK_QUALITY_VERSION<=12&&existing.story_json&&savedStages.length===5&&previousSpec?.packExperienceVersion>=3&&(previousSpec.packQualityVersion||0)>=9&&(previousSpec.packQualityVersion||0)<CURRENT_PACK_QUALITY_VERSION);
     const layoutOnly=Boolean(existing.blueprint_json&&existing.story_json&&previousSpec?.packExperienceVersion>=3&&previousSpec?.packQualityVersion>=CURRENT_PACK_QUALITY_VERSION&&(previousSpec.packLayoutVersion||0)<CURRENT_PACK_LAYOUT_VERSION);
     let upgradedStoryJson=null,upgradedStoryHash=null,upgradedBlueprintJson=existing.blueprint_json,upgradedBlueprintHash=null;
     if(closingOnly){
@@ -407,7 +410,8 @@ export async function processPackRemake(orderId, env) {
         for(let number=1;number<=5;number++){
           budgetPhase='blueprint_material';stageNumber=number;
           materials.push(await recordCall(remake,budgetPhase,number,async()=>{
-            const result=await generateBlueprintMaterialStep(spec,frame,number,materials,env,env.FETCH||fetch);
+            const prior=(spec.packQualityVersion||0)>=13?await query(db,"SELECT error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'failed' ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch,number).first():null;
+            const result=await generateBlueprintMaterialStep(spec,frame,number,materials,env,env.FETCH||fetch,prior?.error_detail||null);
             return {value:result.data,usage:result.usage,responseId:result.responseId};
           },env));
         }
@@ -503,12 +507,13 @@ export async function processPackRemake(orderId, env) {
     const detail=(phase==='repair'&&stageNumber?`Checkpoint ${stageNumber}: `:'')+String(caught?.message||'Unknown failure');
     const total = await query(db, "SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND model != 'checked-rules-v1'", orderId, remake.quality_epoch, remake.logic_epoch, remake.recovery_round + 1).first();
     const step = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', orderId, remake.quality_epoch, remake.logic_epoch, budgetPhase, stageNumber, remake.recovery_round + 1).first();
-    if((spec.packQualityVersion||0)>=7&&remake.blueprint_json&&['STAGE_SEMANTIC_INVALID','GENERATION_QA_FAILED'].includes(code)&&Number.isInteger(caught.stageNumber)&&caught.stageNumber>=0&&caught.stageNumber<=5&&total.n<MAX_CALLS&&remake.failure_count<2){
+    if((spec.packQualityVersion||0)>=7&&remake.blueprint_json&&['STAGE_SEMANTIC_INVALID','GENERATION_QA_FAILED'].includes(code)&&!caught.terminalThemeMismatch&&Number.isInteger(caught.stageNumber)&&caught.stageNumber>=0&&caught.stageNumber<=5&&total.n<MAX_CALLS&&remake.failure_count<2){
       await query(db,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'repair',lease_until = NULL,failure_count = failure_count + 1,error_code = ?,error_detail = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'",code,detail.slice(0,1000),orderId).run();
       await queueNext(orderId,env);
       return;
     }
     let retry = total.n < MAX_CALLS && (deterministicCheckpoint(budgetPhase,spec,stageNumber) || step.n < stepLimit(budgetPhase,spec)) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING','REMAKE_BUDGET_EXHAUSTED'].includes(code);
+    if(caught.terminalThemeMismatch)retry=false;
     if (deterministicCheckpoint(budgetPhase,spec,stageNumber) && code === 'GENERATION_INVALID') retry = false;
     if (code === 'GENERATION_QA_FAILED') {
       const failedStage = caught.stageNumber;

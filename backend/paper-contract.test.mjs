@@ -4,7 +4,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {buildContextPuzzle,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep,deliverableClosing} from './staged-story.mjs';
+import {assembleBlueprintSteps,generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep,generateBlueprintMaterialStep,deliverableClosing} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
@@ -172,6 +172,51 @@ test('quality version 9 completes malformed ordering actions before story ground
   const labels=normalized[orderIndex].material.items.map(item=>item.label);
   assert.deepEqual(labels,['Inspect signal gear','Gather signal gear supplies','Prepare signal gear parts','Position signal gear']);
   assert.ok(labels.every(label=>/^(?:Inspect|Gather|Prepare|Position)\s+\S+/i.test(label)));
+});
+
+test('quality version 13 rejects fabricated ordering actions before saving that material',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:13,packLayoutVersion:4};
+  const raw=linkedClockContext(),frame=structuredClockFrame();
+  const orderIndex=paperContractTypes(spec.plan).indexOf('order_tiles');
+  const bad=['Inspect through front','Gather through front supplies','Prepare through front parts','Position through front'];
+  raw.stages[orderIndex].material.items=bad.map(label=>({label}));
+  assert.deepEqual(normalizeStoryOrderActions(raw.stages,frame,spec)[orderIndex].material.items.map(item=>item.label),bad,
+    'a bad provider response must not be silently replaced with more invented prose');
+  assert.throws(()=>prepareContextualBlueprint({...raw,storyFrame:frame},spec),/ordering pieces must be complete, natural/);
+  const env={OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
+  await assert.rejects(()=>generateBlueprintMaterialStep(spec,frame,orderIndex+1,[],env,async()=>
+    Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(raw.stages[orderIndex])}]}]})),
+  error=>error.code==='BLUEPRINT_INVALID'&&error.stageNumber===orderIndex+1);
+});
+
+test('quality version 13 keeps a concrete, causally grounded five-step blueprint',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:13,packLayoutVersion:4};
+  const raw=linkedClockContext(),frame=structuredClockFrame();
+  const consequences=[
+    'The noon mark identifies the gear the keeper must fit.',
+    'The spare gear can be collected from safe storage.',
+    'Aligning the wheel keeps the gear ready for fitting.',
+    'The upper bridge carries the gear to the tower.',
+  ];
+  const result=await assembleBlueprintSteps(spec,frame,raw.stages,
+    'The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.',
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({consequences})}]}]});
+    });
+  assert.equal(result.blueprint.stages.length,5);
+  assert.match(result.blueprint.spine.links[0].reason,/noon mark/i);
+  const themedSpec={...spec,customIdea:'Journey to the West with Sun Wukong and Eastern mythology'};
+  const stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(themedSpec,result.blueprint,number,stages.at(-1),{},()=>{throw Error('No provider call expected');})).stage);
+  const story=assembleStagedStory(themedSpec,result.blueprint,stages);
+  let reviews=0;
+  await assert.rejects(()=>auditStagedStory(story,themedSpec,result.blueprint,
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+      reviews++;
+      assert.match(JSON.parse(request.body).input,/Sun Wukong/);
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:1,reason:'The purchased Journey to the West theme and named character Sun Wukong disappeared from this generic clock story.'}]})}]}]});
+    }),error=>error.code==='GENERATION_QA_FAILED'&&error.terminalThemeMismatch===true);
+  assert.equal(reviews,2,'theme failure is independently checked before stopping');
 });
 
 test('quality version 8 grounds story consequences after the printable pieces exist',async()=>{

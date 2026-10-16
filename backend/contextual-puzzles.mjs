@@ -82,6 +82,17 @@ const stableOrderLabels=(candidate,spec,index)=>{
   const subject=storySubject(candidate,spec,index);
   return [`Inspect ${subject}`,`Gather ${subject} supplies`,`Prepare ${subject} parts`,`Position ${subject}`].map(value=>fitLabel(value));
 };
+// A preposition or an abstract direction is not an object children can
+// inspect, gather or position. V9's generic replacement could turn a route
+// fragment such as "through front" into four nonsensical printed actions.
+export const invalidStoryOrderAction=(label,finalAction='',goal='')=>
+  typeof label!=='string'||worksheetLanguage.test(label)
+  ||/^(?:compare|match|select|record|sort|write|arrange|decode|number)\b/i.test(label)
+  ||/^(?:check|read)\s+(?:the\s+)?(?:answer|result|code|clue|rule|printed|digit|card|tile)\b/i.test(label)
+  ||/^(?:inspect|gather|prepare|position|collect|attach|place|fit|carry|bring)\s+(?:through|across|over|under|into|at|on|in|from|to|with)\b/i.test(label)
+  ||/\b(?:through|across|over|under|into|at|on|in|from|to|with|the|a|an)$/i.test(label.trim())
+  ||closesGoal(label,goal)||!isInWorldAction(label)
+  ||Boolean(finalAction)&&(label.trim().toLowerCase()===finalAction.trim().toLowerCase()||repeatsFinalAction(label,finalAction));
 
 // Quality v9 treats malformed ordering labels as a formatting defect rather
 // than paying the provider to rewrite the checkpoint. The four replacement
@@ -98,12 +109,9 @@ export function normalizeStoryOrderActions(stages,storyFrame,spec){
     if(!Array.isArray(items)||items.length!==4)continue;
     const labels=items.map(item=>typeof item==='string'?item:item?.label);
     const finalAction=String(storyFrame?.actions?.[0]||'').trim().toLowerCase();
-    const invalid=labels.some(label=>typeof label!=='string'||worksheetLanguage.test(label)
-      ||/^(?:compare|match|select|record|sort|write|arrange|decode|number)\b/i.test(label)
-      ||/^(?:check|read)\s+(?:the\s+)?(?:answer|result|code|clue|rule|printed|digit|card|tile)\b/i.test(label)
-      ||closesGoal(label,spec.plan.goal)||!isInWorldAction(label)
-      ||finalAction&&(label.trim().toLowerCase()===finalAction||repeatsFinalAction(label,finalAction)));
+    const invalid=labels.some(label=>invalidStoryOrderAction(label,finalAction,spec.plan.goal));
     if(!invalid)continue;
+    if((spec.packQualityVersion||0)>=13)continue;
     const replacements=stableOrderLabels(candidate,spec,index);
     normalized[index]={...normalized[index],material:{...normalized[index].material,
       items:items.map((item,itemIndex)=>typeof item==='string'?replacements[itemIndex]:{...item,label:replacements[itemIndex]})}};
@@ -275,9 +283,11 @@ export function prepareContextualBlueprint(candidate,spec){
         throw Error(`Checkpoint ${i+1} needs distinct named story pieces, not lettered placeholders or repeated subjects.`);
     }
     if((spec.packQualityVersion||0)>=8&&i<4&&type==='order_tiles'){
+      const finalAction=String(candidate.storyFrame?.actions?.[0]||candidate.stages[4]?.material?.items?.[0]?.label||'').trim().toLowerCase();
+      if((spec.packQualityVersion||0)>=13&&labels.some(label=>invalidStoryOrderAction(label,finalAction,spec.plan.goal)))
+        throw Error(`Checkpoint ${i+1} ordering pieces must be complete, natural unfinished in-world actions tied to real story objects.`);
       if(labels.some(label=>!isInWorldAction(label)))
         throw Error(`Checkpoint ${i+1} ordering pieces must each begin with a complete in-world action.`);
-      const finalAction=String(candidate.storyFrame?.actions?.[0]||candidate.stages[4]?.material?.items?.[0]?.label||'').trim().toLowerCase();
       if(finalAction&&labels.some(label=>label.trim().toLowerCase()===finalAction||repeatsFinalAction(label,finalAction)))
         throw Error(`Checkpoint ${i+1} cannot perform the final action before the last checkpoint.`);
     }
