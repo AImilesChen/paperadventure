@@ -81,6 +81,15 @@ test('quality version 6 uses structured causal fields instead of keyword matchin
   assert.throws(()=>prepareStoryFrame(unrelated,6),/intended final action/);
 });
 
+test('quality version 9 reopens a premature frame consequence without another provider call',()=>{
+  const frame=structuredClockFrame();
+  frame.discoveries[2].consequence='The signal gear was repaired and the bell rang.';
+  const prepared=prepareStoryFrame(frame,9);
+  assert.equal(prepared.discoveries[2].finding,frame.discoveries[2].finding);
+  assert.equal(prepared.discoveries[2].consequence,'The safe sequence keeps signal gear ready for the final action.');
+  assert.doesNotMatch(prepared.discoveries[2].consequence,/repaired|rang|completed/i);
+});
+
 test('quality version 8 blocks a concrete story defect and rejects a generic ending',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,packLayoutVersion:4};
   const raw=linkedClockContext();
