@@ -193,6 +193,42 @@ test('quality version 8 grounds story consequences after the printable pieces ex
   assert.doesNotMatch(result.blueprint.storyFrame.discoveries[3].consequence,/carries the gear/i);
 });
 
+test('quality version 8 re-grounds saved discoveries after repairing one material',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.storyFrame=structuredClockFrame();
+  raw.storyFrame.discoveries[0].consequence='The noon mark identifies the gear the keeper must fit.';
+  raw.storyFrame.discoveries[1].consequence='The spare gear can be collected from safe storage.';
+  raw.storyFrame.discoveries[2].consequence='The wheel stays aligned during repair.';
+  raw.storyFrame.discoveries[3].consequence='The upper bridge can carry the part.';
+  raw.spine=compileStorySpine(raw.storyFrame,raw.stages,paperContractTypes(spec.plan),8);
+  raw.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const repairedStage=structuredClone(raw.stages[2]);
+  repairedStage.material.items=['Inspect the drive wheel','Align the drive wheel','Secure the gear bracket','Test the wheel motion'].map(label=>({label}));
+  const consequences=[
+    'The noon mark identifies the gear the keeper must fit.',
+    'The spare gear can be collected from safe storage.',
+    'The aligned wheel keeps the signal gear ready for fitting.',
+    'The upper bridge carries the gear to the tower.',
+  ];
+  const calls=[];
+  const result=await repairBlueprint(spec,raw,'Checkpoint 3 ordering pieces must each begin with a complete in-world action.',
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+      const body=JSON.parse(request.body),name=body.text.format.name,input=JSON.parse(body.input);
+      calls.push(name);
+      if(name==='checkpoint_material_repair')return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(repairedStage)}]}],usage:{input_tokens:3,output_tokens:5}});
+      assert.equal(name,'grounded_discoveries');
+      assert.deepEqual(input.printed[2].labels,repairedStage.material.items.map(item=>item.label));
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({consequences})}]}],usage:{input_tokens:7,output_tokens:11}});
+    });
+  assert.deepEqual(calls,['checkpoint_material_repair','grounded_discoveries']);
+  assert.deepEqual(result.usage,{input_tokens:10,output_tokens:16});
+  assert.equal(result.blueprint.storyFrame.discoveries[2].consequence,consequences[2]);
+  assert.match(result.blueprint.spine.links[2].reason,/aligned wheel/i);
+  assert.deepEqual(result.blueprint.stages[0].material.logic.context.labels,raw.stages[0].material.items.map(item=>item.label));
+  assert.deepEqual(result.blueprint.stages[1].material.logic.context.labels,raw.stages[1].material.items.map(item=>item.label));
+});
+
 test('quality version 8 replaces a generic code word with an approved story word before grounding',()=>{
   const plan=structuredClone(clockSpec.plan);
   plan.goal='Restore the exhibit CASE label before the visitors arrive.';
