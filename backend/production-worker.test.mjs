@@ -25,7 +25,7 @@ async function approvedCustomInput(env,input) {
 
 function database() {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql']) db.exec(readFileSync(new URL(`./migrations/${name}`, import.meta.url), 'utf8'));
   const binding = {
     prepare(sql) {
       return { bind(...values) {
@@ -1030,10 +1030,10 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   ]};
   const materialContext=structuredClone(context);delete materialContext.spine;
   materialContext.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
-  let blueprintCalls=0;
+  let blueprintCalls=0,failedMaterialTwo=false;const blueprintProviderCalls=[];
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
     PRIVATE_FILES:{get:async key=>files.get(key)||null,put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata})},
-    FETCH:async(_url,init)=>{const name=JSON.parse(init.body).text.format.name;if(name==='game_blueprint')blueprintCalls++;return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(name==='story_frame'?storyFrame:name==='game_blueprint'?materialContext:name==='grounded_discoveries'?{consequences:storyFrame.discoveries.map(({consequence})=>consequence)}:{pass:true,issues:[]})}]}],usage:{input_tokens:10,output_tokens:10}});}};
+    FETCH:async(_url,init)=>{const body=JSON.parse(init.body),name=body.text.format.name,input=JSON.parse(body.input);blueprintProviderCalls.push({name,checkpoint:input.checkpoint||0});if(name==='story_frame')blueprintCalls++;if(name==='blueprint_material_stage'&&input.checkpoint===2&&!failedMaterialTwo){failedMaterialTwo=true;return Response.json({error:{message:'temporary material failure'}},{status:502});}const value=name==='story_frame'?storyFrame:name==='blueprint_material_stage'?materialContext.stages[input.checkpoint-1]:name==='blueprint_celebration'?{celebration:materialContext.celebration}:name==='grounded_discoveries'?{consequences:storyFrame.discoveries.map(({consequence})=>consequence)}:{pass:true,issues:[]};return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});}};
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
   const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
   const view=()=>handleProductionApi(request('/api/v1/orders/quality-order','GET',undefined,headers),env).then(response=>response.json());
@@ -1062,6 +1062,8 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   assert.notDeepEqual(new Uint8Array(await (await download()).arrayBuffer()),original);
   assert.deepEqual(new Uint8Array(await (await download('&version=1')).arrayBuffer()),original);
   assert.equal(blueprintCalls,1);
+  assert.equal(blueprintProviderCalls.filter(call=>call.name==='blueprint_material_stage'&&call.checkpoint===1).length,1,'a saved first material is reused after the second material fails');
+  assert.equal(blueprintProviderCalls.filter(call=>call.name==='blueprint_material_stage'&&call.checkpoint===2).length,2,'only the failed second material is requested again');
   const earlierPack=new Uint8Array(await (await download()).arrayBuffer());
   const earlierSpec={...JSON.parse(saved.spec_json),packQualityVersion:8,packLayoutVersion:3};
   const earlierJson=JSON.stringify(earlierSpec);
@@ -1531,8 +1533,8 @@ test('quality v8 repairs an ending without rebuilding five saved paid checkpoint
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async()=>{}},
     PRIVATE_FILES:{put:async(key,bytes,options)=>files.set(key,{bytes,options}),head:async key=>files.has(key)?{customMetadata:files.get(key).options.customMetadata}:null},
     FETCH:async(_url,request)=>{
-      const name=JSON.parse(request.body).text.format.name;calls.push(name);
-      const value=name==='story_frame'?frame:name==='game_blueprint'?material:name==='grounded_discoveries'
+      const body=JSON.parse(request.body),name=body.text.format.name,input=JSON.parse(body.input);calls.push(name);
+      const value=name==='story_frame'?frame:name==='blueprint_material_stage'?material.stages[input.checkpoint-1]:name==='blueprint_celebration'?{celebration:material.celebration}:name==='grounded_discoveries'
         ?{consequences:frame.discoveries.map(({consequence})=>consequence)}:name==='closing_repair'
         ?{celebration:'The repaired gear spins and the noon bell rings across the square. Pip cheers, thanks the team, and sets out on the journey.'}
         :name==='staged_story_adjudication'?{pass:false,issues:[{stageNumber:0,reason:'The ending needs a concrete noon-bell result.'}]}
@@ -1544,7 +1546,7 @@ test('quality v8 repairs an ending without rebuilding five saved paid checkpoint
   const process=()=>productionWorker.queue({messages:[{body:{orderId},ack(){},retry(){throw Error('Unexpected queue retry');}}]},env);
   for(let step=0;step<4&&db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status!=='published';step++)await process();
   assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'published');
-  assert.deepEqual(calls,['story_frame','game_blueprint','grounded_discoveries','staged_story_audit','staged_story_adjudication','closing_repair','staged_story_audit']);
+  assert.deepEqual(calls,['story_frame','blueprint_material_stage','blueprint_material_stage','blueprint_material_stage','blueprint_material_stage','blueprint_celebration','grounded_discoveries','staged_story_audit','staged_story_adjudication','closing_repair','staged_story_audit']);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_generation_calls WHERE order_id=? AND phase='checkpoint'").get(orderId).n,5);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
   assert.equal(files.size,3);
@@ -1552,3 +1554,4 @@ test('quality v8 repairs an ending without rebuilding five saved paid checkpoint
   const view=await handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,{cookie:`paw_session=${token}`}),env).then(response=>response.json());
   assert.equal(view.contentReviewPassed,true);
 });
+
