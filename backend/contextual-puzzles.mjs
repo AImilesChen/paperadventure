@@ -25,6 +25,12 @@ const fitRecordFeature=value=>{
   if(!match)return value;
   const prefix=/^(?:Mentions|Names)$/i.test(match[1]||'')?match[1]:'Mentions',words=match[2].trim().split(/\s+/);
   while(words.length>1&&`${prefix} ${words.join(' ')}`.length>24)words.pop();
+  // Never publish a field ending in a connector after fitting it to the card.
+  // "Names a cracked peg by its owner" previously became the ambiguous
+  // "Names a cracked peg by", which then caused an otherwise valid pack to
+  // fail both semantic and story audits.
+  const dangling=/^(?:a|an|the|and|or|by|with|from|to|for|of|at|in|on|near|under|over|before|after)$/i;
+  while(words.length>1&&dangling.test(words.at(-1)))words.pop();
   return `${prefix} ${words.join(' ')}`;
 };
 const featureBanned=/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i;
@@ -141,14 +147,16 @@ export function buildContextPuzzle(number,type,context,previousDigits=[],experie
     signature=`order-four-steps-${variant}`;
   }else if(type==='symbol_key'){
     const word=context.word;
-    items=Array.from(word,(letter,i)=>({label:String(i+1),detail:`${letter}`}));
+    const message=qualityVersion>=8?[[1,2,3,4],[2,4,1,3],[3,1,4,2],[4,3,2,1]][(number-1)%4]:[1,2,3,4];
+    items=Array.from({length:4},(_,i)=>({label:String(i+1),detail:word[message.indexOf(i+1)]}));
     options=[word,(word[0]==='A'?'Z':'A')+word.slice(1),word.slice(0,3)+(word[3]==='A'?'Z':'A')];answer=0;
     if(!unique(options))throw Error('The printed word needs distinct code choices.');
-    instruction='Write the key letter under each number in the message 1-2-3-4. Read the letters in that order.';
-    clue='The message is 1-2-3-4. Decode it using all four rows of the printed key, then record the result digit for the matching word.';
+    const messageText=message.join('-');
+    instruction=`Write the key letter under each number in the message ${messageText}. Read the letters in that order.`;
+    clue=`The message is ${messageText}. Decode it using all four rows of the printed key, then record the result digit for the matching word.`;
     hint='Keep the message order. A key row tells you one letter, not the whole answer.';
-    explanation=`The four key rows decode 1-2-3-4 as ${word}. Every other choice changes the printed order.`;
-    signature=`decode-${word}`;
+    explanation=`The four key rows decode ${messageText} as ${word}. Every other choice changes the printed order.`;
+    signature=`decode-${word}-${messageText}`;
   }else if(type==='decision_record'&&experienceVersion>=2){
     const [feature1,feature2]=context.features;
     const patterns=rotate([[true,true],[true,false],[false,true]],(3-winning)%3);
@@ -195,7 +203,7 @@ export function buildContextPuzzle(number,type,context,previousDigits=[],experie
   const digit=String(answer+1);
   if(number!==5 && ['order_tiles','symbol_key'].includes(type))options=options.map((option,i)=>`${option} / digit ${i+1}`);
   const material={type,title:context.title,instruction,recordPrompt:number===5?'Record your final action and the four earlier results that prove it.':'Record the chosen result and its digit. Keep this sheet for checkpoint 5.',items,
-    logic:{version:1,contractVersion:1,...(experienceVersion>=2?{experienceVersion:2}:{}),...(qualityVersion>=3?{qualityVersion:3}:{}),context,number,previousDigits,signature,resultDigit:number===5?null:digit}};
+    logic:{version:1,contractVersion:1,...(experienceVersion>=2?{experienceVersion:2}:{}),...(qualityVersion>=8?{qualityVersion:8}:qualityVersion>=3?{qualityVersion:3}:{}),context,number,previousDigits,signature,resultDigit:number===5?null:digit}};
   const task=paperAction(type,number).task;
   return {number,question:task,evidence:clue,options:rotate(options,shift),answerIndex:(answer-shift+3)%3,material,
     clue,hint,explanation,task,teamwork:number===5?'Each explorer checks one earlier result. Compare all four before agreeing on the final action.':'One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.',
@@ -335,3 +343,4 @@ export function contextualStageText(stage,style='base'){
   if(style!=='base')throw Error('Unsupported contract wording.');
   return {clue,hint,explanation};
 }
+
