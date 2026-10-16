@@ -50,7 +50,7 @@ const recordLabel=value=>{
 };
 const storyPieceLabel=value=>typeof value==='string'?value.replace(/^(?:Compare|Check|Match|Select|Record|Sort|Read)\s+(?:the\s+)?/i,'').trim():value;
 const worksheetLanguage=/\b(?:checkpoint|digit|digits|tile|tiles|printed|rule|rules|choice|choices|option|options|answer|answers|decoded word|report cards)\b/i;
-const inWorldAction=/^(?:align|ask|attach|balance|bring|carry|climb|clean|close|collect|connect|cover|cross|deliver|drain|draw|examine|fasten|fill|find|fit|follow|gather|give|guide|hand|hang|hold|hook|inspect|install|join|label|lay|lift|light|line|locate|mark|move|open|place|polish|position|prepare|press|pull|push|release|replace|reset|ring|roll|seal|secure|set|slide|smooth|spot|start|stop|strike|switch|take|test|thread|tie|trace|turn|uncoil|unlock|untie|visit|walk|wash|wind|wipe|wrap)\s+\S+/i;
+const inWorldAction=/^(?:align|ask|attach|balance|bring|carry|check|climb|clean|close|collect|connect|cover|cross|deliver|drain|draw|examine|fasten|fill|find|fit|follow|gather|give|grip|guide|hand|hang|hold|hook|inspect|install|join|label|lay|lift|light|line|locate|loosen|mark|move|open|place|polish|position|prepare|press|pull|push|release|replace|reset|ring|roll|seal|secure|set|slide|smooth|spot|start|stop|strike|switch|take|test|thread|tie|trace|turn|uncoil|unlock|untie|visit|wait|walk|wash|watch|wind|wipe|wrap)\s+\S+/i;
 const completedOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
 const visibleOutcome=/\b(?:rings?|chimes?|sounds?|starts?|turns?|opens?|glows?|shines?|lights?|catches?|moves?|works?|returns?|arrives?|reaches?|restored|repaired|rescued|saved|delivered|completed|finished|recovered|solved)\b/i;
 const sharedResponse=/\b(?:smiles?|cheers?|celebrates?|thanks?|welcomes?|applauds?|continues?|begins?|sets out|heads home|gathers?|reunites?)\b/i;
@@ -205,11 +205,13 @@ export function prepareContextualBlueprint(candidate,spec){
     const usesRecords=spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type);
     let labels=raw.material?.items?.slice(0,count).map(piece=>{
       const label=typeof piece==='string'?piece:piece.label;
-      const normalized=spec.packExperienceVersion>=3&&i<4?storyPieceLabel(label):label;
+      // An order tile is itself an action. Stripping a leading "Check" from
+      // "Check the clapper swing" turned it into the unusable noun "clapper swing".
+      const normalized=spec.packExperienceVersion>=3&&i<4&&!(type==='order_tiles'&&(spec.packQualityVersion||0)>=8)?storyPieceLabel(label):label;
       return text(usesRecords?recordLabel(normalized):spec.packExperienceVersion>=3?fitLabel(normalized):normalized,'Piece label',40);
     });
     if(spec.packExperienceVersion>=3&&i<4&&type==='symbol_key')labels=['1','2','3','4'];
-    if(spec.packExperienceVersion>=3&&i<4&&type==='order_tiles'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
+    if(spec.packExperienceVersion>=3&&i<4&&type==='order_tiles'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||/^check\s+(?:the\s+)?(?:answer|result|code|clue|rule|printed|digit|card|tile)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
       if((spec.packQualityVersion||0)>=8)throw Error(`Checkpoint ${i+1} ordering pieces must be unfinished in-world actions, not worksheet steps or completed outcomes.`);
       labels=stableOrderLabels(candidate,spec,i);
     }
@@ -285,7 +287,7 @@ export function prepareContextualBlueprint(candidate,spec){
     }):candidate.spine.links,
   },stages,types,spec.plan.goal,spec.packQualityVersion||4):null;
   const usePrintedEnding=spec.plan.stages.some(stage=>stage.scene)||candidate.celebration!==undefined;
-  let celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration)?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
+  let celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&((spec.packQualityVersion||0)>=8||!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration))?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
   if((spec.packQualityVersion||0)>=5){
     const sentences=celebration.match(/[^.!?]+[.!?]+/g)||[];
     const genericOutcome=/\b(?:mission result|goal (?:is|was) (?:now )?(?:visible|complete)|result (?:is|was) (?:now )?visible|completed mission)\b/i;
