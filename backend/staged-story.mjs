@@ -277,7 +277,9 @@ async function groundDiscoveriesAfterMaterials(spec,storyFrame,stages,env,fetche
     consequence:types[index]==='route_board'
       ? `The open ${printed[index].selectedFinding} gives the team a route for the final action.`
       :result.data.consequences[index]}));
-  return {storyFrame:prepareStoryFrame({...storyFrame,discoveries},spec.packQualityVersion),usage:result.usage,responseId:result.responseId};
+  const candidateFrame={...storyFrame,discoveries};
+  try{return {storyFrame:prepareStoryFrame(candidateFrame,spec.packQualityVersion),usage:result.usage,responseId:result.responseId};}
+  catch(error){error.groundedStoryFrame=candidateFrame;throw error;}
 }
 
 // Quality-v8 blueprint generation is exposed as small resumable steps. The
@@ -385,7 +387,7 @@ export async function assembleBlueprintSteps(spec,storyFrame,stages,celebration,
     raw.stages[4].material.items=raw.storyFrame.actions.map(label=>({label}));
     raw.spine=compileStorySpine(raw.storyFrame,raw.stages,paperContractTypes(spec.plan),spec.packQualityVersion||4);
     return {...grounded,usage:combinedUsage(aligned.usage,grounded.usage),blueprint:prepareBlueprintCandidate(raw,spec)};
-  }catch(error){error.usage=combinedUsage(aligned.usage,grounded?.usage,error.usage);error.responseId=error.responseId||grounded?.responseId;error.candidate=raw;throw error;}
+  }catch(error){if(error.groundedStoryFrame)raw.storyFrame=error.groundedStoryFrame;error.usage=combinedUsage(aligned.usage,grounded?.usage,error.usage);error.responseId=error.responseId||grounded?.responseId;error.candidate=raw;throw error;}
 }
 
 // Validation messages for the closing mention the "final action" because the
@@ -487,10 +489,11 @@ export async function repairBlueprint(spec,candidate,reason,env,fetcher=fetch) {
             features:stage.material.logic.context.features,word:stage.material.logic.context.word}))}
       : structuredClone(candidate);
     if(raw.storyFrame){
-      let storyFrame=prepareStoryFrame(raw.storyFrame,spec.packQualityVersion||4);
+      const number=blueprintRepairNumber(reason);
+      const canRepairUnvalidatedDiscovery=number>=1&&number<=4&&/causal|consequence|discovery|finding|story link|supports/i.test(String(reason));
+      let storyFrame=canRepairUnvalidatedDiscovery?raw.storyFrame:prepareStoryFrame(raw.storyFrame,spec.packQualityVersion||4);
       raw.stages=normalizeStoryOrderActions(normalizeStoryCodeWords(raw.stages,spec),storyFrame,spec);
       const types=paperContractTypes(spec.plan);
-      const number=blueprintRepairNumber(reason);
       const causalDiscoveryRepair=(spec.packQualityVersion||0)>=6&&number>=1&&number<=4&&!/material facts:/i.test(String(reason))&&/causal|consequence|discovery|finding|story link|supports/i.test(String(reason));
       let result,grounded=null;
       if(causalDiscoveryRepair){
