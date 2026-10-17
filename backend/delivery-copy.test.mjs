@@ -99,6 +99,16 @@ test('a blocked closing reports its current bounded rule and counts without expo
   assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,1);
 });
 
+test('an overlong final label keeps both actions when compacted for print',async()=>{
+  const {story,copy}=await fixture(),input=structuredClone(copy);
+  input.actions[0].label='Restore signal gear in tower, then ring bell';
+  const normalized=normalizeDeliveryCopy(story,input);
+  assert.equal(normalized.actions[0].label,'Restore signal gear in tower; ring bell');
+  assert.equal(normalized.stages[4].labels[0],normalized.actions[0].label);
+  assert.equal(normalized.actions[0].description,input.actions[0].description);
+  validateDeliveryCopy(story,normalized);
+});
+
 test('valid English verbs and numbered findings survive normalization without duplicated final labels',async()=>{
   const {story,copy}=await fixture(),input=structuredClone(copy);
   for(const [index,verb] of ['Retrieve','Restore','Examine'].entries()){
