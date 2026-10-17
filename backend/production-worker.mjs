@@ -118,10 +118,11 @@ function requireSameOrigin(request, env) {
   if (origin && origin !== new URL(env.PUBLIC_ORIGIN || request.url).origin) throw new ApiError(403, 'ORIGIN_DENIED', 'The request origin is not allowed.');
 }
 
-async function requestBody(request) {
+async function requestBody(request, allowEmpty = false) {
   if (Number(request.headers.get('content-length') || 0) > 16384) throw new ApiError(413, 'REQUEST_TOO_LARGE', 'The request is too large.');
   const raw = await request.text();
   if (new TextEncoder().encode(raw).length > 16384) throw new ApiError(413, 'REQUEST_TOO_LARGE', 'The request is too large.');
+  if (allowEmpty && !raw.trim()) return {};
   try { return JSON.parse(raw); } catch { throw new ApiError(400, 'INVALID_JSON', 'Send a valid JSON request.'); }
 }
 
@@ -960,7 +961,10 @@ async function requestPackRemakeRecovery(request, env, orderId) {
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified custom order was found.');
   const entitlement = await query(env.DB, "SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'", orderId).first();
   if (!accessActive(entitlement)) throw new ApiError(403, 'ORDER_ACCESS_EXPIRED', 'Online order access has expired. Contact support about this order.');
-  const options=request.body?await requestBody(request):{};
+  // The site proxy can forward a bodyless POST as an empty readable stream.
+  // Ordinary saved reviews need no payload; only an explicit fact-repair
+  // grant requires consent fields. Malformed nonempty JSON still fails.
+  const options=await requestBody(request,true);
   return json(await retryPackRemake(order, env, options), 202);
 }
 
