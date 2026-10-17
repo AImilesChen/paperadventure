@@ -45,6 +45,16 @@ test('copy validation rejects noun lists and invented cited evidence',async()=>{
   assert.throws(()=>validateDeliveryCopy(story,ungrounded),/exact printed finding/);
 });
 
+test('complete consequences above the writing target stay intact when the combined block and both PDFs fit',async()=>{
+  const {story,spec,copy}=await fixture();
+  const reason='The damaged signal gear must be replaced before noon can sound. The broken tooth identifies which clock part needs the repair.';
+  assert.ok(reason.length>110);copy.links[0].reason=reason;
+  validateDeliveryCopy(story,copy);assert.equal(normalizeDeliveryCopy(story,copy).links[0].reason,reason);
+  for(const paper of ['A4','Letter'])for(const role of ['player','guide'])assert.ok(buildGamePdf({...story,deliveryCopy:copy},{...spec,paper,packCopyVersion:1},role).length>10000);
+  const tooLong=structuredClone(copy);tooLong.links[0].reason='The record supplies relevant information. '.repeat(7).trim();
+  assert.throws(()=>validateDeliveryCopy(story,tooLong),/Story consequence/);
+});
+
 test('a blocked closing reports its current bounded rule and counts without exposing saved prose or consuming review',async()=>{
   const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
   copy.celebration='The clock turns and Pip cheers.';
@@ -113,11 +123,11 @@ test('provider schema requires two separate fact pairs for each actual record ch
 test('current consequence bounds replace stale closing diagnostics without exposing any wording',async()=>{
   const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
   const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
-  copy.links[2].reason='Private consequence '.repeat(9)+'.';
+  copy.links[2].reason='Private consequence '.repeat(14)+'.';
   await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>Response.json({output_text:JSON.stringify(copy)})));
   db.prepare("UPDATE custom_delivery_copy SET error_detail='Closing needs printable English within 240 characters.'").run();
   const status=await deliveryCopyStatus('fixture',env,story,edition);
-  assert.equal(status.field,'consequence');assert.equal(status.formatIssue.limit,110);
+  assert.equal(status.field,'consequence');assert.equal(status.formatIssue.limit,220-copy.links[2].fact.length-1);
   assert.equal(status.formatIssue.lengths[2],copy.links[2].reason.length);
   assert.doesNotMatch(JSON.stringify(status),/Private consequence/);
 });

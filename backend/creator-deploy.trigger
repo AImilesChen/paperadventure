@@ -1,1 +1,1 @@
-2026-10-17 explicit bound fact-only correction and one additional saved-edition review
+2026-10-17 preserve complete retained consequences within their combined printed block
