@@ -45,7 +45,16 @@ function savedSpecificClosing(story){
 // Any change still needs a review bound to the resulting exact edition.
 export function normalizeDeliveryCopy(story,input){
   const copy=typography(structuredClone(input));
+  if(copy?.links&&!Array.isArray(copy.links)&&typeof copy.links==='object')copy.links=story.stages.slice(0,4).map(stage=>copy.links[`checkpoint_${stage.number}`]);
   if(copy?.stages?.length!==5||copy.actions?.length!==3||copy.links?.length!==4)return copy;
+  if(copy.materialLabels){
+    story.stages.forEach((stage,index)=>{if(stage.number<5&&(records(stage)||stage.material.type==='order_tiles'))copy.stages[index].labels=copy.materialLabels[`checkpoint_${stage.number}`];});
+    delete copy.materialLabels;
+  }
+  if(copy.recordFacts){
+    story.stages.forEach((stage,index)=>{if(records(stage))copy.stages[index].facts=copy.recordFacts[`checkpoint_${stage.number}`];});
+    delete copy.recordFacts;
+  }
   // An overlong new celebration need not discard a previously saved complete
   // specific ending. The exact substituted edition still needs its own audit.
   if(typeof copy.celebration==='string'&&copy.celebration.length>240){

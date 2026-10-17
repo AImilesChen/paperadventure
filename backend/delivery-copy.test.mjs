@@ -6,7 +6,7 @@ import {clockSpec} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory} from './staged-story.mjs';
 import {validateDeliveryCopy,normalizeDeliveryCopy,applyDeliveryCopy,verifyDeliveryPuzzles} from './delivery-copy.mjs';
-import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus} from './delivery-copy-service.mjs';
+import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,deliveryCopySchemaFor} from './delivery-copy-service.mjs';
 import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {validateGeneratedStory} from './domain.mjs';
@@ -87,6 +87,26 @@ test('unused fact fields are engine-owned while missing printed record facts sta
   const status=await deliveryCopyStatus('fixture',env,story,edition);
   assert.deepEqual(status.formatIssue,{field:'record_fact',rule:'fact_count',counts:[0,2,0,0,0],expected:[2,2,0,0,0]});
   assert.equal(status.resumeAvailable,false);assert.equal(status.calls,1);
+});
+
+test('provider schema requires two separate fact pairs for each actual record checkpoint',async()=>{
+  const {story,copy}=await fixture(),schema=deliveryCopySchemaFor(story),draft=structuredClone(copy);
+  assert.deepEqual(schema.properties.recordFacts.required,['checkpoint_1','checkpoint_2']);
+  for(const key of schema.properties.recordFacts.required){assert.equal(schema.properties.recordFacts.properties[key].minItems,2);assert.equal(schema.properties.recordFacts.properties[key].maxItems,2);}
+  assert.equal(schema.properties.stages.items.properties.facts,undefined);
+  assert.equal(schema.properties.stages.items.properties.labels,undefined);
+  assert.equal(schema.properties.materialLabels.properties.checkpoint_1.minItems,3);
+  assert.equal(schema.properties.materialLabels.properties.checkpoint_3.minItems,4);
+  assert.equal(schema.properties.links.properties.checkpoint_1.properties.factIndex.maximum,1);
+  assert.equal(schema.properties.links.properties.checkpoint_3.properties.factIndex.maximum,3);
+  assert.equal(schema.properties.links.properties.checkpoint_4.properties.factIndex.maximum,0);
+  draft.recordFacts={checkpoint_1:draft.stages[0].facts,checkpoint_2:draft.stages[1].facts};
+  draft.materialLabels={checkpoint_1:draft.stages[0].labels,checkpoint_2:draft.stages[1].labels,checkpoint_3:draft.stages[2].labels};
+  draft.stages.forEach(part=>{delete part.facts;delete part.labels;});
+  draft.links=Object.fromEntries(draft.links.map((link,index)=>[`checkpoint_${index+1}`,{factIndex:index===0?1:0,reason:link.reason}]));
+  const normalized=normalizeDeliveryCopy(story,draft);validateDeliveryCopy(story,normalized);
+  assert.equal(normalized.recordFacts,undefined);assert.deepEqual(normalized.stages.map(part=>part.facts),copy.stages.map(part=>part.facts));
+  assert.deepEqual(normalized,copy,'typed fields compile to the same complete printed edition');
 });
 
 test('current consequence bounds replace stale closing diagnostics without exposing any wording',async()=>{
