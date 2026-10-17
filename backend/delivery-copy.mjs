@@ -55,6 +55,7 @@ export function normalizeDeliveryCopy(story,input){
     action.description=action.description.replace(/\bthe friendly shopkeeper\b/gi,'the shopkeeper');
     if(action.description.length>140)action.description=action.description.replace(/\s+waiting there\b/i,'');
     if(action.description.length>140)action.description=action.description.replace(/,\s+then\s+/i,'; ');
+    if(action.description.length>140)action.description=action.description.replace(/,\s+and\s+/i,'; ');
   });
   if(copy.materialLabels){
     story.stages.forEach((stage,index)=>{if(stage.number<5&&(records(stage)||stage.material.type==='order_tiles'))copy.stages[index].labels=copy.materialLabels[`checkpoint_${stage.number}`];});
