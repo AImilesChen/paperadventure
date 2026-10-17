@@ -51,7 +51,7 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
   };
   try{
     if(process.env.SMOKE_COPY_ONLY==='1'){
-      const saved=JSON.parse(await readFile(`${process.env.SMOKE_REPLAY_DIR}/${item.id}.json`,'utf8'));
+      const saved=JSON.parse(await readFile(`${process.env.SMOKE_SOURCE_DIR||process.env.SMOKE_REPLAY_DIR}/${item.id}.json`,'utf8'));
       const {deliveryCopy:previousCopy,...source}=saved.story;
       const approved=saved.spec;
       phase='delivery-copy';
