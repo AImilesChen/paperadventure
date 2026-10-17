@@ -120,7 +120,11 @@ function validateCopy(story,copy,fieldsOnly=false){
   const printed=fieldsOnly?null:applyDeliveryCopy(story,copy,false);
   if(printed)verifyDeliveryPuzzles(printed);
   for(const [index,link] of copy.links.entries()){
-    text(link.fact,'Cited printed fact',100,true);text(link.reason,'Story consequence',110,true);
+    text(link.fact,'Cited printed fact',100,true);
+    // 110 is the model writing target, not the capacity of the printed link.
+    // Preserve complete supplied sentences within one combined 220-character
+    // finding/reason block. Actual page-fit checks still run before review.
+    text(link.reason,'Story consequence',220-link.fact.length-1,true);
     if(fieldsOnly)continue;
     const stage=printed.stages[index],available=records(stage)?copy.stages[index].facts.map(fact=>fact.yes):stage.material.type==='order_tiles'?copy.stages[index].labels.map(label=>`${label}.`):stage.material.type==='symbol_key'?[`The key spells ${stage.options[stage.answerIndex].split(' / ')[0]}.`]:[stage.material.items.find(item=>item.label===stage.options[stage.answerIndex])?.detail];
     if(!available.includes(link.fact))fail(`Checkpoint ${index+1} must cite an exact printed finding.`);
