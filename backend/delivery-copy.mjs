@@ -55,6 +55,19 @@ export function normalizeDeliveryCopy(story,input){
     story.stages.forEach((stage,index)=>{if(records(stage))copy.stages[index].facts=copy.recordFacts[`checkpoint_${stage.number}`];});
     delete copy.recordFacts;
   }
+  // One pair of fact sentences is reused across all three candidate rows.
+  // A provider may write the selected record's name as their subject, which
+  // would falsely identify every distractor as that selected record.
+  story.stages.forEach((stage,index)=>{
+    if(!records(stage))return;
+    const part=copy.stages[index],labels=[...(part.labels||[])].sort((a,b)=>b.length-a.length);
+    const sharedSubject=value=>{
+      if(typeof value!=='string')return value;
+      const matched=labels.find(label=>value.toLowerCase().startsWith(`${label.toLowerCase()} `));
+      return matched?`This record${value.slice(matched.length)}`:value;
+    };
+    part.facts=part.facts?.map(fact=>({yes:sharedSubject(fact.yes),no:sharedSubject(fact.no)}));
+  });
   // An overlong new celebration need not discard a previously saved complete
   // specific ending. The exact substituted edition still needs its own audit.
   if(typeof copy.celebration==='string'&&copy.celebration.length>240){
@@ -116,6 +129,8 @@ function validateCopy(story,copy,fieldsOnly=false){
       text(fact.yes,'Positive printed fact',100,true);text(fact.no,'Alternative printed fact',100,true);
       if(fact.yes===fact.no||/^(?:Mentions|Names)\b/i.test(fact.yes))fail('Printed facts must be statements, not keyword checks.');
       if([fact.yes,fact.no].some(value=>(value.match(/[.!?]/g)||[]).length!==1))fail('Each printed fact must be one sentence.');
+      if([fact.yes,fact.no].some(value=>part.labels.some(label=>value.toLowerCase().includes(label.toLowerCase()))))
+        fail('Shared record facts must describe each candidate, not name one particular record.');
     }
     if(records(stage)&&!distinct(part.facts.flatMap(fact=>[fact.yes,fact.no])))fail('Printed record facts must differ.');
   }
