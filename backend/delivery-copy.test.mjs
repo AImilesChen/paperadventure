@@ -55,6 +55,36 @@ test('complete consequences above the writing target stay intact when the combin
   assert.throws(()=>validateDeliveryCopy(story,tooLong),/Story consequence/);
 });
 
+test('complete record facts above the writing target retain their wording and stay inside actual material boxes',async()=>{
+  const {story,spec,copy}=await fixture();
+  copy.stages[0].facts=[
+    {yes:'The town clock still receives power from its working spring mechanism.',no:'The town clock receives no power from its broken spring mechanism.'},
+    {yes:'The signal gear inside the old town clock has a broken wooden tooth.',no:'The signal gear inside the old town clock retains every wooden tooth.'},
+  ];
+  copy.links[0].fact=copy.stages[0].facts[1].yes;
+  copy.stages[1].facts=[
+    {yes:'The spare signal gear is stored in the gear chamber beside the clock.',no:'The spare signal gear is stored in the bell chamber beside the clock.'},
+    {yes:'The keeper permits collection of the spare gear from the gear chamber.',no:'The keeper forbids collection of the spare gear from the gear chamber.'},
+  ];
+  copy.links[1].fact=copy.stages[1].facts[0].yes;
+  assert.ok(copy.stages[0].facts.some(fact=>fact.yes.length>66));
+  validateDeliveryCopy(story,copy);
+  assert.deepEqual(normalizeDeliveryCopy(story,copy).stages[0].facts,copy.stages[0].facts);
+  for(const paper of ['A4','Letter'])for(const role of ['player','guide']){
+    const bytes=buildGamePdf({...story,deliveryCopy:copy},{...spec,paper,packCopyVersion:1},role);
+    assert.ok(bytes.length>10000);
+    mkdirSync('tmp/pdfs/retained-facts',{recursive:true});
+    writeFileSync(`tmp/pdfs/retained-facts/${role}-${paper}.pdf`,bytes);
+  }
+  const tooLong=structuredClone(copy);tooLong.stages[0].facts[0].no='The clock still receives power from its working spring mechanism and every wheel in the old town tower.';
+  assert.ok(tooLong.stages[0].facts[0].no.length>100);
+  assert.throws(()=>validateDeliveryCopy(story,tooLong),/Alternative printed fact/);
+  const tallRecord=applyDeliveryCopy(story,copy);tallRecord.stages[1].material.items[0].detail='A complete but oversized printed statement. '.repeat(15);
+  assert.throws(()=>buildGamePdf(tallRecord,spec,'player'),/record rows do not fit/);
+  const tallCard=applyDeliveryCopy(story,copy);tallCard.stages[0].material.items[0].detail='A complete but oversized printed statement. '.repeat(15);
+  assert.throws(()=>buildGamePdf(tallCard,spec,'player'),/printed piece text does not fit/);
+});
+
 test('a blocked closing reports its current bounded rule and counts without exposing saved prose or consuming review',async()=>{
   const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
   copy.celebration='The clock turns and Pip cheers.';

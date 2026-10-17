@@ -163,14 +163,21 @@ function materialSheet(stage,spec){
       y-=h+8;
     }
   } else if(material.type==='symbol_key' || material.type==='decision_record'){
-    const rowHeight=Math.min(110,Math.floor((y-178)/items.length)-7);
-    if(rowHeight<65)throw new Error(`Checkpoint ${stage.number} record rows do not fit.`);
+    // A candidate has two facts plus its digit; a witness has one fact.
+    // Allocate their actual wrapped heights instead of forcing every row into
+    // the same height. This keeps complete sentences inside their own boxes.
+    const record=material.type==='decision_record',detailTop=record?36:39,leading=15;
+    const needed=items.map(item=>Math.max(record?62:65,detailTop+(wrap(item.detail,63).length-1)*leading+11));
+    const available=y-178-items.length*7,total=needed.reduce((sum,h)=>sum+h,0);
+    if(total>available||needed.some(h=>h>110))throw new Error(`Checkpoint ${stage.number} record rows do not fit.`);
+    const extra=Math.floor((available-total)/items.length);
     for(const [index,item] of items.entries()){
-      const h=rowHeight;
+      const h=Math.min(110,needed[index]+extra);
       page.box(48,y-h,page.width-96,h,'0.97 0.99 1');
       if(material.type==='decision_record'&&(!material.logic?.contractVersion||index<3))page.box(60,y-28,13,13);
-      page.text(item.label,material.type==='decision_record'?83:61,y-24,11,true);
-      page.block(item.detail,material.type==='decision_record'?83:61,y-39,63,11,15);
+      page.text(item.label,record?83:61,y-(record?22:24),11,true);
+      const bottom=page.block(item.detail,record?83:61,y-detailTop,63,11,leading);
+      if(bottom+leading<y-h+11)throw new Error(`Checkpoint ${stage.number} record text does not fit its box.`);
       y-=h+7;
     }
   } else {
@@ -191,7 +198,10 @@ function materialSheet(stage,spec){
         page.circle(x+25,top-94,15);
         page.text('?',x+21,top-99,13,true);
         page.block(item.detail,x+52,top-82,24,11,16);
-      } else page.block(item.detail,x+12,labelBottom-9,29,11,16);
+      } else {
+        const bottom=page.block(item.detail,x+12,labelBottom-9,29,11,16);
+        if(bottom+16<top-h+11)throw new Error(`Checkpoint ${stage.number} printed piece text does not fit its box.`);
+      }
     });
   }
   page.box(48,58,page.width-96,108,'0.93 0.97 0.99');
