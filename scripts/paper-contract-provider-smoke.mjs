@@ -19,6 +19,7 @@ const cases=[
   {id:'classroom-journey',setting:'classroom',players:4,age:'8-10',primary:'discussion',secondary:['reasoning'],idea:'西游记，东方神话元素'},
   {id:'classroom-market',setting:'classroom',players:24,age:'6-8',primary:'discussion',secondary:['reasoning'],idea:'A night market courier needs to find the correct delivery and bring it to a friendly shopkeeper.'},
   {id:'home-garden',setting:'home',players:4,age:'10-12',primary:'sequence',secondary:['reasoning'],idea:'A rooftop garden crew must put a repair plan in order and restore a rain collector.'},
+  {id:'classroom-lighthouse-zh',setting:'classroom',players:20,age:'8-10',primary:'reasoning',secondary:['discussion'],idea:'海边灯塔的守夜人发现航线图被风吹散，孩子们要在涨潮前找齐线索，帮小船安全回港。'},
   {id:'classroom-code',setting:'classroom',players:20,age:'8-10',primary:'code',secondary:['reasoning'],idea:'A museum team decodes three short printed messages to restore a lost exhibit label.'},
 ];
 const selectedIds=new Set(String(process.env.SMOKE_CASE_IDS||'home-clock').split(',').map(value=>value.trim()).filter(Boolean));
