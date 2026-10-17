@@ -391,3 +391,25 @@ test('final copy renders Home and Classroom in A4 and Letter with full actions a
   }
   assert.throws(()=>buildGamePdf(story,{...spec,packCopyVersion:1},'player'),/not passed delivery review/);
 });
+
+
+test('shared record facts use a neutral subject on every candidate row',async()=>{
+  const {story,copy}=await fixture(),named=structuredClone(copy);
+  const label=named.stages[0].labels[0];
+  named.stages[0].facts[0].yes=`${label} names the needed gear.`;
+  named.stages[0].facts[0].no=`${label} does not name the needed gear.`;
+  const normalized=normalizeDeliveryCopy(story,named);
+  assert.equal(normalized.stages[0].facts[0].yes,'This record names the needed gear.');
+  assert.equal(normalized.stages[0].facts[0].no,'This record does not name the needed gear.');
+  const printed=applyDeliveryCopy(story,normalized,false);
+  assert.ok(printed.stages[0].material.items.slice(0,3).every(item=>!item.detail.includes(`${label} names`)));
+});
+
+test('overlong final instructions drop filler without losing the delivery action',async()=>{
+  const {story,copy}=await fixture(),draft=structuredClone(copy);
+  draft.actions[0].description='Carry the dry parcel to the bridge, check the sealed edge and cross-lantern bell, then hand it to the friendly shopkeeper before the stalls close.';
+  const normalized=normalizeDeliveryCopy(story,draft);
+  assert.ok(normalized.actions[0].description.length<=140);
+  assert.match(normalized.actions[0].description,/Carry the dry parcel/);
+  assert.match(normalized.actions[0].description,/hand it to the shopkeeper before the stalls close\./);
+});
