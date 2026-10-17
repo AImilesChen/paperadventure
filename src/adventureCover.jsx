@@ -1,4 +1,5 @@
 import { themes } from '../shared/catalog.mjs';
+import { useEffect, useState } from 'react';
 
 const workshopImage = '/assets/custom-adventure-workshop-v1.jpg';
 const themeArt = [
@@ -28,5 +29,9 @@ export function adventureCoverImage(order) {
 
 export default function AdventureCover({ order }) {
   const image = adventureCoverImage(order);
-  return image ? <img src={image} alt="" width="800" height="450" loading="lazy" /> : null;
+  const [failed,setFailed]=useState(false);
+  useEffect(()=>setFailed(false),[image]);
+  const fallback=adventureCoverImage({...order,image:undefined});
+  return image ? <img src={failed?fallback:image} onError={()=>setFailed(true)} alt="" width="800" height="450" loading="lazy" /> : null;
 }
+

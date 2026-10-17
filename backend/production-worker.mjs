@@ -14,6 +14,7 @@ import {safePlanFormatIssue} from '../shared/plan-format.mjs';
 import { PLAN_REVIEW_POLICY, hasStoryScenes } from '../shared/plan-quality.mjs';
 import { startPackRemake, retryPackRemake, packRemakeView, processPackRemake, qualityUpgradeEligible } from './pack-remake.mjs';
 import { controlledRevisionStyle } from './controlled-puzzles.mjs';
+import { coverGenerationReady, reserveOrderCover, dispatchOrderCover, processOrderCover, resumeOrderCovers, coverImageType, MAX_COVER_BYTES } from './theme-covers.mjs';
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
@@ -313,6 +314,14 @@ async function webhook(request, env, context = {}) {
   }
   statements.push(query(env.DB, "INSERT OR IGNORE INTO delivery_notifications (order_id,kind,status) VALUES (?,?,'pending')", order.id, order.product_kind === 'ready' ? 'files_ready' : 'payment'));
   await env.DB.batch(statements);
+  // Only this newly completed purchase opts in. Replayed webhooks, account
+  // reads and deployments never backfill or regenerate old covers.
+  if (order.product_kind === 'custom' && order.status === 'pending_payment') {
+    try {
+      await reserveOrderCover({...order,status:'paid',paid_at:'confirmed'},env);
+      if (spec.creatorVersion !== 3) await dispatchOrderCover(order.id,env);
+    } catch { console.error('Theme cover deferred',{code:'COVER_RESERVATION'}); }
+  }
   if (order.product_kind === 'custom' && env.GENERATION_QUEUE) await env.GENERATION_QUEUE.send(spec.creatorVersion === 3 ? {type:'plan',requestId:`plan-${order.id}-initial`} : {orderId:order.id});
   if (typeof context.waitUntil === 'function') context.waitUntil(dispatchNotification(order.id, order.product_kind === 'ready' ? 'files_ready' : 'payment', env).catch(caught => console.error('Email notification deferred', caught)));
   return json({ received: true });
@@ -518,14 +527,39 @@ async function myOrders(request, env) {
       ? await query(env.DB,'SELECT status,delivery_retry_used FROM custom_activities WHERE order_id = ?',order.id).first() : null;
     const lastPdfFailure = failedDelivery
       ? await query(env.DB,"SELECT phase,error_code FROM generation_usage WHERE order_id = ? AND status = 'failed' ORDER BY attempt DESC LIMIT 1",order.id).first() : null;
+    const cover = order.product_kind === 'custom' && order.paid_at ? await query(env.DB,'SELECT status FROM order_theme_covers WHERE order_id = ?',order.id).first() : null;
     const { purchase_spec_json, ...safe } = order;
     return { ...safe, checkoutExpired: Boolean(expired), setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
-      image: order.product_kind === 'ready' ? story?.image || world?.image : '/assets/custom-adventure-workshop-v1.jpg',
+      image: order.product_kind === 'ready' ? story?.image || world?.image : cover?.status === 'ready' && order.status !== 'refunded' ? '/api/v1/orders/'+order.id+'/cover' : '/assets/custom-adventure-workshop-v1.jpg',
+      coverStatus: cover?.status || null, coverAvailable: Boolean(coverGenerationReady(env) && order.product_kind === 'custom' && order.paid_at && order.status !== 'refunded'),
       paper: spec.paper, planStatus: paidPlan?.status || null,
       deliveryRetryAvailable: Boolean(order.paid_at && paidPlan?.confirmed_version && failedDelivery?.status === 'failed' && !failedDelivery.delivery_retry_used && !(lastPdfFailure?.phase === 'story' && nonRetryableStoryCodes.has(lastPdfFailure.error_code)) && lastPdfFailure?.error_code !== 'STORY_CHECKPOINT_MISMATCH'),
       filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
   }));
   return json({ orders });
+}
+
+async function orderCover(request,env,orderId) {
+  const hash=env.SESSION_SECRET && await authenticatedEmailHash(request,env);
+  if(!hash)throw new ApiError(401,'EMAIL_VERIFICATION_REQUIRED','Sign in with your purchase account first.');
+  const order=await query(env.DB,'SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ?',orderId,hash).first();
+  if(!order || order.product_kind!=='custom' || !order.paid_at || order.status==='refunded')throw new ApiError(404,'COVER_NOT_FOUND','This cover is unavailable.');
+  if(request.method==='POST') {
+    requireSameOrigin(request,env);
+    if(!coverGenerationReady(env))throw new ApiError(503,'COVERS_NOT_CONFIGURED','Theme covers are not configured yet.');
+    const existing=await query(env.DB,'SELECT status FROM order_theme_covers WHERE order_id = ?',orderId).first();
+    if(existing?.status==='failed')throw new ApiError(409,'COVER_ALREADY_REQUESTED','This cover attempt stopped. Your game and downloads are unaffected.');
+    await reserveOrderCover(order,env);
+    await dispatchOrderCover(orderId,env).catch(()=>{});
+    return json({status:existing?.status || 'queued'},existing?.status==='ready'?200:202);
+  }
+  const cover=await query(env.DB,"SELECT * FROM order_theme_covers WHERE order_id = ? AND status = 'ready'",orderId).first();
+  if(!cover || !env.PRIVATE_FILES || !cover.r2_key?.startsWith(`custom/covers/${orderId}/`) || !/^[a-f0-9]{64}$/.test(cover.sha256||'') || cover.bytes>MAX_COVER_BYTES)throw new ApiError(404,'COVER_NOT_FOUND','The cover is not ready.');
+  const object=await env.PRIVATE_FILES.get(cover.r2_key);
+  if(!object || object.size>MAX_COVER_BYTES)throw new ApiError(503,'COVER_UNAVAILABLE','The cover is temporarily unavailable.');
+  const bytes=new Uint8Array(await new Response(object.body).arrayBuffer());
+  if(bytes.length!==cover.bytes||bytes.length>MAX_COVER_BYTES||await sha256Bytes(bytes)!==cover.sha256||coverImageType(bytes)!==cover.content_type)throw new ApiError(503,'COVER_UNAVAILABLE','The cover is temporarily unavailable.');
+  return new Response(bytes,{headers:{'content-type':cover.content_type,'cache-control':'private, no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'"}});
 }
 
 async function savedDraft(request, env) {
@@ -955,7 +989,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);
       const catalog = await liveCatalog(env);
-      return json({ status: 'configured_runtime', paperContractVersion: 1, checkout: await checkoutReady(env), checkoutMode: testCheckoutReady(env) ? 'test' : paymentReady(env) ? 'live' : 'closed', generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', paperContractVersion: 1, themeCovers: coverGenerationReady(env), checkout: await checkoutReady(env), checkoutMode: testCheckoutReady(env) ? 'test' : paymentReady(env) ? 'live' : 'closed', generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
@@ -1000,6 +1034,8 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && sample) return await freeSample(request, env, sample[1], sample[2], sample[3]);
     const order = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)$/);
     if (request.method === 'GET' && order) return await orderView(request, env, order[1]);
+    const cover = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/cover$/);
+    if (['GET','POST'].includes(request.method) && cover) return await orderCover(request,env,cover[1]);
     const paidPlan = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/plan$/);
     if (request.method === 'POST' && paidPlan) return await changePaidPlan(request,env,paidPlan[1]);
     const deliveryRetry = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/retry-delivery$/);
@@ -1061,6 +1097,7 @@ async function publishPlanRequest(requestId,env) {
       query(env.DB,"UPDATE custom_plan_requests SET status = 'published',result_version = ?,lease_until = NULL,completed_at = CURRENT_TIMESTAMP WHERE id = ?",version,requestId),
       query(env.DB,'INSERT OR IGNORE INTO generation_usage (order_id,attempt,response_id,model,input_tokens,output_tokens,status,phase,error_detail,completed_at) VALUES (?,?,?,?,?,?,?,\'plan\',?,CURRENT_TIMESTAMP)',order.id,usageAttempt,result.responseId,aiProvider(env)?.model,result.usage?.input_tokens||null,result.usage?.output_tokens||null,'plan-published',`provider_calls=${result.providerCalls||0}`),
     ]);
+    await dispatchOrderCover(order.id,env).catch(()=>console.error('Theme cover deferred',{code:'COVER_DISPATCH'}));
   } catch (caught) {
     const safeCode=planFailureCategory(caught);
     console.error('Paid plan generation failed', {orderId:order.id,requestId,attempt,code:safeCode});
@@ -1417,8 +1454,8 @@ export default {
   },
   async queue(batch, env) {
     for (const message of batch.messages) {
-      try { if (message.body?.type === 'pack_remake') await processPackRemake(message.body.orderId, env); else if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else if (message.body?.type === 'plan') await publishPlanRequest(message.body.requestId,env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
-      catch (failure) { console.error('Generation job failed', message.body?.type==='plan'?{type:'plan',code:planFailureCategory(failure)}:failure); message.retry(); }
+      try { if (message.body?.type === 'theme_cover') await processOrderCover(message.body.orderId,env); else if (message.body?.type === 'pack_remake') await processPackRemake(message.body.orderId, env); else if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else if (message.body?.type === 'plan') await publishPlanRequest(message.body.requestId,env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
+      catch (failure) { console.error('Generation job failed', message.body?.type==='theme_cover'?{type:'theme_cover',code:'COVER_STORAGE'}:message.body?.type==='plan'?{type:'plan',code:planFailureCategory(failure)}:failure); message.retry(); }
     }
   },
   async scheduled(_controller, env) {
@@ -1438,6 +1475,7 @@ export default {
       catch (caught) { console.error('Operator delivery alert failed',caught); }
     }
     if (!env.GENERATION_QUEUE) return;
+    await resumeOrderCovers(env).catch(()=>console.error('Theme cover deferred',{code:'COVER_SCHEDULE'}));
     await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'pdf',failure_count = 0,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE status = 'failed' AND error_code = 'BLUEPRINT_INVALID' AND published_version IS NOT NULL AND blueprint_json IS NOT NULL AND story_json IS NOT NULL AND json_array_length(stages_json) = 5").run();
     const jobs = await query(env.DB, `SELECT c.order_id FROM custom_activities c JOIN orders o ON o.id = c.order_id
       LEFT JOIN custom_plan_orders p ON p.order_id = c.order_id
@@ -1451,3 +1489,6 @@ export default {
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
 };
+
+
+
