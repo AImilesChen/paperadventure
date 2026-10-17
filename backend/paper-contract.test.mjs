@@ -539,6 +539,22 @@ test('quality 14 material generation permits related in-world wording without li
   assert.deepEqual(result.data.material,raw.stages[0].material);
 });
 
+test('quality 14 rejects generic printed facts at the material step before saving them',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14};
+  const frame=structuredClockFrame(),raw=linkedClockContext().stages[0];
+  const env={AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'};
+  const response=features=>async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({...raw,features})}]}]});
+  await assert.rejects(()=>generateBlueprintMaterialStep(spec,frame,1,[],env,response(['Mentions answer','Names result'])),error=>{
+    assert.equal(error.code,'BLUEPRINT_INVALID');
+    assert.equal(error.stageNumber,1);
+    assert.match(error.message,/two concrete, distinct printed record facts/);
+    return true;
+  });
+  await assert.rejects(()=>generateBlueprintMaterialStep(spec,frame,1,[],env,response(['Mentions signal gear','Mentions signal gear'])),/two concrete, distinct printed record facts/);
+  const good=await generateBlueprintMaterialStep(spec,frame,1,[],env,response(raw.features));
+  assert.deepEqual(good.data.features,raw.features);
+});
+
 test('quality 14 refuses a generic story ending instead of publishing fallback copy',()=>{
   const spec={...clockSpec,packQualityVersion:14};
   assert.throws(()=>deliverableClosing('',spec,{actions:['Align signal gear']}),/specific two-sentence outcome/);
