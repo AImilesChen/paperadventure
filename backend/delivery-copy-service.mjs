@@ -55,7 +55,8 @@ export async function requireDeliveryReview(story,spec,orderId,env){
 }
 
 const fieldFrom=detail=>{
-  if(/fact reference|printed finding/i.test(detail))return 'finding_reference';
+  if(/fact reference|printed finding|Cited printed fact/i.test(detail))return 'finding_reference';
+  if(/Story consequence/i.test(detail))return 'consequence';
   if(/final action|Action \d/i.test(detail))return 'final_action';
   if(/positive printed fact|alternative printed fact|record fact/i.test(detail))return 'record_fact';
   if(/piece identit|piece label|key rows|route names|order tiles/i.test(detail))return 'material';
@@ -63,6 +64,24 @@ const fieldFrom=detail=>{
   if(/story event|Checkpoint title/i.test(detail))return 'scene';
   return null;
 };
+function boundedFormatIssue(error,copy){
+  const detail=String(error.message||''),field=fieldFrom(detail);
+  const match=detail.match(/^(Closing|Action ([1-3]) (label|instructions)|Checkpoint title|Story event|Printed piece label|Positive printed fact|Alternative printed fact|Cited printed fact|Story consequence) needs (?:printable English within (\d+) characters|a complete sentence)\.$/);
+  if(match){
+    const label=match[1],limit=Number(match[4])||null;
+    const values=label==='Closing'?[copy.celebration]:match[2]?[copy.actions?.[Number(match[2])-1]?.[match[3]==='label'?'label':'description']]:label==='Checkpoint title'?copy.stages?.map(part=>part.title):label==='Story event'?copy.stages?.map(part=>part.scene):label==='Printed piece label'?copy.stages?.flatMap(part=>part.labels||[]):label==='Cited printed fact'?copy.links?.map(link=>link.fact):label==='Story consequence'?copy.links?.map(link=>link.reason):copy.stages?.flatMap(part=>(part.facts||[]).map(fact=>fact[label==='Positive printed fact'?'yes':'no']));
+    return {field:field||'material',rule:limit?'text_bounds':'sentence_boundary',limit,lengths:(values||[]).slice(0,30).map(value=>typeof value==='string'?Math.min(value.length,100000):0)};
+  }
+  const rules=new Map([
+    ['The visible rule needs two distinct complete facts.','visible_rule'],
+    ['Visible record facts disagree with the checked answer.','visible_answer'],
+    ['The visible result digit changed.','result_digit'],
+    ['Record stages need exactly two facts; other puzzles cannot gain hidden conditions.','fact_count'],
+    ['Each printed fact must be one sentence.','fact_sentences'],
+    ['The printed edition is incomplete.','shape'],
+  ]);
+  return {field:field||'puzzle',rule:rules.get(detail)||'other_format'};
+}
 const diagnosticMessages={
   DELIVERY_COPY_INVALID:'The saved wording did not pass its format check. This does not mean the independent game review failed.',
   DELIVERY_COPY_PRINT_FIT:'The saved wording did not fit both PDFs. No replacement files were delivered.',
@@ -84,11 +103,12 @@ export async function deliveryCopyStatus(orderId,env,story,spec){
   if(story&&spec){
     bound=matches(row,await boundHashes(story,spec));
     if(bound&&candidate)try{checkedCopy(sourceStory(story),candidate);draftValid=true;}catch(error){
-      currentField=fieldFrom(error.message||'');
+      const normalized=normalizeDeliveryCopy(sourceStory(story),candidate);
+      formatIssue=boundedFormatIssue(error,normalized);currentField=formatIssue.field;
       // Recompute a bounded diagnosis under the CURRENT compiler, without
       // exporting saved model prose or relying on an obsolete error message.
       if(fieldFrom(error.message||'')==='closing'){
-        const closing=normalizeDeliveryCopy(sourceStory(story),candidate)?.celebration;
+        const closing=normalized?.celebration;
         const value=typeof closing==='string'?closing:'';
         formatIssue={field:'closing',rule:/outcome and a character response/i.test(error.message)?'sentence_count':/complete sentence/i.test(error.message)?'sentence_boundary':value.length>240?'length':/[^\x20-\x7e]/.test(value)?'characters':'missing',length:Math.min(value.length,100000),limit:240,sentences:(value.match(/[.!?](?: |$)/g)||[]).length};
       }

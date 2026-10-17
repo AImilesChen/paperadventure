@@ -1,1 +1,1 @@
-2026-10-17 retain complete saved specific closings before the remaining printed-copy review
+2026-10-17 diagnose current text bounds and printed proof rules without exposing private prose

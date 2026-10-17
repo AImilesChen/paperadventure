@@ -73,6 +73,18 @@ test('valid English verbs and numbered findings survive normalization without du
   assert.throws(()=>normalizeDeliveryCopy(story,input),/out of range/);
 });
 
+test('current consequence bounds replace stale closing diagnostics without exposing any wording',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
+  copy.links[2].reason='Private consequence '.repeat(9)+'.';
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>Response.json({output_text:JSON.stringify(copy)})));
+  db.prepare("UPDATE custom_delivery_copy SET error_detail='Closing needs printable English within 240 characters.'").run();
+  const status=await deliveryCopyStatus('fixture',env,story,edition);
+  assert.equal(status.field,'consequence');assert.equal(status.formatIssue.limit,110);
+  assert.equal(status.formatIssue.lengths[2],copy.links[2].reason.length);
+  assert.doesNotMatch(JSON.stringify(status),/Private consequence/);
+});
+
 test('an overlong celebration reuses only a complete saved specific closing and still needs its remaining independent review',async()=>{
   const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
   const saved=copy.celebration,source={...story,ending:`The four checked results form code 3123, which matches "Collect the spare gear" on the final sheet. ${saved}`};
