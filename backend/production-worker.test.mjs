@@ -793,6 +793,9 @@ test('Google sign-in config creates a short-lived nonce and rejects missing or i
   assert.equal(google.available, true);
   assert.equal(google.clientId, env.GOOGLE_CLIENT_ID);
   assert.match(google.nonce, /^[a-f0-9]{32}$/);
+  assert.equal(google.expiresIn,300);
+  const again=await handleProductionApi(request('/api/v1/auth/google/config','GET',undefined,{cookie:'paw_google_nonce='+google.nonce}),env);
+  assert.equal((await again.json()).nonce,google.nonce,'a second account tab reuses the valid HttpOnly browser nonce');
   assert.match(configResponse.headers.get('set-cookie'), /HttpOnly.*SameSite=Lax/);
   const missingNonce = await handleProductionApi(request('/api/v1/auth/google', 'POST', { credential: 'invalid' },
     { origin: 'https://adventure.example' }), env);

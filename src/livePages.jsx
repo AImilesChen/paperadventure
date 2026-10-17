@@ -10,11 +10,12 @@ import FreeDownload from './freeDownload.jsx';
 import { createDownloadZip } from './downloadZip.mjs';
 import OrderUpdateProgress, {themeUpdatePending} from './orderUpdateProgress.jsx';
 import AdventureCover from './adventureCover.jsx';
+import {googleSignInController} from './googleSignIn.mjs';
 
 async function api(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', headers: { ...(options.body ? { 'content-type': 'application/json' } : {}), ...(options.headers || {}) }, ...options });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error?.message || 'The service could not complete this request.');
+  if (!response.ok) throw Object.assign(new Error(data.error?.message || 'The service could not complete this request.'),{code:data.error?.code});
   return data;
 }
 
@@ -63,6 +64,8 @@ export function LiveAccount({ Link }) {
   const [error, setError] = useState('');
   useEffect(() => {
     let cancelled = false;
+    let signIn=null;
+    const resume=()=>{if(document.visibilityState!=='hidden')signIn?.refreshIfStale();};
     async function prepare() {
       try {
         setLoading(true); setError('');
@@ -71,8 +74,6 @@ export function LiveAccount({ Link }) {
         const session = await api('/api/v1/auth/session');
         if (cancelled) return;
         if (session.authenticated) { window.location.replace(destination); return; }
-        const config = await api('/api/v1/auth/google/config');
-        if (!config.available || !config.clientId || !config.nonce) throw new Error('Google sign-in is not available yet.');
         if (!window.google?.accounts?.id) {
           await new Promise((resolve, reject) => {
             const script = document.createElement('script');
@@ -84,25 +85,17 @@ export function LiveAccount({ Link }) {
           });
         }
         if (cancelled || !button.current) return;
-        window.google.accounts.id.initialize({
-          client_id: config.clientId,
-          nonce: config.nonce,
-          callback: async result => {
-            if (cancelled || !result?.credential) return;
-            setBusy(true); setError('');
-            try {
-              await api('/api/v1/auth/google', { method: 'POST', body: JSON.stringify({ credential: result.credential }) });
-              window.location.assign(destination);
-            } catch (failure) { if (!cancelled) { setError(failure.message); setBusy(false); } }
-          },
+        signIn=googleSignInController({api,
+          initialize:options=>window.google.accounts.id.initialize(options),
+          render:()=>{button.current.replaceChildren();window.google.accounts.id.renderButton(button.current,{theme:'outline',size:'large',shape:'rectangular',text:'signin_with',width:Math.min(360,button.current.clientWidth||280)});},
+          redirect:()=>window.location.assign(destination),onReady:ready=>setLoading(!ready),onBusy:setBusy,onError:setError,
         });
-        button.current.replaceChildren();
-        window.google.accounts.id.renderButton(button.current, { theme: 'outline', size: 'large', shape: 'rectangular', text: 'signin_with', width: Math.min(360, button.current.clientWidth || 280) });
-        setLoading(false);
+        window.addEventListener('focus',resume);document.addEventListener('visibilitychange',resume);
+        await signIn.prepare();
       } catch (failure) { if (!cancelled) { setError(failure.message); setLoading(false); } }
     }
     prepare();
-    return () => { cancelled = true; };
+    return () => { cancelled = true;signIn?.stop();window.removeEventListener('focus',resume);document.removeEventListener('visibilitychange',resume); };
   }, [retry]);
   return <main className="extended-page live-page account-page"><section className="account-entry" aria-labelledby="account-title"><div className="account-benefits"><span className="eyebrow">YOUR ADVENTURE ACCOUNT</span><h1 id="account-title">Sign in to your adventures.</h1><p className="account-summary">Access your purchased packs, download your PDFs, and continue creating custom adventures.</p><ul className="account-benefit-list"><li><Books size={26} /><div><h2>Keep your packs together</h2><p>Find your purchased Home and Classroom adventures and download available Player Packs and adult guides.</p></div></li><li><Sparkle size={26} /><div><h2>Continue your custom adventure</h2><p>Return to saved planning drafts and follow your AI adventure from generation to files ready.</p></div></li><li><Receipt size={26} /><div><h2>Follow your orders</h2><p>Check payment and delivery status or get help with a purchase.</p></div></li></ul><Link className="text-link" to="/en/themes/">Browse adventures first <ArrowRight size={18} /></Link></div><div className="account-signin"><div className="live-panel account-card"><span className="eyebrow">FOR PARENTS &amp; TEACHERS</span><h2>Welcome to Paper Adventure</h2><p>Use your adult Google account to get started or return to your adventures.</p><div className="account-google" ref={button} aria-label="Sign in with Google" aria-busy={loading || busy} />{loading && <p className="account-status" role="status">Loading Google sign-in…</p>}{busy && <p className="account-status" role="status">Signing you in…</p>}{error && <><Alert>{error}</Alert><button type="button" className="button-quiet" onClick={() => setRetry(value => value + 1)}>Try again</button></>}<p className="account-child-note">No child account is needed.</p><p className="account-privacy">We use your verified Google email to find your adventures. We do not request access to your contacts or Google Drive. <Link to="/en/privacy/">Read our Privacy Notice</Link>.</p></div><p className="live-note account-support">Need help accessing a purchase? <Link to="/en/help/">Contact support <ArrowRight size={16} /></Link></p></div></section></main>;
 }

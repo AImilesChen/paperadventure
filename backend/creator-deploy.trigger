@@ -1,1 +1,1 @@
-2026-10-17 final printed-copy correction and independent review; preserve checked puzzles and old files
+2026-10-17 renew expiring Google login attempts without weakening nonce validation
