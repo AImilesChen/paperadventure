@@ -109,6 +109,15 @@ test('an overlong final label keeps both actions when compacted for print',async
   validateDeliveryCopy(story,normalized);
 });
 
+test('a long three-step action keeps each object and destination when punctuation is compacted',async()=>{
+  const {story,copy}=await fixture(),input=structuredClone(copy);
+  input.actions[0].description='Clear the breakwater bell rope tangle, send two green lamp flashes seaward, and wave the signal boat through the marked harbor gap to the dock.';
+  const normalized=normalizeDeliveryCopy(story,input);
+  assert.ok(normalized.actions[0].description.length<=140);
+  assert.match(normalized.actions[0].description,/bell rope tangle.*green lamp flashes.*signal boat.*marked harbor gap.*dock\\.$/);
+  validateDeliveryCopy(story,normalized);
+});
+
 test('valid English verbs and numbered findings survive normalization without duplicated final labels',async()=>{
   const {story,copy}=await fixture(),input=structuredClone(copy);
   for(const [index,verb] of ['Retrieve','Restore','Examine'].entries()){
