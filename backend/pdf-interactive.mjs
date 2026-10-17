@@ -212,7 +212,7 @@ function guideStart(story,spec){
     const sections=[
       ['THE MISSION',spec.plan.goal],
       ...(story.spine?[['THE PROBLEM TO SOLVE',story.spine.problem]]:[]),
-      ['PRINT AND PREPARE',`${spec.setting==='classroom'?`Print ${spec.groups} complete Player sets, one per crew.`:`Print one complete Player Pack for ${spec.players} players.`} Use ${spec.paper} paper and pencils. Keep this guide and the ending page private. Cutting cards or tiles is optional; pointing and writing always work.`],
+      ['PRINT AND PREPARE',`${spec.setting==='classroom'?`Print ${spec.groups} complete Player ${Number(spec.groups)===1?'set':'sets'}, one per crew.`:`Print one complete Player Pack for ${spec.players} players.`} Use ${spec.paper} paper and pencils. Keep this guide and the ending page private. Cutting cards or tiles is optional; pointing and writing always work.`],
       ['RELEASE THE PAGES','Start with Player pages 2-3. After each correct result, release only the next challenge and material pair: 4-5, 6-7, 8-9, then 10-11. Give out Player page 12 only after the final answer is checked.'],
       ['FOUR JOBS','Reader reads the clue aloud. Paper Handler points to or arranges pieces. Checker tests the printed rule and explains why another choice fails. Recorder writes the choice and its result digit. Rotate jobs after each checkpoint.'],
       ['IF THE TEAM GETS STUCK','Ask them to show which printed fact supports their choice. Use Hint 1, then Hint 2 on the checkpoint guide page. Let them change their answer. Give the adult answer only after they have tried the materials.'],
@@ -259,6 +259,10 @@ function wrongChoiceNotes(stage){
       if(closed)reason=`The ${closed[1].toLowerCase()} link is CLOSED, so the path cannot reach END.`;
     }else if(type==='evidence_cards'||type==='decision_record'){
       const item=items.find(piece=>piece.label===option);
+      if(stage.material.logic?.copyFacts){
+        const missing=stage.material.logic.copyFacts.find(fact=>!item?.detail.includes(fact.yes));
+        if(missing)reason=`This record does not confirm the required statement: ${missing.yes}`;
+      }
       const missing=item?.detail.match(/([A-Za-z][A-Za-z ]+): NO\./);
       if(missing)reason=`The printed ${missing[1].trim()} property is NO, but the rule requires YES.`;
     }else if(type==='symbol_key'){

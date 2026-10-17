@@ -14,6 +14,7 @@ import { sampleSpec, sampleStory } from '../content/custom-paper-format-sample.m
 import { compileControlledPuzzle, controlledStageText } from './controlled-puzzles.mjs';
 import { clockSpec,clockBlueprintContext } from '../content/paper-contract-qa.mjs';
 import { linkedClockContext } from '../content/linked-contract-qa.mjs';
+import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import { prepareBlueprintCandidate } from './staged-story.mjs';
 import { packRemakeView, qualityUpgradeEligible, retryPackRemake, processPackRemake } from './pack-remake.mjs';
 async function approvedCustomInput(env,input) {
@@ -25,7 +26,7 @@ async function approvedCustomInput(env,input) {
 
 function database({includeThemeRecovery=true,includeSemanticRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0024_scoped_semantic_plan_recovery.sql'&&!includeSemanticRecovery)continue;
@@ -483,7 +484,7 @@ test('a failed PDF write resumes from the checked story without paying for anoth
   const { db, binding } = database();
   const base = validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
   base.gamePackVersion=1; // Simulate a legacy paid order already in delivery.
-  delete base.packContractVersion;
+  delete base.packContractVersion;delete base.packCopyVersion;
   const plan = planFixture(base);
   const purchase = {...base,onlineRedownloadMonths:productRights.onlineRedownloadMonths,accessPolicyVersion:productRights.version};
   const confirmed = {...purchase,plan,planConfirmed:true};
@@ -1125,7 +1126,7 @@ test('staged paid generation resumes at a failed checkpoint without regenerating
   const {db,binding}=database();
   const purchase=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
   purchase.gamePackVersion=1; // Resume an order approved before interactive paper materials existed.
-  delete purchase.packContractVersion;
+  delete purchase.packContractVersion;delete purchase.packCopyVersion;
   const plan=planFixture(purchase);
   const spec={...purchase,plan,planConfirmed:true,onlineRedownloadMonths:12};
   const stored=JSON.stringify(purchase),storySpec=JSON.stringify(spec);
@@ -1270,7 +1271,7 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   let blueprintCalls=0,failedMaterialTwo=false;const blueprintProviderCalls=[];
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
     PRIVATE_FILES:{get:async key=>files.get(key)||null,put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata})},
-    FETCH:async(_url,init)=>{const body=JSON.parse(init.body),name=body.text.format.name,input=JSON.parse(body.input);blueprintProviderCalls.push({name,checkpoint:input.checkpoint||0});if(name==='story_frame')blueprintCalls++;if(name==='blueprint_material_stage'&&input.checkpoint===2&&!failedMaterialTwo){failedMaterialTwo=true;return Response.json({error:{message:'temporary material failure'}},{status:502});}const value=name==='story_frame'?storyFrame:name==='blueprint_material_stage'?materialContext.stages[input.checkpoint-1]:name==='blueprint_celebration'?{celebration:materialContext.celebration}:name==='grounded_discoveries'?{consequences:storyFrame.discoveries.map(({consequence})=>consequence)}:{pass:true,issues:[]};return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});}};
+    FETCH:async(_url,init)=>{const body=JSON.parse(init.body),name=body.text.format.name,input=JSON.parse(body.input);blueprintProviderCalls.push({name,checkpoint:input.checkpoint||0});if(name==='story_frame')blueprintCalls++;if(name==='blueprint_material_stage'&&input.checkpoint===2&&!failedMaterialTwo){failedMaterialTwo=true;return Response.json({error:{message:'temporary material failure'}},{status:502});}const value=name==='printed_copy_repair'?clockDeliveryCopy(input.source):name==='story_frame'?storyFrame:name==='blueprint_material_stage'?materialContext.stages[input.checkpoint-1]:name==='blueprint_celebration'?{celebration:materialContext.celebration}:name==='grounded_discoveries'?{consequences:storyFrame.discoveries.map(({consequence})=>consequence)}:{pass:true,issues:[]};return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});}};
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
   const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
   const view=()=>handleProductionApi(request('/api/v1/orders/quality-order','GET',undefined,headers),env).then(response=>response.json());
@@ -1448,7 +1449,7 @@ test('current quality and revised checked packs cannot start the free full-pack 
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:10,packLayoutVersion:4}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:11,packLayoutVersion:4}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:12,packLayoutVersion:4}),true);
-  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:14,packLayoutVersion:4}),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:14,packLayoutVersion:4,packCopyVersion:1}),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });

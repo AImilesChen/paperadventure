@@ -1,6 +1,7 @@
 // Dependency-free English PDF renderer for the first custom-delivery pipeline.
 // It deliberately keeps answers and hints out of the player document.
 import { buildInteractiveGamePdf } from './pdf-interactive.mjs';
+import {applyDeliveryCopy} from './delivery-copy.mjs';
 const encoder = new TextEncoder();
 const ascii = value => String(value ?? '').normalize('NFKD').replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/[^\x20-\x7e]/g, ' ').replace(/\s+/g, ' ').trim();
 const escape = value => ascii(value).replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)');
@@ -55,7 +56,8 @@ function documentLines(story, spec, role) {
 
 export function buildGamePdf(story, spec, role) {
   if (!['player', 'guide'].includes(role)) throw new Error('Unknown PDF role');
-  if (spec.gamePackVersion === 2) return buildInteractiveGamePdf(story,spec,role);
+  if (spec.packCopyVersion && !story.deliveryCopy) throw new Error('The final printed content has not passed delivery review.');
+  if (spec.gamePackVersion === 2) return buildInteractiveGamePdf(applyDeliveryCopy(story),spec,role);
   const width = spec.paper === 'A4' ? 595 : 612;
   const height = spec.paper === 'A4' ? 842 : 792;
   const top = height - 62;

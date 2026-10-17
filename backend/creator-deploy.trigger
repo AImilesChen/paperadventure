@@ -1,1 +1,1 @@
-2026-10-17 persist one fal theme-cover request per paid custom order; preserve configured secrets
+2026-10-17 final printed-copy correction and independent review; preserve checked puzzles and old files

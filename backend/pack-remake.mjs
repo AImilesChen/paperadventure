@@ -5,6 +5,7 @@ import { validatePlan } from '../shared/creator-plan.mjs';
 import { generateBlueprint, repairBlueprint, validateBlueprint, prepareBlueprintCandidate, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory, auditCheckpointSemantics,
   generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, deliverableClosing } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
+import {ensureDeliveryCopy,requireDeliveryReview} from './delivery-copy-service.mjs';
 
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
 const nowSeconds = () => Math.floor(Date.now() / 1000);
@@ -65,7 +66,7 @@ export function remakeSpec(original) {
     ...original,
     gamePackVersion: 2,
     packLogicVersion: 1,
-    ...(original.packContractVersion===1?{packExperienceVersion:3,packQualityVersion:CURRENT_PACK_QUALITY_VERSION,packLayoutVersion:CURRENT_PACK_LAYOUT_VERSION}:{}),
+    ...(original.packContractVersion===1?{packExperienceVersion:3,packQualityVersion:CURRENT_PACK_QUALITY_VERSION,packLayoutVersion:CURRENT_PACK_LAYOUT_VERSION,packCopyVersion:1}:{}),
     plan: {
       ...plan,
       title: shorten(plan.title, 70),
@@ -105,7 +106,7 @@ export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevi
     (purchase.packLayoutVersion || 0) < CURRENT_PACK_LAYOUT_VERSION && (activity.packLayoutVersion || 0) < CURRENT_PACK_LAYOUT_VERSION;
   return purchase?.gamePackVersion === 2 && purchase.packContractVersion === 1 &&
     activity?.packContractVersion === 1 && latestFormat === 2 && !hasRevision &&
-    (qualityOutdated || layoutOutdated);
+    (qualityOutdated || layoutOutdated || (previous||purchase).packCopyVersion!==1);
 }
 
 async function requireApprovedReplacement(orderId,db){
@@ -139,6 +140,13 @@ export async function startPackRemake(order, activity, env) {
   const specHash = await sha256(specJson);
   if (existing?.status === 'ready') {
     const savedStages=JSON.parse(existing.stages_json||'[]');
+    // A current, checked game needs a bounded wording correction, not another
+    // blueprint/checkpoint generation. Retain its actual proof and digits.
+    if(previousSpec?.packQualityVersion>=CURRENT_PACK_QUALITY_VERSION&&existing.story_json&&savedStages.length===5&&previousSpec.packCopyVersion!==1&&JSON.stringify(previousSpec.plan)===JSON.stringify(spec.plan)){
+      const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'audit',spec_json = ?,spec_sha256 = ?,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'ready' AND published_version = ?",specJson,specHash,order.id,existing.published_version).run();
+      if(changed.meta?.changes)await env.GENERATION_QUEUE.send({type:'pack_remake',orderId:order.id});
+      return {status:'queued',queued:Boolean(changed.meta?.changes)};
+    }
     // V13 changes the playable story and material checks. An older ready pack
     // needs a full checked rebuild; a PDF-only closing refresh would keep the
     // very content defects that prompted this upgrade.
@@ -239,7 +247,8 @@ export async function packRemakeView(db, orderId) {
   const partRow=resumableBlueprint?await query(db,"SELECT COUNT(DISTINCT phase || ':' || stage_number) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND status = 'passed' AND result_json IS NOT NULL AND (phase = 'blueprint_frame' OR phase = 'blueprint_closing' OR (phase = 'blueprint_material' AND stage_number BETWEEN 1 AND 5))",orderId,row.quality_epoch,row.logic_epoch).first():null;
   const blueprintStepTotal=resumableBlueprint?8:1;
   const blueprintStepsCompleted=row.blueprint_json?blueprintStepTotal:Math.min(Number(partRow?.n||0),blueprintStepTotal-1);
-  const savedSteps=blueprintStepsCompleted+stages.length+(row.story_json?1:0)+(row.status==='ready'?1:0);
+  const storyReady=Boolean(row.story_json&&(!spec.packCopyVersion||JSON.parse(row.story_json).deliveryCopy));
+  const savedSteps=blueprintStepsCompleted+stages.length+(storyReady?1:0)+(row.status==='ready'?1:0);
   const totalSteps=blueprintStepTotal+7;
   const layoutRecoveryAvailable=Boolean(row.status==='failed'&&row.published_version&&row.blueprint_json&&stages.length===5&&row.story_json&&row.error_code==='BLUEPRINT_INVALID'&&!failedRemakeNeedsUpgrade(spec,row));
   const upgradeAvailable=row.status==='failed'&&(row.published_version===null||row.quality_epoch>0)&&failedRemakeNeedsUpgrade(spec,row);
@@ -257,7 +266,7 @@ export async function packRemakeView(db, orderId) {
     completedStages: stages.map(stage => stage.number),
     currentStage: [1,2,3,4,5].find(number => !stages.some(stage => stage.number === number)) || null,
     problemStage,
-    storyReady: Boolean(row.story_json),
+    storyReady,
     publishedVersion: row.published_version || null,
     failureReason: row.status === 'failed' ? layoutRecoveryAvailable ? 'The saved game is complete, but the layout refresh stopped before PDF rendering. Retrying will reuse the saved game and will not call the AI.' : row.error_code === 'REMAKE_BUDGET_EXHAUSTED' ? 'The safe repair limit was reached. Saved work and the original PDFs remain on this paid order for a quality review.' : row.error_code === 'STAGE_SEMANTIC_INVALID' ? `Checkpoint ${problemStage||stages.length+1} needs a correction to its printed record facts. Earlier checkpoints remain saved.` : row.phase === 'repair' ? `The targeted repair${problemStage?` for checkpoint ${problemStage}`:''} stopped before the new pack could be published. Saved work remains on this order.` : row.phase === 'blueprint' ? 'The game blueprint did not match the approved play rules. No new checkpoints or PDFs were published.' : row.phase === 'checkpoint' ? /Answer explanation is required and must be under/i.test(row.error_detail || '') ? 'The generated adult answer explanation was longer than the printable guide allows. Earlier checkpoints were saved.' : 'A new checkpoint did not pass generation checks. Saved earlier work remains on this order.' : row.phase === 'audit' ? row.error_detail?.startsWith(reviewPrefix) ? `The quality review found a contradiction around checkpoint ${problemStage||'the ending'}. Saved checkpoints remain on this order; no new PDFs were published.` : 'The complete game did not pass its quality review. Saved checkpoints remain on this order.' : 'The replacement PDF files did not pass delivery checks. Your original PDFs remain available.' : null,
     recoveryAvailable: layoutRecoveryAvailable || upgradeAvailable || savedBlueprintAvailable || row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && (recoverableErrors.includes(row.error_code) || row.error_code === 'REMAKE_BUDGET_EXHAUSTED' && row.quality_epoch > 0),
@@ -333,6 +342,7 @@ async function publishRemadeFiles(remake, order, env) {
   // Rebuild the ending from the checked checkpoint digits at the publication
   // boundary so a stale saved row can never publish "form code ," again.
   const story=storyWithCheckedClosing(savedStory,spec);
+  await requireDeliveryReview(story,spec,order.id,env);
   const storyJson = JSON.stringify(story);
   const storyHash = await sha256(storyJson);
   const activity = await query(db, "SELECT id FROM custom_activities WHERE order_id = ? AND status = 'published'", order.id).first();
@@ -386,6 +396,15 @@ export async function processPackRemake(orderId, env) {
   const spec = JSON.parse(remake.spec_json);
   let phase = 'blueprint', budgetPhase='blueprint', stageNumber = 0;
   try {
+    if(spec.packCopyVersion&&remake.story_json&&remake.phase==='audit'){
+      phase='audit';
+      const source=validateGeneratedStory(JSON.parse(remake.story_json),spec);
+      if(await sha256(JSON.stringify(source))!==remake.story_sha256)throw new ApiError(422,'REMAKE_STORY_CHANGED','The saved game changed.');
+      const checked=await ensureDeliveryCopy(source,spec,orderId,env);
+      const json=JSON.stringify(checked);
+      await query(db,"UPDATE custom_pack_remakes SET story_json = ?,story_sha256 = ?,status = 'queued',phase = 'pdf',lease_until = NULL,error_code = NULL,error_detail = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ?",json,await sha256(json),orderId).run();
+      await queueNext(orderId,env);return;
+    }
     if(remake.phase==='repair'&&remake.blueprint_json&&(spec.packQualityVersion||0)>=7){
       phase='repair';
       stageNumber=Number(String(remake.error_detail||'').match(/Checkpoint\s+([1-5])/i)?.[1])||0;
@@ -502,11 +521,12 @@ export async function processPackRemake(orderId, env) {
     }
     if (!remake.story_json) {
       phase = 'audit'; budgetPhase='audit'; stageNumber = 0;
-      const story = assembleStagedStory(spec, blueprint, stages);
+      let story = assembleStagedStory(spec, blueprint, stages);
+      if(spec.packCopyVersion)story=await ensureDeliveryCopy(story,spec,orderId,env);
       const storyJson = JSON.stringify(story);
       const storyHash = await sha256(storyJson);
       const proof = await recordCall(remake, phase, 0, async () => {
-        const result = await auditStagedStory(story, spec, blueprint, env, env.FETCH || fetch);
+        const result = spec.packCopyVersion?{}:await auditStagedStory(story, spec, blueprint, env, env.FETCH || fetch);
         return { value: { storyHash }, usage: result.usage, responseId: result.responseId };
       }, env);
       if (proof.storyHash !== storyHash) throw new ApiError(422, 'GENERATION_QA_FAILED', 'The game differs from the checked blueprint.');
@@ -527,7 +547,7 @@ export async function processPackRemake(orderId, env) {
       return;
     }
     let retry = total.n < MAX_CALLS && (deterministicCheckpoint(budgetPhase,spec,stageNumber) || step.n < stepLimit(budgetPhase,spec)) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING','REMAKE_BUDGET_EXHAUSTED'].includes(code);
-    if(caught.terminalThemeMismatch)retry=false;
+    if(caught.terminalThemeMismatch||String(code).startsWith('DELIVERY_COPY_'))retry=false;
     if (deterministicCheckpoint(budgetPhase,spec,stageNumber) && code === 'GENERATION_INVALID') retry = false;
     if (code === 'GENERATION_QA_FAILED') {
       const failedStage = caught.stageNumber;
@@ -557,3 +577,4 @@ export async function processPackRemake(orderId, env) {
     if (retry) await queueNext(orderId, env);
   }
 }
+
