@@ -1,1 +1,1 @@
-2026-10-17 retain complete printed facts with measured material-box fit
+2026-10-17 accept proxy-forwarded empty saved-review retry requests

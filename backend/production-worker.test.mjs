@@ -93,9 +93,13 @@ for(const scoped of [false,true])test(`owner can resume ${scoped?'explicit fact 
   const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
   const get=()=>handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,headers),env).then(response=>response.json());
   const consent=scoped?{action:'complete_saved_facts',allowOneExtraReview:true}:undefined;
-  const retry=(data=consent)=>handleProductionApi(request(`/api/v1/orders/${orderId}/pack-remake/retry`,'POST',data,headers),env);
+  const retryUrl=`/api/v1/orders/${orderId}/pack-remake/retry`;
+  const retry=(data=consent)=>handleProductionApi(data===undefined?new Request(`https://adventure.example${retryUrl}`,{method:'POST',headers,body:''}):request(retryUrl,'POST',data,headers),env);
   const view=await get();assert.equal(view.remake.copyResumeAvailable,!scoped);assert.equal(view.remake.copyCheck.factRepairAvailable,scoped);assert.match(view.remake.failureReason,/format/);
   if(scoped){assert.equal((await retry({action:'complete_saved_facts',allowOneExtraReview:false})).status,409);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_delivery_fact_repairs').get().n,0);}
+  const malformed=await handleProductionApi(new Request(`https://adventure.example${retryUrl}`,{method:'POST',headers,body:'{'}),env);
+  assert.equal(malformed.status,400);assert.equal((await malformed.json()).error.code,'INVALID_JSON');assert.equal(jobs.length,0);
+  if(scoped){assert.equal((await handleProductionApi(new Request(`https://adventure.example${retryUrl}`,{method:'POST',headers,body:''}),env)).status,409);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_delivery_fact_repairs').get().n,0);}
   assert.equal((await handleProductionApi(request(`/api/v1/orders/${orderId}`),env)).status,401);
   assert.equal((await handleProductionApi(request(`/api/v1/orders/${orderId}/pack-remake/retry`,'POST',undefined,{origin:env.PUBLIC_ORIGIN}),env)).status,401);
   assert.equal((await retry()).status,202);assert.equal((await retry()).status,409);assert.equal(jobs.length,1);
