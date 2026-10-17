@@ -24,14 +24,14 @@ jobs:
       - uses: actions/download-artifact@v6
         with:
           name: synthetic-paper-contract-packs
-          run-id: '39022669354'
+          run-id: '39022890743'
           github-token: ${{ github.token }}
           path: tmp/provider-replay
       - name: Generate only invented QA scenarios
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
-          SMOKE_CASE_IDS: home-garden
-          SMOKE_MAX_PROVIDER_CALLS: '24'
+          SMOKE_CASE_IDS: classroom-lighthouse-zh
+          SMOKE_MAX_PROVIDER_CALLS: '20'
           SMOKE_REPLAY_DIR: tmp/provider-replay
         run: node scripts/paper-contract-provider-smoke.mjs
       - uses: actions/upload-artifact@v6
