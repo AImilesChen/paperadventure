@@ -31,7 +31,7 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
   }
   const privateFetch=async(url,options)=>{
     const request=JSON.parse(options.body);
-    const index=replay.findIndex(saved=>saved.request.text.format.name===request.text.format.name&&saved.request.input===request.input&&
+    const index=replay.findIndex(saved=>saved.response.status==='completed'&&saved.request.text.format.name===request.text.format.name&&saved.request.input===request.input&&
       (request.text.format.name==='paid_adventure_plan'||saved.request.instructions===request.instructions));
     if(index>=0)return Response.json(replay.splice(index,1)[0].response);
     if(calls>=maxProviderCalls){const error=Error(`Synthetic provider-call cap ${maxProviderCalls} reached.`);error.code='SMOKE_BUDGET_EXHAUSTED';throw error;}
