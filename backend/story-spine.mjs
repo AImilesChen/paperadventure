@@ -255,7 +255,8 @@ const completeStructuredStoryLink=(lead,shortLead,discovery,index,action,max=180
     throw Error(`Checkpoint ${index+1} printed names leave no room for a complete story link.`);
   }
   const support=fitted(discovery.supportsAction||action,`Checkpoint ${index+1} supported action`,40);
-  for(const sentence of [`${lead} ${consequence} This supports "${support}".`,`${shortLead} ${consequence} This supports "${support}".`,`${lead} ${consequence}`,`${shortLead} ${consequence}`])
+  const orderLead=lead.endsWith(' is the checked story sequence.')?'The four printed steps form the checked order.':null;
+  for(const sentence of [`${lead} ${consequence} This supports "${support}".`,`${shortLead} ${consequence} This supports "${support}".`,`${lead} ${consequence}`,`${shortLead} ${consequence}`,...(orderLead?[`${orderLead} ${consequence}`]:[])])
     if(sentence.length<=max)return sentence;
   throw Error(`Checkpoint ${index+1} printed names leave no room for a complete story link.`);
 };
