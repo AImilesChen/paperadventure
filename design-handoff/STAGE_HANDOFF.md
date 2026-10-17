@@ -3,7 +3,7 @@
 ## 当前结论
 
 - 状态：`[NEEDS_REVIEW]`
-- 一句话结论：已选纸艺方向已经落成可运行的 30 路由英文预览，并补齐设计说明、品牌素材与前端可读的状态矩阵；现场竞品视觉细节、全状态截图与线上 favicon 尚未验收。
+- 一句话结论：已选纸艺方向已经落成可运行的 31 路由英文预览，并补齐设计说明、品牌素材与前端可读的状态矩阵；现场竞品视觉细节、全状态截图与浏览器标签页视觉效果尚未验收。线上 favicon 已于 2026-10-08 部署并确认返回 HTTP 200。
 - 日期：2026-10-08；阶段：`06-design`。
 
 ## 输入来源
@@ -18,9 +18,9 @@
 
 1. 方向与证据：`VISUAL_STYLE_RATIONALE.md`、`COMPETITOR_VISUAL_REVIEW.md`、`concepts/`。
 2. 页面再生成与素材提示词：`PAGE_AND_ASSET_PROMPTS.md`（补写版，非原始日志）。
-3. 前端真源：`../src/`, `../index.html`, `../shared/page-manifest.mjs`；`npm run build` 输出 30 个预渲染 HTML 页面。
+3. 前端真源：`../src/`, `../index.html`, `../shared/page-manifest.mjs`；`npm run build` 输出 31 个预渲染 HTML 页面。
 4. 设计系统与交互：`tokens.json`、`HANDOFF.md`、`ROUTE_STATE_MATRIX.md`。
-5. 品牌/视觉资产：`../public/icon.svg`、字标/横竖版 SVG、favicon、OG、Hero 与六主题图；来源边界见 `ASSET_PROVENANCE.md`。
+5. 品牌/视觉资产：`../public/icon.svg`、字标/横竖版 SVG、favicon、OG、Hero 与六主题图；来源边界见 `ASSET_PROVENANCE.md`，当前文件尺寸与 SHA-256 见 `ASSET_FILE_REGISTER.md`。
 6. 桌面/手机截图：`../qa-*.png`、`../design-qa.md`；两张未公开的真实材料草稿截图在 `material-previews/`。
 7. 本阶段控制表：`project-control.md` 和 `DELIVERY_AUDIT.md`。
 
@@ -30,17 +30,18 @@
 - [x] 非紫蓝白模板：浅蓝底、朱红 CTA、纸艺世界；一张中心故事画面。
 - [x] Logo 16px 可辨识：本地生成 16/32 px PNG 和 ICO，并保留可缩放 SVG；**线上标签页仍待复核**。
 - [x] 有 desktop/mobile 交付：已有首页、画廊及部分内页截图。
-- [x] 设计真源不是单张概念图：30 路由代码、状态矩阵和真实交互可供前端读取。
+- [x] 设计真源不是单张概念图：31 路由代码、状态矩阵和真实交互可供前端读取。
 - [x] 前端可提取字体、颜色、图标、间距与主要组件规则。
 - [ ] 竞品网页的真实颜色/字体/手机构图：只完成官方页面结构研究，未获右侧浏览器截图。
 - [ ] 所有公开路由和关键状态的 1440/390 px 截图：缺项逐条列在 `ROUTE_STATE_MATRIX.md`。
 - [ ] 原始图像生成记录、商业使用权与字体许可复核：详见 `ASSET_PROVENANCE.md`。
-- [ ] 线上 favicon/OG：旧 Cloudflare 部署仍返回 404，需上传新 ZIP 并实际访问验收。
+- [x] 线上 favicon：新 Cloudflare 预览部署的 `/favicon.ico` 返回 HTTP 200、图标 MIME 类型正确；浏览器标签页视觉效果仍待右侧浏览器复核。
+- [ ] 线上 OG：OG 文件已随新版资源部署，社交平台抓取与缓存仍待复核。
 
 ## 风险
 
 - P0：若正式对外发布时仍无已审核法律文本、可用文件或支付链路，会误导用户；当前预览维持 noindex、不可付款和不可下载。
-- P1：线上 favicon 缺失、素材权利记录不完整、全路由移动端/错误态截图不齐。
+- P1：素材权利记录不完整、全路由移动端/错误态截图不齐，社交分享抓取与浏览器标签页视觉复核待完成。
 - P2：竞品品牌色/字体未现场测量；原始生成 Prompt 未保存，现提供的只可用于再生成。
 
 ## 下游交接：给下一阶段的最小必要信息

@@ -1,0 +1,124 @@
+name: Deploy public site and private preview
+
+on:
+  push:
+    branches:
+      - frontend-prd-v13-2026-10-08
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-adventure-preview-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "1"
+      CLOUDFLARE_ACCOUNT_ID: "77bc392d46985cd3425691358f5e8a77"
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:static
+      - run: npm run test:sites
+      - run: npm run test:backend
+      - name: Bundle production API without publishing
+        run: npx --yes wrangler@4.149.0 deploy --config backend/wrangler.production-smoke.jsonc --dry-run
+      - name: Validate site Worker bundle without publishing
+        run: npx --yes wrangler@4.149.0 deploy --config backend/wrangler.preview.jsonc --dry-run
+      - name: Diagnose existing public connectivity
+        run: |
+          for url in \
+            "https://paperadventure.app/en/" \
+            "https://paperadventure.app/en/themes/dinosaur/home/" \
+            "https://paperadventure.app/en/themes/dinosaur/?setting=home" \
+            "https://preview.paperadventure.app/en/themes/dinosaur/home/"; do
+            echo "Checking $url"
+            curl --http1.1 --silent --show-error --location --max-time 20 \
+              --output /dev/null --write-out 'HTTP/1.1 result: code=%{http_code} remote=%{remote_ip} time=%{time_total}s\\n' "$url" || true
+            curl --http2 --silent --show-error --location --max-time 20 \
+              --output /dev/null --write-out 'HTTP/2 result: code=%{http_code} remote=%{remote_ip} time=%{time_total}s\\n' "$url" || true
+          done
+      - name: Deploy verified public site when Cloudflare token is configured
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::notice::CLOUDFLARE_API_TOKEN is not configured; no deployment was attempted."
+            exit 0
+          fi
+          deployed=0
+          deploy_log="$RUNNER_TEMP/paperadventure-deploy-attempt.log"
+          for deploy_attempt in 1 2 3; do
+            if npx --yes wrangler@4.149.0 deploy --config backend/wrangler.preview.jsonc --keep-vars > "$deploy_log" 2>&1; then
+              cat "$deploy_log"
+              deployed=1
+              break
+            fi
+            cat "$deploy_log"
+            if ! grep -Eqi 'malformed response|502|503|504|ETIMEDOUT|ECONNRESET|fetch failed|timed out' "$deploy_log"; then
+              exit 1
+            fi
+            if [ "$deploy_attempt" -lt 3 ]; then
+              echo "::warning::Temporary Cloudflare API error; retrying deployment."
+              sleep 20
+            fi
+          done
+          test "$deployed" -eq 1
+          asset_name=$(basename "$(find dist/client/assets -maxdepth 1 -name 'index-*.js' -print -quit)")
+          test -n "$asset_name"
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error --head "https://paperadventure.app/assets/$asset_name" > /dev/null; then
+              if curl --fail --silent --show-error --head https://paperadventure.app/en/for-home/ | grep -iq "x-robots-tag:.*noindex"; then
+                echo "::error::The public Home page is still marked noindex."
+                exit 1
+              fi
+              curl --fail --silent --show-error --head https://preview.paperadventure.app/en/ | grep -iq "x-robots-tag: noindex"
+              curl --fail --silent --show-error --head https://paperadventure.app/en/account/ | grep -iq "x-robots-tag: noindex"
+              curl --fail --silent --show-error https://paperadventure.app/robots.txt | grep -Fq "Sitemap: https://paperadventure.app/sitemap.xml"
+              order_url="https://paperadventure.app/en/orders/00000000-0000-4000-8000-000000000001/"
+              curl --retry 6 --retry-all-errors --retry-delay 2 --max-time 20 \
+                --fail --silent --show-error --dump-header "$RUNNER_TEMP/paperadventure-order.headers" \
+                --output "$RUNNER_TEMP/paperadventure-order.html" "$order_url"
+              grep -Eiq '^content-type: text/html' "$RUNNER_TEMP/paperadventure-order.headers"
+              grep -Eiq '^x-robots-tag: noindex' "$RUNNER_TEMP/paperadventure-order.headers"
+              if grep -Eiq '^location:' "$RUNNER_TEMP/paperadventure-order.headers"; then
+                echo "::error::Refreshing a private order redirected away from the order URL."
+                exit 1
+              fi
+              grep -Fq 'id="root"' "$RUNNER_TEMP/paperadventure-order.html"
+              echo "Verified direct order refresh keeps the route and serves the app shell"
+              curl --fail --silent --show-error https://paperadventure.app/sitemap.xml | grep -Fq "https://paperadventure.app/en/for-home/"
+              for api_attempt in {1..36}; do
+                if curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.status!=='configured_runtime'||(v.checkout&&v.checkoutMode!=='test')||!v.generation||v.proposals!==false||!v.paidPlanReview)throw Error('Apex paid creator API mismatch: '+s);console.log('Apex forwards to the paid creator API')})"; then break; fi
+                if [ "$api_attempt" -eq 36 ]; then exit 1; fi
+                sleep 5
+              done
+              curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(!Array.isArray(v.themes)||v.themes.length<6)throw Error('Apex catalog stage mismatch: '+s);console.log('Apex catalog is backed by the stage API')})"
+              for route in /en/ /en/themes/dinosaur/home/ /en/themes/dinosaur/classroom/ '/en/themes/dinosaur/?setting=home'; do
+                curl --retry 3 --retry-delay 2 --fail --silent --show-error \
+                  --output "$RUNNER_TEMP/paperadventure-route.html" "https://paperadventure.app$route"
+                if [ "$route" != /en/ ]; then
+                  grep -Fq 'theme-detail-page' "$RUNNER_TEMP/paperadventure-route.html"
+                fi
+                echo "Verified public GET $route"
+              done
+              echo "Public content is indexable; preview and private routes remain noindex."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::The new public site could not be verified on paperadventure.app."
+          exit 1
+
+

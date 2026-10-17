@@ -1,0 +1,95 @@
+{
+  "version": "0.1",
+  "themeWorldId": "halloween",
+  "published": false,
+  "items": [
+    {
+      "file": "output/pdf/halloween-H05-player-v0.1-A4.pdf",
+      "setting": "home",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 228474,
+      "sha256": "9875d6665b2b69dd1e96faf18d8866dcdf522a9342d2b73022b66e760565ddfc",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/halloween-H05-host-v0.1-A4.pdf",
+      "setting": "home",
+      "role": "host",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 111144,
+      "sha256": "023629814680f9369cf8ed8f3be77c0149461f37539cd22797ea68a995d5f850",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/halloween-C05-player-v0.1-A4.pdf",
+      "setting": "classroom",
+      "role": "player",
+      "paper": "A4",
+      "pages": 6,
+      "bytes": 224771,
+      "sha256": "6331b44deef4153607f177e85aa6d263da799d88bd0434f867ff79238d76105d",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/halloween-C05-teacher-v0.1-A4.pdf",
+      "setting": "classroom",
+      "role": "teacher",
+      "paper": "A4",
+      "pages": 3,
+      "bytes": 111136,
+      "sha256": "adbe100574b1a3981c9c5a2f113d927232c8a8c81f924371988e9d7a7794cb3f",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/halloween-H05-player-v0.1-Letter.pdf",
+      "setting": "home",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 228034,
+      "sha256": "7f43e59072b7c170c5245b78e9b489b0d32405e073f3ff8e4dd69eb8b7ad325b",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/halloween-H05-host-v0.1-Letter.pdf",
+      "setting": "home",
+      "role": "host",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 111043,
+      "sha256": "cd42f68f6bea76210c23df64d711ff4529711c49614b257c5250c198994f832b",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/halloween-C05-player-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "role": "player",
+      "paper": "Letter",
+      "pages": 6,
+      "bytes": 224413,
+      "sha256": "85537c31e793cae1b0a19716056ccb5e8e9bd0c42f63b56fd247bf454ae8d3ac",
+      "status": "draft",
+      "public": false
+    },
+    {
+      "file": "output/pdf/halloween-C05-teacher-v0.1-Letter.pdf",
+      "setting": "classroom",
+      "role": "teacher",
+      "paper": "Letter",
+      "pages": 3,
+      "bytes": 110985,
+      "sha256": "a115dd2e76c77e4d71bda7019277debbfc72055973e0edb27b996c5633538e59",
+      "status": "draft",
+      "public": false
+    }
+  ]
+}

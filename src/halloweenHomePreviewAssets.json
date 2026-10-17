@@ -1,0 +1,65 @@
+{
+  "viewer": {
+    "page": 5,
+    "caption": "Cut-out paper viewer frame",
+    "excerpt": true,
+    "width": 646,
+    "height": 227
+  },
+  "tear-reference": {
+    "page": 5,
+    "caption": "Separate printed three-tear comparison example",
+    "excerpt": true,
+    "width": 396,
+    "height": 152
+  },
+  "tear-detail": {
+    "page": 5,
+    "caption": "Three-tear marks from the separate reference example",
+    "excerpt": true,
+    "width": 153,
+    "height": 53
+  },
+  "fold-detail": {
+    "page": 7,
+    "caption": "Centre FOLD label and line without an actor shape",
+    "excerpt": true,
+    "width": 157,
+    "height": 163
+  },
+  "stage": {
+    "page": 10,
+    "caption": "Empty four-place rehearsal mat",
+    "excerpt": true,
+    "width": 1044,
+    "height": 825
+  },
+  "facade": {
+    "page": 12,
+    "caption": "Closed four-window paper theatre",
+    "excerpt": true,
+    "width": 1058,
+    "height": 892
+  },
+  "window": {
+    "page": 12,
+    "caption": "One closed window and its attached fold edge",
+    "excerpt": true,
+    "width": 766,
+    "height": 556
+  },
+  "registration": {
+    "page": 12,
+    "caption": "Corner alignment cross on the window sheet",
+    "excerpt": true,
+    "width": 33,
+    "height": 37
+  },
+  "record": {
+    "page": 3,
+    "caption": "Blank theatre record for five missions",
+    "excerpt": true,
+    "width": 1060,
+    "height": 814
+  }
+}

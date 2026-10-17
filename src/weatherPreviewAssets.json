@@ -1,0 +1,79 @@
+{
+  "record": {
+    "page": 3,
+    "caption": "Blank morning observation board",
+    "width": 910,
+    "height": 1287,
+    "excerpt": false
+  },
+  "wind-base": {
+    "page": 5,
+    "caption": "Compass base and wind instructions",
+    "width": 910,
+    "height": 1287,
+    "excerpt": false
+  },
+  "wind-practice": {
+    "page": 6,
+    "caption": "Neutral wind-turn practice example",
+    "width": 677,
+    "height": 684,
+    "excerpt": true
+  },
+  "wind-before": {
+    "page": 6,
+    "caption": "Practice card before turning",
+    "width": 268,
+    "height": 345,
+    "excerpt": true
+  },
+  "wind-after": {
+    "page": 6,
+    "caption": "Practice card with N aligned",
+    "width": 271,
+    "height": 345,
+    "excerpt": true
+  },
+  "cloud-board": {
+    "page": 7,
+    "caption": "Blank four-pane cloud recording board",
+    "width": 910,
+    "height": 1287,
+    "excerpt": false
+  },
+  "rain-base": {
+    "page": 9,
+    "caption": "Paper rain gauge and reading instructions",
+    "width": 910,
+    "height": 1287,
+    "excerpt": false
+  },
+  "rain-practice": {
+    "page": 10,
+    "caption": "Neutral 2 mm rain-alignment example",
+    "width": 781,
+    "height": 211,
+    "excerpt": true
+  },
+  "rain-baseline": {
+    "page": 10,
+    "caption": "Practice zero and strip baseline detail",
+    "width": 333,
+    "height": 60,
+    "excerpt": true
+  },
+  "bulletin": {
+    "page": 11,
+    "caption": "Blank morning bulletin",
+    "width": 910,
+    "height": 1287,
+    "excerpt": false
+  },
+  "audit": {
+    "page": 12,
+    "caption": "Five-point original-evidence check",
+    "width": 910,
+    "height": 1287,
+    "excerpt": false
+  }
+}

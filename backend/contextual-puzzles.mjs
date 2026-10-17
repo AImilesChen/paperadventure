@@ -1,0 +1,387 @@
+import {paperContractTypes,paperActions,paperAction,validatePaperPlan,assertGoalStillOpen} from '../shared/paper-contract.mjs';
+import {validateStorySpine} from './story-spine.mjs';
+
+const text=(value,label,max)=>{
+  if(typeof value!=='string'||!value.trim()||value.length>max||/[^\x20-\x7e]/.test(value))throw Error(`${label} must be concise printable English (maximum ${max}).`);
+  return value.trim();
+};
+const unique=values=>new Set(values.map(value=>value.toLowerCase())).size===values.length;
+const rotate=(values,shift)=>values.map((_,i)=>values[(i+shift)%values.length]);
+const fitNarrative=(value,max)=>{
+  if(typeof value!=='string'||value.length<=max)return value;
+  const sentences=value.match(/[^.!?]+[.!?]+/g)||[];
+  let result='';
+  for(const sentence of sentences){
+    const next=`${result} ${sentence.trim()}`.trim();
+    if(next.length>max)break;
+    result=next;
+  }
+  if(!result)throw Error(`Narrative text needs a complete sentence within ${max} characters.`);
+  return result;
+};
+const fitRecordFeature=value=>{
+  if(typeof value!=='string')return value;
+  const match=value.trim().match(/^(?:(Mentions|Names|Is|Has)\s+)?(.+)$/i);
+  if(!match)return value;
+  const prefix=/^(?:Mentions|Names)$/i.test(match[1]||'')?match[1]:'Mentions';
+  // Keep the content-bearing end of a provider phrase. Truncating from the
+  // right turned "storing gear in a dry sack" into "storing gear", while the
+  // story still depended on the omitted dry condition. Removing grammar-only
+  // words first keeps the printed fact and its story consequence aligned.
+  const filler=/^(?:a|an|the|and|or|by|with|from|to|for|of|at|in|on|near|under|over|before|after|as|its|their)$/i;
+  const words=match[2].trim().split(/\s+/).filter(word=>!filler.test(word));
+  while(words.length>2&&`${prefix} ${words.join(' ')}`.length>32)words.splice(words.length-2,1);
+  while(words.length>1&&`${prefix} ${words.join(' ')}`.length>32)words.shift();
+  return `${prefix} ${words.join(' ')}`;
+};
+const featureBanned=/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i;
+const featureStop=new Set(['this','that','with','from','into','before','after','needed','need','helps','help','using','used','final','first','action','story','discovery','identifies','identify','gives','give','provides','provide','allows','allow','required','requires','carry','complete','completes']);
+const fallbackRecordFeatures=(candidate,spec,index)=>{
+  const discovery=candidate.storyFrame?.discoveries?.[index];
+  const source=[discovery?.finding,discovery?.consequence,candidate.storyFrame?.purposes?.[index],candidate.storyFrame?.actions?.[0],spec.plan?.stages?.[index]?.scene,spec.plan?.stages?.[index]?.storyContext]
+    .filter(Boolean).join(' ').toLowerCase();
+  const words=(source.match(/[a-z]{4,}/g)||[]).filter(word=>!featureStop.has(word)&&!featureBanned.test(word));
+  const uniqueWords=[...new Set(words)];
+  const first=uniqueWords[0]||'needed item',second=uniqueWords.find(word=>word!==first)||'safe place';
+  return [fitRecordFeature(`Mentions ${first}`),fitRecordFeature(`Names ${second}`)];
+};
+const fitLabel=(value,max=40)=>{
+  if(typeof value!=='string'||value.length<=max)return value;
+  return value.slice(0,max).replace(/\s+\S*$/,'').trim();
+};
+const recordLabel=value=>{
+  if(typeof value!=='string')return value;
+  const match=value.trim().match(/^(.*?)(?:\s+(note|report|log|letter|ledger|record|card|message|ticket|journal|entry|file|memo|clipping|receipt|statement|page|sheet|slip|document))?$/i);
+  const suffix=match?.[2]||'report',subject=match?.[1]||value;
+  return `${fitLabel(subject,40-suffix.length-1)} ${suffix}`;
+};
+const storyPieceLabel=value=>typeof value==='string'?value.replace(/^(?:Compare|Check|Match|Select|Record|Sort|Read)\s+(?:the\s+)?/i,'').trim():value;
+const worksheetLanguage=/\b(?:checkpoint|digit|digits|tile|tiles|printed|rule|rules|choice|choices|option|options|answer|answers|decoded word|report cards)\b/i;
+const inWorldAction=/^(?:align|ask|attach|balance|bring|carry|check|clear|climb|clean|close|collect|connect|cover|cross|deliver|drain|draw|examine|fasten|fetch|fill|find|fit|follow|gather|give|grip|guide|hand|hang|hold|hook|inspect|install|join|label|lay|let|lift|light|line|locate|look|loosen|mark|move|open|pick|place|polish|position|prepare|press|pull|push|reach|read|release|replace|reset|ring|roll|scrape|seal|search|secure|set|slide|smear|smooth|spot|start|stop|strike|switch|take|test|thread|tie|trace|turn|uncoil|unlock|untie|visit|wait|walk|wash|watch|wind|wipe|wrap)\s+\S+/i;
+const isInWorldAction=label=>inWorldAction.test(label)||label.trim().split(/\s+/).length>=4&&!/^(?:a|an|the|this|that)\b/i.test(label)&&!/(?:note|report|log|letter|record|card|route|object|clue|answer|result)$/i.test(label);
+const repeatsFinalAction=(label,finalAction)=>{
+  const words=value=>(String(value).toLowerCase().match(/[a-z]{3,}/g)||[]).filter(word=>!['the','and','with','from','into','onto','over','under','before','after','that','this','then','only','just'].includes(word));
+  const current=words(label),final=words(finalAction);
+  return current[0]&&current[0]===final[0]&&current.slice(1).some(word=>final.slice(1).includes(word));
+};
+const completedOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
+const visibleOutcome=/\b(?:rings?|chimes?|sounds?|starts?|turns?|opens?|glows?|shines?|lights?|catches?|moves?|works?|returns?|arrives?|reaches?|restored|repaired|rescued|saved|delivered|completed|finished|recovered|solved)\b/i;
+const sharedResponse=/\b(?:smiles?|cheers?|celebrates?|thanks?|welcomes?|applauds?|continues?|begins?|sets out|heads home|gathers?|reunites?)\b/i;
+const subjectStop=new Set(['this','that','with','from','into','before','after','using','used','final','first','action','story','discovery','identifies','identify','gives','give','provides','provide','allows','allow','required','requires','complete','completes','mission','team','children','must','which','will','work']);
+const storySubject=(candidate,spec,index)=>{
+  const discovery=candidate.storyFrame?.discoveries?.[index];
+  const source=[discovery?.supportsAction,discovery?.finding,discovery?.consequence,candidate.storyFrame?.purposes?.[index],candidate.storyFrame?.actions?.[0],spec.plan?.stages?.[index]?.scene,spec.plan?.goal]
+    .filter(Boolean).join(' ').toLowerCase();
+  const words=[...new Set((source.match(/[a-z]{4,}/g)||[]).filter(word=>!subjectStop.has(word)&&!featureBanned.test(word)))];
+  return words.slice(0,2).join(' ')||'mission';
+};
+const goalTerms=goal=>new Set((String(goal||'').toLowerCase().match(/[a-z]{4,}/g)||[]).filter(word=>
+  !['find','with','that','from','their','they','then','will','into','before','after','again','help','make','complete','finish','restore','repair','rescue','return','deliver','missing','story','journey'].includes(word)));
+const closesGoal=(label,goal)=>completedOutcome.test(label)&&[...goalTerms(goal)].some(word=>new RegExp(`\\b${word}\\b`,'i').test(label));
+const stableOrderLabels=(candidate,spec,index)=>{
+  const subject=storySubject(candidate,spec,index);
+  return [`Inspect ${subject}`,`Gather ${subject} supplies`,`Prepare ${subject} parts`,`Position ${subject}`].map(value=>fitLabel(value));
+};
+// A preposition or an abstract direction is not an object children can
+// inspect, gather or position. V9's generic replacement could turn a route
+// fragment such as "through front" into four nonsensical printed actions.
+export const invalidStoryOrderAction=(label,finalAction='',goal='')=>
+  typeof label!=='string'||worksheetLanguage.test(label)
+  ||/^(?:compare|match|select|record|sort|write|arrange|decode|number)\b/i.test(label)
+  ||/^(?:check|read)\s+(?:the\s+)?(?:answer|result|code|clue|rule|printed|digit|card|tile)\b/i.test(label)
+  ||/^(?:inspect|gather|prepare|position|collect|attach|place|fit|carry|bring)\s+(?:through|across|over|under|into|at|on|in|from|to|with)\b/i.test(label)
+  ||/\b(?:through|across|over|under|into|at|on|in|from|to|with|the|a|an)$/i.test(label.trim())
+  ||closesGoal(label,goal)||!isInWorldAction(label)
+  ||Boolean(finalAction)&&(label.trim().toLowerCase()===finalAction.trim().toLowerCase()||repeatsFinalAction(label,finalAction));
+
+// Quality v9 treats malformed ordering labels as a formatting defect rather
+// than paying the provider to rewrite the checkpoint. The four replacement
+// labels are derived only from the approved story frame and therefore remain
+// stable across retries. Call this before story grounding so every causal link
+// is written against the exact actions that will appear on paper.
+export function normalizeStoryOrderActions(stages,storyFrame,spec){
+  if((spec.packQualityVersion||0)<9||!Array.isArray(stages))return stages;
+  const normalized=structuredClone(stages),types=paperContractTypes(spec.plan);
+  const candidate={storyFrame,stages:normalized};
+  for(let index=0;index<4;index++){
+    if(types[index]!=='order_tiles')continue;
+    const items=normalized[index]?.material?.items;
+    if(!Array.isArray(items)||items.length!==4)continue;
+    const labels=items.map(item=>typeof item==='string'?item:item?.label);
+    const finalAction=String(storyFrame?.actions?.[0]||'').trim().toLowerCase();
+    const invalid=labels.some(label=>invalidStoryOrderAction(label,finalAction,spec.plan.goal));
+    if(!invalid)continue;
+    if((spec.packQualityVersion||0)>=13)continue;
+    const replacements=stableOrderLabels(candidate,spec,index);
+    normalized[index]={...normalized[index],material:{...normalized[index].material,
+      items:items.map((item,itemIndex)=>typeof item==='string'?replacements[itemIndex]:{...item,label:replacements[itemIndex]})}};
+  }
+  return normalized;
+}
+const shortKeyWord=(value,spec,index,used)=>{
+  if((spec.packQualityVersion||0)>=8){
+    const word=String(value||'').trim().toUpperCase();
+    const generic=new Set(['CODE','CLUE','NOTE','GAME','PLAY','FIND']);
+    const valid=candidate=>/^[A-Z]{4}$/.test(candidate)&&new Set(candidate).size===4&&!used.has(candidate)&&!generic.has(candidate);
+    if(valid(word))return word;
+    // A generic model label is not a reason to discard the entire paid pack.
+    // Prefer an exact four-letter word already present in the approved story.
+    const approved=[spec.plan?.goal,spec.plan?.stages?.[index]?.scene,spec.plan?.stages?.[index]?.storyContext,
+      spec.plan?.opening,spec.customIdea,spec.storyLocation].filter(item=>typeof item==='string');
+    const tokens=approved.flatMap(item=>item.toUpperCase().match(/[A-Z]+/g)||[]);
+    const replacement=tokens.find(valid);
+    if(replacement)return replacement;
+    throw Error(`Checkpoint ${index+1} needs a distinct four-letter story word, not a generic puzzle label.`);
+  }
+  const tokens=[value,spec.plan?.title,spec.customIdea].filter(item=>typeof item==='string').flatMap(item=>item.toUpperCase().match(/[A-Z]+/g)||[]);
+  for(const token of tokens)for(let start=0;start<=token.length-4;start++){
+    const word=token.slice(start,start+4);
+    if(new Set(word).size===4&&!used.has(word))return word;
+  }
+  return ['CLUE','FIND','PATH','LAMP'].find(word=>!used.has(word))||'NOTE';
+};
+export const normalizeStoryCodeWords=(stages,spec)=>{
+  if((spec.packQualityVersion||0)<8)return stages;
+  const types=paperContractTypes(spec.plan),used=new Set();
+  return stages.map((stage,index)=>{
+    if(types[index]!=='symbol_key')return stage;
+    const word=shortKeyWord(stage.word||stage.material?.logic?.context?.word,spec,index,used);
+    used.add(word);
+    return {...stage,word};
+  });
+};
+export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1,qualityVersion=2){
+  const labels=context.labels;
+  const shift=qualityVersion>=3?(number*2+1)%3:number%3;
+  let items,options,answer,clue,hint,explanation,instruction,signature;
+  const winning=(number+1)%3;
+  if(number===5){
+    if(previousDigits.length!==4||previousDigits.some(value=>!['1','2','3'].includes(value)))throw Error('The finale requires all four saved result digits.');
+    const code=previousDigits.join('');
+    const codes=[code,code.slice(0,2)+(String(Number(code[2])%3+1))+code[3],String(Number(code[0])%3+1)+code.slice(1)];
+    answer=0;options=labels.map((label,i)=>`${label} / ${codes[i]}`);
+    items=labels.map((label,i)=>({label,detail:`Final action code: ${codes[i]}`}));
+    items.push({label:'Your saved results',detail:'Checkpoint 1: ____   2: ____   3: ____   4: ____'});
+    instruction='Fill the four blanks using your own recorded results. Read the digits in checkpoint order and compare every digit.';
+    clue='Use your records from checkpoints 1-4. Choose the action whose four-digit code matches all four results in order.';
+    hint='Bring back the four earlier sheets. Check one digit at a time; do not guess from the action name.';
+    explanation=`The saved result digits, in order, are ${code}. Only ${labels[0]} carries this complete code.`;
+    signature='combine-four-results';
+  }else if(type==='order_tiles'){
+    const [a,b,c,d]=labels;
+    const variant=number%3;
+    const rules=variant===0
+      ? [`Before ${b}.`,`After ${a}; before ${c}.`,`After ${b}; before ${d}.`,`After ${c}.`]
+      : variant===1
+      ? ['This step is first.',`Immediately after ${a}.`,`Immediately before ${d}.`,'This step is last.']
+      : [`Before ${b} and ${c}.`,`Before ${c}; after ${a}.`,`Before ${d}.`,`After every other step.`];
+    items=labels.map((label,i)=>({label,detail:rules[i]}));
+    options=[[a,c,b,d],[a,b,c,d],[b,a,d,c]].map(value=>value.join(' > '));answer=1;
+    instruction='Number the four pieces in an order that follows every printed rule. Compare your arrangement with the three choices.';
+    clue='Use every before-and-after rule. Decide the first and last steps, then check the middle pair. Record the result digit for your chosen order.';
+    hint='Find the piece that must come before the others; check every neighbouring pair.';
+    explanation=`Every rule requires ${a} > ${b} > ${c} > ${d}. The other choices break a printed relationship.`;
+    signature=`order-four-steps-${variant}`;
+  }else if(type==='symbol_key'){
+    const word=context.word;
+    const message=qualityVersion>=8?[[1,2,3,4],[2,4,1,3],[3,1,4,2],[4,3,2,1]][(number-1)%4]:[1,2,3,4];
+    items=Array.from({length:4},(_,i)=>({label:String(i+1),detail:word[message.indexOf(i+1)]}));
+    options=[word,(word[0]==='A'?'Z':'A')+word.slice(1),word.slice(0,3)+(word[3]==='A'?'Z':'A')];answer=0;
+    if(!unique(options))throw Error('The printed word needs distinct code choices.');
+    const messageText=message.join('-');
+    instruction=`Write the key letter under each number in the message ${messageText}. Read the letters in that order.`;
+    clue=`The message is ${messageText}. Decode it using all four rows of the printed key, then record the result digit for the matching word.`;
+    hint='Keep the message order. A key row tells you one letter, not the whole answer.';
+    explanation=`The four key rows decode ${messageText} as ${word}. Every other choice changes the printed order.`;
+    signature=`decode-${word}-${messageText}`;
+  }else if(type==='decision_record'&&experienceVersion>=2){
+    const [feature1,feature2]=context.features;
+    const patterns=rotate([[true,true],[true,false],[false,true]],(3-winning)%3);
+    items=labels.map((label,i)=>({label,detail:`${feature1}: ${patterns[i][0]?'YES':'NO'}. ${feature2}: ${patterns[i][1]?'YES':'NO'}. Result digit: ${i+1}.`}));
+    items.push({label:'Witness record 1',detail:`The right choice has ${feature1}: YES.`},{label:'Witness record 2',detail:`The right choice has ${feature2}: YES.`});
+    options=labels;answer=patterns.findIndex(value=>value.every(Boolean));
+    instruction='Read the two witness records, then mark both properties on each candidate. Compare the remaining candidate with the three choices.';
+    clue='Each witness gives one required property. Use both records and the candidate details to find the only match; save its result digit.';
+    hint='One witness leaves two possible candidates. Check the second property before choosing.';
+    explanation=`Only ${labels[answer]} matches both witness properties: ${feature1} and ${feature2}.`;
+    signature=`combine-witness-properties-${context.features.join('-')}`;
+  }else if(type==='decision_record'){
+    const rejected=[0,1,2].filter(i=>i!==winning);
+    items=labels.map((label,i)=>({label,detail:`Candidate ${i+1}. Result digit: ${i+1}.`}));
+    items.push({label:'Witness 1',detail:`I checked the clue. It rules out ${labels[rejected[0]]}.`},{label:'Witness 2',detail:`My separate clue rules out ${labels[rejected[1]]}.`});
+    options=labels;answer=winning;
+    instruction='Read both witness statements. Cross out only the named rejected candidates. Compare the candidate that remains.';
+    clue='Both witnesses are reliable. Use both statements to eliminate candidates. Record the remaining candidate and its printed result digit.';
+    hint='One witness leaves two candidates. You need the other witness before choosing.';
+    explanation=`Witness 1 excludes ${labels[rejected[0]]}; witness 2 excludes ${labels[rejected[1]]}. Only ${labels[winning]} remains.`;
+    signature=`combine-two-exclusions-${winning}`;
+  }else if(type==='route_board'&&experienceVersion>=2){
+    const routes=rotate([['OPEN','OPEN'],['CLOSED','OPEN'],['OPEN','CLOSED']],(3-winning)%3);
+    items=labels.map((label,i)=>({label,detail:`START > ${label} > END. First link: ${routes[i][0]}. Second link: ${routes[i][1]}. Digit: ${i+1}.`}));
+    items.push({label:'Route rule',detail:'Trace from START to END. Both links must be OPEN. A CLOSED link stops the route.'});
+    options=labels;answer=routes.findIndex(value=>value.every(state=>state==='OPEN'));
+    instruction='Trace each branch from START through its named stop to END. Cross out a branch when either printed link is CLOSED.';
+    clue='Only a continuous route reaches END. Trace the first and second link of each branch and record the open route\'s digit.';
+    hint='Start at the left of each branch. A CLOSED link prevents you from reaching END.';
+    explanation=`Only ${labels[answer]} has two OPEN links from START to END. The other branches stop at a CLOSED link.`;
+    signature='trace-open-two-link-path';
+  }else{
+    const [feature1,feature2]=context.features;
+    const patterns=rotate([[true,true],[true,false],[false,true]],(3-winning)%3);
+    items=labels.map((label,i)=>({label,detail:`${feature1}: ${patterns[i][0]?'YES':'NO'}. ${feature2}: ${patterns[i][1]?'YES':'NO'}. Digit: ${i+1}.`}));
+    items.push({label:'Printed rule',detail:`Choose a ${type==='route_board'?'route':'piece'} with YES for both ${feature1} and ${feature2}.`} );
+    options=labels;answer=patterns.findIndex(value=>value.every(Boolean));
+    instruction=type==='route_board'?'Trace the three printed route rows. Compare both required route conditions before choosing.':'Compare the two facts on every evidence piece with the separate printed rule.';
+    clue=`The printed rule requires both ${feature1} and ${feature2}. Check both facts on every ${type==='route_board'?'route':'piece'}, then record its result digit.`;
+    hint='A candidate with just one YES does not pass. Check the other fact as well.';
+    explanation=`Only ${labels[answer]} has YES for both ${feature1} and ${feature2}. Each other candidate fails one requirement.`;
+    signature=type==='route_board'?'trace-two-conditions':`match-two-features-${context.features.join('-')}`;
+  }
+  const digit=String(answer+1);
+  if(number!==5 && ['order_tiles','symbol_key'].includes(type))options=options.map((option,i)=>`${option} / digit ${i+1}`);
+  const material={type,title:context.title,instruction,recordPrompt:number===5?'Record your final action and the four earlier results that prove it.':'Record the chosen result and its digit. Keep this sheet for checkpoint 5.',items,
+    logic:{version:1,contractVersion:1,...(experienceVersion>=2?{experienceVersion:2}:{}),...(qualityVersion>=8?{qualityVersion:8}:qualityVersion>=3?{qualityVersion:3}:{}),context,number,previousDigits,signature,resultDigit:number===5?null:digit}};
+  const task=paperAction(type,number).task;
+  return {number,question:task,evidence:clue,options:rotate(options,shift),answerIndex:(answer-shift+3)%3,material,
+    clue,hint,explanation,task,teamwork:number===5?'Each explorer checks one earlier result. Compare all four before agreeing on the final action.':'One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.',
+    unlock:number===5?'The four discoveries identify the final action. Read the ending together.':`Keep result digit ${digit}. Hand out checkpoint ${number+1}, Player pages ${number*2+2}-${number*2+3}.`};
+}
+
+export function prepareContextualBlueprint(candidate,spec){
+  validatePaperPlan(spec.plan);
+  if(candidate?.stages?.length!==5)throw Error('A five-checkpoint contextual blueprint is required.');
+  candidate={...candidate,stages:normalizeStoryOrderActions(candidate.stages,candidate.storyFrame,spec)};
+  const types=paperContractTypes(spec.plan),digits=[],stages=[];
+  for(let i=0;i<5;i++){
+    const raw=candidate.stages[i],type=types[i],count=i===4?3:type==='order_tiles'?4:type==='symbol_key'?4:3;
+    const usesRecords=spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type);
+    let labels=raw.material?.items?.slice(0,count).map(piece=>{
+      const label=typeof piece==='string'?piece:piece.label;
+      // An order tile is itself an action. Stripping a leading "Check" from
+      // "Check the clapper swing" turned it into the unusable noun "clapper swing".
+      const normalized=spec.packExperienceVersion>=3&&i<4&&!(type==='order_tiles'&&(spec.packQualityVersion||0)>=8)?storyPieceLabel(label):label;
+      return text(usesRecords?recordLabel(normalized):spec.packExperienceVersion>=3?fitLabel(normalized):normalized,'Piece label',40);
+    });
+    if(spec.packExperienceVersion>=3&&i<4&&type==='symbol_key')labels=['1','2','3','4'];
+    if(spec.packExperienceVersion>=3&&i<4&&type==='order_tiles'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|match|select|record|sort|write|arrange|decode|number)\b/i.test(label)||/^(?:check|read)\s+(?:the\s+)?(?:answer|result|code|clue|rule|printed|digit|card|tile)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
+      if((spec.packQualityVersion||0)>=8)throw Error(`Checkpoint ${i+1} ordering pieces must be unfinished in-world actions, not worksheet steps or completed outcomes.`);
+      labels=stableOrderLabels(candidate,spec,i);
+    }
+    if(spec.packExperienceVersion>=3&&i<4&&usesRecords&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number|candidate|option|answer|result|rule)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
+      const subject=storySubject(candidate,spec,i);
+      labels=['Field report','Keeper note','Route log'].map(kind=>recordLabel(`${subject} ${kind}`));
+    }
+    if(spec.packExperienceVersion>=3&&i<4&&type==='route_board'&&labels?.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||closesGoal(label,spec.plan.goal))){
+      const subject=storySubject(candidate,spec,i);
+      labels=['North','Garden','Market'].map(name=>fitLabel(`${name} ${subject} route`));
+    }
+    if(labels?.length!==count||!unique(labels)||labels.some(label=>/^(?:plain fact|rule clue|witness|final action|journey clue)\s+[a-z0-9]+$/i.test(label)))throw Error(`Checkpoint ${i+1} needs ${count} distinct story-specific labels, not placeholder names.`);
+    if((spec.packQualityVersion||0)>=8&&i<4&&type!=='symbol_key'){
+      const scaffold=/^(?:report|note|route|card|record|piece|option)\s+[a-d1-4]\s*:/i;
+      const substance=labels.map(label=>label.replace(scaffold,'').replace(/\s+(?:report|note|route|card|record|log|letter)$/i,'').trim().toLowerCase());
+      if(labels.some(label=>scaffold.test(label))||!unique(substance))
+        throw Error(`Checkpoint ${i+1} needs distinct named story pieces, not lettered placeholders or repeated subjects.`);
+    }
+    if((spec.packQualityVersion||0)>=8&&i<4&&type==='order_tiles'){
+      const finalAction=String(candidate.storyFrame?.actions?.[0]||candidate.stages[4]?.material?.items?.[0]?.label||'').trim().toLowerCase();
+      if((spec.packQualityVersion||0)>=13&&labels.some(label=>invalidStoryOrderAction(label,finalAction,spec.plan.goal)))
+        throw Error(`Checkpoint ${i+1} ordering pieces must be complete, natural unfinished in-world actions tied to real story objects.`);
+      if(labels.some(label=>!isInWorldAction(label)))
+        throw Error(`Checkpoint ${i+1} ordering pieces must each begin with a complete in-world action.`);
+      if(finalAction&&labels.some(label=>label.trim().toLowerCase()===finalAction||repeatsFinalAction(label,finalAction)))
+        throw Error(`Checkpoint ${i+1} cannot perform the final action before the last checkpoint.`);
+    }
+    if(spec.packExperienceVersion>=2&&i<4)assertGoalStillOpen(labels,spec.plan.goal,i+1);
+    if(spec.packExperienceVersion>=2&&i<4&&type!=='symbol_key'&&labels.some(label=>worksheetLanguage.test(label)||/^(?:compare|match|select|record)\s+(?:card|facts|conditions|the printed)\b/i.test(label)))
+      throw Error(`Checkpoint ${i+1} labels must name fictional story pieces or actions, not instructions about the worksheet.`);
+    if(spec.packExperienceVersion>=2&&i<4&&type==='decision_record'&&labels.some(label=>/^(?:candidate|option|answer|result|rule)\b/i.test(label)))
+      throw Error(`Checkpoint ${i+1} witness candidates must name story objects or actions, not the witness notes or answer roles.`);
+    const usesPrintedFeatures=type==='evidence_cards'||type==='decision_record'&&spec.packExperienceVersion>=2||type==='route_board'&&spec.packExperienceVersion<2;
+    let features=usesPrintedFeatures&&i<4?raw.features?.map(value=>text(spec.packExperienceVersion>=3&&['evidence_cards','decision_record'].includes(type)?fitRecordFeature(value):value,`Checkpoint ${i+1} printed feature`,32)):['Checked fact','Matching fact'];
+    if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)&&(features?.some(value=>featureBanned.test(value))||(spec.packQualityVersion||0)>=7&&features?.length===2&&!unique(features))){
+      if((spec.packQualityVersion||0)>=8)throw Error(`Checkpoint ${i+1} needs two concrete, distinct printed record facts; generic features cannot be substituted.`);
+      features=fallbackRecordFeatures(candidate,spec,i);
+    }
+    if(features?.length!==2||!unique(features))throw Error(`Checkpoint ${i+1} needs two distinct story-specific feature names.`);
+    if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)){
+      if(labels.some(label=>!/(?:note|report|log|letter|ledger|record|card|message|ticket|journal|entry|file|memo|clipping|receipt|statement|page|sheet|slip|document)$/i.test(label)))
+        throw Error(`Checkpoint ${i+1} candidates must all be comparable written records.`);
+      if(features.some(value=>!/^(?:Mentions|Names) [A-Za-z]/i.test(value)))
+        throw Error(`Checkpoint ${i+1} printed features must describe the contents of every record.`);
+    }
+    if(spec.packExperienceVersion>=2&&i<4&&['evidence_cards','decision_record'].includes(type)&&features.some(value=>featureBanned.test(value)))
+      throw Error(`Checkpoint ${i+1} needs two concrete story properties, not answer or puzzle-state labels.`);
+    const word=type==='symbol_key'?spec.packExperienceVersion>=3?shortKeyWord(raw.word,spec,i,new Set(stages.filter(stage=>stage.material.type==='symbol_key').map(stage=>stage.material.logic.context.word))):text(raw.word,`Checkpoint ${i+1} printed key word`,4).toUpperCase():'NOTE';
+    if(!/^[A-Z]{4}$/.test(word))throw Error(`Checkpoint ${i+1} printed word must contain four ASCII letters.`);
+    const context={labels,features,word,title:text(raw.material.title,`Checkpoint ${i+1} material title`,45)};
+    const compiled=buildContextPuzzle(i+1,type,context,digits.slice(),spec.packExperienceVersion||1,spec.packQualityVersion||2);
+    const stage={...compiled,title:spec.plan.stages[i].title,mechanic:spec.plan.stages[i].mechanic};
+    stages.push(stage);if(i<4)digits.push(compiled.material.logic.resultDigit);
+  }
+  if((spec.packQualityVersion||0)>=8){
+    const seen=new Map();
+    for(const stage of stages.slice(0,4))if(stage.material.type==='order_tiles'){
+      for(const label of stage.material.logic.context.labels){
+        const key=label.toLowerCase().replace(/\b(?:the|a|an)\b/g,'').replace(/[^a-z]+/g,' ').trim().replace(/\s+/g,' ');
+        if(seen.has(key))throw Error(`Checkpoint ${stage.number} repeats a printed action from checkpoint ${seen.get(key)}.`);
+        seen.set(key,stage.number);
+      }
+    }
+  }
+  if(new Set(stages.slice(0,4).map(stage=>stage.material.logic.signature)).size!==4)throw Error('The first four activities repeat the same puzzle; distinct variations are required.');
+  const spine=spec.packExperienceVersion>=3?validateStorySpine(candidate.spine&&{
+    ...candidate.spine,problem:fitNarrative(candidate.spine.problem,180),
+    links:Array.isArray(candidate.spine.links)?candidate.spine.links.map((link,index)=>{
+      const printed=stages[index].material.logic.context.word,proposed=candidate.stages[index]?.word;
+      const reason=typeof link==='string'?link:link?.reason;
+      const aligned=types[index]==='symbol_key'&&typeof proposed==='string'&&proposed.toUpperCase()!==printed
+        ? String(reason).replace(new RegExp(`\\b${proposed.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'gi'),printed):reason;
+      const fitted=fitNarrative(aligned,180);
+      return typeof link==='string'?fitted:{...link,reason:fitted};
+    }):candidate.spine.links,
+  },stages,types,spec.plan.goal,spec.packQualityVersion||4):null;
+  const usePrintedEnding=spec.plan.stages.some(stage=>stage.scene)||candidate.celebration!==undefined;
+  let celebration=typeof candidate.celebration==='string'&&candidate.celebration.length<=240&&((spec.packQualityVersion||0)>=8||!/witness|evidence|because|decoded words|date rule|clue proves/i.test(candidate.celebration))?text(candidate.celebration,'Celebration',240):'The team celebrates the completed mission.';
+  if((spec.packQualityVersion||0)>=5){
+    const sentences=celebration.match(/[^.!?]+[.!?]+/g)||[];
+    const genericOutcome=/\b(?:mission result|goal (?:is|was) (?:now )?(?:visible|complete)|result (?:is|was) (?:now )?visible|completed mission)\b/i;
+    const unfinishedSentence=/(?:\b(?:and|or|but|because|so|to|for|with|without|before|after|while|the|a|an))\s*["')\]]*[.!?](?:\s|$)/i;
+    if((spec.packQualityVersion||0)>=8){
+      // The editorial audit checks whether the outcome actually fulfils this
+      // particular goal. A short verb allow-list rejected valid outcomes such
+      // as water flowing or a courier handing over a parcel.
+      if(celebration.length<90||sentences.length<2||genericOutcome.test(celebration)||((spec.packQualityVersion||0)>=10&&unfinishedSentence.test(celebration)))
+        throw Error('The ending celebration needs two complete sentences: a concrete result of the final action followed by a character response.');
+    }else if(celebration.length<90||sentences.length<2||!visibleOutcome.test(celebration)||!sharedResponse.test(celebration)||genericOutcome.test(celebration)){
+      if((spec.packQualityVersion||0)<7)throw Error('The ending celebration needs two complete beats: a visible result and a character or community response.');
+      celebration=`The team carries out "${stages[4].material.items[0].label}", and the mission result is now visible to everyone. The whole group cheers and thanks each player for the discoveries they shared.`;
+    }
+  }
+  const ending=spine?`${(spec.packQualityVersion||0)>=8?'':`${spine.problem} `}The four checked results form code ${digits.join('')}, which matches "${spine.resolution}" on the final sheet. ${(spec.packQualityVersion||0)>=8?'':'The team carries out that action. '}${celebration}`:
+    usePrintedEnding?`The four checked results form the code ${digits.join('')}. This code matches "${stages[4].material.items[0].label}" on the final sheet. The team completes that action and reaches its mission goal. ${celebration}`:text(candidate.ending,'Ending',1000);
+  if(!/[.!?]$/.test(ending))throw Error('The ending must be a complete sentence.');
+  return {ending,...(usePrintedEnding?{celebration}:{}),...(spine?{spine}:{}),...(candidate.storyFrame?{storyFrame:candidate.storyFrame}:{}),groupInstructions:spec.setting==='classroom'?'Each crew uses its own complete Player set and keeps its own four result digits. Rotate the four jobs after each checkpoint; the teacher checks each result before releasing the next pages.':'',stages};
+}
+
+export function validateContextualPuzzle(stage){
+  const logic=stage.material?.logic;
+  if(logic?.contractVersion!==1||logic.number!==stage.number)throw Error('The unified paper contract is missing.');
+  const expected=buildContextPuzzle(stage.number,stage.material.type,logic.context,logic.previousDigits,logic.experienceVersion||1,logic.qualityVersion||2);
+  for(const field of ['options','answerIndex','material','task','teamwork','unlock'])if(JSON.stringify(stage[field])!==JSON.stringify(expected[field]))throw Error(`Checkpoint ${stage.number} ${field} differs from its unified paper contract.`);
+  for(const field of ['question','evidence'])if(stage[field]!=null&&stage[field]!==expected[field])throw Error(`Checkpoint ${stage.number} ${field} differs from its unified paper contract.`);
+  const style=stage.logicStyle||'base';
+  const text=contextualStageText(stage,style);
+  for(const field of ['clue','hint','explanation'])if(stage[field]!=null&&stage[field]!==text[field])throw Error(`Checkpoint ${stage.number} ${field} differs from its unified paper contract.`);
+  return stage;
+}
+
+export function contextualStageText(stage,style='base'){
+  const expected=buildContextPuzzle(stage.number||stage.material.logic.number,stage.material.type,stage.material.logic.context,stage.material.logic.previousDigits,stage.material.logic.experienceVersion||1,stage.material.logic.qualityVersion||2);
+  const {clue,hint,explanation}=expected;
+  if(style==='simple')return {clue:`Read the rule aloud. ${clue}`,hint:'Check one printed piece at a time.',explanation};
+  if(style==='guided')return {clue,hint:`${hint} Point to the printed proof.`,explanation};
+  if(style==='clear')return {clue:`Read, compare, then record. ${clue}`,hint,explanation};
+  if(style!=='base')throw Error('Unsupported contract wording.');
+  return {clue,hint,explanation};
+}
+

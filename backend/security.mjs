@@ -45,7 +45,7 @@ export async function verifyAccessToken(secret, token, now = Date.now()) {
     if (!sameBytes(expected, base64urlToBytes(parts[1]))) return null;
     const payload = JSON.parse(new TextDecoder().decode(base64urlToBytes(parts[0])));
     if (!payload || !Number.isInteger(payload.exp) || payload.exp <= Math.floor(now / 1000)) return null;
-    if (!['email-link', 'session'].includes(payload.scope) || typeof payload.emailHash !== 'string') return null;
+    if (!['email-link', 'session', 'creator-preview'].includes(payload.scope) || typeof payload.emailHash !== 'string') return null;
     return payload;
   } catch { return null; }
 }

@@ -1,0 +1,80 @@
+name: Activate Stripe sandbox checkout
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - frontend-prd-v13-2026-10-08
+    paths:
+      - backend/stripe-test-setup.trigger
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-adventure-backend-stage
+  cancel-in-progress: false
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: "1"
+      CLOUDFLARE_ACCOUNT_ID: "77bc392d46985cd3425691358f5e8a77"
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:backend
+      - name: Confirm Stripe key and webhook secrets exist on the isolated Cloudflare Worker
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          npx --yes wrangler@4.74.0 secret list --name paper-adventure-api-stage --format json > "$RUNNER_TEMP/paw-stage-secrets.json"
+          node -e "const fs=require('node:fs');const rows=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-stage-secrets.json','utf8'));const names=new Set(rows.map(item=>item.name));const needed=['STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET'];const missing=needed.filter(name=>!names.has(name));if(missing.length)throw Error('Missing Cloudflare Worker secrets: '+missing.join(', '));console.log('Stripe API and webhook Worker secret names are present')"
+      - name: Read existing stage database ID
+        run: |
+          npx --yes wrangler@4.74.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/paw-d1.json"
+          node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-d1.json','utf8'));const id=d.uuid||d.result?.uuid||d.database?.uuid;if(!/^[0-9a-f-]{36}$/i.test(id||''))throw Error('Stage D1 UUID missing');fs.appendFileSync(process.env.GITHUB_ENV,'PAPER_ADVENTURE_STAGE_D1_ID='+id+'\\n')"
+      - name: Seed test-only prices and deploy
+        run: |
+          node scripts/write-stage-wrangler.mjs
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --file backend/test-checkout-prices.sql --yes
+          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
+      - name: Verify test checkout capability on the real domain
+        run: |
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.status!=='configured_runtime'||v.checkout!==true||v.checkoutMode!=='test'||v.generation!==true||v.proposals!==true||v.legal!==false)throw Error('Stripe sandbox capability not ready: '+JSON.stringify({checkout:v.checkout,checkoutMode:v.checkoutMode,generation:v.generation,proposals:v.proposals,legal:v.legal,testCheckoutChecks:v.testCheckoutChecks}));console.log('Stripe test checkout and AI generation ready; live payment and legal release remain off')})"; then exit 0; fi
+            sleep 3
+          done
+          echo "::error::Stripe sandbox capability did not propagate"
+          exit 1
+      - name: Verify public test catalogue and private order boundary
+        run: |
+          packs_ready=false
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error https://paperadventure.app/api/v1/test-packs | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.packs?.length!==10||v.mode!=='stripe_test')throw Error('Expected ten public sandbox packs');console.log('Ten fixed sandbox packs are publicly listed')})"; then
+              packs_ready=true
+              break
+            fi
+            sleep 3
+          done
+          test "$packs_ready" = true
+          preview_code=$(curl --silent --output /dev/null --write-out '%{http_code}' https://paperadventure.app/api/v1/test-pack-previews/dinosaur/home)
+          test "$preview_code" = 200
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);const n=v.themes?.flatMap(t=>t.id==='celebration'?[]:['home','classroom'].map(k=>t[k]?.readyStatus)).filter(x=>x==='test_ready').length;if(n!==10||v.offers?.filter(x=>x.saleEnabled).length!==4)throw Error('Public sandbox catalogue incomplete: '+JSON.stringify({packs:n,offers:v.offers?.filter(x=>x.saleEnabled).length}));console.log('Public catalogue exposes ten test packs and four test offers')})"
+          anonymous_checkout=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --header 'Origin: https://paperadventure.app' \
+            --header 'Content-Type: application/json' \
+            --header 'Idempotency-Key: public-sandbox-anonymous-check' \
+            --data '{"sku":"ready_home","themeId":"dinosaur","packVersion":"v0.1","email":"adult@example.com"}' \
+            https://paperadventure.app/api/v1/checkout-intents)
+          test "$anonymous_checkout" = 403
+          echo "Public browsing works; a Google session is still required to create an order"

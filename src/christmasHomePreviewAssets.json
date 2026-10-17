@@ -1,0 +1,86 @@
+{
+  "press": {
+    "page": 5,
+    "caption": "Foldable star press paper stand",
+    "excerpt": true,
+    "width": 754,
+    "height": 587
+  },
+  "gifts": {
+    "page": 7,
+    "caption": "Three undecorated foldable gift blanks",
+    "excerpt": true,
+    "width": 970,
+    "height": 673
+  },
+  "gift-blank": {
+    "page": 7,
+    "caption": "One flat gift blank with BACK above FRONT",
+    "excerpt": true,
+    "width": 490,
+    "height": 1070
+  },
+  "gift-front": {
+    "page": 7,
+    "caption": "Blank FRONT below the fold line",
+    "excerpt": true,
+    "width": 490,
+    "height": 537
+  },
+  "fold-guide": {
+    "page": 7,
+    "caption": "Printed fold and tent orientation guide",
+    "excerpt": true,
+    "width": 1563,
+    "height": 450
+  },
+  "fold-shape": {
+    "page": 7,
+    "caption": "Printed side view of the gift with FRONT and BACK",
+    "excerpt": true,
+    "width": 413,
+    "height": 277
+  },
+  "who-title": {
+    "page": 9,
+    "caption": "WHO clue card heading without its clue",
+    "excerpt": true,
+    "width": 345,
+    "height": 35
+  },
+  "ribbon-title": {
+    "page": 9,
+    "caption": "RIBBON clue card heading without its clue",
+    "excerpt": true,
+    "width": 310,
+    "height": 35
+  },
+  "seal-title": {
+    "page": 9,
+    "caption": "SEAL clue card heading without its clue",
+    "excerpt": true,
+    "width": 341,
+    "height": 36
+  },
+  "practice": {
+    "page": 9,
+    "caption": "Separate printed practice gift, not a game answer",
+    "excerpt": true,
+    "width": 233,
+    "height": 123
+  },
+  "frame": {
+    "page": 11,
+    "caption": "Quality check frame without the answer table",
+    "excerpt": true,
+    "width": 1073,
+    "height": 823
+  },
+  "village": {
+    "page": 13,
+    "caption": "Winter village display with all gift spaces empty",
+    "excerpt": true,
+    "width": 1039,
+    "height": 842
+  }
+}

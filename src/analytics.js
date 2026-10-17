@@ -1,5 +1,6 @@
 import { pageFor } from '../shared/page-manifest.mjs';
 import { analyticsConfig } from './analytics-config.js';
+import { isAnalyticsPage } from './analytics-route.mjs';
 
 // No vendor script loads until the privacy release gate and the visitor's
 // explicit choice are both present. Custom events omit form text and queries.
@@ -48,7 +49,7 @@ function loadScript(src, attributes = {}) {
 }
 
 export function startAnalytics() {
-  if (started || !analyticsAvailable() || analyticsChoice() !== 'granted') return;
+  if (started || !analyticsAvailable() || analyticsChoice() !== 'granted' || !isAnalyticsPage(window.location.pathname)) return;
   started = true;
   window.dataLayer = window.dataLayer || [];
   window.gtag = function gtag() { window.dataLayer.push(arguments); };
@@ -67,7 +68,7 @@ export function startAnalytics() {
 }
 
 export function trackPageView() {
-  if (!started) return;
+  if (!started || !isAnalyticsPage(window.location.pathname)) return;
   const page = window.location.pathname;
   if (page === lastPath) return;
   const previous = lastPath ? `${window.location.origin}${lastPath}` : document.referrer;
@@ -80,7 +81,7 @@ export function trackPageView() {
 }
 
 export function trackEvent(name, properties = {}) {
-  if (!started || !/^[a-z][a-z0-9_]{1,39}$/.test(name)) return;
+  if (!started || !isAnalyticsPage(window.location.pathname) || !/^[a-z][a-z0-9_]{1,39}$/.test(name)) return;
   const safe = Object.fromEntries(Object.entries(properties).filter(([key, value]) =>
     /^[a-z_]+$/.test(key) && typeof value === 'string' && /^[a-z0-9_-]{1,40}$/i.test(value)));
   window.gtag('event', name, { ...safe, page_path: window.location.pathname });

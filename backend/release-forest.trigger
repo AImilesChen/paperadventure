@@ -1,0 +1,1 @@
+Activate Forest Home paper post office v1.0 in Stripe test mode after verifying its 16 Player / 10 Host pages and four online PDF slots. Preserve existing forest/home orders and leave other settings unchanged.

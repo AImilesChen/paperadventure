@@ -1,0 +1,2281 @@
+[
+  {
+    "id": "dinosaur",
+    "setting": "home",
+    "title": "The Little Dinosaur's Way Home",
+    "cover": "public/assets/dinosaur.png",
+    "opening": "Follow Milo's prints, rebuild a shuffled six-tile map by matching paths, pack two supplies for uncertain weather, and move him around a closed bridge to the separate camp finish area.",
+    "ending": "Milo reaches the camp finish area by the safe detour: SUN, FERN, FORD and TUNNEL. The team proves its route with the BLOCK marker, BOOTS at the ford, LANTERN at the tunnel and a completed arrival record.",
+    "stages": [
+      {
+        "title": "Read the trail marks",
+        "story": "Circle three matching printed tracks and read SUN.",
+        "answer": "Tracks 1, 3 and 5 spell SUN",
+        "heads": [
+          "Track",
+          "Toes",
+          "Heel",
+          "Notch"
+        ],
+        "rows": [
+          [
+            "1/S",
+            "3",
+            "ROUND",
+            "RIGHT"
+          ],
+          [
+            "2/O",
+            "2",
+            "ROUND",
+            "RIGHT"
+          ],
+          [
+            "3/U",
+            "3",
+            "ROUND",
+            "RIGHT"
+          ],
+          [
+            "4/A",
+            "3",
+            "POINT",
+            "RIGHT"
+          ],
+          [
+            "5/N",
+            "3",
+            "ROUND",
+            "RIGHT"
+          ],
+          [
+            "6/R",
+            "3",
+            "ROUND",
+            "NONE"
+          ]
+        ],
+        "hints": [
+          "Count toes.",
+          "Check heel and notch.",
+          "Circle 1, 3 and 5."
+        ]
+      },
+      {
+        "title": "Rebuild the expedition map",
+        "story": "Fit six shuffled landscape tiles to the board by matching printed path ends; the board's separate CAMP area is beyond C2.",
+        "answer": "Top SUN FERN BRIDGE; bottom HOLLOW FORD TUNNEL",
+        "heads": [
+          "Slot",
+          "Tile"
+        ],
+        "rows": [
+          [
+            "A1",
+            "SUN"
+          ],
+          [
+            "B1",
+            "FERN"
+          ],
+          [
+            "C1",
+            "BRIDGE"
+          ],
+          [
+            "A2",
+            "HOLLOW"
+          ],
+          [
+            "B2",
+            "FORD"
+          ],
+          [
+            "C2",
+            "TUNNEL"
+          ]
+        ],
+        "hints": [
+          "Find NORTH.",
+          "Put SUN top-left and FERN east.",
+          "Top SUN FERN BRIDGE; bottom HOLLOW FORD TUNNEL."
+        ]
+      },
+      {
+        "title": "Pack for the possible detour",
+        "story": "A storm may close the short bridge route. Two backpack slots must cover wet stones and darkness on the safe alternative.",
+        "answer": "BOOTS + LANTERN",
+        "heads": [
+          "Supply",
+          "Use"
+        ],
+        "rows": [
+          [
+            "BOOTS",
+            "FORD"
+          ],
+          [
+            "LANTERN",
+            "TUNNEL"
+          ],
+          [
+            "ROPE",
+            "OPEN BRIDGE ONLY"
+          ],
+          [
+            "SNACK",
+            "NO OBSTACLE"
+          ]
+        ],
+        "hints": [
+          "Read FORD.",
+          "Read TUNNEL.",
+          "Pack BOOTS and LANTERN."
+        ]
+      },
+      {
+        "title": "Follow the changed route",
+        "story": "After the storm, place BLOCK on BRIDGE. Move MILO along matching printed paths and leave used supplies at the obstacles.",
+        "answer": "SUN > FERN > FORD > TUNNEL > CAMP",
+        "heads": [
+          "Tile",
+          "Status"
+        ],
+        "rows": [
+          [
+            "BRIDGE",
+            "CLOSED"
+          ],
+          [
+            "FORD",
+            "BOOTS"
+          ],
+          [
+            "TUNNEL",
+            "LANTERN"
+          ]
+        ],
+        "hints": [
+          "Block BRIDGE.",
+          "Return to FERN.",
+          "Go through FORD and TUNNEL."
+        ]
+      },
+      {
+        "title": "Bring Milo home",
+        "story": "Move Milo into the separate CAMP finish area and fill an arrival proof from the blocked crossing, route and two used supplies.",
+        "answer": "Milo reaches CAMP by the safe detour",
+        "heads": [
+          "Proof",
+          "Result"
+        ],
+        "rows": [
+          [
+            "Route",
+            "SUN-FERN-FORD-TUNNEL-CAMP"
+          ],
+          [
+            "Used at FORD",
+            "BOOTS"
+          ],
+          [
+            "Used at TUNNEL",
+            "LANTERN"
+          ]
+        ],
+        "hints": [
+          "Move to CAMP.",
+          "Show two tokens.",
+          "BOOTS at FORD; LANTERN at TUNNEL."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "space",
+    "setting": "home",
+    "title": "The Lost Space Signal",
+    "opening": "Pip the little robot probe has sent a paper signal from somewhere in the story sky. Find the true message, follow the star map and send a pretend reply. All equipment is made of paper.",
+    "ending": "After the team identifies Probe A using at least two different clues, read: 'Pip received your message. Your team found the true signal by sharing every clue.' Do not require a real transmitter, app, electrical device or online account.",
+    "cover": "public/assets/space.png",
+    "stages": [
+      {
+        "title": "Find the real signal",
+        "story": "The real signal has a ROUND border, THREE waves and ONE square gap at the lower right. Compare all three printed attributes.",
+        "heads": [
+          "Card",
+          "Border",
+          "Waves",
+          "Gap",
+          "Sector"
+        ],
+        "rows": [
+          [
+            "A",
+            "Round",
+            "2",
+            "Square",
+            "VEGA"
+          ],
+          [
+            "B",
+            "Square",
+            "3",
+            "Square",
+            "ALTAIR"
+          ],
+          [
+            "C",
+            "Round",
+            "3",
+            "Square",
+            "ORION"
+          ],
+          [
+            "D",
+            "Round",
+            "3",
+            "None",
+            "NOVA"
+          ]
+        ],
+        "answer": "Card C; ORION",
+        "handoff": "ORION",
+        "used": "Star-map starting sector",
+        "prompts": [
+          "Matching card",
+          "Our sector"
+        ],
+        "next": "Only the star-map route beginning at your sector can lead to a numbered station.",
+        "hints": [
+          "Check border, waves and gap separately.",
+          "All three properties must match at once.",
+          "Card C; give ORION."
+        ],
+        "card_note": "Compare all four pictured signals. Each border, wave count and gap has a matching text label; no colour clue is needed. Keep cards on this page or let an adult cut them.",
+        "why": "Compare the stated conditions with Card C; ORION. Each required field must match; a candidate with one wrong field is rejected."
+      },
+      {
+        "title": "Repair the star map",
+        "story": "Start from the sector in your record. Join strips where the end of one matches the start of another. The useful path ends at a NUMBERED STATION.",
+        "heads": [
+          "Strip",
+          "From",
+          "To"
+        ],
+        "rows": [
+          [
+            "D",
+            "ORION",
+            "RED STAR"
+          ],
+          [
+            "B",
+            "BLUE STAR",
+            "CRESCENT"
+          ],
+          [
+            "E",
+            "RED STAR",
+            "EMPTY FIELD"
+          ],
+          [
+            "C",
+            "CRESCENT",
+            "STATION 7"
+          ],
+          [
+            "A",
+            "ORION",
+            "BLUE STAR"
+          ]
+        ],
+        "answer": "A-B-C; STATION 7",
+        "handoff": "STATION 7",
+        "used": "Paper-device station constraint",
+        "prompts": [
+          "Strip order",
+          "Numbered station"
+        ],
+        "next": "The station number is one of three facts needed to select a paper device.",
+        "hints": [
+          "Match printed end and start names.",
+          "One ORION path ends in EMPTY FIELD; find the numbered station.",
+          "A-B-C; give STATION 7."
+        ],
+        "strip_cards": true,
+        "compact_route_cards": true,
+        "why": "Compare the stated conditions with A-B-C; STATION 7. Each required field must match; a candidate with one wrong field is rejected."
+      },
+      {
+        "title": "Share calibration clues",
+        "story": "Give Guide, Robot and Scout one clue line each. Read every clue aloud and choose one paper device. Guide: use your numbered station. Robot: TWO rings. Scout: TRIANGLE badge.",
+        "heads": [
+          "Device",
+          "Station",
+          "Rings",
+          "Badge",
+          "Code"
+        ],
+        "rows": [
+          [
+            "A",
+            "7",
+            "1",
+            "Triangle",
+            "2"
+          ],
+          [
+            "B",
+            "7",
+            "2",
+            "Triangle",
+            "6"
+          ],
+          [
+            "C",
+            "7",
+            "2",
+            "Circle",
+            "4"
+          ],
+          [
+            "D",
+            "5",
+            "2",
+            "Triangle",
+            "3"
+          ]
+        ],
+        "answer": "Device B; Code 6",
+        "handoff": "Code 6",
+        "used": "Code-6 word dictionary",
+        "prompts": [
+          "Matching paper device",
+          "Its code"
+        ],
+        "next": "Only the dictionary labelled with your device code is used in the paper message.",
+        "hints": [
+          "Let each role read one fact.",
+          "Intersect Station 7, two rings and triangle.",
+          "Device B; give Code 6."
+        ],
+        "role_cards": [
+          [
+            "Guide",
+            "Use the numbered station from your map."
+          ],
+          [
+            "Robot",
+            "The paper device has TWO rings."
+          ],
+          [
+            "Scout",
+            "The paper device has a TRIANGLE badge."
+          ]
+        ],
+        "card_note": "These are paper props. Count rings and compare badge outlines with the three role clues; the printed labels give the same facts.",
+        "why": "Compare the stated conditions with Device B; Code 6. Each required field must match; a candidate with one wrong field is rejected."
+      },
+      {
+        "title": "Decode Pip's message",
+        "story": "Use the code on your chosen paper device. Replace each printed symbol in order using that code's dictionary row. No outside space knowledge is needed.",
+        "heads": [
+          "Symbol",
+          "SUN",
+          "MOON",
+          "STAR",
+          "PATH",
+          "RING"
+        ],
+        "rows": [
+          [
+            "Code 2",
+            "B",
+            "E",
+            "A",
+            "C",
+            "H"
+          ],
+          [
+            "Code 4",
+            "L",
+            "I",
+            "G",
+            "H",
+            "T"
+          ],
+          [
+            "Code 6",
+            "C",
+            "O",
+            "M",
+            "E",
+            "T"
+          ]
+        ],
+        "extra": "Use only your selected device code. Paper message: SUN / MOON / STAR / PATH / RING",
+        "answer": "COMET",
+        "handoff": "COMET",
+        "used": "Final probe label",
+        "prompts": [
+          "Five letters",
+          "The whole word"
+        ],
+        "next": "The decoded word is a label on exactly one fully matching probe record.",
+        "hints": [
+          "Start with the first symbol.",
+          "Keep the printed order when replacing symbols.",
+          "COMET; give the word to players."
+        ],
+        "why": "Compare the stated conditions with COMET. Each required field must match; a candidate with one wrong field is rejected.",
+        "actions": [
+          "Read the device code on your checkpoint 3 record. Find the dictionary card with that SAME code.",
+          "Reader calls the printed message symbols one at a time: SUN, MOON, STAR, PATH, RING.",
+          "Investigator points to each symbol's letter on that single dictionary card. Recorder writes five letters left to right.",
+          "Checker rechecks the code and each lookup. Join the letters into a word and record it; do not take a letter from another code row."
+        ]
+      },
+      {
+        "title": "Send the pretend reply",
+        "story": "Compare your sector, station, code and decoded word with every probe record. Circle the only record matching all four. Tell your grown-up two facts that prove it.",
+        "heads": [
+          "Probe",
+          "Sector",
+          "Station",
+          "Code",
+          "Word"
+        ],
+        "rows": [
+          [
+            "A",
+            "ORION",
+            "7",
+            "6",
+            "COMET"
+          ],
+          [
+            "B",
+            "ORION",
+            "7",
+            "6",
+            "MOON"
+          ],
+          [
+            "C",
+            "ORION",
+            "5",
+            "6",
+            "COMET"
+          ],
+          [
+            "D",
+            "VEGA",
+            "7",
+            "6",
+            "COMET"
+          ],
+          [
+            "E",
+            "ORION",
+            "7",
+            "4",
+            "COMET"
+          ]
+        ],
+        "answer": "Probe A",
+        "handoff": "Host reads Pip's reply card",
+        "used": "Story ending",
+        "prompts": [
+          "Matching probe",
+          "Two supporting clues"
+        ],
+        "next": "Your adult can read Pip's paper reply card.",
+        "hints": [
+          "Use the record sheet, not the illustration.",
+          "Each wrong probe differs in at least one field.",
+          "Probe A; read Pip's reply."
+        ],
+        "why": "Compare the stated conditions with Probe A. Each required field must match; a candidate with one wrong field is rejected."
+      }
+    ]
+  },
+  {
+    "id": "forest",
+    "setting": "home",
+    "title": "The Forest Post Office Mystery",
+    "opening": "A rain shower has blurred one paper parcel label. Help Nori the forest post carrier use postmark and route records to deliver it to the right story character. Every address is fictional.",
+    "ending": "After players identify Delivery Card A with at least two reasons, read Nori's note: 'The label is clear again. Your careful record helped this parcel reach the right story home.' No real address, mailbox or outdoor walk is required.",
+    "cover": "public/assets/forest.png",
+    "stages": [
+      {
+        "title": "Find the matching postmark",
+        "story": "The task postmark has a LEAF border, TWO stars and the weekday TUE. Match all three printed parts.",
+        "heads": [
+          "Card",
+          "Border",
+          "Stars",
+          "Day",
+          "Batch"
+        ],
+        "rows": [
+          [
+            "A",
+            "Leaf",
+            "1",
+            "TUE",
+            "M1"
+          ],
+          [
+            "B",
+            "Leaf",
+            "2",
+            "TUE",
+            "M2"
+          ],
+          [
+            "C",
+            "Moon",
+            "2",
+            "TUE",
+            "M3"
+          ],
+          [
+            "D",
+            "Leaf",
+            "2",
+            "FRI",
+            "M4"
+          ]
+        ],
+        "answer": "Card B; M2",
+        "handoff": "M2",
+        "used": "Route record batch",
+        "prompts": [
+          "Matching card",
+          "Batch mark"
+        ],
+        "next": "Only route strips for your batch belong to the blurred parcel.",
+        "hints": [
+          "Inspect all three postmark properties.",
+          "Border, star count and day must all match.",
+          "Card B; give M2."
+        ],
+        "card_note": "Compare the leaf or moon outline, star count and day together. Each printed label repeats the pictured clue; no colour clue is needed.",
+        "why": "Compare the stated conditions with Card B; M2. Each required field must match; a candidate with one wrong field is rejected."
+      },
+      {
+        "title": "Follow the paper route",
+        "story": "Use ONLY strips carrying your batch mark. Start at POST OFFICE and join matching place names. The useful path ends at a named tree with both colour and words.",
+        "heads": [
+          "Strip",
+          "Batch",
+          "From",
+          "To"
+        ],
+        "rows": [
+          [
+            "D",
+            "M1",
+            "POST OFFICE",
+            "POND"
+          ],
+          [
+            "B",
+            "M2",
+            "BRIDGE",
+            "MOSS LANE"
+          ],
+          [
+            "E",
+            "M1",
+            "POND",
+            "NO MAILBOX"
+          ],
+          [
+            "C",
+            "M2",
+            "MOSS LANE",
+            "BLUE TREE"
+          ],
+          [
+            "A",
+            "M2",
+            "POST OFFICE",
+            "BRIDGE"
+          ]
+        ],
+        "answer": "A-B-C; BLUE TREE",
+        "handoff": "BLUE TREE",
+        "used": "Parcel district",
+        "prompts": [
+          "Strip order",
+          "District name"
+        ],
+        "next": "Take the district name to the parcel-sorting cards.",
+        "hints": [
+          "Keep only the correct batch's strips.",
+          "Join the M2 place names from POST OFFICE to the named tree.",
+          "A-B-C; give BLUE TREE."
+        ],
+        "strip_cards": true,
+        "why": "Compare the stated conditions with A-B-C; BLUE TREE. Each required field must match; a candidate with one wrong field is rejected.",
+        "actions": [
+          "Read your batch mark from checkpoint 1. Investigator separates strips with that SAME batch; park every other batch.",
+          "Start at POST OFFICE. Join FROM/TO names on the remaining strips; lay the chain left to right.",
+          "Checker verifies each join and that the chain ends at a named tree. Do not use an excluded batch to extend the trail.",
+          "Recorder writes the strip letters and the complete district name, including colour; everyone traces the route."
+        ]
+      },
+      {
+        "title": "Share the parcel clues",
+        "story": "Carrier: use your route district. Sorter: the parcel has TWO leaf marks. Keeper: its paper outline is ROUND. Share all three facts before circling a card.",
+        "heads": [
+          "Parcel",
+          "District",
+          "Leaves",
+          "Outline",
+          "Fragment"
+        ],
+        "rows": [
+          [
+            "A",
+            "BLUE TREE",
+            "1",
+            "Round",
+            "N"
+          ],
+          [
+            "B",
+            "BLUE TREE",
+            "2",
+            "Square",
+            "P"
+          ],
+          [
+            "C",
+            "BLUE TREE",
+            "2",
+            "Round",
+            "W4"
+          ],
+          [
+            "D",
+            "POND",
+            "2",
+            "Round",
+            "Q"
+          ]
+        ],
+        "answer": "Parcel C; W4",
+        "handoff": "W4",
+        "used": "Fictional forest map",
+        "prompts": [
+          "Matching parcel",
+          "Address fragment"
+        ],
+        "next": "Your parcel's address fragment and district together identify the recipient marker.",
+        "hints": [
+          "Let each role say a different clue.",
+          "Intersect district, two leaves and round outline.",
+          "Parcel C; give W4."
+        ],
+        "role_cards": [
+          [
+            "Carrier",
+            "Use the district from your paper route."
+          ],
+          [
+            "Sorter",
+            "The parcel has TWO leaf marks."
+          ],
+          [
+            "Keeper",
+            "The parcel has a ROUND paper outline."
+          ]
+        ],
+        "card_note": "The picture and printed labels show the same clues. A grown-up may cut each parcel card, or the group can compare them here.",
+        "why": "Compare the stated conditions with Parcel C; W4. Each required field must match; a candidate with one wrong field is rejected."
+      },
+      {
+        "title": "Repair the story address",
+        "story": "On the fictional forest map, find the block matching BOTH your district and your parcel's fragment.",
+        "heads": [
+          "District",
+          "Fragment",
+          "Recipient marker"
+        ],
+        "rows": [
+          [
+            "BLUE TREE",
+            "W2",
+            "FOX DEN"
+          ],
+          [
+            "BLUE TREE",
+            "W4",
+            "OWL HOUSE"
+          ],
+          [
+            "POND",
+            "W4",
+            "BEAVER HUT"
+          ],
+          [
+            "MOSS LANE",
+            "W4",
+            "RABBIT GATE"
+          ]
+        ],
+        "answer": "OWL HOUSE",
+        "handoff": "OWL HOUSE",
+        "used": "Final delivery card",
+        "prompts": [
+          "Matching map block",
+          "Recipient marker"
+        ],
+        "next": "The recipient marker is the last field in Nori's delivery record.",
+        "hints": [
+          "Look up district and fragment together.",
+          "BLUE TREE has more than one row; inspect the fragment.",
+          "OWL HOUSE; give this marker."
+        ],
+        "card_note": "Keep the four-block map intact. Match the place and printed fragment together before recording a recipient.",
+        "why": "Compare the stated conditions with OWL HOUSE. Each required field must match; a candidate with one wrong field is rejected."
+      },
+      {
+        "title": "Deliver the story parcel",
+        "story": "Compare batch, district, fragment and recipient marker. Circle the only card matching every discovery. Give your grown-up two reasons.",
+        "heads": [
+          "Card",
+          "Batch",
+          "District",
+          "Fragment",
+          "Recipient"
+        ],
+        "rows": [
+          [
+            "A",
+            "M2",
+            "BLUE TREE",
+            "W4",
+            "OWL HOUSE"
+          ],
+          [
+            "B",
+            "M2",
+            "BLUE TREE",
+            "W4",
+            "FOX DEN"
+          ],
+          [
+            "C",
+            "M2",
+            "POND",
+            "W4",
+            "OWL HOUSE"
+          ],
+          [
+            "D",
+            "M1",
+            "BLUE TREE",
+            "W4",
+            "OWL HOUSE"
+          ],
+          [
+            "E",
+            "M2",
+            "BLUE TREE",
+            "W2",
+            "OWL HOUSE"
+          ]
+        ],
+        "answer": "Delivery Card A",
+        "handoff": "Host reads Nori's thank-you note",
+        "used": "Story conclusion",
+        "prompts": [
+          "Matching card",
+          "Two supporting clues"
+        ],
+        "next": "The grown-up can read Nori's paper thank-you note.",
+        "hints": [
+          "Use the record sheet, not the art.",
+          "Every wrong card differs in one field.",
+          "Card A; read Nori's note."
+        ],
+        "why": "Compare the stated conditions with Delivery Card A. Each required field must match; a candidate with one wrong field is rejected."
+      }
+    ]
+  },
+  {
+    "id": "halloween",
+    "setting": "home",
+    "title": "The Missing Pumpkin Light",
+    "opening": "Pip's pretend paper pumpkin lantern has gone dim. Four paper seals can make the festival picture bright again. Find the seals and put them in the order written in the final note. There is no real light or flame.",
+    "ending": "Once the children assemble 5-7-2-3 in the decoded SUN-MOON-HAT-STAR order, unfold a paper picture or read: 'Everyone's clue helped the festival picture shine.' This is a pretend paper-lit ending, never a request to light anything.",
+    "cover": "public/assets/halloween.png",
+    "stages": [
+      {
+        "title": "Find Pip's letter",
+        "story": "Pip's letter has a FOX-shaped seal, TWO stars and a MOON postmark. Find the card matching all three parts.",
+        "heads": [
+          "Letter",
+          "Seal",
+          "Stars",
+          "Postmark",
+          "SUN / Start"
+        ],
+        "rows": [
+          [
+            "A",
+            "Fox",
+            "2",
+            "Sun",
+            "4 / SHED"
+          ],
+          [
+            "B",
+            "Owl",
+            "2",
+            "Moon",
+            "6 / TREE"
+          ],
+          [
+            "C",
+            "Fox",
+            "2",
+            "Moon",
+            "5 / GATE"
+          ],
+          [
+            "D",
+            "Fox",
+            "1",
+            "Moon",
+            "8 / PATH"
+          ]
+        ],
+        "answer": "Letter C; SUN=5 and GATE",
+        "handoff": "SUN 5 / GATE",
+        "used": "Map starting place",
+        "prompts": [
+          "Matching letter",
+          "SUN seal and start"
+        ],
+        "next": "Use the start word on Pip's letter to follow the paper festival map.",
+        "hints": [
+          "Check seal, stars and postmark.",
+          "All three printed properties must match.",
+          "Letter C; give SUN=5 and GATE."
+        ],
+        "card_note": "Compare seal picture, star count and postmark together. The printed labels repeat each visual clue; no colour is needed.",
+        "why": "Compare the stated conditions with Letter C; SUN=5 and GATE. Each required field must match; a candidate with one wrong field is rejected."
+      },
+      {
+        "title": "Repair the festival map",
+        "story": "Use ONLY strips with Pip's GATE start and join matching place names. The useful route reaches PARCEL TABLE, not END.",
+        "heads": [
+          "Strip",
+          "From",
+          "To",
+          "MOON / Batch"
+        ],
+        "rows": [
+          [
+            "D",
+            "GATE",
+            "SHED",
+            "-"
+          ],
+          [
+            "B",
+            "BANNER",
+            "PUMPKIN STAND",
+            "-"
+          ],
+          [
+            "E",
+            "SHED",
+            "END",
+            "-"
+          ],
+          [
+            "C",
+            "PUMPKIN STAND",
+            "PARCEL TABLE",
+            "7 / P3"
+          ],
+          [
+            "A",
+            "GATE",
+            "BANNER",
+            "-"
+          ]
+        ],
+        "answer": "A-B-C; MOON=7 and P3",
+        "handoff": "MOON 7 / P3",
+        "used": "Parcel batch",
+        "prompts": [
+          "Useful strip order",
+          "MOON seal and batch"
+        ],
+        "next": "The parcel batch helps the crew find Pip's decorated paper parcel.",
+        "hints": [
+          "Join names from GATE.",
+          "The SHED path stops; continue to PARCEL TABLE.",
+          "A-B-C; give MOON=7 and P3."
+        ],
+        "strip_cards": true,
+        "why": "Compare the stated conditions with A-B-C; MOON=7 and P3. Each required field must match; a candidate with one wrong field is rejected."
+      },
+      {
+        "title": "Share the parcel clues",
+        "story": "Courier: use the batch from the map. Decorator: look for TWO stripes. Keeper: choose a ROUNDED paper outline. Compare every card.",
+        "heads": [
+          "Parcel",
+          "Batch",
+          "Stripes",
+          "Outline",
+          "HAT seal"
+        ],
+        "rows": [
+          [
+            "A",
+            "P3",
+            "1",
+            "Round",
+            "4"
+          ],
+          [
+            "B",
+            "P3",
+            "2",
+            "Round",
+            "2"
+          ],
+          [
+            "C",
+            "P3",
+            "2",
+            "Square",
+            "6"
+          ],
+          [
+            "D",
+            "P2",
+            "2",
+            "Round",
+            "8"
+          ]
+        ],
+        "answer": "Parcel B; HAT=2",
+        "handoff": "HAT 2 / Parcel B",
+        "used": "Dictionary row on reply",
+        "prompts": [
+          "Matching parcel",
+          "HAT seal"
+        ],
+        "next": "The parcel letter chooses which dictionary row to use on the reply card.",
+        "hints": [
+          "Each role reads a different condition.",
+          "Intersect P3, two stripes and round outline.",
+          "Parcel B; give HAT=2 and row B."
+        ],
+        "role_cards": [
+          [
+            "Courier",
+            "Use the parcel batch from your paper map."
+          ],
+          [
+            "Decorator",
+            "The parcel has TWO stripes."
+          ],
+          [
+            "Keeper",
+            "The parcel has a ROUNDED paper outline."
+          ]
+        ],
+        "card_note": "The picture and printed labels show the same clues. An adult may cut the four choice cards, or players can compare them on this page.",
+        "why": "Compare the stated conditions with Parcel B; HAT=2. Each required field must match; a candidate with one wrong field is rejected."
+      },
+      {
+        "title": "Decode the paper reply",
+        "story": "Use the dictionary ROW labelled with your chosen parcel. Replace the four code words in the printed order. Read the STAR seal value from the same row.",
+        "heads": [
+          "Parcel row",
+          "KITE",
+          "TREE",
+          "ACORN",
+          "FLAG",
+          "STAR value"
+        ],
+        "rows": [
+          [
+            "A",
+            "MOON",
+            "SUN",
+            "HAT",
+            "STAR",
+            "4"
+          ],
+          [
+            "B",
+            "SUN",
+            "MOON",
+            "HAT",
+            "STAR",
+            "3"
+          ],
+          [
+            "C",
+            "STAR",
+            "HAT",
+            "SUN",
+            "MOON",
+            "6"
+          ],
+          [
+            "D",
+            "HAT",
+            "SUN",
+            "STAR",
+            "MOON",
+            "8"
+          ]
+        ],
+        "answer": "Parcel B row; SUN-MOON-HAT-STAR; STAR=3",
+        "handoff": "STAR 3 / SUN-MOON-HAT-STAR",
+        "used": "Final seal order",
+        "prompts": [
+          "Four seal names",
+          "STAR seal value and order"
+        ],
+        "next": "Write each seal's number in the decoded order on the final paper lantern card.",
+        "hints": [
+          "Use the parcel letter, not the first row.",
+          "Replace KITE-TREE-ACORN-FLAG in that order.",
+          "Row B; STAR=3, order SUN-MOON-HAT-STAR."
+        ],
+        "extra": "Encoded reply: KITE / TREE / ACORN / FLAG",
+        "why": "Compare the stated conditions with Parcel B row; SUN-MOON-HAT-STAR; STAR=3. Each required field must match; a candidate with one wrong field is rejected.",
+        "actions": [
+          "Read the chosen parcel LETTER from checkpoint 3. Select the dictionary card with the SAME row letter.",
+          "Reader reads KITE, TREE, ACORN, FLAG in that order. Investigator points to each corresponding seal name on the selected row.",
+          "Recorder writes those four seal names in order. Checker repeats the lookups on the same row.",
+          "Read the STAR value from that row and add it to your record. Keep the ordered seal names for checkpoint 5."
+        ]
+      },
+      {
+        "title": "Complete the paper lantern",
+        "story": "Write each discovered number on its named paper seal. Put the four seals in the order from the reply, then circle the matching four-digit card. No real light is needed.",
+        "heads": [
+          "Card",
+          "Four-digit paper code"
+        ],
+        "rows": [
+          [
+            "A",
+            "5723"
+          ],
+          [
+            "B",
+            "5732"
+          ],
+          [
+            "C",
+            "7523"
+          ],
+          [
+            "D",
+            "5724"
+          ]
+        ],
+        "answer": "Card A; 5723",
+        "handoff": "Host unfolds paper ending",
+        "used": "Story conclusion",
+        "prompts": [
+          "Seal order",
+          "Matching code card"
+        ],
+        "next": "The grown-up can show the safe paper festival picture.",
+        "hints": [
+          "Write seal names before numbers.",
+          "Use SUN=5, MOON=7, HAT=2 and STAR=3 in the decoded order.",
+          "5723; read the paper ending."
+        ],
+        "why": "Compare the stated conditions with Card A; 5723. Each required field must match; a candidate with one wrong field is rejected.",
+        "actions": [
+          "Retrieve your record: copy the SUN value from checkpoint 1, MOON from 2, HAT from 3 and STAR from 4 onto the FOUR named blank seal cards.",
+          "Investigator arranges the seals in the exact seal-name order decoded at checkpoint 4. All four names must be used once.",
+          "Reader reads the four numbers left to right; Recorder joins them into one four-digit code without rearranging them.",
+          "Checker finds that code among the final candidates and asks each player to trace one number to its original clue. Show the code and evidence to your adult."
+        ],
+        "extra_props": [
+          [
+            "SUN SEAL",
+            "Write the discovered value: ______"
+          ],
+          [
+            "MOON SEAL",
+            "Write the discovered value: ______"
+          ],
+          [
+            "HAT SEAL",
+            "Write the discovered value: ______"
+          ],
+          [
+            "STAR SEAL",
+            "Write the discovered value: ______"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "christmas",
+    "setting": "home",
+    "title": "The Christmas Delivery Office",
+    "opening": "A winter gust has stopped the star press. Fold three paper gifts, share wrapping clues, check each design and build a winter village display. No real gift or delivery is needed.",
+    "ending": "When the three decorated gifts and star press stand in the village display, the host shares Owl, Fox and Rabbit's printed reply.",
+    "cover": "public/assets/christmas.png",
+    "mechanic": "folded paper gift workshop with split-information drawing and physical quality check",
+    "stages": [
+      {
+        "title": "Open the star press",
+        "story": "The paper star press has collapsed in a winter gust. The crew folds it into a free-standing workbench sign.",
+        "props": [
+          "foldable star press"
+        ],
+        "actions": [
+          "adult cuts outer edge",
+          "child folds coral centre line",
+          "show the upright five-point star with the centre fold as the top ridge"
+        ],
+        "answer": "upright star and correct ridge; thin paper may rest face-up",
+        "handoff": "the gift blanks can now be made"
+      },
+      {
+        "title": "Make three paper gifts",
+        "story": "Three plain blanks marked A, B and C are waiting. The crew cuts, creases and opens them ready for decoration.",
+        "props": [
+          "A ARCH gift blank",
+          "B LONG gift blank",
+          "C ROUND gift blank"
+        ],
+        "actions": [
+          "adult cuts three outer edges",
+          "children fold each centre line with the decorated front below the fold",
+          "check the front reads upright at the ridge, then open it flat"
+        ],
+        "answer": "three distinct folded blanks",
+        "handoff": "the messenger shares wrapping clues"
+      },
+      {
+        "title": "Share the wrapping plan",
+        "story": "Three clue-holders each know one part of the design. The team combines their spoken information and draws onto the three gift fronts.",
+        "props": [
+          "recipient clue",
+          "ribbon clue",
+          "seal clue",
+          "whole-page drawing guide"
+        ],
+        "actions": [
+          "read all three cards aloud",
+          "draw named icon on each front",
+          "draw ribbon and seal in specified positions"
+        ],
+        "answer": "A Owl star lamp vertical lower left; B Fox scarf horizontal upper right; C Rabbit bell diagonal lower centre",
+        "handoff": "the decorated gifts need a quality check"
+      },
+      {
+        "title": "Check and repair",
+        "story": "A gust tests the gifts. The crew slides a small inspection window across each flat front and corrects any feature that differs.",
+        "props": [
+          "cut-out quality frame",
+          "three clue cards",
+          "eraser"
+        ],
+        "actions": [
+          "slide the small frame window over each mark on A then B then C",
+          "check icon ribbon and seal",
+          "erase and redraw only incorrect marks",
+          "fold each gift with its decorated front upright, or lay thin paper flat"
+        ],
+        "answer": "three fronts match all three clues, upright or laid flat if thin paper slips",
+        "handoff": "the village display is ready"
+      },
+      {
+        "title": "Build the village display",
+        "story": "The crew stands the gifts by the three winter friends and opens a printed thank-you reply.",
+        "props": [
+          "whole winter village display",
+          "three gifts",
+          "star press",
+          "adult-held reply"
+        ],
+        "actions": [
+          "use the earlier WHO clue to match each gift to a friend",
+          "stand or lay the gifts at their friends and set the press beside them",
+          "host reads reply"
+        ],
+        "answer": "A with Owl, B with Fox and C with Rabbit; the press is beside them",
+        "handoff": "complete paper ending"
+      }
+    ]
+  },
+  {
+    "id": "ocean",
+    "setting": "classroom",
+    "title": "The Coral Chart Expedition",
+    "source": "scripts/ocean_classroom_chart.py",
+    "opening": "A gust scatters the research ship's fictional chart. Rebuild it, combine crew observations, repair a copied log and write a checked captain's report.",
+    "ending": "The captain can trust the repaired chart because every observation and correction has printed evidence.",
+    "cover": "public/assets/ocean-classroom-v0.1.webp",
+    "stages": [
+      {
+        "title": "Repair the chart",
+        "story": "Fit four upright chart quarters using the north arrow and four paired edge marks.",
+        "answer": "A1 Kelp Bay; B1 Lighthouse; A2 Channel; B2 Coral Reef. Only check chart seams and orientation in this mission.",
+        "handoff": "assembled chart",
+        "why": "Only this placement matches every seam and the north arrow."
+      },
+      {
+        "title": "Find the survey square",
+        "story": "Frame the square south of Lighthouse and east of Channel.",
+        "answer": "B2",
+        "handoff": "framed B2",
+        "why": "Both independent reference movements meet at B2."
+      },
+      {
+        "title": "Plot the three observations",
+        "story": "Deal three separate crew observations and plot them on the B2 survey board.",
+        "answer": "three fish left; fan centre; striped buoy right",
+        "handoff": "marked survey",
+        "why": "A supplies the fish count; B supplies the fan centre and fish side; C supplies the buoy and its side. All three slips must be combined."
+      },
+      {
+        "title": "Repair the copied log",
+        "story": "Check each copied-log entry against the original slips and repair any error without a preannounced count.",
+        "answer": "three fish, not two; buoy right, not left",
+        "handoff": "corrected log",
+        "why": "Entry A is correct; B and C conflict with the original observations."
+      },
+      {
+        "title": "Write the captain's report",
+        "story": "Author and check a new report from the chart, observations and corrected log.",
+        "answer": "B2; three fish left; fan centre; striped buoy right; two explained repairs",
+        "handoff": "crew-authored report",
+        "why": "Every report fact traces to a physical printed source."
+      }
+    ]
+  },
+  {
+    "id": "museum",
+    "setting": "classroom",
+    "title": "The Mixed-Up Exhibition",
+    "opening": "A fictional museum opens tomorrow, but one exhibit label has wandered away. Your curators must compare marks, case notes and a floor plan to put it back.",
+    "ending": "The exhibit is ready. Visitors can read its correct fictional story because your curators checked every clue.",
+    "cover": "public/assets/museum-classroom-v0.1.webp",
+    "stages": [
+      {
+        "title": "Read the lost ticket",
+        "story": "The ticket shows TWO crescent marks and ONE star. The gallery ledger says: Amber has two crescents and one star; Blue has one crescent and two stars; Green has two crescents and no star.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Amber Gallery | moon-moon-star"
+          ],
+          [
+            "2",
+            "Blue Gallery | moon-star-star"
+          ],
+          [
+            "3",
+            "Green Gallery | moon-moon"
+          ]
+        ],
+        "answer": "Amber Gallery",
+        "handoff": "AMBER",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Where does the ticket belong?"
+        ],
+        "next": "Give the curators AMBER.",
+        "hints": [
+          "Count both kinds of mark.",
+          "Two crescents are not enough without the star.",
+          "Amber matches all three marks."
+        ],
+        "why": "Amber alone matches both crescent count and star count."
+      },
+      {
+        "title": "Walk the gallery route",
+        "story": "The Amber floor plan says: start at the door, go past Case 2, then turn right to the case beside the window. The window-side cases are Case 4 and Case 7; only Case 4 is to the right of Case 2.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Case 2 | beside door"
+          ],
+          [
+            "2",
+            "Case 4 | right of Case 2, by window"
+          ],
+          [
+            "3",
+            "Case 7 | left corridor, by window"
+          ]
+        ],
+        "answer": "Case 4",
+        "handoff": "CASE-4",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which case is on the ticket route?"
+        ],
+        "next": "Give the curators CASE-4.",
+        "hints": [
+          "The destination is not the case you pass.",
+          "Use right and window together.",
+          "Choose Case 4."
+        ],
+        "why": "Case 4 is both right of Case 2 and beside the window."
+      },
+      {
+        "title": "Identify the curious object",
+        "story": "In Case 4, the Object keeper sees a folded wing. The Map keeper's inventory says the object has a round dial. The Label keeper's note says it is made of paper.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Clockwork Kite | folded wing, round dial, paper"
+          ],
+          [
+            "2",
+            "Sun Compass | no wing, round dial, paper"
+          ],
+          [
+            "3",
+            "Silver Moth | folded wing, no dial, metal"
+          ]
+        ],
+        "answer": "Clockwork Kite",
+        "handoff": "KITE",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which invented object fits all three records?"
+        ],
+        "next": "Give the curators KITE.",
+        "hints": [
+          "Each role has one necessary fact.",
+          "Reject objects that fail even one fact.",
+          "Clockwork Kite is the only full match."
+        ],
+        "why": "Only Clockwork Kite has a wing, dial and paper material.",
+        "role_cards": [
+          [
+            "Object keeper",
+            "In Case 4, the object has a folded wing."
+          ],
+          [
+            "Map keeper",
+            "In Case 4, the object has a ROUND dial."
+          ],
+          [
+            "Label keeper",
+            "In Case 4, the object is made of PAPER."
+          ]
+        ]
+      },
+      {
+        "title": "Restore the object label",
+        "story": "The Clockwork Kite record says it is a pretend paper instrument for tracing an imaginary breeze. Do not choose a label about real history or a powered machine.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Label A | A royal metal clock from 1800"
+          ],
+          [
+            "2",
+            "Label B | A pretend paper breeze-tracing kite"
+          ],
+          [
+            "3",
+            "Label C | A motorised weather balloon"
+          ]
+        ],
+        "answer": "Label B",
+        "handoff": "LABEL-B",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which label tells the object's true fictional story?"
+        ],
+        "next": "Give the curators LABEL-B.",
+        "hints": [
+          "Keep the object fictional.",
+          "Look for paper and breeze.",
+          "Label B says both."
+        ],
+        "why": "Label B matches the invented paper object's stated purpose."
+      },
+      {
+        "title": "Complete the exhibition sheet",
+        "story": "The opening sheet needs the gallery, case, object and label already found. A wrong field means visitors would see the wrong exhibit.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Sheet A | Amber / Case 4 / Clockwork Kite / Label B"
+          ],
+          [
+            "2",
+            "Sheet B | Blue / Case 4 / Clockwork Kite / Label B"
+          ],
+          [
+            "3",
+            "Sheet C | Amber / Case 7 / Silver Moth / Label A"
+          ]
+        ],
+        "answer": "Sheet A",
+        "handoff": "EXHIBIT-A",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which opening sheet uses the complete evidence trail?"
+        ],
+        "next": "Use Sheet A and read the ending.",
+        "hints": [
+          "Read your four earlier results in order.",
+          "Check gallery and case first.",
+          "All fields on Sheet A match."
+        ],
+        "why": "Sheet A agrees with each prior result."
+      }
+    ]
+  },
+  {
+    "id": "library",
+    "setting": "classroom",
+    "title": "The Missing Final Chapter",
+    "opening": "A fictional storybook has lost its final page. Each reading group holds a different clue. Put the pages back in order before choosing the ending that fits.",
+    "ending": "The librarian places the recovered page into the book. The story can now be read from beginning to end.",
+    "cover": "public/assets/library-classroom-v0.1.webp",
+    "stages": [
+      {
+        "title": "Follow the index symbol",
+        "story": "The missing book's index slip has a BLUE moon above a small key. Shelf M has blue moon and key; Shelf P has blue star and key; Shelf T has red moon and key.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Shelf M | blue moon + key"
+          ],
+          [
+            "2",
+            "Shelf P | blue star + key"
+          ],
+          [
+            "3",
+            "Shelf T | red moon + key"
+          ]
+        ],
+        "answer": "Shelf M",
+        "handoff": "SHELF-M",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which shelf holds this story?"
+        ],
+        "next": "Give the group SHELF-M.",
+        "hints": [
+          "Match both symbol and colour word.",
+          "A star is not a moon.",
+          "Shelf M has the exact pair."
+        ],
+        "why": "Shelf M matches both the blue moon and key."
+      },
+      {
+        "title": "Find the page bundle",
+        "story": "The Shelf M ledger says the book has SEVEN paper leaves and a violet ribbon. Bundle M7 has seven leaves and violet ribbon; M4 has four leaves; P7 has seven leaves but is on another shelf.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "M7 | seven leaves | violet ribbon"
+          ],
+          [
+            "2",
+            "M4 | four leaves | violet ribbon"
+          ],
+          [
+            "3",
+            "P7 | seven leaves | yellow ribbon"
+          ]
+        ],
+        "answer": "M7",
+        "handoff": "M7",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which bundle should the group open?"
+        ],
+        "next": "Give the group M7.",
+        "hints": [
+          "Keep the shelf letter from the index.",
+          "Count leaves and check ribbon.",
+          "M7 matches every detail."
+        ],
+        "why": "M7 matches shelf, leaf count and ribbon."
+      },
+      {
+        "title": "Put the middle events in order",
+        "story": "The M7 pages say the Lantern is lit before anyone crosses the Bridge. The Garden gate opens only after the crossing. The three role readers each hold one of those facts.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "L | Light the lantern"
+          ],
+          [
+            "2",
+            "B | Cross the bridge"
+          ],
+          [
+            "3",
+            "G | Open the garden"
+          ]
+        ],
+        "answer": "L-B-G",
+        "handoff": "L-B-G",
+        "used": "Next checkpoint",
+        "prompts": [
+          "What is the only possible story order?"
+        ],
+        "next": "Give the group L-B-G.",
+        "hints": [
+          "Find the event that must happen first.",
+          "The Garden cannot precede the Bridge.",
+          "The order is L-B-G."
+        ],
+        "why": "Lantern must precede Bridge, and Garden follows Bridge.",
+        "role_cards": [
+          [
+            "Lantern reader",
+            "The Lantern is lit BEFORE anyone crosses the Bridge."
+          ],
+          [
+            "Bridge reader",
+            "The Bridge crossing happens AFTER the Lantern is lit."
+          ],
+          [
+            "Garden reader",
+            "The Garden gate opens only AFTER the crossing."
+          ]
+        ]
+      },
+      {
+        "title": "Read the final-page index",
+        "story": "The librarian's index maps story orders to page pockets: L-G-B goes to Pocket 2; L-B-G goes to Pocket 9; B-L-G goes to Pocket 5.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Pocket 2 | L-G-B"
+          ],
+          [
+            "2",
+            "Pocket 9 | L-B-G"
+          ],
+          [
+            "3",
+            "Pocket 5 | B-L-G"
+          ]
+        ],
+        "answer": "Pocket 9",
+        "handoff": "PAGE-9",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Where is the missing page?"
+        ],
+        "next": "Give the group PAGE-9.",
+        "hints": [
+          "Use your sequence exactly.",
+          "Do not swap Bridge and Garden.",
+          "Look in Pocket 9."
+        ],
+        "why": "The correct earlier order L-B-G maps to Pocket 9."
+      },
+      {
+        "title": "Choose a fitting ending",
+        "story": "The recovered Page 9 says the group used the lantern to guide friends safely across, then shared a map of the garden. The ending must follow that action without adding a new unexplained quest.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Ending A | They hid the lantern and forgot the garden."
+          ],
+          [
+            "2",
+            "Ending B | They shared the garden map and went home together."
+          ],
+          [
+            "3",
+            "Ending C | A rocket appeared and took everyone to the Moon."
+          ]
+        ],
+        "answer": "Ending B",
+        "handoff": "ENDING-B",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which ending completes this story?"
+        ],
+        "next": "Use Ending B and read the librarian's reply.",
+        "hints": [
+          "The ending should grow from Page 9.",
+          "Avoid new events without clues.",
+          "Ending B continues the shared map story."
+        ],
+        "why": "Ending B follows the recovered page's sharing and group journey."
+      }
+    ]
+  },
+  {
+    "id": "weather",
+    "setting": "classroom",
+    "title": "The Lost Forecast Bulletin",
+    "opening": "The paper observatory lost its fictional bulletin. Three teams each hold one type of symbol card. Compare the printed rules and rebuild the notice.",
+    "ending": "The station posts its pretend bulletin. Every symbol can be checked against the paper key your team used.",
+    "cover": "public/assets/weather-classroom-v0.1.webp",
+    "stages": [
+      {
+        "title": "Choose the observation day",
+        "story": "The station mark is a BLUE triangle above TWO short lines. Day 3 has blue triangle + two lines; Day 1 has blue triangle + one line; Day 5 has red triangle + two lines.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Day 1 | blue triangle, one line"
+          ],
+          [
+            "2",
+            "Day 3 | blue triangle, two lines"
+          ],
+          [
+            "3",
+            "Day 5 | red triangle, two lines"
+          ]
+        ],
+        "answer": "Day 3",
+        "handoff": "DAY-3",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which day belongs to this station mark?"
+        ],
+        "next": "Give the class DAY-3.",
+        "hints": [
+          "Check the triangle and line count.",
+          "Two lines alone do not decide the day.",
+          "Day 3 has both marks."
+        ],
+        "why": "Day 3 matches both the colour word and two lines."
+      },
+      {
+        "title": "Find the map grid",
+        "story": "The date chart gives Day 1 -> A1, Day 3 -> B2, Day 5 -> C3. The answer is a map grid, not a weather prediction.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "A1 | east tower"
+          ],
+          [
+            "2",
+            "B2 | central tower"
+          ],
+          [
+            "3",
+            "C3 | west tower"
+          ]
+        ],
+        "answer": "B2",
+        "handoff": "B2",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which grid should the teams inspect?"
+        ],
+        "next": "Give the class B2.",
+        "hints": [
+          "Bring the exact day from checkpoint 1.",
+          "Read the middle date-chart row.",
+          "Inspect B2."
+        ],
+        "why": "Day 3 maps to B2."
+      },
+      {
+        "title": "Combine the symbol teams",
+        "story": "At B2, Cloud readers report TWO cloud circles. Wind readers report an arrow pointing RIGHT. Rain readers report ONE drop. All three printed facts are needed.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Set A | 2 clouds, right arrow, 1 drop"
+          ],
+          [
+            "2",
+            "Set B | 2 clouds, left arrow, 1 drop"
+          ],
+          [
+            "3",
+            "Set C | 1 cloud, right arrow, 2 drops"
+          ]
+        ],
+        "answer": "Set A",
+        "handoff": "SET-A",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which symbol set matches B2?"
+        ],
+        "next": "Give the class SET-A.",
+        "hints": [
+          "Ask all three teams to speak.",
+          "Check arrow direction after counting symbols.",
+          "Set A is the full match."
+        ],
+        "why": "Set A alone has two clouds, right arrow and one drop.",
+        "role_cards": [
+          [
+            "Cloud reader",
+            "At B2, there are TWO cloud circles."
+          ],
+          [
+            "Wind reader",
+            "At B2, the wind arrow points RIGHT."
+          ],
+          [
+            "Rain reader",
+            "At B2, there is ONE drop."
+          ]
+        ]
+      },
+      {
+        "title": "Put the bulletin strips in order",
+        "story": "For Set A, the station rule says wind is announced first, cloud second and rain last. These are pretend symbol categories, not a real forecast.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "W | wind arrow"
+          ],
+          [
+            "2",
+            "C | cloud circles"
+          ],
+          [
+            "3",
+            "R | rain drop"
+          ]
+        ],
+        "answer": "W-C-R",
+        "handoff": "W-C-R",
+        "used": "Next checkpoint",
+        "prompts": [
+          "What is the correct bulletin order?"
+        ],
+        "next": "Give the class W-C-R.",
+        "hints": [
+          "Find the first and last categories.",
+          "W comes first, R last.",
+          "C belongs between W and R."
+        ],
+        "why": "The printed Set A rule places W before C before R."
+      },
+      {
+        "title": "Post the checked bulletin",
+        "story": "The station posts only a sheet with the day, map grid, complete symbol set and strip order your teams verified.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Sheet A | Day 3 / B2 / Set A / W-C-R"
+          ],
+          [
+            "2",
+            "Sheet B | Day 3 / C3 / Set A / W-C-R"
+          ],
+          [
+            "3",
+            "Sheet C | Day 5 / B2 / Set B / C-W-R"
+          ]
+        ],
+        "answer": "Sheet A",
+        "handoff": "BULLETIN-A",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which sheet is supported by the paper observations?"
+        ],
+        "next": "Use Sheet A and read the station ending.",
+        "hints": [
+          "Check the day before the symbols.",
+          "One wrong field invalidates a bulletin.",
+          "All four fields match Sheet A."
+        ],
+        "why": "Sheet A is the only sheet matching all previous outputs."
+      }
+    ]
+  },
+  {
+    "id": "workshop",
+    "setting": "classroom",
+    "title": "The Great Blueprint Relay",
+    "opening": "The workshop's paper-only pretend machine has lost its display blueprint. Teams need to choose the correct sheet, combine three safety notes and explain the order on paper. Nothing is built or powered.",
+    "ending": "The inventor pins up the checked paper blueprint. Visitors can follow the pretend idea without handling a real tool.",
+    "cover": "public/assets/workshop-classroom-v0.1.webp",
+    "stages": [
+      {
+        "title": "Find the design code",
+        "story": "The inventory slip calls for a TRIANGLE gear mark and TWO square tabs. P7 has triangle gear + two tabs; P4 has triangle gear + one tab; Q7 has circle gear + two tabs.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "P7 | triangle gear, two tabs"
+          ],
+          [
+            "2",
+            "P4 | triangle gear, one tab"
+          ],
+          [
+            "3",
+            "Q7 | circle gear, two tabs"
+          ]
+        ],
+        "answer": "P7",
+        "handoff": "P7",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which paper design code matches?"
+        ],
+        "next": "Give the team P7.",
+        "hints": [
+          "Use both the gear shape and tab count.",
+          "Two tabs without the right gear are not enough.",
+          "P7 matches everything."
+        ],
+        "why": "P7 matches both printed marks."
+      },
+      {
+        "title": "Pick the blueprint sheet",
+        "story": "The P7 register calls for a long base with two round windows. Frame B has both; Frame A has one window; Frame C has two windows but a short base.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Frame A | long base, one window"
+          ],
+          [
+            "2",
+            "Frame B | long base, two windows"
+          ],
+          [
+            "3",
+            "Frame C | short base, two windows"
+          ]
+        ],
+        "answer": "Frame B",
+        "handoff": "FRAME-B",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which drawing belongs to P7?"
+        ],
+        "next": "Give the team FRAME-B.",
+        "hints": [
+          "Keep the P7 register in view.",
+          "Check both base length and window count.",
+          "Choose Frame B."
+        ],
+        "why": "Frame B alone matches the long base and two windows."
+      },
+      {
+        "title": "Share the three constraint cards",
+        "story": "For Frame B, the Designer wants a BLUE paper gear. The Checker needs a SHORT paper belt. The Explainer needs a RED display flag. Compare all three role cards aloud.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Kit 1 | blue gear, long belt, red flag"
+          ],
+          [
+            "2",
+            "Kit 2 | blue gear, short belt, red flag"
+          ],
+          [
+            "3",
+            "Kit 3 | yellow gear, short belt, red flag"
+          ]
+        ],
+        "answer": "Kit 2",
+        "handoff": "KIT-2",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which paper kit fits every role?"
+        ],
+        "next": "Give the team KIT-2.",
+        "hints": [
+          "Each role contributes one condition.",
+          "A single wrong part rejects the kit.",
+          "Kit 2 satisfies all three."
+        ],
+        "why": "Kit 2 has the blue gear, short belt and red flag.",
+        "role_cards": [
+          [
+            "Designer",
+            "For Frame B, use a BLUE paper gear."
+          ],
+          [
+            "Checker",
+            "For Frame B, use a SHORT paper belt."
+          ],
+          [
+            "Explainer",
+            "For Frame B, use a RED display flag."
+          ]
+        ]
+      },
+      {
+        "title": "Order the display cards",
+        "story": "The Kit 2 display rule says: FOLD the paper base first, ALIGN the printed gear symbol next, and TURN the paper instruction card last. These are story cards, not steps for a real mechanism.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "F | fold paper base"
+          ],
+          [
+            "2",
+            "A | align printed symbol"
+          ],
+          [
+            "3",
+            "T | turn instruction card"
+          ]
+        ],
+        "answer": "F-A-T",
+        "handoff": "F-A-T",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which written order belongs on the blueprint?"
+        ],
+        "next": "Give the team F-A-T.",
+        "hints": [
+          "Start with the base.",
+          "Turn the instruction card last.",
+          "Align belongs in the middle."
+        ],
+        "why": "The printed order is fold, align, turn."
+      },
+      {
+        "title": "Complete the display blueprint",
+        "story": "The final sheet must list the correct design code, frame, kit and written card order. Keep this a paper display; no child has to make or operate a device.",
+        "heads": [
+          "Option",
+          "Details"
+        ],
+        "rows": [
+          [
+            "1",
+            "Board A | P7 / Frame B / Kit 2 / F-A-T"
+          ],
+          [
+            "2",
+            "Board B | P7 / Frame C / Kit 2 / F-A-T"
+          ],
+          [
+            "3",
+            "Board C | Q7 / Frame B / Kit 1 / A-F-T"
+          ]
+        ],
+        "answer": "Board A",
+        "handoff": "BLUEPRINT-A",
+        "used": "Next checkpoint",
+        "prompts": [
+          "Which board can the group explain with its evidence?"
+        ],
+        "next": "Use Board A and read the workshop ending.",
+        "hints": [
+          "Read the earlier results aloud.",
+          "Check every field, not only the title.",
+          "Board A agrees with all four checkpoints."
+        ],
+        "why": "Board A carries all four earned results in order."
+      }
+    ]
+  },
+  {
+    "id": "celebration",
+    "setting": "classroom",
+    "title": "The Adventure Club's First Badge",
+    "cover": "public/assets/celebration-classroom-v0.1.jpg",
+    "opening": "A gust scattered the Adventure Club invitation. Each crew rebuilds it, sets a paper welcome table, exchanges private badge clues, makes a foldable paper display badge and passes it clockwise for peer review before the shared welcome.",
+    "ending": "Welcome to the Adventure Club. You rebuilt the invitation, set the table, listened to every keeper and made a badge together. Every crew member helped.",
+    "stages": [
+      {
+        "title": "Rebuild the invitation",
+        "story": "Match the cut-edge marks on four invitation fragments, then read the joined welcome message.",
+        "answer": "OAK side; MAP nearest OAK; BADGE between MAP and PENCIL",
+        "handoff": "Two table-placement clues",
+        "heads": [
+          "Fragment",
+          "Message",
+          "Edge marks"
+        ],
+        "rows": [
+          [
+            "A",
+            "Welcome, Adventure Club!",
+            "circle / triangle"
+          ],
+          [
+            "B",
+            "Meet at the OAK side of the welcome table.",
+            "circle / square"
+          ],
+          [
+            "C",
+            "Put the MAP nearest the OAK mark.",
+            "triangle / diamond"
+          ],
+          [
+            "D",
+            "The BADGE goes between the MAP and PENCIL.",
+            "square / diamond"
+          ]
+        ],
+        "hints": [
+          "Find the greeting.",
+          "Match identical edge marks.",
+          "Read the joined message in order."
+        ],
+        "role_cards": [],
+        "prompts": [
+          "Meeting side",
+          "Two table clues"
+        ],
+        "next": "Use both clues on the welcome-table mat.",
+        "why": "The two printed placement rules are available only after joining the fragments."
+      },
+      {
+        "title": "Set the welcome table",
+        "story": "Move MAP, BADGE and PENCIL tiles onto the three-slot mat using the joined invitation.",
+        "answer": "OAK to GATE: MAP, BADGE, PENCIL",
+        "handoff": "BADGE in the middle",
+        "heads": [
+          "Tile",
+          "Position"
+        ],
+        "rows": [
+          [
+            "MAP",
+            "Nearest OAK"
+          ],
+          [
+            "BADGE",
+            "Between MAP and PENCIL"
+          ],
+          [
+            "PENCIL",
+            "Nearest GATE"
+          ]
+        ],
+        "hints": [
+          "Find the OAK end.",
+          "What sits between two objects?",
+          "MAP, BADGE, PENCIL."
+        ],
+        "role_cards": [],
+        "prompts": [
+          "Order from OAK to GATE"
+        ],
+        "next": "Use the blank badge in the centre.",
+        "why": "The MAP must be first and BADGE between it and PENCIL, leaving one unique order."
+      },
+      {
+        "title": "Share the badge clues",
+        "story": "Four separately dealt keeper clues specify the badge design.",
+        "answer": "COMPASS centre; 2 STARS top; BOOK bottom; HANDS left and right",
+        "handoff": "Completed badge blueprint",
+        "heads": [
+          "Role",
+          "Clue"
+        ],
+        "rows": [
+          [
+            "Reader",
+            "COMPASS centre"
+          ],
+          [
+            "Mover",
+            "2 STARS top"
+          ],
+          [
+            "Recorder",
+            "BOOK bottom"
+          ],
+          [
+            "Checker",
+            "HANDS on both sides"
+          ]
+        ],
+        "hints": [
+          "Hear each holder.",
+          "Check all five positions.",
+          "Use the four printed clue cards."
+        ],
+        "role_cards": [
+          [
+            "Reader",
+            "COMPASS centre"
+          ],
+          [
+            "Mover",
+            "2 STARS top"
+          ],
+          [
+            "Recorder",
+            "BOOK bottom"
+          ],
+          [
+            "Checker",
+            "HANDS on both sides"
+          ]
+        ],
+        "prompts": [
+          "Blueprint and evidence"
+        ],
+        "next": "Use the blueprint to choose paper symbols.",
+        "why": "The task page does not duplicate private clue contents."
+      },
+      {
+        "title": "Make the team badge",
+        "story": "Try nine small labelled symbol squares inside the blank display badge; draw or write the six supported symbols. In low-cut mode, point to symbols instead.",
+        "answer": "COMPASS, two STARS, BOOK, HANDS LEFT and HANDS RIGHT",
+        "handoff": "Completed paper display badge and four retained clue cards",
+        "heads": [
+          "Chosen symbols",
+          "Spare symbols"
+        ],
+        "rows": [
+          [
+            "COMPASS / STAR 1 / STAR 2 / BOOK / HANDS LEFT / HANDS RIGHT",
+            "MOON / KEY / FLAG"
+          ]
+        ],
+        "hints": [
+          "Point to one clue per mark.",
+          "Count both stars.",
+          "Use six supported pieces; leave three spare."
+        ],
+        "role_cards": [],
+        "prompts": [
+          "Badge checked against clue cards"
+        ],
+        "next": "Pass the badge and all four clue cards clockwise for peer review.",
+        "why": "Every placed mark must be supported by one of the four cards."
+      },
+      {
+        "title": "Check and welcome",
+        "story": "Each crew checks the next crew's display badge against its four retained clue cards, offers a repair and welcomes the makers. A lone crew uses the teacher as reviewer.",
+        "answer": "All four checklist lines passed after any friendly repairs",
+        "handoff": "Club welcome",
+        "heads": [
+          "Review",
+          "Evidence"
+        ],
+        "rows": [
+          [
+            "Centre",
+            "Reader clue"
+          ],
+          [
+            "Top",
+            "Mover clue"
+          ],
+          [
+            "Bottom",
+            "Recorder clue"
+          ],
+          [
+            "Both sides",
+            "Checker clue"
+          ]
+        ],
+        "hints": [
+          "Show a source card.",
+          "Compare position and count.",
+          "Repair mismatches, then welcome the crew."
+        ],
+        "role_cards": [],
+        "prompts": [
+          "Peer review message"
+        ],
+        "next": "Teacher reads the Club welcome.",
+        "why": "The ending is a checked physical artifact, not a final multiple-choice card."
+      }
+    ],
+    "source": "scripts/celebration_classroom_badge.py"
+  }
+]

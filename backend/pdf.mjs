@@ -1,5 +1,7 @@
 // Dependency-free English PDF renderer for the first custom-delivery pipeline.
 // It deliberately keeps answers and hints out of the player document.
+import { buildInteractiveGamePdf } from './pdf-interactive.mjs';
+import {applyDeliveryCopy} from './delivery-copy.mjs';
 const encoder = new TextEncoder();
 const ascii = value => String(value ?? '').normalize('NFKD').replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/[^\x20-\x7e]/g, ' ').replace(/\s+/g, ' ').trim();
 const escape = value => ascii(value).replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)');
@@ -17,6 +19,8 @@ function wrap(value, width = 82) {
 }
 
 function documentLines(story, spec, role) {
+  const materials = spec.plan ? 'Printed player pages and pencils.' : spec.materials;
+  const place = spec.place && !/[^\x20-\x7e]/.test(spec.place) ? spec.place : 'Your chosen comfortable supervised space.';
   const lines = [
     ...wrap(story.title, 40).map(text => ({ text, kind: 'title' })),
     { text: `${spec.setting.toUpperCase()} / ${role === 'player' ? 'PLAYER PACK' : spec.setting === 'home' ? 'HOST GUIDE' : 'TEACHER GUIDE'}`, kind: 'sub' },
@@ -30,13 +34,17 @@ function documentLines(story, spec, role) {
     }
   };
   add('The story begins', [story.introduction]);
-  if (role === 'player') add('What you need', [spec.materials || 'Printed pages, paper and pencils. Ask your adult organiser for each new checkpoint after you solve the last one.']);
-  else add('Before you begin', [`Materials: ${spec.materials || 'Printed player pages, paper and pencils.'}`, `Playing place: ${spec.place || 'A comfortable supervised space.'}`, `Players: ${spec.players}${spec.groups ? ` in ${spec.groups} groups` : ''}. Suggested age: ${spec.age}. Print the player pages and keep this answer guide with the adult organiser.`]);
+  if (spec.plan) {
+    add('Your team and mission',[spec.plan.roles,spec.plan.goal]);
+    if (role !== 'player') add('Prepare your adventure',[spec.plan.preparation]);
+  }
+  if (role === 'player') add('What you need', [materials || 'Printed pages, paper and pencils. Ask your adult organiser for each new checkpoint after you solve the last one.']);
+  else add('Before you begin', [`Materials: ${materials || 'Printed player pages, paper and pencils.'}`, `Playing place: ${place}`, `Players: ${spec.players}${spec.groups ? ` in ${spec.groups} groups` : ''}. Suggested age: ${spec.age}. Print the player pages and keep this answer guide with the adult organiser.`]);
   if (spec.setting === 'classroom') add('Group setup', [story.groupInstructions]);
   for (const stage of story.stages) {
     if (role === 'player') lines.push({ text: '', kind: 'pageBreak' });
     const paragraphs = role === 'player'
-      ? [stage.clue, ...stage.options.map((option, i) => `${String.fromCharCode(65 + i)}. ${option}`), 'Our answer: ______________________________']
+      ? [...(stage.task ? [stage.task,`Work together: ${stage.teamwork}`] : []),stage.clue, ...stage.options.map((option, i) => `${String.fromCharCode(65 + i)}. ${option}`), 'Our answer: ______________________________']
       : [`Prerequisite: ${stage.prerequisite}`, `Answer: ${String.fromCharCode(65 + stage.answerIndex)}. ${stage.options[stage.answerIndex]}`, `Why: ${stage.explanation}`, `Gentle hint: ${stage.hint}`, `Unlock for the next stage: ${stage.unlock}`];
     add(`Checkpoint ${stage.number}: ${stage.title}`, paragraphs);
   }
@@ -48,6 +56,8 @@ function documentLines(story, spec, role) {
 
 export function buildGamePdf(story, spec, role) {
   if (!['player', 'guide'].includes(role)) throw new Error('Unknown PDF role');
+  if (spec.packCopyVersion && !story.deliveryCopy) throw new Error('The final printed content has not passed delivery review.');
+  if (spec.gamePackVersion === 2) return buildInteractiveGamePdf(applyDeliveryCopy(story),spec,role);
   const width = spec.paper === 'A4' ? 595 : 612;
   const height = spec.paper === 'A4' ? 842 : 792;
   const top = height - 62;

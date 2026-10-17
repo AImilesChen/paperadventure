@@ -1,0 +1,78 @@
+import { useState } from 'react';
+import assets from './celebrationHomePreviewAssets.json';
+import './celebrationHomeExperience.css';
+
+function Preview({ name, eager = false }) {
+  const item = assets[name]; const src = `/assets/celebration-home-detail-${name}.jpg`;
+  return <figure><a href={src} target="_blank" rel="noopener noreferrer" aria-label={`Enlarge ${item.caption.toLowerCase()} (opens in a new tab)`}><img src={src} alt={item.caption} width={item.width} height={item.height} loading={eager ? undefined : 'lazy'} /></a><figcaption>{item.role === 'guide' ? 'Host Guide' : 'Player Pack'} source · v0.4 · A4 page {item.page} excerpt · {item.caption}.</figcaption></figure>;
+}
+
+const handoutSteps = [
+  ['handout-before', '1 · Prepare', 'The adult keeps the task and letter board together, then cuts only the separate clue rectangles.'],
+  ['handout-cut', '2 · Separate', 'One shared board and three individual clue cards are ready. Each card retains its recipient label.'],
+  ['handout-share', '3 · Share', 'Courier, Spotter and Keeper each receive a clue. They share what they know while Mapper compares the common board and records the agreed result.'],
+];
+
+function HandoutPractice() {
+  const [step, setStep] = useState(0); const current = handoutSteps[step];
+  return <div><div className="birthday-controls" role="group" aria-label="Explore preparing and sharing clue cards">{handoutSteps.map((item, index) => <button type="button" key={item[0]} aria-pressed={step === index} aria-controls="birthday-handout-status" onClick={() => setStep(index)}>{item[1]}</button>)}</div><div className="birthday-handout"><Preview name={current[0]} eager /></div><p id="birthday-handout-status" role="status" aria-live="polite" aria-atomic="true">{current[2]}</p></div>;
+}
+
+function RoutePractice() {
+  const [joined, setJoined] = useState(false);
+  return <div className="birthday-practice"><h4>The previous TO must match the next FROM</h4><div className="birthday-controls" role="group" aria-label="Explore matching route-strip ends"><button type="button" aria-pressed={!joined} aria-controls="birthday-route-status" onClick={() => setJoined(false)}>1 · Compare the ends</button><button type="button" aria-pressed={joined} aria-controls="birthday-route-status" onClick={() => setJoined(true)}>2 · Connect the strips</button></div><div className={`birthday-route-ends${joined ? ' joined' : ''}`}><Preview name="route-to" eager /><Preview name="route-from" eager /></div><p id="birthday-route-status" role="status" aria-live="polite">{joined ? 'These excerpts name the same joining place, so one strip can follow the other. The team still checks where its whole route ends.' : 'Read the TO of one strip and the FROM of the next. Compare the names before adding a connection.'}</p><p className="birthday-source-note">Two anonymous text details from Player page 5. Strip IDs, the starting answer and the complete route remain in the game.</p></div>;
+}
+
+const lookupSteps = [
+  ['1 · Find the row', 'Use CAT as the row in this separate printed practice example. In the game, the team’s chosen label supplies the code mark.'],
+  ['2 · Find the column', 'Find STAR as the column in this practice. The game’s symbol sequence tells the two key holders which columns to inspect.'],
+  ['3 · Say and record', 'The printed practice says: if the crossing cell contains Z, say Z. A teammate records and checks the letter. This is separate from Fenn’s message.'],
+];
+
+function LookupPractice() {
+  const [step, setStep] = useState(0);
+  return <div className="birthday-practice"><span className="eyebrow">SEPARATE PRINTED PRACTICE</span><h4>A row, a column, then a spoken letter</h4><div className="birthday-controls" role="group" aria-label="Explore the neutral lookup practice">{lookupSteps.map((item, i) => <button type="button" key={item[0]} aria-pressed={step === i} aria-controls="birthday-lookup-status" onClick={() => setStep(i)}>{item[0]}</button>)}</div><Preview name="practice" eager /><p id="birthday-lookup-status" role="status" aria-live="polite" aria-atomic="true">{lookupSteps[step][1]}</p></div>;
+}
+
+const demos = [
+  { label: 'Share clues', title: 'Different clues. One shared decision.', body: 'Each holder reads a separate clue. The team compares every condition on the common board before agreeing, and Mapper writes the result on the team trail.' },
+  { label: 'Connect the route', title: 'Make a route you can explain.', body: 'Take turns placing route strips with matching FROM and TO places. Check the end of a branch, try another if needed, then draw the agreed route on the blank map.' },
+  { label: 'Decode together', title: 'Two key holders help one message make sense.', body: 'Spotter holds key I and Keeper holds key II. Courier asks for each symbol in order; its key holder finds and says a letter, and Mapper records it. Both holders use the same code-mark row.' },
+];
+
+export function BirthdayHeroMaterial() {
+  return <figure className="birthday-hero-material"><a href="/assets/celebration-home-detail-record.jpg" target="_blank" rel="noopener noreferrer" aria-label="Enlarge the blank team evidence record (opens in a new tab)"><img src="/assets/celebration-home-detail-record.jpg" alt="Blank paper record for the five delivery checkpoints" width={assets.record.width} height={assets.record.height} /></a><figcaption>A shared paper trail your family fills.<br />Player Pack page 3 excerpt.</figcaption></figure>;
+}
+
+export function BirthdayStoryOpening() {
+  return <section id="story-opening" className="theme-detail-section" aria-labelledby="birthday-story-heading"><div className="theme-detail-heading"><span className="eyebrow">FENN NEEDS A DELIVERY TEAM</span><h2 id="birthday-story-heading">The birthday chest is ready. Its delivery label is missing.</h2><p>Fenn the fox needs your family’s help. Compare letters, rebuild a route, restore the label and decode the delivery place. Keep each result: the final parcel must match the evidence you gathered together.</p></div><div className="birthday-opening-grid"><article><h3>A celebration mystery at your table</h3><p>The chest and delivery places belong to the paper story. No real chest, purchased gift, lock or house search is required.</p><p>The adult reads the scenes and hands out one numbered pile at a time. Players share clues, handle props and explain their choices.</p></article><article><h3>Everyone contributes to the delivery</h3><ul><li><strong>2–6 players per team:</strong> share four jobs, combining or pairing them as needed.</li><li><strong>One additional adult host:</strong> prepare, read, offer hints and check evidence.</li><li><strong>7–12 players:</strong> make two balanced teams, each with its own complete set.</li></ul><p>There is no timer or elimination. Teams can finish at different speeds before the shared celebration ending.</p></article></div></section>;
+}
+
+export function BirthdayCooperativePlay() {
+  const [demo, setDemo] = useState(0); const current = demos[demo];
+  return <section id="crew-play" className="theme-detail-section" aria-labelledby="birthday-play-heading"><div className="theme-detail-heading"><span className="eyebrow">SEE HOW THE FREE GAME PLAYS</span><h2 id="birthday-play-heading">Share what you know. Build a trail of evidence.</h2><p>Explore three moments from the complete five-checkpoint game. These previews show real preparation, blank materials and a separate practice example.</p></div><div className="birthday-demo"><div className="birthday-controls birthday-demo-controls" role="group" aria-label="Explore three delivery-game examples">{demos.map((item, i) => <button type="button" key={item.label} aria-pressed={demo === i} aria-controls="birthday-demo-description" onClick={() => setDemo(i)}><span>{i + 1}</span>{item.label}</button>)}</div><div className="birthday-demo-grid"><div className="birthday-demo-material">{demo === 0 ? <HandoutPractice /> : demo === 1 ? <Preview name="map" eager /> : <div className="birthday-key-headers"><Preview name="key-i" eager /><Preview name="key-ii" eager /><p className="birthday-source-note">Exact key titles and column headers. All letter rows are held back.</p></div>}</div><div><div id="birthday-demo-description" role="status" aria-live="polite" aria-atomic="true"><span className="eyebrow">PAPER PLAY · {current.label.toUpperCase()}</span><h3>{current.title}</h3><p>{current.body}</p></div>{demo === 1 ? <RoutePractice /> : demo === 2 ? <LookupPractice /> : <p className="birthday-answer-note">The Host Guide’s preparation diagram shows the handout process. The actual clue texts and candidate answers stay in the game.</p>}</div></div></div></section>;
+}
+
+export function BirthdayFamilyPlay() {
+  return <section id="family-play" className="theme-detail-section" aria-labelledby="birthday-family-heading"><div className="theme-detail-heading"><span className="eyebrow">FOUR JOBS FOR A FAMILY TEAM</span><h2 id="birthday-family-heading">Read, compare, draw and keep the evidence together.</h2><p>The adult hosts the story and checks explanations. Players share four working jobs through all five checkpoints.</p></div><dl className="birthday-jobs">{[['Courier · Share & report', 'Read the task or symbols, share a clue and present the team’s choice.'], ['Spotter · Compare & look up', 'Check details and route joins; read letters from key I.'], ['Mapper · Draw & record', 'Arrange and draw the route, then record every agreed result.'], ['Keeper · Check & retain', 'Check conditions, read key II and keep solved evidence for the finale.']].map(([job, body]) => <div key={job}><dt>{job}</dt><dd>{body}</dd></div>)}</dl><div className="birthday-grouping"><h3>How the jobs change after checkpoints 1–4</h3><ul><li><strong>2 players:</strong> Courier + Mapper and Spotter + Keeper. Swap the two bundles.</li><li><strong>3 players:</strong> Courier, Spotter, and Mapper + Keeper. Pass the three bundles clockwise.</li><li><strong>4 players:</strong> one job each; pass all four cards clockwise.</li><li><strong>5 players:</strong> pair Courier. <strong>6 players:</strong> pair Courier and Spotter. Within each pair, alternate reading or operating and checking.</li><li><strong>7–12 players:</strong> two balanced teams of 3–6, each with its own complete materials and evidence trail.</li></ul><p>The adult can read with a clue holder, then invite that player to point or explain. A player may dictate while Mapper writes. Pause to hear each person’s check before agreeing.</p></div></section>;
+}
+
+export function BirthdayCrewOutcome() {
+  return <section id="crew-finish" className="theme-detail-section" aria-labelledby="birthday-finish-heading"><div className="theme-detail-heading"><span className="eyebrow">WHAT YOUR FAMILY COMPLETES</span><h2 id="birthday-finish-heading">A delivery supported by the clues you shared.</h2><p>Bring the route, label and decoded message together to explain the final parcel. The host checks the evidence before revealing Fenn’s celebration letter.</p></div><div className="birthday-outcome-grid"><article><span>KEEP THE TRAIL</span><h3>A route and team record</h3><p>Your drawn route and recorded decisions stay beside the materials that support them.</p></article><article><span>EXPLAIN THE DELIVERY</span><h3>A final report and story ending</h3><p>Show where the final facts came from, then hear Fenn’s thanks. Two teams share the ending after each has explained its own result.</p></article><article><span>REMEMBER YOUR TEAM</span><h3>An optional keepsake</h3><p>Name a helpful action, remember a question you worked out together and draw a delivery badge on the included page.</p></article></div></section>;
+}
+
+export function BirthdayDesignIntent() {
+  return <section className="theme-detail-section" aria-labelledby="birthday-intent-heading"><div className="theme-detail-heading"><span className="eyebrow">THE IDEA BEHIND THE ADVENTURE</span><h2 id="birthday-intent-heading">A birthday delivery gives every clue a shared purpose.</h2><p>The story connects five paper decisions: each answer becomes evidence the family needs again. Sharing information and checking a teammate’s work move the delivery forward.</p></div><div className="theme-reasons-grid"><article><span>SHARE INFORMATION</span><p>Separate clues and two key holders give players a reason to listen before choosing.</p></article><article><span>TRY &amp; CHECK</span><p>Route strips and candidate boards make a choice something the team can inspect and explain.</p></article><article><span>FINISH TOGETHER</span><p>The last parcel brings earlier facts together, followed by a shared thanks and an optional teamwork memory.</p></article></div></section>;
+}
+
+export function BirthdaySourcePreviews() {
+  return <div className="birthday-pack-preview"><div><span className="eyebrow">REAL PLAYER PACK MATERIALS</span><h3>Keep the evidence. Tell the story of your delivery.</h3><p>These blank source excerpts show the team trail, final report and optional keepsake. The Host Guide keeps the answers and celebration letter for the adult.</p></div><div className="birthday-pack-page-grid"><Preview name="record" /><Preview name="finish" /></div></div>;
+}
+
+export function BirthdayHostFileCard() {
+  return <article className="theme-file-card"><span>FOR THE ADULT HOST</span><h3>Host Guide</h3><p>Keep this separate from the player pages while you prepare and host the story.</p><ul><li>Print-and-cut checklist and five numbered handout piles</li><li>Read-aloud scenes, evidence checks and three levels of hints</li><li>Exact job changes, reading support and ways to help without choosing for players</li><li>Two celebration letters on the finale sheet, held back until the final report</li></ul></article>;
+}
+
+export function BirthdayPreparation() {
+  return <section className="theme-detail-section theme-prep" aria-labelledby="theme-prep-heading"><div><span className="eyebrow">BEFORE YOU PLAY</span><h2 id="theme-prep-heading">Prepare one paper set for each team.</h2></div><div><p>Choose A4 or US Letter and print single-sided at Actual size / 100%. Use ordinary paper, pencils and adult-handled scissors. Envelopes for the five numbered piles are optional.</p><div className="theme-print-specs"><div><strong>Complete free Home edition v0.4</strong><span>10 Player Pack pages per team and a 12-page Host Guide. The download includes all five checkpoints, answers, hints and the story ending.</span></div><div><strong>Recommended printing: 11 or 21 sheets</strong><span>Read Guide pages 1–11 on screen and print its finale page 12 once. One team: 10 Player sheets + 1 finale sheet = 11. Two teams: 20 Player sheets + 1 finale sheet = 21. Printing the entire Guide instead uses 22 sheets for one team or 32 for two.</span></div><div><strong>21 cut game pieces per team</strong><span>Four jobs, three letter clues, five route strips, three label clues, two whole key tables and four parcel cards. Keep the upper task panels and boards intact. The finale sheet has two letters for the adult to cut separately.</span></div><div><strong>Five numbered piles, then the ending</strong><span>Hand out only the current pile and keep solved evidence beside the team trail. Hold Player page 10 and the finale letters until the final parcel is checked. For two teams, label the backs A/B before cutting and keep their complete sets separate.</span></div></div><p>No real gift, chest, lock, phone or search around the house is needed. Children play with the paper story at a table.</p><p className="theme-prep-note">Preparation and play time will be added after physical print and real-family checks.</p></div></section>;
+}

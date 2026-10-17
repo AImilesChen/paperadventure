@@ -1,0 +1,13 @@
+# Stripe sandbox activation for Paper Adventure
+
+The public domain serves adult Google sign-in and signed-in AI story previews. The Stripe checkout path is **test-only** on the isolated Cloudflare Worker `paper-adventure-api-stage`. On 2026-10-09, both Stripe secrets and the tester email variable were configured, and the deployment and live capability check passed. No live Stripe key is used; live-payment release gates remain off. An actual test-card payment, webhook and generated PDF still need end-to-end verification.
+
+1. In your Stripe account, switch to **Test mode** and get a secret API key beginning with `sk_test_`. In Cloudflare → Workers & Pages → `paper-adventure-api-stage` → Settings → Variables and Secrets, add a **Secret** named `STRIPE_SECRET_KEY` with that value.
+2. In Stripe Workbench → Webhooks, create an event destination for **Your account** using **Snapshot** events (the handler expects full event objects). Endpoint URL: `https://paperadventure.app/api/v1/stripe/webhook`. Subscribe to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.expired`, `checkout.session.async_payment_failed`, and `charge.refunded`. Reveal the **test** endpoint signing secret beginning with `whsec_`; add it to the same Worker as a Secret named `STRIPE_WEBHOOK_SECRET`.
+3. Add the adult Google account email you will use for testing to the same Worker as a Text variable named `STRIPE_TEST_BUYER_EMAIL`. Do not add any of these to the frontend preview Worker or to source code.
+4. The `Activate Stripe sandbox checkout` workflow has run successfully. It checks the two Stripe Secret **names**, preserves the Cloudflare text variable, seeds two **custom** test prices ($14.99 Home and $19.99 Classroom), deploys, and checks the apex health response. GitHub Actions does not read the Stripe Secret values.
+5. Sign in with that Google account, create a custom adventure, choose a free story direction, and continue to the clearly marked Stripe test checkout. Use a Stripe test card from Stripe's documentation. A signed webhook changes the order status and queues DeepSeek generation; completed PDFs appear in My adventures. This tests a complete custom flow without a real charge.
+
+The five other fixed themes are not published paid packs, so they stay unavailable for checkout. This sandbox does not establish real-world tax treatment or publish final paid terms. Those remain separate live-payment release tasks.
+
+Sources: [Stripe API keys](https://docs.stripe.com/keys), [Stripe webhooks](https://docs.stripe.com/webhooks), [Stripe testing](https://docs.stripe.com/testing), [Cloudflare Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).

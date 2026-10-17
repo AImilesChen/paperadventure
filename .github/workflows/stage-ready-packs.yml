@@ -1,0 +1,106 @@
+name: Stage private draft ready packs
+
+on:
+  push:
+    branches:
+      - frontend-prd-v13-2026-10-08
+    paths:
+      - backend/stage-ready.trigger
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-adventure-stage-ready
+  cancel-in-progress: false
+
+jobs:
+  build-drafts:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Install PDF build and audit libraries
+        run: python -m pip install --disable-pip-version-check reportlab pillow pdfplumber pypdf
+      - name: Ensure PDF renderer is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command pdftoppm -ErrorAction SilentlyContinue)) { choco install poppler --yes --no-progress }
+          if (-not (Get-Command pdftoppm -ErrorAction SilentlyContinue)) { throw 'pdftoppm is unavailable' }
+      - name: Generate 76 private draft PDFs and manifests
+        shell: pwsh
+        run: |
+          python scripts/generate_celebration_samples.py
+          python scripts/generate_dinosaur_samples.py
+          python scripts/generate_space_samples.py
+          python scripts/generate_forest_samples.py
+          python scripts/generate_halloween_samples.py
+          python scripts/generate_christmas_samples.py
+          python scripts/generate_independent_classroom_packs.py
+      - name: Audit PDF structure and geometry
+        shell: pwsh
+        run: |
+          python scripts/check_celebration_samples.py
+          python scripts/check_dinosaur_samples.py
+          python scripts/check_space_samples.py
+          python scripts/check_theme_samples.py forest
+          python scripts/check_theme_samples.py halloween
+          python scripts/check_theme_samples.py christmas
+          python scripts/check_classroom_variants.py
+          python scripts/check_role_cards.py
+          python scripts/check_independent_classroom_packs.py
+          python scripts/audit_pdf_layout.py
+          python scripts/build_ready_previews.py
+          node scripts/build-stage-ready-plan.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: private-draft-packs
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            output/pdf/*.pdf
+            output/pdf/variants/*.pdf
+            output/stage-ready-plan.json
+            output/stage-ready.sql
+            output/pdf/layout-audit-v0.1.json
+            output/previews/*.jpg
+            content/*-pdf-manifest.v0.1.json
+            tmp/pdfs/**/*-contact.jpg
+
+  upload-private-stage:
+    needs: build-drafts
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: '1'
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: private-draft-packs
+          path: .
+      - name: Confirm private stage credentials
+        run: test -n "$CLOUDFLARE_API_TOKEN"
+      - name: Upload private PDFs and stage internal records
+        run: node scripts/upload-stage-ready.mjs
+      - name: Confirm paid ready packs remain test-only
+        run: |
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.checkoutMode!=='test')throw Error('Expected Stripe test checkout only');console.log('Checkout remains in Stripe test mode')})"
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.freeSampleThemeId!=='celebration'||v.themes?.some(t=>t.id!=='celebration'&&(['home','classroom'].some(s=>t[s]?.readyStatus==='published'||t[s]?.freeSample))))throw Error('Paid draft pack became a live published pack');console.log('Paid drafts remain test-only; Celebration remains free')})"
+
+

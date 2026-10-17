@@ -1,0 +1,54 @@
+name: Release Celebration Home step-by-step pack
+on:
+  push:
+    branches: [frontend-prd-v13-2026-10-08]
+    paths: [backend/release-home-v04.trigger]
+permissions:
+  contents: read
+concurrency:
+  group: celebration-home-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install reportlab pypdf pdfplumber
+      - run: python scripts/generate_celebration_home_v04.py
+      - run: python scripts/check_celebration_home_v04.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: celebration-home-v04
+          path: output/pdf/celebration-home-*-v0.4-*.pdf
+      - uses: actions/upload-artifact@v4
+        with:
+          name: celebration-home-v04-manifest
+          path: output/pdf/celebration-home-v0.4-manifest.json
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: celebration-home-v04
+          path: output/pdf
+      - uses: actions/download-artifact@v4
+        with:
+          name: celebration-home-v04-manifest
+          path: output/pdf
+      - run: node scripts/release_celebration_home_v04.mjs
+

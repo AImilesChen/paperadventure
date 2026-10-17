@@ -4,6 +4,7 @@
   "main": "./preview-deploy-worker.mjs",
   "compatibility_date": "2026-10-07",
   "workers_dev": true,
+  "services": [{ "binding": "BACKEND_STAGE", "service": "paper-adventure-api-stage" }],
   "assets": {
     "directory": "../dist/client",
     "binding": "ASSETS",

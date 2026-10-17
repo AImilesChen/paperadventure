@@ -1,0 +1,47 @@
+name: Deploy creator API preferences
+on:
+  push:
+    branches: [frontend-prd-v13-2026-10-08]
+    paths: [backend/creator-deploy.trigger]
+permissions:
+  contents: read
+concurrency:
+  group: paper-adventure-backend-stage
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:backend
+      - name: Read existing database identifier
+        run: |
+          npx --yes wrangler@4.74.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/paw-d1.json"
+          node -e "const fs=require('node:fs'); const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-d1.json','utf8')); const id=d.uuid||d.result?.uuid||d.database?.uuid; if(!/^[0-9a-f-]{36}$/i.test(id||'')) throw Error('D1 UUID missing'); fs.appendFileSync(process.env.GITHUB_ENV,'PAPER_ADVENTURE_STAGE_D1_ID='+id+'\n')"
+      - name: Deploy API without changing configured variables or secrets
+        run: |
+          node scripts/write-stage-wrangler.mjs
+          npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
+          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
+      - name: Verify configured runtime
+        run: |
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(!v.generation||v.proposals!==false||!v.paidPlanReview||!v.account)throw Error('Paid creator runtime unavailable: '+s);console.log('Paid creator runtime ready');console.log('Theme cover runtime configured: '+Boolean(v.themeCovers))})"; then exit 0; fi
+            sleep 5
+          done
+          exit 1
+
+
+

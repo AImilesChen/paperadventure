@@ -1,0 +1,90 @@
+{
+  "handout-before": {
+    "role": "guide",
+    "page": 4,
+    "caption": "Letter sheet before cutting",
+    "excerpt": true,
+    "width": 380,
+    "height": 491
+  },
+  "handout-cut": {
+    "role": "guide",
+    "page": 4,
+    "caption": "Retained board and three separate clue cards",
+    "excerpt": true,
+    "width": 380,
+    "height": 491
+  },
+  "handout-share": {
+    "role": "guide",
+    "page": 4,
+    "caption": "Three clue holders and one shared board",
+    "excerpt": true,
+    "width": 381,
+    "height": 491
+  },
+  "map": {
+    "role": "player",
+    "page": 5,
+    "caption": "Blank six-place delivery map",
+    "excerpt": true,
+    "width": 1202,
+    "height": 473
+  },
+  "route-to": {
+    "role": "player",
+    "page": 5,
+    "caption": "One route strip\u2019s TO detail",
+    "excerpt": true,
+    "width": 287,
+    "height": 53
+  },
+  "route-from": {
+    "role": "player",
+    "page": 5,
+    "caption": "Another strip\u2019s matching FROM detail",
+    "excerpt": true,
+    "width": 344,
+    "height": 53
+  },
+  "practice": {
+    "role": "player",
+    "page": 7,
+    "caption": "Separate CAT and STAR lookup practice",
+    "excerpt": true,
+    "width": 1178,
+    "height": 154
+  },
+  "key-i": {
+    "role": "player",
+    "page": 8,
+    "caption": "Key I title and column headers only",
+    "excerpt": true,
+    "width": 1202,
+    "height": 156
+  },
+  "key-ii": {
+    "role": "player",
+    "page": 8,
+    "caption": "Key II title and column headers only",
+    "excerpt": true,
+    "width": 1202,
+    "height": 158
+  },
+  "record": {
+    "role": "player",
+    "page": 3,
+    "caption": "Blank five-checkpoint team evidence record",
+    "excerpt": true,
+    "width": 1202,
+    "height": 711
+  },
+  "finish": {
+    "role": "player",
+    "page": 10,
+    "caption": "Blank delivery report and optional teamwork keepsake",
+    "excerpt": true,
+    "width": 1202,
+    "height": 1201
+  }
+}

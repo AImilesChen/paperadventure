@@ -1,6 +1,10 @@
 # 素材来源与发布边界
 
+**2026-10-09 现况补充：**Celebration Home/Classroom v0.1 已作为清晰标记的免费试玩稿发布，八份 PDF 的字节与 R2 校验通过。下表中的“不得公开下载”描述是发布前历史状态；早期生成素材缺少原始提示词的权利审阅缺口仍须在商业销售前解决。
+
 日期：2026-10-08。这里只记录当前可核查的来源，不将设计原型素材自动视为已通过商业发布审核。
+
+当前公开图、品牌图与内部设计样张的**逐文件尺寸、字节数和 SHA-256**见[素材文件清单](ASSET_FILE_REGISTER.md)。清单由 `scripts/audit_design_assets.py` 从本地实际文件生成，可用于核对设计稿、预览构建和之后的权利审查是否针对同一版本；文件哈希不证明使用许可。
 
 | 素材 | 当前来源/版本 | 用途与限制 |
 | --- | --- | --- |
@@ -8,10 +12,16 @@
 | `../public/brand-wordmark.svg`, `brand-horizontal.svg`, `brand-stacked.svg` | 项目内 SVG，与图标同一几何形 | 交接用组合 Logo；网页导航仍用真实文本加图标，避免标题烘焙。 |
 | `../public/og-image.jpg` | 项目内脚本将现有 Hero 图、品牌图标和文字排成 1200×630 | 分享预览；正式发布前检查社交平台抓取和缓存。 |
 | `../public/assets/hero-workshop.png` | 前期 Codex 原型阶段生成的纸艺 Hero 图；原始生成提示词未保存 | 情绪/品牌图，不代表实际 PDF 成品。商业发布前复核生成来源、角色原创性和图中细节。 |
+| `../public/assets/custom-adventure-workshop-v1.jpg` | 2026-10-10 使用 Codex 内置 imagegen 新生成，并将 1448×1086 PNG 确定性压缩为 394242-byte JPEG（SHA-256 `7F0BD4DA8A2EF9B5A42317AE5A3A6E3D585A96F5981EB3B769639B56ACB90A41`）。提示词：俯视纸艺创作桌，三张抽象故事世界卡、正在绘制的分支路线、待打印线索页；水彩与剪纸质感，浅蓝/奶油色/深蓝/陶土色；无标志、可读文字、屏幕、信封、角色或礼物。 | AI 定制页专属 Hero 概念插画，说明“从想法到纸面故事”；不是 AI 实际交付件或可售 PDF 截图。与首页 Hero 使用不同构图。 |
 | `../public/assets/{celebration,dinosaur,space,forest,halloween,christmas}.png` | 前期 Codex 原型阶段生成的六张世界封面；原始提示词未保存 | 世界灵感图；不是已售内容截图。六图仍需统一裁切、尺寸/加载性能和使用权复核。 |
-| `material-previews/celebration-home-draft.jpg` | 从未公开的 `output/pdf/celebration-H01-player-v0.1-A4.pdf` 第 2 页渲染；详情见 `../content/celebration-pdf-manifest.v0.1.json` | 仅私有设计审阅，已加 DRAFT 标记；不得当作可下载成品在站点公开。 |
-| `material-previews/celebration-classroom-draft.jpg` | 从未公开的 `output/pdf/celebration-C01-player-v0.1-A4.pdf` 第 2 页渲染；同上 | 同上。 |
+| `../public/assets/halloween-friendly-v0.1.jpg` | 2026-10-08 使用 Codex 内置 imagegen 以原 `halloween.png` 为编辑目标生成，项目本地保留高分辨率 PNG；提示与边界见 `THEME_VISUAL_VARIANTS.md` | 新的友好纸艺世界封面候选，网页使用压缩 JPEG；仍非可售 PDF 预览，正式发布前复核权利及儿童感受。 |
+| `../public/assets/winter-classroom-v0.1.jpg` | 2026-10-08 使用 Codex 内置 imagegen 以原 `christmas.png` 为编辑目标生成，项目本地保留高分辨率 PNG；提示与边界见 `THEME_VISUAL_VARIANTS.md` | C06 非特定节庆 Winter 视觉候选；网页课堂故事卡展示压缩 JPEG，对应资料包已有未验收的内部 PDF 草稿。 |
+| `../public/assets/autumn-classroom-v0.1.jpg` | 2026-10-08 使用 Codex 内置 imagegen 以友好万圣节变体为编辑目标生成，项目本地保留高分辨率 PNG；提示与边界见 `THEME_VISUAL_VARIANTS.md` | C05 非特定节庆 Autumn 视觉候选；网页课堂故事卡展示压缩 JPEG，对应资料包已有未验收的内部 PDF 草稿。 |
+| `../public/assets/celebration-classroom-v0.1.jpg` | 2026-10-08 使用 Codex 内置 imagegen 以原 `celebration.png` 为编辑目标生成；项目内保留优化 PNG，原始高分辨率图在 CodexHome 生成目录；来源见 `THEME_VISUAL_VARIANTS.md` | C01 探险俱乐部概念图，用于网页课堂故事卡和内部 PDF 封面，替代不相符的生日礼物封面；仍需正式素材及儿童感受审查。 |
+| `../public/assets/celebration-home-v0.1.jpg` | 2026-10-08 使用 Codex 内置 imagegen 以原 `celebration.png` 为编辑目标生成；项目内保留优化 PNG，原始高分辨率图在 CodexHome 生成目录；来源见 `THEME_VISUAL_VARIANTS.md` | H01 狐狸送信概念图，用于网页 Home 故事卡和内部 PDF 封面；仍需正式素材及儿童感受审查。 |
+| `material-previews/celebration-home-draft.jpg` | 从当前未公开的 `output/pdf/celebration-H01-player-v0.1-A4.pdf` 第 2 页重新渲染；详情见 `../content/celebration-pdf-manifest.v0.1.json` | 仅私有设计审阅；页面本身印有 NOT PLAY-TESTED，不得当作可下载成品在站点公开。 |
+| `material-previews/celebration-classroom-draft.jpg` | 从当前未公开的 `output/pdf/celebration-C01-player-v0.1-A4.pdf` 第 2 页重新渲染；同上 | 同上。 |
 | `../qa-*.png` | 前期 Codex 右侧浏览器原型 QA 截图 | 设计比较证据，不是用户评价或商品材料。 |
-| Nunito Sans / Bree Serif / Phosphor | `package.json` 与 `@fontsource` / 图标包依赖 | 构建内使用。正式对外前核对随包许可证与署名要求。 |
+| Nunito Sans / Bree Serif / Phosphor | 安装包的 `LICENSE` 与 `package.json` 已核对：两款字体为 OFL-1.1，图标包为 MIT；原文复制到 `../public/licenses/` | 构建随字体和图标分发许可证声明；正式发布仍需复核使用方式、字体保留名称和全站第三方依赖清单。 |
 
 当前缺少完整的原始图像提示词、生成模型版本和逐图权利记录。可用 [`PAGE_AND_ASSET_PROMPTS.md`](PAGE_AND_ASSET_PROMPTS.md) 作为**补写的再生成说明**，但不得把它当作原始生成日志。

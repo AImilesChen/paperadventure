@@ -1,0 +1,72 @@
+{
+  "map": {
+    "page": 7,
+    "caption": "Blank six-slot expedition map",
+    "width": 918,
+    "height": 903,
+    "excerpt": true
+  },
+  "backpack": {
+    "page": 10,
+    "caption": "Empty two-slot paper backpack",
+    "width": 1555,
+    "height": 375,
+    "excerpt": true
+  },
+  "choices": {
+    "page": 10,
+    "caption": "Four unselected paper supplies",
+    "width": 729,
+    "height": 463,
+    "excerpt": true
+  },
+  "bridge": {
+    "page": 8,
+    "caption": "One printed bridge tile",
+    "width": 396,
+    "height": 637,
+    "excerpt": true
+  },
+  "block": {
+    "page": 12,
+    "caption": "Printed BLOCK marker",
+    "width": 201,
+    "height": 204,
+    "excerpt": true
+  },
+  "milo": {
+    "page": 12,
+    "caption": "Printed MILO marker",
+    "width": 155,
+    "height": 204,
+    "excerpt": true
+  },
+  "join-right": {
+    "page": 8,
+    "caption": "Right-edge path detail",
+    "width": 94,
+    "height": 152,
+    "excerpt": true
+  },
+  "join-left": {
+    "page": 8,
+    "caption": "Left-edge path detail",
+    "width": 103,
+    "height": 152,
+    "excerpt": true
+  },
+  "record": {
+    "page": 3,
+    "caption": "Blank five-mission expedition record",
+    "width": 1075,
+    "height": 1521,
+    "excerpt": false
+  },
+  "keepsake": {
+    "page": 15,
+    "caption": "Blank expedition drawing area",
+    "width": 916,
+    "height": 677,
+    "excerpt": true
+  }
+}

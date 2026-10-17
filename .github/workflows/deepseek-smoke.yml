@@ -1,0 +1,51 @@
+name: Private DeepSeek story-to-PDF smoke
+
+on:
+  push:
+    branches:
+      - frontend-prd-v13-2026-10-08
+    paths:
+      - backend/deepseek-smoke.trigger
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DEEPSEEK_MODEL: deepseek-flash
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:backend
+      - name: Check private DeepSeek credential
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
+        run: |
+          if [ -z "$DEEPSEEK_API_KEY" ]; then
+            echo "No DeepSeek key found under DEEPSEEK_API_KEY, DEEPSEEK_KEY, or DEEPSEEK_API_TOKEN in this repository's Actions secrets"
+            exit 1
+          fi
+      - name: Generate Home and Classroom PDFs with DeepSeek
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
+        run: node scripts/deepseek-smoke.mjs
+      - name: Bind verified key to isolated stage Worker
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          printf '%s' "$DEEPSEEK_API_KEY" | npx --yes wrangler@4.74.0 secret put DEEPSEEK_API_KEY --name paper-adventure-api-stage
+      - name: Keep public generation disabled
+        run: |
+          curl --fail --silent --show-error https://paper-adventure-api-stage.chenminjian08.workers.dev/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(v.generation||v.proposals||v.checkout)throw Error('Stage release flag unexpectedly enabled');console.log('DeepSeek stage secret configured; public generation remains disabled')})"

@@ -1,10 +1,12 @@
 # Paper Adventure Workshop — UI design handoff
 
+> **2026-10-09 补充交接：**核心用户路径、登录、免费试玩下载与状态设计见 [UI 功能流程与关键页面 v1.4](UI功能流程与关键页面_v1.4.md)；旧交接中的“试玩前不得下载”应读为“正式销售前须审查”，不阻止标明版本的免费试玩稿。现场截图与素材权利仍为待复核。
+
 Updated: 2026-10-08. This package describes the **noindex design preview**, not a released store.
 
 ## Product and chosen direction
 
-- Product baseline: [`../../故事冒险网站_整合PRD_v1.3_商品定价文案合规.md`](../../故事冒险网站_整合PRD_v1.3_商品定价文案合规.md).
+- Product baseline for implementation: [PRD supplement v1.4](../content/PRD补充_v1.4_产品功能与交付边界.md). The earlier integrated PRD v1.3 is retained locally outside this repository as historical source material.
 - Audience: English-first parents, party organisers and teachers in the US and Europe, with global reach planned.
 - Three explored directions: [`01 Story Atlas`](concepts/01-story-atlas.jpg), [`02 Storybook Theatre`](concepts/02-storybook-theatre.jpg), and [`03 Paper Adventure Workshop`](concepts/03-paper-adventure-workshop-selected.jpg). The owner selected direction 03 on 2026-10-07.
 - Selected composition: split hero, light-blue papercraft art, vermilion primary action, then a horizontal story-world gallery with four full cards and part of the next visible at desktop width. The site uses live text and interactive controls over generated raster art.
@@ -13,7 +15,7 @@ Updated: 2026-10-08. This package describes the **noindex design preview**, not 
 
 ## Source and design system
 
-The runnable implementation is in `../src/`; `../index.html` is the entry template. `../scripts/generate-static-pages.mjs` generates 30 route-specific pages in `../dist/client/`, including the home, catalog, theme, pricing, creator, help and legal preview pages. This React/Vite implementation is the working equivalent of the manual's separate `landing.html` and keyword HTML files; it is not a Tailwind/Stitch export.
+The runnable implementation is in `../src/`; `../index.html` is the entry template. `../scripts/generate-static-pages.mjs` generates 31 route-specific pages in `../dist/client/`, including the home, catalog, theme, pricing, creator, help and legal preview pages. This React/Vite implementation is the working equivalent of the manual's separate `landing.html` and keyword HTML files; it is not a Tailwind/Stitch export.
 
 | Element | Current choice |
 | --- | --- |
@@ -42,10 +44,10 @@ Machine-readable handoff values: [`tokens.json`](tokens.json). Reconstructed pro
 
 ## Design and implementation checks
 
-The selected desktop concept and responsive mobile layout were compared in Codex's in-app browser, as recorded in `../design-qa.md`. The 2026-10-08 static build adds favicon, Apple touch icon and social-card references to the generated HTML. `npm run build`, `npm run test:static`, and `npm run test:sites` pass locally. `npm run package:preview` produces `../output/paper-adventure-preview.zip` for Cloudflare upload.
+The selected desktop concept and responsive mobile layout were compared in Codex's in-app browser, as recorded in `../design-qa.md`. The 2026-10-08 static build adds favicon, Apple touch icon and social-card references to the generated HTML. `npm run build`, `npm run test:static`, and `npm run test:sites` passed locally for that build. The GitHub Actions workflow deploys the noindex Cloudflare preview; `npm run package:preview` remains a local packaging command, not evidence of an online release.
 
 The preview still intentionally blocks broad indexing and does not provide real checkout, playable downloads or custom generation. The front-end and release state are detailed in [`../FRONTEND_HANDOFF.md`](../FRONTEND_HANDOFF.md).
 
 ## Remaining review gates
 
-The original first-pass generation prompts and complete asset-rights logs were not preserved; the new prompts are marked as reconstructions. The competitor study verifies current page structure from official sites, but color, typography and mobile composition need screenshots in Codex's right-side browser. Existing QA evidence does not cover every route and state at both viewports; the missing captures are listed in `ROUTE_STATE_MATRIX.md`. The online favicon remains on the old Cloudflare preview until the refreshed ZIP is uploaded and checked. [`project-control.md`](project-control.md) tracks these gates. Stage status: **NEEDS_REVIEW**.
+The original first-pass generation prompts and complete asset-rights logs were not preserved; the new prompts are marked as reconstructions. The competitor study verifies current page structure from official sites, but color, typography and mobile composition need screenshots in Codex's right-side browser. Existing QA evidence does not cover every route and state at both viewports; the missing captures are listed in `ROUTE_STATE_MATRIX.md`. The favicon has been deployed and its URL returned HTTP 200; visual inspection of the browser tab remains outstanding. [`project-control.md`](project-control.md) tracks these gates. Stage status: **NEEDS_REVIEW**.

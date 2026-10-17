@@ -1,0 +1,54 @@
+name: Release complete retail game packs
+on:
+  push:
+    branches: [frontend-prd-v13-2026-10-08]
+    paths: [backend/release-retail.trigger]
+permissions:
+  contents: read
+concurrency:
+  group: retail-game-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install reportlab pypdf pdfplumber pillow
+      - run: python scripts/generate_retail_packs.py
+      - run: python scripts/check_retail_packs.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retail-game-packs
+          path: |
+            output/pdf/*-1.0-*.pdf
+            output/pdf/*-complete-1.0.zip
+            output/pdf/retail-packs-1.0-manifest.json
+            output/pdf/retail-layout-audit.json
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - uses: actions/download-artifact@v4
+        with:
+          name: retail-game-packs
+          path: output/pdf
+      - run: python scripts/build_retail_previews.py
+      - run: node scripts/release_retail_packs.mjs

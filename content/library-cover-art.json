@@ -1,0 +1,14 @@
+{
+  "generator": "built-in image_gen",
+  "assets": [
+    {
+      "path": "public/assets/custom-journey-west-cover-v1.webp",
+      "prompt": "Use case: illustration-story. Asset type: wide 16:9 illustrated cover for a children's printable adventure library card, image only. Primary request: Journey to the West, Eastern Chinese mythology. Scene: a peaceful riverside rest stop on a westward mountain road, stylized ancient Chinese bridge and tiled-roof pavilion, soft swirling cloud shapes. Subjects: the Monkey King with golden staff, a kind robed monk, a pig companion and a quiet monk companion travelling together, a rolled travel document prominent nearby. Charming cut-paper collage with tactile watercolor paper grain and carefully layered silhouettes, polished children's book illustration, warm cream and jade with cinnabar accents and soft blue mountains. Clear recognizable composition at small card size, all main characters and scroll kept inside central 75 percent so a wide crop preserves them. Gentle, curious and inviting; appropriate for ages 6–12. No text, no lettering, no title, no numbers, no UI, no borders, no watermark, no modern franchise designs."
+    },
+    {
+      "path": "public/assets/custom-clock-tower-cover-v1.webp",
+      "prompt": "Use case: illustration-story. Asset type: wide 16:9 illustrated cover for a children's printable adventure library card, image only. Primary request: The clock tower that stopped at noon. Scene: a charming small town square with one tall storybook clock tower, the large clock hands clearly at twelve o'clock, afternoon sunshine. Subjects: clock tower with a clearly recognizable clock face, a small open case with brass gears and a folded map near its base, inviting winding path and paper rooftops. Charming cut-paper collage with tactile watercolor paper grain and carefully layered silhouettes, polished children's book illustration, navy and sky blue with ochre brass and warm cream. Clear readable silhouette at small card size, main clock and objects kept inside central 75 percent so a wide crop preserves them. Gentle curious adventure, appropriate for ages 6–12. Clock face may have twelve simple tick marks only, no numerals. No text, no lettering, no title, no numbers, no UI, no borders, no watermark."
+    }
+  ],
+  "note": "Optimized as WebP without changing the generated composition. Theme illustrations for the library only; not printed puzzle materials."
+}
