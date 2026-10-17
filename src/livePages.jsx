@@ -45,6 +45,16 @@ function CompletePackDownload({ orderId, paper, setting }) {
   return <div className="complete-pack-download"><button type="button" className="button complete-pack-button" disabled={busy} onClick={download}>{busy ? 'Preparing your complete pack…' : 'Download complete game · ZIP'} <DownloadSimple size={20} /></button>{busy && <p role="status">Fetching both {paper === 'Letter' ? 'US Letter' : 'A4'} PDFs…</p>}{notice && <p className="live-note" role="status">{notice}</p>}{error && <Alert>{error} No ZIP is saved unless both PDFs are available.</Alert>}</div>;
 }
 
+function ThemeCoverStatus({order,refresh}) {
+  const [busy,setBusy]=useState(false),[error,setError]=useState('');
+  if(order.product_kind!=='custom'||!order.coverAvailable)return null;
+  if(['queued','submitting','pending'].includes(order.coverStatus))return <p className="live-note" role="status">Your theme cover is being illustrated. Your game can continue normally.</p>;
+  if(order.coverStatus==='failed')return <p className="live-note">The cover could not be completed. Your game and downloads are unaffected.</p>;
+  if(order.coverStatus==='ready')return null;
+  async function create(){setBusy(true);setError('');try{await api('/api/v1/orders/'+order.id+'/cover',{method:'POST'});await refresh();}catch(failure){setError(failure.message);}finally{setBusy(false);}}
+  return <div><button type="button" className="button-quiet" disabled={busy} onClick={create}>{busy?'Requesting cover…':'Create a theme cover'}</button>{error&&<Alert>{error}</Alert>}</div>;
+}
+
 export function LiveAccount({ Link }) {
   const button = useRef(null);
   const [busy, setBusy] = useState(false);
@@ -104,7 +114,7 @@ export function LiveShelf({ Link }) {
   const needsAttention = order => order.product_kind === 'custom' && Boolean(order.paid_at) && (['paid','fulfilling'].includes(order.status) || order.status === 'failed');
   const refresh = () => api('/api/v1/my-orders').then(data => { setOrders(data.orders); if (firstLoad.current) { firstLoad.current = false; if (data.orders.some(needsAttention)) setSection('making'); } setError(''); }).catch(failure => { if (/Sign in|Verify/.test(failure.message)) setNeedsLogin(true); else setError(failure.message); });
   useEffect(() => { refresh(); api('/api/v1/my-draft').then(result => setDraft(result.draft)).catch(() => {}); }, []);
-  useEffect(() => { if (!orders?.some(order => ['paid','fulfilling'].includes(order.status))) return; const timer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 10000); return () => clearInterval(timer); }, [orders]);
+  useEffect(() => { if (!orders?.some(order => ['paid','fulfilling'].includes(order.status)||['queued','submitting','pending'].includes(order.coverStatus))) return; const timer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 10000); return () => clearInterval(timer); }, [orders]);
   async function deleteDraft() {
     if (!window.confirm('Delete this saved planning draft? Your purchased games remain available.')) return;
     try { await api('/api/v1/my-draft', { method: 'DELETE' }); localStorage.removeItem('paw-draft'); setDraft(null); } catch (failure) { setError(failure.message); }
@@ -132,6 +142,7 @@ export function LiveShelf({ Link }) {
             <div className="shelf-game-copy"><span className="eyebrow">{order.setting === 'classroom' ? 'CLASSROOM' : 'HOME'} · {order.product_kind === 'ready' ? 'READY-MADE' : 'AI CUSTOM'}</span><h2>{order.title || 'Your adventure'}</h2>
               <p className={'shelf-status status-' + order.status}>{order.checkoutExpired ? 'Checkout expired · not paid' : order.status === 'failed' && !order.paid_at ? 'Checkout unsuccessful · not paid' : order.status === 'pending_payment' ? 'Unfinished checkout · not paid' : order.status === 'failed' && order.paid_at ? 'Paid · PDF creation stopped · action needed' : order.planStatus === 'needs_help' ? 'Paid · plan generation stopped · action needed' : order.planStatus === 'review' ? 'Paid · personal plan ready for review' : order.planStatus === 'confirmed' ? 'Paid · creating PDFs' : order.paid_at ? 'Paid · ' + (orderLabel[order.status] || order.status) : orderLabel[order.status] || order.status}</p>
               <p className="live-note">Order {order.id.slice(0,8).toUpperCase()} · {order.paid_at ? 'Paid ' + date(order.paid_at) : 'Started ' + date(order.created_at)} · {formatUsd(order.amount_total)}<br />{order.accessExpiresAt && 'Downloads until ' + date(order.accessExpiresAt)}</p>
+              <ThemeCoverStatus order={order} refresh={refresh} />
               {section === 'games' && order.filesReady ? <div className="shelf-downloads"><CompletePackDownload orderId={order.id} paper={downloadPaper} setting={order.setting} /><span className="live-note">Or download individual PDFs:</span><a className="button-quiet" href={'/api/v1/files/' + order.id + '/player?paper=' + downloadPaper}>Player Pack · {downloadPaper === 'Letter' ? 'US Letter' : downloadPaper} <DownloadSimple size={18} /></a><a className="button-quiet" href={'/api/v1/files/' + order.id + '/guide?paper=' + downloadPaper}>{order.setting === 'classroom' ? 'Teacher Guide' : 'Host Guide'} <DownloadSimple size={18} /></a><small>Download both: player activities and separate instructions with answers.</small></div> : section === 'games' && <p className="live-note">Online downloads are unavailable. Check your order for access details.</p>}
               {section === 'making' && order.status === 'failed' && <p className="shelf-action-note">{order.deliveryRetryAvailable ? 'Your PDFs are not ready. Retry on this paid order without another checkout.' : 'Your PDFs are not ready. Open this paid order for assistance or refund review.'}</p>}
               <Link className={section === 'making' ? 'shelf-action' + (order.status === 'failed' ? ' shelf-action-urgent' : '') : 'text-link'} to={'/en/orders/' + order.id + '/'}>{section === 'making' ? order.status === 'failed' ? order.deliveryRetryAvailable ? 'Open order to retry PDF' : 'Open order for help' : order.planStatus === 'needs_help' ? 'Open order and recover plan' : order.planStatus === 'review' ? 'Review and edit your plan' : 'View order progress' : 'Order details'} <ArrowRight size={18} /></Link>
