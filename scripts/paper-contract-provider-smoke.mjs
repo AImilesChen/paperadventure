@@ -1,9 +1,12 @@
 import {mkdir,writeFile,readFile,readdir} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
+import {DatabaseSync} from 'node:sqlite';
 import {validatePurchase} from '../backend/domain.mjs';
 import {generateSinglePlan} from '../backend/plan-proposals.mjs';
 import {repairBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,
   generateBlueprintFrameStep,generateBlueprintMaterialStep,generateBlueprintClosingStep,assembleBlueprintSteps} from '../backend/staged-story.mjs';
 import {buildGamePdf} from '../backend/pdf.mjs';
+import {ensureDeliveryCopy} from '../backend/delivery-copy-service.mjs';
 import {verifyPrintedPuzzles} from '../backend/paper-proof.mjs';
 import {clockSpec as checkedClockSpec} from '../content/paper-contract-qa.mjs';
 
@@ -20,6 +23,14 @@ const cases=[
 ];
 const selectedIds=new Set(String(process.env.SMOKE_CASE_IDS||'home-clock').split(',').map(value=>value.trim()).filter(Boolean));
 const maxProviderCalls=Number(process.env.SMOKE_MAX_PROVIDER_CALLS||12);
+function deliveryDatabase(orderId){
+  const db=new DatabaseSync(':memory:');
+  db.exec('CREATE TABLE orders (id TEXT PRIMARY KEY);');
+  db.prepare('INSERT INTO orders(id) VALUES(?)').run(orderId);
+  for(const name of ['0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql'])
+    db.exec(readFileSync(new URL(`../backend/migrations/${name}`,import.meta.url),'utf8'));
+  return {DB:{prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first:async()=>stmt.get(...values)||null,run:async()=>({meta:{changes:stmt.run(...values).changes}})};}}}}};
+}
 const summaries=[];
 for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id))){
   let phase='plan',calls=0,blueprintRepairs=0,inputTokens=0,outputTokens=0;
@@ -103,6 +114,8 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
         stages=stages.slice(0,keep);
       }
     }
+    phase='delivery-copy';
+    story=await ensureDeliveryCopy(story,approved,`synthetic-${item.id}`,{...env,...deliveryDatabase(`synthetic-${item.id}`)},privateFetch);
     phase='pdf';
     if(verifyPrintedPuzzles(story).length!==5||story.spine?.links?.length!==4)throw Error('A printable finding or story link is missing.');
     await writeFile(`${directory}/${item.id}.json`,JSON.stringify({spec:approved,story},null,2));
