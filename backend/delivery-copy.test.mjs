@@ -73,6 +73,26 @@ test('valid English verbs and numbered findings survive normalization without du
   assert.throws(()=>normalizeDeliveryCopy(story,input),/out of range/);
 });
 
+test('an overlong celebration reuses only a complete saved specific closing and still needs its remaining independent review',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
+  const saved=copy.celebration,source={...story,ending:`The four checked results form code 3123, which matches "Collect the spare gear" on the final sheet. ${saved}`};
+  const draft=structuredClone(copy);draft.celebration='The clock turns '.repeat(16)+'and rings. Pip smiles.';
+  assert.ok(draft.celebration.length>240);
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};let requests=0;
+  const checked=await ensureDeliveryCopy(source,edition,'fixture',env,async(_url,{body})=>{
+    const request=JSON.parse(body);requests++;
+    if(requests===2){assert.equal(request.text.format.name,'printed_copy_audit');assert.ok(JSON.parse(request.input).printed.ending.endsWith(saved));}
+    return Response.json({output_text:JSON.stringify(requests===1?draft:{pass:true,issues:[]})});
+  });
+  assert.equal(checked.deliveryCopy.celebration,saved);assert.equal(draft.celebration.length>240,true);
+  assert.equal(JSON.parse(db.prepare('SELECT candidate_json FROM custom_delivery_copy').get().candidate_json).celebration,draft.celebration,'original provider draft remains intact');
+  await requireDeliveryReview(checked,edition,'fixture',env);assert.equal(requests,2);
+  const noClosing={...source,ending:'The mission is complete.'};
+  assert.throws(()=>validateDeliveryCopy(noClosing,normalizeDeliveryCopy(noClosing,draft)),/Closing/);
+  const generic={...source,ending:'The four checked results form code 3123, which matches "Collect the spare gear" on the final sheet. The result is visible. Everyone in the story cheers.'};
+  assert.throws(()=>validateDeliveryCopy(generic,normalizeDeliveryCopy(generic,draft)),/Closing/);
+});
+
 test('format-stopped original draft resumes only its remaining audit and retains raw text and budget',async()=>{
   const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
   const original=structuredClone(copy);original.actions[0].label='Retrieve the signal gear';original.actions[0].description='Retrieve the signal gear and fit it to the clock.';

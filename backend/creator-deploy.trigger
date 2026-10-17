@@ -1,1 +1,1 @@
-2026-10-17 expose bounded saved-closing format metrics without provider work
+2026-10-17 retain complete saved specific closings before the remaining printed-copy review
