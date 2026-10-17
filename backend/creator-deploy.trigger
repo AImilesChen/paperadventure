@@ -1,1 +1,1 @@
-2026-10-17 require two fact pairs per actual record checkpoint in the provider schema
+2026-10-17 explicit bound fact-only correction and one additional saved-edition review

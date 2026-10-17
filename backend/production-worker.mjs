@@ -960,7 +960,8 @@ async function requestPackRemakeRecovery(request, env, orderId) {
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified custom order was found.');
   const entitlement = await query(env.DB, "SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'", orderId).first();
   if (!accessActive(entitlement)) throw new ApiError(403, 'ORDER_ACCESS_EXPIRED', 'Online order access has expired. Contact support about this order.');
-  return json(await retryPackRemake(order, env), 202);
+  const options=request.body?await requestBody(request):{};
+  return json(await retryPackRemake(order, env, options), 202);
 }
 
 async function supportCases(request, env, orderId) {
