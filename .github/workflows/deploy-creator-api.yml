@@ -38,9 +38,10 @@ jobs:
       - name: Verify configured runtime
         run: |
           for attempt in {1..12}; do
-            if curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(!v.generation||v.proposals!==false||!v.paidPlanReview||!v.account)throw Error('Paid creator runtime unavailable: '+s);console.log('Paid creator runtime ready')})"; then exit 0; fi
+            if curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node -e "let s='';process.stdin.on('data',x=>s+=x).on('end',()=>{const v=JSON.parse(s);if(!v.generation||v.proposals!==false||!v.paidPlanReview||!v.account)throw Error('Paid creator runtime unavailable: '+s);console.log('Paid creator runtime ready');console.log('Theme cover runtime configured: '+Boolean(v.themeCovers))})"; then exit 0; fi
             sleep 5
           done
           exit 1
+
 
 
