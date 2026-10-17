@@ -15,7 +15,8 @@ import { compileControlledPuzzle, controlledStageText } from './controlled-puzzl
 import { clockSpec,clockBlueprintContext } from '../content/paper-contract-qa.mjs';
 import { linkedClockContext } from '../content/linked-contract-qa.mjs';
 import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
-import { prepareBlueprintCandidate } from './staged-story.mjs';
+import { prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory } from './staged-story.mjs';
+import {ensureDeliveryCopy} from './delivery-copy-service.mjs';
 import { packRemakeView, qualityUpgradeEligible, retryPackRemake, processPackRemake } from './pack-remake.mjs';
 async function approvedCustomInput(env,input) {
   const spec=validatePurchase({...input,creatorVersion:2,gameplay:{primary:'reasoning',secondary:[]}}).spec;
@@ -26,7 +27,7 @@ async function approvedCustomInput(env,input) {
 
 function database({includeThemeRecovery=true,includeSemanticRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0024_scoped_semantic_plan_recovery.sql'&&!includeSemanticRecovery)continue;
@@ -69,6 +70,41 @@ function seedReady(db) {
 const request = (path, method = 'GET', data, headers = {}) => new Request(`https://adventure.example${path}`, { method, headers: { ...(data ? { 'content-type': 'application/json' } : {}), ...headers }, body: data ? JSON.stringify(data) : undefined });
 const purchase = { sku: 'ready_home', themeId: 'dinosaur', packVersion: 'v1', email: 'Adult@example.com' };
 const config = binding => ({ DB: binding, PRIVATE_FILES: { get: async () => null }, RESEND_API_KEY: 're_test', EMAIL_FROM: 'hello@adventure.example', ACCOUNT_ENABLED: 'true', EMAIL_LOGIN_ENABLED: 'true', GOOGLE_CLIENT_ID: 'test-google-client.apps.googleusercontent.com', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', SESSION_SECRET: 'test-session-secret', PUBLIC_ORIGIN: 'https://adventure.example', CHECKOUT_ENABLED: 'true', LEGAL_RELEASED: 'true', TAX_CONFIGURED: 'true', CUSTOM_LICENCE_VERSION: 'custom-v1', SUPPORTED_AGE_MIN: '6', SUPPORTED_AGE_MAX: '12', HOME_PLAYER_MAX: '8', CLASSROOM_STUDENT_MAX: '40' });
+
+test('owner can resume a saved copy check once without resetting epochs, rebuilding puzzles or replacing original files early',async()=>{
+  const {db,binding}=database(),orderId='saved-copy-fixture',owner='saved-copy-owner';
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:4,packLayoutVersion:4,packCopyVersion:1};
+  const blueprint=prepareBlueprintCandidate(linkedClockContext(),spec),stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('No generation');})).stage);
+  const story=assembleStagedStory(spec,blueprint,stages),stored=JSON.stringify(spec),storyJson=JSON.stringify(story),stagesJson=JSON.stringify(stages);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('copy-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,'copy-price',1499,'USD','published',CURRENT_TIMESTAMP)").run(orderId,stored,await sha256(stored),owner);
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('copy-activity',?,'published',?)").run(orderId,stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,access_expires_at,revision_success_used) VALUES ('copy-entitlement',?,'copy-activity','active',datetime('now','+6 months'),0)").run(orderId);
+  db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,story_json,story_sha256,stages_json,error_code,logic_epoch,quality_epoch,recovery_round,published_version) VALUES (?,'failed','audit',?,?,?,?,?,'DELIVERY_COPY_INVALID',1,9,2,1)").run(orderId,stored,await sha256(stored),storyJson,await sha256(storyJson),stagesJson);
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version,player_r2_key,guide_r2_key,player_sha256,guide_sha256) VALUES ('copy-original','copy-activity',1,'published',2,'original/player.pdf','original/guide.pdf','original','original')").run();
+  const jobs=[],files=new Map();let auditCalls=0;
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>jobs.push(job)},PRIVATE_FILES:{get:async key=>files.get(key)||null,put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata})},FETCH:async(_url,{body})=>{auditCalls++;assert.equal(JSON.parse(body).text.format.name,'printed_copy_audit');return Response.json({output_text:JSON.stringify({pass:true,issues:[]})});}};
+  await assert.rejects(()=>ensureDeliveryCopy(story,spec,orderId,env,async()=>Response.json({output_text:'{"version":1}'})));
+  db.prepare('UPDATE custom_delivery_copy SET candidate_json=? WHERE order_id=?').run(JSON.stringify(clockDeliveryCopy(story)),orderId);
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const get=()=>handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,headers),env).then(response=>response.json());
+  const retry=()=>handleProductionApi(request(`/api/v1/orders/${orderId}/pack-remake/retry`,'POST',undefined,headers),env);
+  const view=await get();assert.equal(view.remake.copyResumeAvailable,true);assert.match(view.remake.failureReason,/format/);
+  assert.equal((await handleProductionApi(request(`/api/v1/orders/${orderId}`),env)).status,401);
+  assert.equal((await handleProductionApi(request(`/api/v1/orders/${orderId}/pack-remake/retry`,'POST',undefined,{origin:env.PUBLIC_ORIGIN}),env)).status,401);
+  assert.equal((await retry()).status,202);assert.equal((await retry()).status,409);assert.equal(jobs.length,1);
+  const saved=db.prepare('SELECT logic_epoch,quality_epoch,recovery_round,story_json,stages_json FROM custom_pack_remakes WHERE order_id=?').get(orderId);
+  assert.deepEqual({...saved},{logic_epoch:1,quality_epoch:9,recovery_round:2,story_json:storyJson,stages_json:stagesJson});
+  await processPackRemake(orderId,env);
+  assert.equal(auditCalls,1);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1);
+  await processPackRemake(orderId,env);await processPackRemake(orderId,env);
+  assert.equal((await get()).remake.status,'ready');assert.equal(auditCalls,1);
+  assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy WHERE order_id=?').get(orderId).calls,2);
+  assert.equal(db.prepare('SELECT revision_success_used FROM entitlements WHERE order_id=?').get(orderId).revision_success_used,0);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_pack_remake_calls').get().n,0,'copy review uses its own ledger, with no fictitious generation call');
+});
 
 test('DeepSeek key enables generation capability without requiring an OpenAI key', async () => {
   const { binding } = database();
