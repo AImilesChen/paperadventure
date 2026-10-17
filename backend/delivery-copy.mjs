@@ -29,12 +29,28 @@ export function printedFactChoices(story,copy,index){
   return [stage.material.items.find(item=>item.label===stage.options[stage.answerIndex])?.detail];
 }
 const citationWords=value=>new Set((String(value).toLowerCase().match(/[a-z0-9]+/g)||[]).filter(word=>!['a','an','the','is','are','has','have','on','in','of','at'].includes(word)));
+function savedSpecificClosing(story){
+  // The controlled engine prefixes the earned celebration with the checked
+  // code and selected action. Reuse only that complete saved celebration,
+  // never a sliced model response or an invented generic success message.
+  const match=String(story.ending||'').match(/^The four checked results form code [1-3]{4}, which matches "[^"]+" on the final sheet\. (.+)$/);
+  const value=match?typography(match[1]):'';
+  return value&&value.length<=240&&!/[^\x20-\x7e]/.test(value)&&/[.!?]$/.test(value)&&
+    !/\b(?:and|or|the|a|to|from|with|because|so)[.!?]$/i.test(value)&&
+    (value.match(/[.!?](?: |$)/g)||[]).length===2&&
+    !/result is visible|mission complete|everyone in the story cheers/i.test(value)?value:null;
+}
 // New outputs reference a numbered fact. Existing saved drafts keep their
 // provider text; only a uniquely equivalent citation is restored verbatim.
 // Any change still needs a review bound to the resulting exact edition.
 export function normalizeDeliveryCopy(story,input){
   const copy=typography(structuredClone(input));
   if(copy?.stages?.length!==5||copy.actions?.length!==3||copy.links?.length!==4)return copy;
+  // An overlong new celebration need not discard a previously saved complete
+  // specific ending. The exact substituted edition still needs its own audit.
+  if(typeof copy.celebration==='string'&&copy.celebration.length>240){
+    const saved=savedSpecificClosing(story);if(saved)copy.celebration=saved;
+  }
   copy.stages[4].labels=copy.actions.map(action=>action.label);
   story.stages.slice(0,4).forEach((stage,index)=>{
     if(stage.material.type==='symbol_key')copy.stages[index].labels=['1','2','3','4'];
