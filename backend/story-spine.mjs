@@ -300,7 +300,11 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
       if(qualityVersion>=14){
         const action=actionTerms(resolution),support=actionTerms(structured.supportsAction);
         const grounded=[...support].filter(word=>action.has(word)&&printed.has(word));
-        if(grounded.length)printedActionLinks++;
+        // A printed fact can support the action through an explicit causal sentence
+        // even when its record does not repeat the final action noun verbatim.
+        const concreteAction=[...action].filter(word=>!['hand','carry','give','take','bring','move','send','put','place','open','close','fix','make'].includes(word));
+        const explained=concreteAction.some(word=>claimed.has(word));
+        if(grounded.length||explained)printedActionLinks++;
         else if(![...support].some(word=>action.has(word)))
           throw Error(`Checkpoint ${index+1} story link does not name part of the final action.`);
       }
@@ -338,7 +342,7 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
     return {finding,reason,...(structured?{consequence:structured.consequence,supportsAction:structured.supportsAction}:{})};
   });
   if(qualityVersion>=14&&printedActionLinks<3)
-    throw Error('At least three checkpoint discoveries must print a concrete fact used by the final action.');
+    throw Error('At least three checkpoint discoveries must link a printed fact to the final action.');
   if(qualityVersion===5)strictPurposes(links.map(link=>link.reason),resolution);
   return {problem,resolution,links};
 }
