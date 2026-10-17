@@ -6,6 +6,7 @@ import { aiProvider, generateStory, generateProposals, reviseStage } from './ope
 import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint,
   generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
+import {ensureDeliveryCopy,requireDeliveryReview} from './delivery-copy-service.mjs';
 import { verifyGoogleCredential } from './google-auth.mjs';
 import { signPreview, confirmPreview } from './creator-preview.mjs';
 import { generateSinglePlan, planFailureCategory, savedFormatRecovery } from './plan-proposals.mjs';
@@ -1220,14 +1221,15 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
         continue;
       }
       phase='audit';budgetPhase='audit';stageNumber=0;
-      const story=assembleStagedStory(spec,blueprint,stages.map(row=>JSON.parse(row.stage_json)));
+      let story=assembleStagedStory(spec,blueprint,stages.map(row=>JSON.parse(row.stage_json)));
+      if(spec.packCopyVersion)story=await ensureDeliveryCopy(story,spec,order.id,env,fetcher);
       const storyJson=JSON.stringify(story),storyHash=await sha256(storyJson);
       const audited=await query(env.DB,'SELECT story_sha256 FROM custom_game_audits WHERE order_id = ?',order.id).first();
       if (audited && audited.story_sha256!==storyHash) throw new ApiError(422,'STORY_CHECKPOINT_MISMATCH','The checked story changed after approval.');
       if (!audited) {
         try {
           await call('audit',0,async()=>{
-            const result=await auditStagedStory(story,spec,blueprint,env,fetcher);
+            const result=spec.packCopyVersion?{}:await auditStagedStory(story,spec,blueprint,env,fetcher);
             return {value:{storySha256:storyHash},usage:result.usage,responseId:result.responseId};
           },storyHash);
         } catch (auditError) {
@@ -1271,6 +1273,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
     let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<totalLimit && phaseCalls<stepLimit(budgetPhase);
     if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
+    if(String(code).startsWith('DELIVERY_COPY_'))canRetry=false;
     if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&(spec.packQualityVersion||0)<8&&canRetry&&await countCalls('blueprint',0)<stepLimit('blueprint')){
       await env.DB.batch([
         query(env.DB,"UPDATE custom_generation_calls SET status = 'failed',error_code = 'AUDIT_REJECTED',error_detail = ? WHERE order_id = ? AND phase = 'blueprint' AND status = 'passed'",String(caught.message).slice(0,1000),order.id),
@@ -1345,6 +1348,7 @@ async function publishCustomOrder(orderId, env) {
     }
     generationPhase = 'pdf';
     await query(env.DB, 'UPDATE generation_usage SET phase = ? WHERE order_id = ? AND attempt = ?',generationPhase,orderId,attempt).run();
+    await requireDeliveryReview(result.story,spec,order.id,env);
     const player = buildGamePdf(result.story, spec, 'player');
     const guide = buildGamePdf(result.story, spec, 'guide');
     const storyJson = JSON.stringify(result.story);
@@ -1420,6 +1424,7 @@ async function publishRevision(revisionId, env) {
     const result = await reviseStage(oldStory, spec, revision.stage_number, revision.instruction, env, env.FETCH || fetch);
     const version = previous.version_number + 1;
     const prefix = `custom/${order.id}/v${version}`;
+    await requireDeliveryReview(result.story,spec,order.id,env);
     const player = buildGamePdf(result.story, spec, 'player'); const guide = buildGamePdf(result.story, spec, 'guide'); const storyJson = JSON.stringify(result.story);
     const playerHash = await sha256Bytes(player); const guideHash = await sha256Bytes(guide); const storyHash = await sha256(storyJson);
     await Promise.all([
@@ -1489,6 +1494,5 @@ export default {
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
 };
-
 
 
