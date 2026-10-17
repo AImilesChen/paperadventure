@@ -1,1 +1,1 @@
-2026-10-17 derive unprinted fact fields from immutable material types before review
+2026-10-17 require two fact pairs per actual record checkpoint in the provider schema
