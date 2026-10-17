@@ -99,6 +99,25 @@ test('a blocked closing reports its current bounded rule and counts without expo
   assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,1);
 });
 
+test('an overlong final label keeps both actions when compacted for print',async()=>{
+  const {story,copy}=await fixture(),input=structuredClone(copy);
+  input.actions[0].label='Restore signal gear in tower, then ring bell';
+  const normalized=normalizeDeliveryCopy(story,input);
+  assert.equal(normalized.actions[0].label,'Restore signal gear in tower; ring bell');
+  assert.equal(normalized.stages[4].labels[0],normalized.actions[0].label);
+  assert.equal(normalized.actions[0].description,input.actions[0].description);
+  validateDeliveryCopy(story,normalized);
+});
+
+test('a long three-step action keeps each object and destination when punctuation is compacted',async()=>{
+  const {story,copy}=await fixture(),input=structuredClone(copy);
+  input.actions[0].description='Clear the breakwater bell rope tangle, send two green lamp flashes seaward, and wave the signal boat through the marked harbor gap to the dock.';
+  const normalized=normalizeDeliveryCopy(story,input);
+  assert.ok(normalized.actions[0].description.length<=140);
+  assert.match(normalized.actions[0].description,/bell rope tangle.*green lamp flashes.*signal boat.*marked harbor gap.*dock\.$/);
+  validateDeliveryCopy(story,normalized);
+});
+
 test('valid English verbs and numbered findings survive normalization without duplicated final labels',async()=>{
   const {story,copy}=await fixture(),input=structuredClone(copy);
   for(const [index,verb] of ['Retrieve','Restore','Examine'].entries()){
@@ -390,4 +409,26 @@ test('final copy renders Home and Classroom in A4 and Letter with full actions a
     writeFileSync(new URL(`${setting}-${paper}-${role}.pdf`,dir),bytes);
   }
   assert.throws(()=>buildGamePdf(story,{...spec,packCopyVersion:1},'player'),/not passed delivery review/);
+});
+
+
+test('shared record facts use a neutral subject on every candidate row',async()=>{
+  const {story,copy}=await fixture(),named=structuredClone(copy);
+  const label=named.stages[0].labels[0];
+  named.stages[0].facts[0].yes=`${label} names the needed gear.`;
+  named.stages[0].facts[0].no=`${label} does not name the needed gear.`;
+  const normalized=normalizeDeliveryCopy(story,named);
+  assert.equal(normalized.stages[0].facts[0].yes,'This record names the needed gear.');
+  assert.equal(normalized.stages[0].facts[0].no,'This record does not name the needed gear.');
+  const printed=applyDeliveryCopy(story,normalized,false);
+  assert.ok(printed.stages[0].material.items.slice(0,3).every(item=>!item.detail.includes(`${label} names`)));
+});
+
+test('overlong final instructions drop filler without losing the delivery action',async()=>{
+  const {story,copy}=await fixture(),draft=structuredClone(copy);
+  draft.actions[0].description='Carry the dry parcel to the bridge, check the sealed edge and cross-lantern bell, then hand it to the friendly shopkeeper before the stalls close.';
+  const normalized=normalizeDeliveryCopy(story,draft);
+  assert.ok(normalized.actions[0].description.length<=140);
+  assert.match(normalized.actions[0].description,/Carry the dry parcel/);
+  assert.match(normalized.actions[0].description,/hand it to the shopkeeper before the stalls close\./);
 });
