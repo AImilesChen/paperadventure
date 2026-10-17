@@ -43,13 +43,33 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
   }
   const privateFetch=async(url,options)=>{
     const request=JSON.parse(options.body);
-    const index=replay.findIndex(saved=>saved.response.status==='completed'&&saved.request.text.format.name===request.text.format.name&&saved.request.input===request.input&&
+    const index=replay.findIndex(saved=>!(process.env.SMOKE_FORCE_COPY_REPAIR==='1'&&request.text.format.name==='printed_copy_repair')&&saved.response.status==='completed'&&saved.request.text.format.name===request.text.format.name&&saved.request.input===request.input&&
       (request.text.format.name==='paid_adventure_plan'||saved.request.instructions===request.instructions));
     if(index>=0)return Response.json(replay.splice(index,1)[0].response);
     if(calls>=maxProviderCalls){const error=Error(`Synthetic provider-call cap ${maxProviderCalls} reached.`);error.code='SMOKE_BUDGET_EXHAUSTED';throw error;}
     calls++;const response=await fetch(url,{...options,signal:AbortSignal.timeout(90000)}),body=await response.clone().json();inputTokens+=body.usage?.input_tokens||0;outputTokens+=body.usage?.output_tokens||0;await writeFile(`${directory}/${item.id}-call-${calls}.json`,JSON.stringify({request,response:body},null,2));return response;
   };
   try{
+    if(process.env.SMOKE_COPY_ONLY==='1'){
+      const saved=JSON.parse(await readFile(`${process.env.SMOKE_REPLAY_DIR}/${item.id}.json`,'utf8'));
+      const {deliveryCopy:previousCopy,...source}=saved.story;
+      const approved=saved.spec;
+      phase='delivery-copy';
+      const syntheticOrderId=`synthetic-${item.id}`,deliveryEnv={...env,...deliveryDatabase(syntheticOrderId)};
+      const story=await ensureDeliveryCopy(source,approved,syntheticOrderId,deliveryEnv,privateFetch);
+      phase='pdf';
+      if(verifyPrintedPuzzles(story).length!==5||story.spine?.links?.length!==4)throw Error('A printable finding or story link is missing.');
+      await writeFile(`${directory}/${item.id}.json`,JSON.stringify({spec:approved,story},null,2));
+      for(const paper of ['A4','Letter'])for(const role of ['player','guide']){
+        const pdf=buildGamePdf(story,{...approved,paper},role),sourceText=new TextDecoder().decode(pdf);
+        const pages=Number(sourceText.match(/\/Count (\d+)/)?.[1]);
+        if(!sourceText.startsWith('%PDF-')||pages<(role==='player'?12:7)||pages>(role==='player'?12:12))throw Error(`${role} ${paper} PDF page check failed.`);
+        await writeFile(`${directory}/${item.id}-${role}-${paper}.pdf`,pdf);
+      }
+      summaries.push({id:item.id,passed:true,calls,blueprintRepairs,inputTokens,outputTokens,stages:story.stages.length});
+      console.log(JSON.stringify(summaries.at(-1)));
+      continue;
+    }
     const {spec}=validatePurchase({sku:`custom_${item.setting}`,creatorVersion:3,customIdea:item.idea,setting:item.setting,players:item.players,age:item.age,paper:'A4',...(item.setting==='classroom'?{groups:Math.ceil(item.players/4)}:{}),gameplay:{primary:item.primary,secondary:item.secondary}});
     if(spec.packExperienceVersion!==3)throw Error('Linked-story contract is not enabled for a new purchase.');
     // The one-theme release check exercises pack generation, not another paid
