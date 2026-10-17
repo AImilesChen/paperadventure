@@ -1,15 +1,32 @@
-import { Compass } from '@phosphor-icons/react';
+import { themes } from '../shared/catalog.mjs';
 
-// Order identity survives plan rewrites and every library tab uses this cover.
+const workshopImage = '/assets/custom-adventure-workshop-v1.jpg';
+const themeArt = [
+  [/西游|journey\s+(?:to\s+the\s+)?west|monkey king|sun wukong|东方神话/i, '/assets/custom-journey-west-cover-v1.webp'],
+  [/\bclock(?:\s*tower)?\b|钟楼|时钟/i, '/assets/custom-clock-tower-cover-v1.webp'],
+  [/\bdinosaurs?\b|恐龙/i, '/assets/dinosaur.png'],
+  [/\b(?:space|astronaut|galaxy|planet|cosmic)\b|太空|宇宙|星球/i, '/assets/space.png'],
+  [/\b(?:ocean|underwater|sea|marine)\b|海洋|海底|大海/i, '/assets/ocean-classroom-v0.1.webp'],
+  [/\b(?:forest|woodland)\b|森林/i, '/assets/forest.png'],
+  [/\b(?:museum|curator)\b|博物馆/i, '/assets/museum-classroom-v0.1.webp'],
+  [/\b(?:library|librarian)\b|图书馆/i, '/assets/library-classroom-v0.1.webp'],
+  [/\b(?:weather|cloud|rain|wind)\b|天气|气象/i, '/assets/weather-classroom-v0.1.webp'],
+  [/\b(?:halloween|pumpkin)\b|万圣节|南瓜/i, '/assets/halloween-friendly-v0.1.jpg'],
+  [/\b(?:christmas|santa)\b|圣诞/i, '/assets/christmas.png'],
+  [/\b(?:birthday|celebration|party)\b|生日|庆典|派对/i, '/assets/celebration.png'],
+  [/\b(?:inventor|invention|workshop)\b|发明|工坊/i, '/assets/workshop-classroom-v0.1.webp'],
+];
+
+export function adventureCoverImage(order) {
+  if (order.product_kind !== 'custom') return order.image;
+  // A real stored cover takes precedence. The shared promotion is not a theme.
+  if (order.image && order.image !== workshopImage) return order.image;
+  const world = themes.find(theme => theme.id === order.themeId);
+  if (world) return world.story?.[order.setting]?.image || world.image;
+  return themeArt.find(([pattern]) => pattern.test(order.title || ''))?.[1] || workshopImage;
+}
+
 export default function AdventureCover({ order }) {
-  if (order.product_kind !== 'custom') return order.image ? <img src={order.image} alt="" width="800" height="600" loading="lazy" /> : null;
-  const identity = String(order.id || order.title || 'adventure');
-  const hash = Array.from(identity).reduce((value, letter) => (Math.imul(value, 31) + letter.codePointAt(0)) >>> 0, 0);
-  const title = order.title || 'Your custom adventure';
-  return <div className={'adventure-cover' + (Array.from(title).length > 65 ? ' adventure-cover-long' : '')} data-tone={hash % 6} aria-hidden="true">
-    <span className="adventure-cover-label">CUSTOM ADVENTURE</span>
-    <Compass className="adventure-cover-compass" size={124} weight="thin" />
-    <strong className="adventure-cover-title">{title}</strong>
-    <span className="adventure-cover-footer"><span>{order.setting === 'classroom' ? 'Classroom' : 'Home'}</span><span>Order {identity.slice(0,8).toUpperCase()}</span></span>
-  </div>;
+  const image = adventureCoverImage(order);
+  return image ? <img src={image} alt="" width="800" height="450" loading="lazy" /> : null;
 }
