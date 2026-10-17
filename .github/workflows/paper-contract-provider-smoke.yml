@@ -24,13 +24,13 @@ jobs:
       - uses: actions/download-artifact@v6
         with:
           name: synthetic-paper-contract-packs
-          run-id: '39024392092'
+          run-id: '39025424364'
           github-token: ${{ github.token }}
           path: tmp/provider-replay
       - uses: actions/download-artifact@v6
         with:
           name: synthetic-paper-contract-packs
-          run-id: '39021250119'
+          run-id: '39025424364'
           github-token: ${{ github.token }}
           path: tmp/provider-source
       - name: Generate only invented QA scenarios
@@ -39,7 +39,7 @@ jobs:
           SMOKE_CASE_IDS: classroom-market
           SMOKE_MAX_PROVIDER_CALLS: '43'
           SMOKE_COPY_ONLY: '1'
-          SMOKE_FORCE_COPY_REPAIR: '1'
+          SMOKE_FORCE_COPY_REPAIR: '0'
           SMOKE_REPLAY_DIR: tmp/provider-replay
           SMOKE_SOURCE_DIR: tmp/provider-source
         run: node scripts/paper-contract-provider-smoke.mjs
