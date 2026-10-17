@@ -486,9 +486,11 @@ async function verifyAccessLink(request, env) {
 
 function googleLoginConfig(request, env) {
   if (!accountReady(env)) return json({ available: false });
-  const nonce = crypto.randomUUID().replaceAll('-', '');
+  // Reusing a still-valid browser nonce keeps two account tabs from
+  // invalidating each other's Google button merely by loading configuration.
+  const nonce = (request.headers.get('cookie')||'').match(/(?:^|;\s*)paw_google_nonce=([a-f0-9]{32})(?:;|$)/)?.[1]||crypto.randomUUID().replaceAll('-', '');
   const secure = new URL(env.PUBLIC_ORIGIN || request.url).protocol === 'https:' ? '; Secure' : '';
-  return json({ available: true, clientId: env.GOOGLE_CLIENT_ID, nonce }, 200,
+  return json({ available: true, clientId: env.GOOGLE_CLIENT_ID, nonce, expiresIn:300 }, 200,
     { 'set-cookie': 'paw_google_nonce=' + nonce + '; HttpOnly' + secure + '; SameSite=Lax; Path=/api/v1/auth/google; Max-Age=300' });
 }
 
