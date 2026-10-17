@@ -34,6 +34,22 @@ function auditResult(data,printed){
   }
   return data;
 }
+function boundedAuditProtocol(data,printed){
+  const visible=allText(printed),issues=Array.isArray(data?.issues)?data.issues:[];
+  const shape=typeof data?.pass!=='boolean'?'verdict_shape':!Array.isArray(data?.issues)||issues.length>8?'issues_shape':data.pass&&issues.length||!data.pass&&!issues.length?'verdict_conflict':null;
+  const checked=issues.slice(0,8).map(issue=>{
+    const rules=[];
+    if(!Number.isInteger(issue?.stageNumber)||issue.stageNumber<0||issue.stageNumber>5)rules.push('stage');
+    if(!issueCodes.includes(issue?.code))rules.push('code');
+    const quote=typeof issue?.quote==='string'?issue.quote:'';
+    if(!quote.trim()||quote.length>200)rules.push('quote_bounds');
+    if(!quote||!visible.includes(quote))rules.push('quote_match');
+    const reason=typeof issue?.reason==='string'?issue.reason:'';
+    if(!reason.trim()||reason.length>240)rules.push('reason_bounds');
+    return {stage:Number.isInteger(issue?.stageNumber)&&issue.stageNumber>=0&&issue.stageNumber<=5?issue.stageNumber:null,code:issueCodes.includes(issue?.code)?issue.code:null,quoteLength:Math.min(quote.length,100000),reasonLength:Math.min(reason.length,100000),rules};
+  });
+  return {verdict:typeof data?.pass==='boolean'?data.pass?'pass':'fail':'invalid',issueCount:Math.min(issues.length,100000),valid:!shape&&checked.every(issue=>!issue.rules.length),rule:shape,issues:checked};
+}
 function providerData(body){
   const output=body?.output_text||body?.output?.flatMap(item=>item.content||[]).filter(item=>item.type==='output_text').map(item=>item.text||'').join('');
   return JSON.parse(String(output||'').trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''));
@@ -158,11 +174,16 @@ export async function deliveryCopyStatus(orderId,env,story,spec){
   }
   let issues=[];
   try{issues=JSON.parse(row.audit_json||'{}').issues?.filter(item=>issueCodes.includes(item.code)&&Number.isInteger(item.stageNumber)&&item.stageNumber>=0&&item.stageNumber<=5).map(item=>({stage:item.stageNumber,code:item.code}))||[];}catch{}
+  let reviewProtocol=null;
+  if(bound&&draftValid&&row.audit_json)try{
+    const copy=checkedCopy(sourceStory(story),candidate);
+    reviewProtocol={...boundedAuditProtocol(JSON.parse(row.audit_json),printedReviewInput(applyDeliveryCopy(sourceStory(story),copy))),editionMatches:row.audit_candidate_sha256===await sha256(JSON.stringify(copy))};
+  }catch{}
   const remainingAudit=repairBound?repair.extra_audit_calls===0&&row.calls===2:row.calls===1;
   return {phase:['repair','fact_repair','format','render','audit','ready'].includes(row.phase)?row.phase:row.audit_json?'audit':row.candidate_json?'format':'repair',code:diagnosticMessages[row.error_code]?row.error_code:null,
     message:diagnosticMessages[row.error_code]||null,calls:(Number(row.calls)||0)+(Number(repair?.extra_audit_calls)||0),limit:repairBound?3:2,candidateSaved,formatValid:draftValid,reviewPassed:Boolean(row.audit_passed),
     factRepairAvailable,factRepairGranted:repairBound,factRepairBlock,
-    field:draftValid?null:currentField||fieldFrom(row.error_detail||''),formatIssue,issues,resumeAvailable:Boolean(bound&&!row.audit_json&&!row.audit_response_json&&(draftValid&&remainingAudit||repairBound&&factRepairBaseValid&&row.calls===1))};
+    field:draftValid?null:currentField||fieldFrom(row.error_detail||''),formatIssue,issues,reviewProtocol,resumeAvailable:Boolean(bound&&!row.audit_json&&!row.audit_response_json&&(draftValid&&remainingAudit||repairBound&&factRepairBaseValid&&row.calls===1))};
 }
 
 // The existing ledger retains its two-call maximum. Only an explicit, bound

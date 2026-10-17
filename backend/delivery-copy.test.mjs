@@ -233,6 +233,7 @@ test('malformed audit is a protocol failure; diagnostics expose only safe metada
   let calls=0;const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},fetcher=async()=>Response.json({id:'private-response-id',output_text:JSON.stringify(++calls===1?copy:{pass:false,issues:[{stageNumber:1,code:'GRAMMAR',quote:'invented quotation',reason:'private prose'}]})});
   await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,fetcher),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
   const before=db.prepare('SELECT * FROM custom_delivery_copy').get(),status=await deliveryCopyStatus('fixture',env,story,edition);
+  assert.deepEqual(status.reviewProtocol,{verdict:'fail',issueCount:1,valid:false,rule:null,issues:[{stage:1,code:'GRAMMAR',quoteLength:18,reasonLength:13,rules:['quote_match']}],editionMatches:true});
   assert.equal(status.code,'DELIVERY_COPY_AUDIT_PROTOCOL');assert.equal(status.calls,2);assert.equal(status.resumeAvailable,false);
   assert.doesNotMatch(JSON.stringify(status),/private-response-id|invented quotation|private prose/);
   assert.deepEqual(db.prepare('SELECT * FROM custom_delivery_copy').get(),before,'reading status does not mutate private state');
