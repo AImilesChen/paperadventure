@@ -114,7 +114,7 @@ test('a long three-step action keeps each object and destination when punctuatio
   input.actions[0].description='Clear the breakwater bell rope tangle, send two green lamp flashes seaward, and wave the signal boat through the marked harbor gap to the dock.';
   const normalized=normalizeDeliveryCopy(story,input);
   assert.ok(normalized.actions[0].description.length<=140);
-  assert.match(normalized.actions[0].description,/bell rope tangle.*green lamp flashes.*signal boat.*marked harbor gap.*dock\\.$/);
+  assert.match(normalized.actions[0].description,/bell rope tangle.*green lamp flashes.*signal boat.*marked harbor gap.*dock\.$/);
   validateDeliveryCopy(story,normalized);
 });
 
