@@ -52,6 +52,9 @@ export function normalizeDeliveryCopy(story,input){
     const saved=savedSpecificClosing(story);if(saved)copy.celebration=saved;
   }
   copy.stages[4].labels=copy.actions.map(action=>action.label);
+  // Facts are printed only on record puzzles. Extra response metadata for
+  // ordering, keys, routes or final actions is not a new puzzle condition.
+  story.stages.forEach((stage,index)=>{if(!records(stage))copy.stages[index].facts=[];});
   story.stages.slice(0,4).forEach((stage,index)=>{
     if(stage.material.type==='symbol_key')copy.stages[index].labels=['1','2','3','4'];
     if(stage.material.type==='route_board')copy.stages[index].labels=stage.material.items.slice(0,3).map(item=>item.label);
