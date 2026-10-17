@@ -47,7 +47,18 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
     phase='blueprint';
     const frame=(await generateBlueprintFrameStep(approved,env,privateFetch)).storyFrame;
     const materials=[];
-    for(let number=1;number<=5;number++)materials.push((await generateBlueprintMaterialStep(approved,frame,number,materials,env,privateFetch)).data);
+    for(let number=1;number<=5;number++){
+      let issue=null,material=null;
+      for(let attempt=1;attempt<=2;attempt++){
+        try{material=(await generateBlueprintMaterialStep(approved,frame,number,materials,env,privateFetch,issue)).data;break;}
+        catch(error){
+          if(attempt===2||error.code!=='BLUEPRINT_INVALID'||error.stageNumber!==number)throw error;
+          issue=String(error.message).slice(0,250);blueprintRepairs++;
+          console.log(JSON.stringify({id:item.id,phase:'blueprint-material',checkpoint:number,attempt,code:error.code,rule:issue}));
+        }
+      }
+      materials.push(material);
+    }
     const closing=(await generateBlueprintClosingStep(approved,frame,env,privateFetch)).data.celebration;
     let blueprint;
     try{blueprint=(await assembleBlueprintSteps(approved,frame,materials,closing,env,privateFetch)).blueprint;}
