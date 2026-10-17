@@ -1,1 +1,1 @@
-2026-10-17 resume bound printed-copy drafts with exact review checkpoints and no extra correction
+2026-10-17 expose bounded saved-closing format metrics without provider work

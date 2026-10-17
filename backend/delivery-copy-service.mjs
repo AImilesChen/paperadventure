@@ -79,17 +79,25 @@ const diagnosticMessages={
 export async function deliveryCopyStatus(orderId,env,story,spec){
   const row=await read(env.DB,orderId);
   if(!row)return null;
-  let draftValid=false,bound=false,candidateSaved=false;
+  let draftValid=false,bound=false,candidateSaved=false,formatIssue=null;
   let candidate;try{candidate=savedCandidate(row);candidateSaved=Boolean(candidate);}catch{}
   if(story&&spec){
     bound=matches(row,await boundHashes(story,spec));
-    if(bound&&candidate)try{checkedCopy(sourceStory(story),candidate);draftValid=true;}catch{}
+    if(bound&&candidate)try{checkedCopy(sourceStory(story),candidate);draftValid=true;}catch(error){
+      // Recompute a bounded diagnosis under the CURRENT compiler, without
+      // exporting saved model prose or relying on an obsolete error message.
+      if(fieldFrom(error.message||'')==='closing'){
+        const closing=normalizeDeliveryCopy(sourceStory(story),candidate)?.celebration;
+        const value=typeof closing==='string'?closing:'';
+        formatIssue={field:'closing',rule:/outcome and a character response/i.test(error.message)?'sentence_count':/complete sentence/i.test(error.message)?'sentence_boundary':value.length>240?'length':/[^\x20-\x7e]/.test(value)?'characters':'missing',length:Math.min(value.length,100000),limit:240,sentences:(value.match(/[.!?](?: |$)/g)||[]).length};
+      }
+    }
   }
   let issues=[];
   try{issues=JSON.parse(row.audit_json||'{}').issues?.filter(item=>issueCodes.includes(item.code)&&Number.isInteger(item.stageNumber)&&item.stageNumber>=0&&item.stageNumber<=5).map(item=>({stage:item.stageNumber,code:item.code}))||[];}catch{}
   return {phase:['repair','format','render','audit','ready'].includes(row.phase)?row.phase:row.audit_json?'audit':row.candidate_json?'format':'repair',code:diagnosticMessages[row.error_code]?row.error_code:null,
     message:diagnosticMessages[row.error_code]||null,calls:Number(row.calls)||0,limit:2,candidateSaved,formatValid:draftValid,reviewPassed:Boolean(row.audit_passed),
-    field:fieldFrom(row.error_detail||''),issues,resumeAvailable:Boolean(bound&&draftValid&&row.calls===1&&!row.audit_json&&!row.audit_response_json)};
+    field:formatIssue?.field||fieldFrom(row.error_detail||''),formatIssue,issues,resumeAvailable:Boolean(bound&&draftValid&&row.calls===1&&!row.audit_json&&!row.audit_response_json)};
 }
 
 // Exactly one correction and one independent review for the EXISTING ledger.
