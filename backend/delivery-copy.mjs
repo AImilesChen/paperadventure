@@ -84,7 +84,11 @@ export function normalizeDeliveryCopy(story,input){
   return copy;
 }
 
-export function validateDeliveryCopy(story,copy){
+export const validateDeliveryCopy=(story,copy)=>validateCopy(story,copy);
+// Preparation only: check all retained fields before purchasing a fact-only
+// repair. This never supplies the full validation required by publication.
+export const validateFactRepairBase=(story,copy)=>validateCopy(story,copy,true);
+function validateCopy(story,copy,fieldsOnly=false){
   verifyPrintedPuzzles(story);
   if(copy?.version!==1||copy.stages?.length!==5||copy.actions?.length!==3||copy.links?.length!==4)fail('The printed edition is incomplete.');
   text(copy.celebration,'Closing',240,true);
@@ -104,7 +108,8 @@ export function validateDeliveryCopy(story,copy){
     if(stage.material.type==='symbol_key'&&part.labels.join('')!=='1234')fail('The key rows cannot change.');
     if(stage.material.type==='route_board'&&JSON.stringify(part.labels)!==JSON.stringify(stage.material.items.slice(0,3).map(item=>item.label)))fail('Keep the checked route names.');
     if(stage.material.type==='order_tiles'&&part.labels.some(label=>!instruction(label)))fail('Order tiles need complete in-world instructions.');
-    if(part.facts?.length!==(records(stage)?2:0))fail('Record stages need exactly two facts; other puzzles cannot gain hidden conditions.');
+    if(part.facts?.length!==(records(stage)?2:0)&&!(fieldsOnly&&records(stage)&&part.facts?.length===1))fail('Record stages need exactly two facts; other puzzles cannot gain hidden conditions.');
+    if(fieldsOnly&&records(stage))continue;
     for(const fact of part.facts){
       text(fact.yes,'Positive printed fact',66,true);text(fact.no,'Alternative printed fact',66,true);
       if(fact.yes===fact.no||/^(?:Mentions|Names)\b/i.test(fact.yes))fail('Printed facts must be statements, not keyword checks.');
@@ -112,10 +117,11 @@ export function validateDeliveryCopy(story,copy){
     }
     if(records(stage)&&!distinct(part.facts.flatMap(fact=>[fact.yes,fact.no])))fail('Printed record facts must differ.');
   }
-  const printed=applyDeliveryCopy(story,copy,false);
-  verifyDeliveryPuzzles(printed);
+  const printed=fieldsOnly?null:applyDeliveryCopy(story,copy,false);
+  if(printed)verifyDeliveryPuzzles(printed);
   for(const [index,link] of copy.links.entries()){
     text(link.fact,'Cited printed fact',100,true);text(link.reason,'Story consequence',110,true);
+    if(fieldsOnly)continue;
     const stage=printed.stages[index],available=records(stage)?copy.stages[index].facts.map(fact=>fact.yes):stage.material.type==='order_tiles'?copy.stages[index].labels.map(label=>`${label}.`):stage.material.type==='symbol_key'?[`The key spells ${stage.options[stage.answerIndex].split(' / ')[0]}.`]:[stage.material.items.find(item=>item.label===stage.options[stage.answerIndex])?.detail];
     if(!available.includes(link.fact))fail(`Checkpoint ${index+1} must cite an exact printed finding.`);
   }

@@ -5,7 +5,7 @@ import { validatePlan } from '../shared/creator-plan.mjs';
 import { generateBlueprint, repairBlueprint, validateBlueprint, prepareBlueprintCandidate, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory, auditCheckpointSemantics,
   generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, deliverableClosing } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
-import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus} from './delivery-copy-service.mjs';
+import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,grantSavedFactRepair} from './delivery-copy-service.mjs';
 
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
 const nowSeconds = () => Math.floor(Date.now() / 1000);
@@ -191,7 +191,7 @@ export async function startPackRemake(order, activity, env) {
   return { status: 'queued', queued: Boolean(created.meta?.changes) };
 }
 
-export async function retryPackRemake(order, env) {
+export async function retryPackRemake(order, env, options={}) {
   await requireApprovedReplacement(order.id,env.DB);
   if (!env.DB || !env.GENERATION_QUEUE || !env.PRIVATE_FILES || !aiProvider(env))
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
@@ -200,9 +200,12 @@ export async function retryPackRemake(order, env) {
   const previous=await query(env.DB,'SELECT status,phase,error_code,error_detail,blueprint_json,stages_json,story_json,logic_epoch,quality_epoch,spec_json,recovery_round,published_version FROM custom_pack_remakes WHERE order_id = ?',order.id).first();
   if(previous?.status==='failed'&&JSON.parse(previous.spec_json).packCopyVersion===1&&String(previous.error_code).startsWith('DELIVERY_COPY_')){
     const spec=JSON.parse(previous.spec_json),source=savedCopySource(previous,spec);
-    const check=await deliveryCopyStatus(order.id,env,source,spec);
+    let check=await deliveryCopyStatus(order.id,env,source,spec);
+    if(options.action==='complete_saved_facts'&&options.allowOneExtraReview===true&&check?.factRepairAvailable){
+      await grantSavedFactRepair(order.id,env,source,spec);check=await deliveryCopyStatus(order.id,env,source,spec);
+    }
     if(!check?.resumeAvailable)throw new ApiError(409,'DELIVERY_COPY_RESUME_UNAVAILABLE','The saved content cannot continue within its existing two-call budget. No new generation was started.');
-    const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'audit',failure_count = 0,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND spec_json = ? AND EXISTS (SELECT 1 FROM custom_delivery_copy WHERE order_id = ? AND policy = 'printed-causal-copy-1' AND calls = 1 AND audit_json IS NULL)",order.id,previous.spec_json,order.id).run();
+    const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'audit',failure_count = 0,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND spec_json = ? AND EXISTS (SELECT 1 FROM custom_delivery_copy WHERE order_id = ? AND policy = 'printed-causal-copy-1' AND calls IN (1,2) AND audit_json IS NULL)",order.id,previous.spec_json,order.id).run();
     if(changed.meta?.changes)await queueNext(order.id,env);
     return {status:'queued',recovery:true,savedCopy:true};
   }
@@ -293,7 +296,7 @@ export async function packRemakeView(db, orderId) {
     copyResumeAvailable:Boolean(row.status==='failed'&&copyCheck?.resumeAvailable),
     publishedVersion: row.published_version || null,
     failureReason: row.status === 'failed' && copyCheck?.message ? copyCheck.message : row.status === 'failed' ? layoutRecoveryAvailable ? 'The saved game is complete, but the layout refresh stopped before PDF rendering. Retrying will reuse the saved game and will not call the AI.' : row.error_code === 'REMAKE_BUDGET_EXHAUSTED' ? 'The safe repair limit was reached. Saved work and the original PDFs remain on this paid order for a quality review.' : row.error_code === 'STAGE_SEMANTIC_INVALID' ? `Checkpoint ${problemStage||stages.length+1} needs a correction to its printed record facts. Earlier checkpoints remain saved.` : row.phase === 'repair' ? `The targeted repair${problemStage?` for checkpoint ${problemStage}`:''} stopped before the new pack could be published. Saved work remains on this order.` : row.phase === 'blueprint' ? 'The game blueprint did not match the approved play rules. No new checkpoints or PDFs were published.' : row.phase === 'checkpoint' ? /Answer explanation is required and must be under/i.test(row.error_detail || '') ? 'The generated adult answer explanation was longer than the printable guide allows. Earlier checkpoints were saved.' : 'A new checkpoint did not pass generation checks. Saved earlier work remains on this order.' : row.phase === 'audit' ? row.error_detail?.startsWith(reviewPrefix) ? `The quality review found a contradiction around checkpoint ${problemStage||'the ending'}. Saved checkpoints remain on this order; no new PDFs were published.` : 'The complete game did not pass its quality review. Saved checkpoints remain on this order.' : 'The replacement PDF files did not pass delivery checks. Your original PDFs remain available.' : null,
-    recoveryAvailable: Boolean(row.status==='failed'&&copyCheck?.resumeAvailable) || layoutRecoveryAvailable || upgradeAvailable || savedBlueprintAvailable || row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && (recoverableErrors.includes(row.error_code) || row.error_code === 'REMAKE_BUDGET_EXHAUSTED' && row.quality_epoch > 0),
+    recoveryAvailable: Boolean(row.status==='failed'&&(copyCheck?.resumeAvailable||copyCheck?.factRepairAvailable)) || layoutRecoveryAvailable || upgradeAvailable || savedBlueprintAvailable || row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && (recoverableErrors.includes(row.error_code) || row.error_code === 'REMAKE_BUDGET_EXHAUSTED' && row.quality_epoch > 0),
     layoutRecoveryAvailable,
     upgradeAvailable,
     recoveryCount: row.recovery_round,

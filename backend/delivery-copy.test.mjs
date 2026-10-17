@@ -6,7 +6,7 @@ import {clockSpec} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory} from './staged-story.mjs';
 import {validateDeliveryCopy,normalizeDeliveryCopy,applyDeliveryCopy,verifyDeliveryPuzzles} from './delivery-copy.mjs';
-import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,deliveryCopySchemaFor} from './delivery-copy-service.mjs';
+import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,deliveryCopySchemaFor,grantSavedFactRepair} from './delivery-copy-service.mjs';
 import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {validateGeneratedStory} from './domain.mjs';
@@ -22,6 +22,7 @@ function database(){
   const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE orders (id TEXT PRIMARY KEY); INSERT INTO orders VALUES (\'fixture\');');
   db.exec(readFileSync(new URL('./migrations/0026_printed_delivery_copy.sql',import.meta.url),'utf8'));
   db.exec(readFileSync(new URL('./migrations/0027_delivery_copy_checkpoints.sql',import.meta.url),'utf8'));
+  db.exec(readFileSync(new URL('./migrations/0028_explicit_saved_fact_repair.sql',import.meta.url),'utf8'));
   return {db,DB:{prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first:async()=>stmt.get(...values)||null,run:async()=>({meta:{changes:stmt.run(...values).changes}})};}}}}};
 }
 test('final visible records solve uniquely, keep every digit, and reject a modified witness or code',async()=>{
@@ -220,6 +221,57 @@ test('an ambiguous timeout consumes its reservation and cannot purchase a fresh 
   const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},fetcher=async()=>{calls++;throw Error('ambiguous timeout');};
   for(let attempt=0;attempt<3;attempt++)await assert.rejects(()=>ensureDeliveryCopy(story,{...spec,packCopyVersion:1},'fixture',env,fetcher));
   assert.equal(calls,1);assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,1);
+});
+
+test('explicit saved-fact correction retains the original ledger and draft, then permits exactly one extra bound review',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1},draft=structuredClone(copy);
+  draft.stages[0].facts=draft.stages[0].facts.slice(0,1);draft.stages[1].facts=draft.stages[1].facts.slice(0,1);
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};let requests=0;
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>{requests++;return Response.json({output_text:JSON.stringify(draft)});}),{code:'DELIVERY_COPY_INVALID'});
+  const before=await deliveryCopyStatus('fixture',env,story,edition);assert.equal(before.factRepairAvailable,true);assert.equal(before.limit,2);assert.equal(before.resumeAvailable,false);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_delivery_fact_repairs').get().n,0,'reading status never grants an extra review');
+  await grantSavedFactRepair('fixture',env,story,edition);await grantSavedFactRepair('fixture',env,story,edition);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_delivery_fact_repairs').get().n,1);
+  const granted=await deliveryCopyStatus('fixture',env,story,edition);assert.equal(granted.limit,3);assert.equal(granted.resumeAvailable,true);assert.equal(granted.calls,1);
+  const patch={recordFacts:{checkpoint_1:copy.stages[0].facts,checkpoint_2:copy.stages[1].facts}};
+  const fetcher=async(_url,{body})=>{requests++;const request=JSON.parse(body);
+    assert.equal(request.text.format.name,requests===2?'printed_fact_repair':'printed_copy_audit');
+    if(requests===2){assert.deepEqual(request.text.format.schema.required,['recordFacts']);assert.equal(JSON.parse(request.input).checkpoints.length,2);}
+    return Response.json({output_text:JSON.stringify(requests===2?patch:{pass:true,issues:[]})});
+  };
+  const checked=await ensureDeliveryCopy(story,edition,'fixture',env,fetcher);
+  await requireDeliveryReview(checked,edition,'fixture',env);
+  assert.deepEqual(checked.deliveryCopy,copy);assert.deepEqual(checked.stages,story.stages);
+  assert.equal(db.prepare('SELECT candidate_json FROM custom_delivery_copy').get().candidate_json,JSON.stringify(draft));
+  assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,2);
+  assert.equal(db.prepare('SELECT extra_audit_calls FROM custom_delivery_fact_repairs').get().extra_audit_calls,1);
+  assert.equal((await deliveryCopyStatus('fixture',env,story,edition)).calls,3);
+  await ensureDeliveryCopy(story,edition,'fixture',env,fetcher);assert.equal(requests,3,'no fourth call on redelivery');
+  await assert.rejects(()=>grantSavedFactRepair('fixture',env,story,edition),{code:'DELIVERY_COPY_FACT_REPAIR_UNAVAILABLE'});
+  await assert.rejects(()=>ensureDeliveryCopy({...story,ending:'A different ending.'},edition,'fixture',env,fetcher),{code:'DELIVERY_COPY_SOURCE_CHANGED'});
+});
+
+test('an ambiguous fact-only request cannot consume another repair or the extra review',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
+  copy.stages[0].facts=copy.stages[0].facts.slice(0,1);copy.stages[1].facts=copy.stages[1].facts.slice(0,1);
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};let requests=0;
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>{requests++;return Response.json({output_text:JSON.stringify(copy)});}));
+  await grantSavedFactRepair('fixture',env,story,edition);
+  for(let attempt=0;attempt<3;attempt++)await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>{requests++;throw Error('ambiguous fact timeout');}));
+  assert.equal(requests,2);assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,2);
+  assert.equal(db.prepare('SELECT extra_audit_calls FROM custom_delivery_fact_repairs').get().extra_audit_calls,0);
+});
+
+test('a failed extra review stays blocked at three actual calls and cannot be granted again',async()=>{
+  const {story,spec,copy}=await fixture(),{DB}=database(),edition={...spec,packCopyVersion:1},draft=structuredClone(copy);
+  draft.stages[0].facts=draft.stages[0].facts.slice(0,1);draft.stages[1].facts=draft.stages[1].facts.slice(0,1);
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};let calls=0;
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>{calls++;return Response.json({output_text:JSON.stringify(draft)});}));
+  await grantSavedFactRepair('fixture',env,story,edition);
+  const fetcher=async(_url,{body})=>{calls++;const name=JSON.parse(body).text.format.name;return Response.json({output_text:JSON.stringify(name==='printed_fact_repair'?{recordFacts:{checkpoint_1:copy.stages[0].facts,checkpoint_2:copy.stages[1].facts}}:{pass:false,issues:[{stageNumber:1,code:'UNSUPPORTED_CAUSE',quote:copy.links[0].fact,reason:'The consequence is not supported.'}]})});};
+  for(let attempt=0;attempt<3;attempt++)await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,fetcher),{code:'DELIVERY_COPY_REVIEW'});
+  const status=await deliveryCopyStatus('fixture',env,story,edition);assert.equal(status.calls,3);assert.equal(status.reviewPassed,false);assert.equal(status.resumeAvailable,false);assert.equal(status.factRepairAvailable,false);
+  await assert.rejects(()=>grantSavedFactRepair('fixture',env,story,edition));assert.equal(calls,3);
 });
 test('invented ocean and space editions preserve all solutions across different story vocabulary',async()=>{
   const base=await fixture();

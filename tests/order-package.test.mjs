@@ -82,6 +82,8 @@ test('a delivered order renders its original download card during theme correcti
     assert.match(copyHtml,/Continue saved game check at no charge/);
     assert.match(copyHtml,/Last game check: The saved wording did not pass its format check/);
     assert.doesNotMatch(copyHtml,/New pack stopped at the game review/);
+    const factGap={...copyStopped,remake:{...copyStopped.remake,copyResumeAvailable:false,copyCheck:{...copyStopped.remake.copyCheck,factRepairAvailable:true}}};
+    assert.match(renderToStaticMarkup(createElement(PackRemake,{order:factGap,refresh:()=>{}})),/Complete saved facts and review at no charge/);
     const delivered={...order,plan:{themeAnchors:['a translated theme']},planReview:{status:'confirmed',qualityReplanUsed:true},remake:{status:'ready',storyReady:true}};
     assert.equal(updateProgressState(delivered).completed,7);
     assert.equal(updateProgressState(delivered).busy,false);
