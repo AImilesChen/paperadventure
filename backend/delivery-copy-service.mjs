@@ -42,7 +42,7 @@ function auditResult(data,printed){
   if(typeof data?.pass!=='boolean'||!Array.isArray(data.issues)||data.issues.length>8||data.pass&&data.issues.length||!data.pass&&!data.issues.length)throw failure('DELIVERY_COPY_AUDIT_PROTOCOL');
   const visible=allText(printed);
   for(const issue of data.issues){
-    if(!Number.isInteger(issue.stageNumber)||issue.stageNumber<0||issue.stageNumber>5||!issueCodes.includes(issue.code)||typeof issue.quote!=='string'||!issue.quote.trim()||issue.quote.length>200||!visible.replace(/\s+/g,' ').includes(issue.quote.replace(/\s+/g,' '))||typeof issue.reason!=='string'||!issue.reason.trim()||issue.reason.length>240)throw failure('DELIVERY_COPY_AUDIT_PROTOCOL');
+    if(!Number.isInteger(issue.stageNumber)||issue.stageNumber<0||issue.stageNumber>5||!issueCodes.includes(issue.code)||typeof issue.quote!=='string'||!issue.quote.trim()||issue.quote.length>200||!visible.replace(/\s+/g,' ').includes(issue.quote.replace(/\s+/g,' '))||typeof issue.reason!=='string'||!issue.reason.trim()||issue.reason.length>2000)throw failure('DELIVERY_COPY_AUDIT_PROTOCOL');
   }
   return data;
 }
@@ -57,7 +57,7 @@ function boundedAuditProtocol(data,printed){
     if(!quote.trim()||quote.length>200)rules.push('quote_bounds');
     if(!quote||!visible.includes(quote))rules.push('quote_match');
     const reason=typeof issue?.reason==='string'?issue.reason:'';
-    if(!reason.trim()||reason.length>240)rules.push('reason_bounds');
+    if(!reason.trim()||reason.length>2000)rules.push('reason_bounds');
     return {stage:Number.isInteger(issue?.stageNumber)&&issue.stageNumber>=0&&issue.stageNumber<=5?issue.stageNumber:null,code:issueCodes.includes(issue?.code)?issue.code:null,quoteLength:Math.min(quote.length,100000),reasonLength:Math.min(reason.length,100000),rules};
   });
   return {verdict:typeof data?.pass==='boolean'?data.pass?'pass':'fail':'invalid',issueCount:Math.min(issues.length,100000),valid:!shape&&checked.every(issue=>!issue.rules.length),rule:shape,issues:checked};
