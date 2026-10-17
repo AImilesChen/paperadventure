@@ -31,7 +31,9 @@ jobs:
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
           SMOKE_CASE_IDS: classroom-market
-          SMOKE_MAX_PROVIDER_CALLS: '44'
+          SMOKE_MAX_PROVIDER_CALLS: '42'
+          SMOKE_COPY_ONLY: '1'
+          SMOKE_FORCE_COPY_REPAIR: '1'
           SMOKE_REPLAY_DIR: tmp/provider-replay
         run: node scripts/paper-contract-provider-smoke.mjs
       - uses: actions/upload-artifact@v6
