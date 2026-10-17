@@ -5,8 +5,8 @@ import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {clockSpec} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory} from './staged-story.mjs';
-import {validateDeliveryCopy,applyDeliveryCopy,verifyDeliveryPuzzles} from './delivery-copy.mjs';
-import {ensureDeliveryCopy,requireDeliveryReview} from './delivery-copy-service.mjs';
+import {validateDeliveryCopy,normalizeDeliveryCopy,applyDeliveryCopy,verifyDeliveryPuzzles} from './delivery-copy.mjs';
+import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus} from './delivery-copy-service.mjs';
 import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {validateGeneratedStory} from './domain.mjs';
@@ -21,6 +21,7 @@ async function fixture(){
 function database(){
   const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE orders (id TEXT PRIMARY KEY); INSERT INTO orders VALUES (\'fixture\');');
   db.exec(readFileSync(new URL('./migrations/0026_printed_delivery_copy.sql',import.meta.url),'utf8'));
+  db.exec(readFileSync(new URL('./migrations/0027_delivery_copy_checkpoints.sql',import.meta.url),'utf8'));
   return {db,DB:{prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first:async()=>stmt.get(...values)||null,run:async()=>({meta:{changes:stmt.run(...values).changes}})};}}}}};
 }
 test('final visible records solve uniquely, keep every digit, and reject a modified witness or code',async()=>{
@@ -38,9 +39,75 @@ test('final visible records solve uniquely, keep every digit, and reject a modif
 test('copy validation rejects noun lists and invented cited evidence',async()=>{
   const {story,copy}=await fixture();
   const bad=structuredClone(copy);bad.actions[0].description='Bags, open chest, take scroll, west gate.';
-  assert.throws(()=>validateDeliveryCopy(story,bad),/instruction verb/);
+  assert.throws(()=>validateDeliveryCopy(story,bad),/complete instructions/);
   const ungrounded=structuredClone(copy);ungrounded.links[0].fact='The seal means the chest is safe.';
   assert.throws(()=>validateDeliveryCopy(story,ungrounded),/exact printed finding/);
+});
+
+test('valid English verbs and numbered findings survive normalization without duplicated final labels',async()=>{
+  const {story,copy}=await fixture(),input=structuredClone(copy);
+  for(const [index,verb] of ['Retrieve','Restore','Examine'].entries()){
+    input.actions[index].label=`${verb} the signal gear`;
+    input.actions[index].description=`${verb} the signal gear before the bell rings.`;
+  }
+  input.stages[4].labels=[];
+  input.links[0]={factIndex:0,reason:copy.links[0].reason};
+  const normalized=normalizeDeliveryCopy(story,input);
+  validateDeliveryCopy(story,normalized);
+  assert.deepEqual(normalized.stages[4].labels,input.actions.map(action=>action.label));
+  assert.equal(normalized.links[0].fact,input.stages[0].facts[0].yes);
+  assert.deepEqual(input.stages[4].labels,[],'normalization does not mutate saved provider output');
+  input.links[0].factIndex=3;
+  assert.throws(()=>normalizeDeliveryCopy(story,input),/out of range/);
+});
+
+test('format-stopped original draft resumes only its remaining audit and retains raw text and budget',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
+  const original=structuredClone(copy);original.actions[0].label='Retrieve the signal gear';original.actions[0].description='Retrieve the signal gear and fit it to the clock.';
+  // The old format demanded that the model repeat precisely the same label.
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};let calls=0;
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>{calls++;return Response.json({output_text:JSON.stringify({version:1})});}),{code:'DELIVERY_COPY_INVALID'});
+  db.prepare('UPDATE custom_delivery_copy SET candidate_json=?').run(JSON.stringify(original));
+  const before=await deliveryCopyStatus('fixture',env,story,edition);
+  assert.equal(before.calls,1);assert.equal(before.resumeAvailable,true);assert.equal(before.phase,'format');
+  const checked=await ensureDeliveryCopy(story,edition,'fixture',env,async(_url,{body})=>{
+    calls++;assert.equal(JSON.parse(body).text.format.name,'printed_copy_audit');
+    return Response.json({output_text:JSON.stringify({pass:true,issues:[]})});
+  });
+  await requireDeliveryReview(checked,edition,'fixture',env);
+  assert.equal(calls,2);assert.equal(db.prepare('SELECT candidate_json FROM custom_delivery_copy').get().candidate_json,JSON.stringify(original));
+  assert.deepEqual(checked.stages,story.stages,'all five canonical puzzles remain saved unchanged');
+  assert.equal((await deliveryCopyStatus('fixture',env,story,edition)).resumeAvailable,false);
+  // Even a passed audit cannot be replayed over a changed edition.
+  original.actions[0].description='Retrieve the signal gear and inspect it beside the clock.';
+  db.prepare('UPDATE custom_delivery_copy SET candidate_json=?').run(JSON.stringify(original));
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,()=>{throw Error('No third call');}),{code:'DELIVERY_COPY_REVIEW_STALE'});
+  assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,2);
+});
+
+test('received private correction can recover after interrupted persistence without a new correction',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>Response.json({output_text:JSON.stringify(copy)})).then(()=>{throw Error('review unexpectedly passed');}));
+  db.prepare('UPDATE custom_delivery_copy SET calls=1,candidate_json=NULL,audit_json=NULL,audit_response_json=NULL,audit_candidate_sha256=NULL').run();
+  assert.equal((await deliveryCopyStatus('fixture',env,story,edition)).resumeAvailable,true);
+  const checked=await ensureDeliveryCopy(story,edition,'fixture',env,async(_url,{body})=>{
+    assert.equal(JSON.parse(body).text.format.name,'printed_copy_audit');return Response.json({output_text:JSON.stringify({pass:true,issues:[]})});
+  });
+  await requireDeliveryReview(checked,edition,'fixture',env);
+  assert.ok(db.prepare('SELECT candidate_json FROM custom_delivery_copy').get().candidate_json);
+});
+
+test('malformed audit is a protocol failure; diagnostics expose only safe metadata and never permit a third call',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
+  let calls=0;const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},fetcher=async()=>Response.json({id:'private-response-id',output_text:JSON.stringify(++calls===1?copy:{pass:false,issues:[{stageNumber:1,code:'GRAMMAR',quote:'invented quotation',reason:'private prose'}]})});
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,fetcher),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
+  const before=db.prepare('SELECT * FROM custom_delivery_copy').get(),status=await deliveryCopyStatus('fixture',env,story,edition);
+  assert.equal(status.code,'DELIVERY_COPY_AUDIT_PROTOCOL');assert.equal(status.calls,2);assert.equal(status.resumeAvailable,false);
+  assert.doesNotMatch(JSON.stringify(status),/private-response-id|invented quotation|private prose/);
+  assert.deepEqual(db.prepare('SELECT * FROM custom_delivery_copy').get(),before,'reading status does not mutate private state');
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,fetcher),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
+  assert.equal(calls,2);
 });
 test('one correction and one independent review persist across redelivery; no third call or changed source',async()=>{
   const {story,spec,copy}=await fixture(),{DB,db}=database();let calls=0;
@@ -78,7 +145,7 @@ test('invented ocean and space editions preserve all solutions across different 
 });
 test('rejected independent review stays stopped without regenerated text or additional charges',async()=>{
   const {story,spec,copy}=await fixture(),{DB}=database();let calls=0;
-  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},fetcher=async()=>{calls++;return Response.json({output_text:JSON.stringify(calls===1?copy:{pass:false,issues:[{stageNumber:1,code:'UNSUPPORTED_CAUSE',quote:'bad fact',reason:'not established'}]})});};
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},fetcher=async()=>{calls++;return Response.json({output_text:JSON.stringify(calls===1?copy:{pass:false,issues:[{stageNumber:1,code:'UNSUPPORTED_CAUSE',quote:copy.links[0].fact,reason:'not established'}]})});};
   for(let attempt=0;attempt<3;attempt++)await assert.rejects(()=>ensureDeliveryCopy(story,{...spec,packCopyVersion:1},'fixture',env,fetcher),{code:'DELIVERY_COPY_REVIEW'});
   assert.equal(calls,2);
 });

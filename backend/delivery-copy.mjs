@@ -11,10 +11,50 @@ const text=(value,label,max,sentence=false)=>{
   return value.trim();
 };
 const distinct=values=>new Set(values.map(value=>value.toLowerCase())).size===values.length;
-const actionVerb=/^(?:align|ask|attach|bring|build|carry|check|close|collect|cross|deliver|draw|fit|fold|follow|gather|give|go|hand|head|inspect|join|keep|leave|lift|light|lock|look|lower|move|open|pack|pass|place|prepare|press|pull|push|put|raise|read|remove|repair|replace|reset|return|ring|rotate|send|set|slide|start|stop|take|test|tie|turn|unlock|use|walk|wait)\b/i;
+// Grammar is checked by the independent review. A finite English verb list
+// wrongly rejected valid instructions such as Retrieve, Restore and Examine.
+// Reject obvious noun lists/determiner fragments here without pretending that
+// unknown words are invalid English verbs.
+const instruction=value=>/^[A-Za-z][A-Za-z'-]*\s+\S/.test(value)&&!/^(?:a|an|the|this|that|these|those|our|your|their|it|they|he|she)\b/i.test(value)&&!/^[A-Za-z'-]+,/.test(value);
 const records=stage=>stage.number<5&&['decision_record','evidence_cards'].includes(stage.material.type);
 const factsIn=item=>[...item.detail.matchAll(/: (YES|NO)\./g)].map(match=>match[1]==='YES');
 const chosen=(stage,labels)=>labels[stage.material.items.findIndex(item=>item.label===stage.options[stage.answerIndex])];
+
+const typography=value=>typeof value==='string'?value.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\u2018\u2019]/g,"'").replace(/[\u201c\u201d]/g,'"').replace(/[\u2013\u2014]/g,'-').replace(/[\u00a0\u202f]/g,' ').replace(/\s+/g,' ').trim():Array.isArray(value)?value.map(typography):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([key,item])=>[key,typography(item)])):value;
+export function printedFactChoices(story,copy,index){
+  const stage=story.stages[index],part=copy.stages[index];
+  if(records(stage))return part.facts.map(fact=>fact.yes);
+  if(stage.material.type==='order_tiles')return part.labels.map(label=>`${label}.`);
+  if(stage.material.type==='symbol_key')return [`The key spells ${stage.options[stage.answerIndex].split(' / ')[0]}.`];
+  return [stage.material.items.find(item=>item.label===stage.options[stage.answerIndex])?.detail];
+}
+const citationWords=value=>new Set((String(value).toLowerCase().match(/[a-z0-9]+/g)||[]).filter(word=>!['a','an','the','is','are','has','have','on','in','of','at'].includes(word)));
+// New outputs reference a numbered fact. Existing saved drafts keep their
+// provider text; only a uniquely equivalent citation is restored verbatim.
+// Any change still needs a review bound to the resulting exact edition.
+export function normalizeDeliveryCopy(story,input){
+  const copy=typography(structuredClone(input));
+  if(copy?.stages?.length!==5||copy.actions?.length!==3||copy.links?.length!==4)return copy;
+  copy.stages[4].labels=copy.actions.map(action=>action.label);
+  story.stages.slice(0,4).forEach((stage,index)=>{
+    if(stage.material.type==='symbol_key')copy.stages[index].labels=['1','2','3','4'];
+    if(stage.material.type==='route_board')copy.stages[index].labels=stage.material.items.slice(0,3).map(item=>item.label);
+  });
+  copy.links=copy.links.map((link,index)=>{
+    const choices=printedFactChoices(story,copy,index);
+    if(Number.isInteger(link.factIndex)){
+      if(link.factIndex<0||link.factIndex>=choices.length)fail(`Checkpoint ${index+1} fact reference is out of range.`);
+      return {fact:choices[link.factIndex],reason:link.reason};
+    }
+    if(choices.includes(link.fact))return {fact:link.fact,reason:link.reason};
+    const words=citationWords(link.fact),same=choices.filter(fact=>{
+      const target=citationWords(fact);
+      return words.size===target.size&&[...words].every(word=>target.has(word));
+    });
+    return {fact:same.length===1?same[0]:link.fact,reason:link.reason};
+  });
+  return copy;
+}
 
 export function validateDeliveryCopy(story,copy){
   verifyPrintedPuzzles(story);
@@ -24,7 +64,7 @@ export function validateDeliveryCopy(story,copy){
   for(const [index,action] of copy.actions.entries()){
     text(action.label,`Action ${index+1} label`,40);
     text(action.description,`Action ${index+1} instructions`,140,true);
-    if(!actionVerb.test(action.label)||!actionVerb.test(action.description))fail('Final actions must start with an instruction verb.');
+    if(!instruction(action.label)||!instruction(action.description))fail('Final actions need complete instructions rather than noun lists.');
   }
   if(!distinct(copy.actions.map(action=>action.label))||!distinct(copy.actions.map(action=>action.description)))fail('Final actions must differ.');
   for(const [index,stage] of story.stages.entries()){
@@ -35,7 +75,7 @@ export function validateDeliveryCopy(story,copy){
     if(stage.number===5&&JSON.stringify(part.labels)!==JSON.stringify(copy.actions.map(action=>action.label)))fail('Final labels must match their instructions.');
     if(stage.material.type==='symbol_key'&&part.labels.join('')!=='1234')fail('The key rows cannot change.');
     if(stage.material.type==='route_board'&&JSON.stringify(part.labels)!==JSON.stringify(stage.material.items.slice(0,3).map(item=>item.label)))fail('Keep the checked route names.');
-    if(stage.material.type==='order_tiles'&&part.labels.some(label=>!actionVerb.test(label)))fail('Order tiles need complete in-world instructions.');
+    if(stage.material.type==='order_tiles'&&part.labels.some(label=>!instruction(label)))fail('Order tiles need complete in-world instructions.');
     if(part.facts?.length!==(records(stage)?2:0))fail('Record stages need exactly two facts; other puzzles cannot gain hidden conditions.');
     for(const fact of part.facts){
       text(fact.yes,'Positive printed fact',66,true);text(fact.no,'Alternative printed fact',66,true);

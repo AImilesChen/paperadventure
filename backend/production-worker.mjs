@@ -1230,8 +1230,8 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
       if (audited && audited.story_sha256!==storyHash) throw new ApiError(422,'STORY_CHECKPOINT_MISMATCH','The checked story changed after approval.');
       if (!audited) {
         try {
-          await call('audit',0,async()=>{
-            const result=spec.packCopyVersion?{}:await auditStagedStory(story,spec,blueprint,env,fetcher);
+          if(!spec.packCopyVersion)await call('audit',0,async()=>{
+            const result=await auditStagedStory(story,spec,blueprint,env,fetcher);
             return {value:{storySha256:storyHash},usage:result.usage,responseId:result.responseId};
           },storyHash);
         } catch (auditError) {

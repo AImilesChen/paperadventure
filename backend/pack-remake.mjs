@@ -5,7 +5,7 @@ import { validatePlan } from '../shared/creator-plan.mjs';
 import { generateBlueprint, repairBlueprint, validateBlueprint, prepareBlueprintCandidate, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory, auditCheckpointSemantics,
   generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, deliverableClosing } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
-import {ensureDeliveryCopy,requireDeliveryReview} from './delivery-copy-service.mjs';
+import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus} from './delivery-copy-service.mjs';
 
 const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
 const nowSeconds = () => Math.floor(Date.now() / 1000);
@@ -115,6 +115,13 @@ async function requireApprovedReplacement(orderId,db){
     throw new ApiError(409,'REPLACEMENT_PLAN_NOT_APPROVED','The replacement story plan has not been approved. Resolve its plan check before rebuilding PDFs.');
 }
 
+function savedCopySource(row,spec){
+  if(row.story_json)return validateGeneratedStory(JSON.parse(row.story_json),spec);
+  const stages=JSON.parse(row.stages_json||'[]');
+  if(row.blueprint_json&&stages.length===5)return assembleStagedStory(spec,validateBlueprint(JSON.parse(row.blueprint_json),spec),stages);
+  return null;
+}
+
 export async function startPackRemake(order, activity, env) {
   if (!env.DB || !env.GENERATION_QUEUE || !env.PRIVATE_FILES || !aiProvider(env))
     throw new ApiError(503, 'REMAKE_NOT_READY', 'The paper-pack remake service is not ready.');
@@ -142,7 +149,9 @@ export async function startPackRemake(order, activity, env) {
     const savedStages=JSON.parse(existing.stages_json||'[]');
     // A current, checked game needs a bounded wording correction, not another
     // blueprint/checkpoint generation. Retain its actual proof and digits.
-    if(previousSpec?.packQualityVersion>=CURRENT_PACK_QUALITY_VERSION&&existing.story_json&&savedStages.length===5&&previousSpec.packCopyVersion!==1&&JSON.stringify(previousSpec.plan)===JSON.stringify(spec.plan)){
+    if(previousSpec?.packQualityVersion>=CURRENT_PACK_QUALITY_VERSION&&existing.story_json&&savedStages.length===5&&previousSpec.packCopyVersion!==1){
+      const oldPlan=validatePlan(previousSpec.plan,previousSpec);
+      if(JSON.stringify(oldPlan)!==JSON.stringify(spec.plan))throw new ApiError(409,'REMAKE_PLAN_CHANGED','The approved plan differs from the saved game. This wording update cannot restart the whole game automatically.');
       const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'audit',spec_json = ?,spec_sha256 = ?,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'ready' AND published_version = ?",specJson,specHash,order.id,existing.published_version).run();
       if(changed.meta?.changes)await env.GENERATION_QUEUE.send({type:'pack_remake',orderId:order.id});
       return {status:'queued',queued:Boolean(changed.meta?.changes)};
@@ -189,6 +198,14 @@ export async function retryPackRemake(order, env) {
   if (order.product_kind !== 'custom' || order.status !== 'published' || !order.paid_at)
     throw new ApiError(409, 'REMAKE_UNAVAILABLE', 'This paid order is not eligible for a pack remake.');
   const previous=await query(env.DB,'SELECT status,phase,error_code,error_detail,blueprint_json,stages_json,story_json,logic_epoch,quality_epoch,spec_json,recovery_round,published_version FROM custom_pack_remakes WHERE order_id = ?',order.id).first();
+  if(previous?.status==='failed'&&JSON.parse(previous.spec_json).packCopyVersion===1&&String(previous.error_code).startsWith('DELIVERY_COPY_')){
+    const spec=JSON.parse(previous.spec_json),source=savedCopySource(previous,spec);
+    const check=await deliveryCopyStatus(order.id,env,source,spec);
+    if(!check?.resumeAvailable)throw new ApiError(409,'DELIVERY_COPY_RESUME_UNAVAILABLE','The saved content cannot continue within its existing two-call budget. No new generation was started.');
+    const changed=await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'audit',failure_count = 0,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'failed' AND spec_json = ? AND EXISTS (SELECT 1 FROM custom_delivery_copy WHERE order_id = ? AND policy = 'printed-causal-copy-1' AND calls = 1 AND audit_json IS NULL)",order.id,previous.spec_json,order.id).run();
+    if(changed.meta?.changes)await queueNext(order.id,env);
+    return {status:'queued',recovery:true,savedCopy:true};
+  }
   if (!previous || previous.status!=='failed' || (previous.published_version && !previous.quality_epoch))
     throw new ApiError(409,'REMAKE_RECOVERY_UNAVAILABLE','This remake is not waiting for a recovery.');
   const savedSpec=JSON.parse(previous.spec_json);
@@ -243,6 +260,11 @@ export async function packRemakeView(db, orderId) {
   if (!row) return null;
   const stages = JSON.parse(row.stages_json || '[]');
   const spec=JSON.parse(row.spec_json);
+  let copyCheck=null;
+  if(spec.packCopyVersion){
+    let source=null;try{source=savedCopySource(row,spec);}catch{}
+    copyCheck=await deliveryCopyStatus(orderId,{DB:db},source,spec);
+  }
   const resumableBlueprint=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8;
   const partRow=resumableBlueprint?await query(db,"SELECT COUNT(DISTINCT phase || ':' || stage_number) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND status = 'passed' AND result_json IS NOT NULL AND (phase = 'blueprint_frame' OR phase = 'blueprint_closing' OR (phase = 'blueprint_material' AND stage_number BETWEEN 1 AND 5))",orderId,row.quality_epoch,row.logic_epoch).first():null;
   const blueprintStepTotal=resumableBlueprint?8:1;
@@ -267,9 +289,11 @@ export async function packRemakeView(db, orderId) {
     currentStage: [1,2,3,4,5].find(number => !stages.some(stage => stage.number === number)) || null,
     problemStage,
     storyReady,
+    copyCheck,
+    copyResumeAvailable:Boolean(row.status==='failed'&&copyCheck?.resumeAvailable),
     publishedVersion: row.published_version || null,
-    failureReason: row.status === 'failed' ? layoutRecoveryAvailable ? 'The saved game is complete, but the layout refresh stopped before PDF rendering. Retrying will reuse the saved game and will not call the AI.' : row.error_code === 'REMAKE_BUDGET_EXHAUSTED' ? 'The safe repair limit was reached. Saved work and the original PDFs remain on this paid order for a quality review.' : row.error_code === 'STAGE_SEMANTIC_INVALID' ? `Checkpoint ${problemStage||stages.length+1} needs a correction to its printed record facts. Earlier checkpoints remain saved.` : row.phase === 'repair' ? `The targeted repair${problemStage?` for checkpoint ${problemStage}`:''} stopped before the new pack could be published. Saved work remains on this order.` : row.phase === 'blueprint' ? 'The game blueprint did not match the approved play rules. No new checkpoints or PDFs were published.' : row.phase === 'checkpoint' ? /Answer explanation is required and must be under/i.test(row.error_detail || '') ? 'The generated adult answer explanation was longer than the printable guide allows. Earlier checkpoints were saved.' : 'A new checkpoint did not pass generation checks. Saved earlier work remains on this order.' : row.phase === 'audit' ? row.error_detail?.startsWith(reviewPrefix) ? `The quality review found a contradiction around checkpoint ${problemStage||'the ending'}. Saved checkpoints remain on this order; no new PDFs were published.` : 'The complete game did not pass its quality review. Saved checkpoints remain on this order.' : 'The replacement PDF files did not pass delivery checks. Your original PDFs remain available.' : null,
-    recoveryAvailable: layoutRecoveryAvailable || upgradeAvailable || savedBlueprintAvailable || row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && (recoverableErrors.includes(row.error_code) || row.error_code === 'REMAKE_BUDGET_EXHAUSTED' && row.quality_epoch > 0),
+    failureReason: row.status === 'failed' && copyCheck?.message ? copyCheck.message : row.status === 'failed' ? layoutRecoveryAvailable ? 'The saved game is complete, but the layout refresh stopped before PDF rendering. Retrying will reuse the saved game and will not call the AI.' : row.error_code === 'REMAKE_BUDGET_EXHAUSTED' ? 'The safe repair limit was reached. Saved work and the original PDFs remain on this paid order for a quality review.' : row.error_code === 'STAGE_SEMANTIC_INVALID' ? `Checkpoint ${problemStage||stages.length+1} needs a correction to its printed record facts. Earlier checkpoints remain saved.` : row.phase === 'repair' ? `The targeted repair${problemStage?` for checkpoint ${problemStage}`:''} stopped before the new pack could be published. Saved work remains on this order.` : row.phase === 'blueprint' ? 'The game blueprint did not match the approved play rules. No new checkpoints or PDFs were published.' : row.phase === 'checkpoint' ? /Answer explanation is required and must be under/i.test(row.error_detail || '') ? 'The generated adult answer explanation was longer than the printable guide allows. Earlier checkpoints were saved.' : 'A new checkpoint did not pass generation checks. Saved earlier work remains on this order.' : row.phase === 'audit' ? row.error_detail?.startsWith(reviewPrefix) ? `The quality review found a contradiction around checkpoint ${problemStage||'the ending'}. Saved checkpoints remain on this order; no new PDFs were published.` : 'The complete game did not pass its quality review. Saved checkpoints remain on this order.' : 'The replacement PDF files did not pass delivery checks. Your original PDFs remain available.' : null,
+    recoveryAvailable: Boolean(row.status==='failed'&&copyCheck?.resumeAvailable) || layoutRecoveryAvailable || upgradeAvailable || savedBlueprintAvailable || row.status === 'failed' && row.recovery_round < MAX_RECOVERY_ROUNDS && (recoverableErrors.includes(row.error_code) || row.error_code === 'REMAKE_BUDGET_EXHAUSTED' && row.quality_epoch > 0),
     layoutRecoveryAvailable,
     upgradeAvailable,
     recoveryCount: row.recovery_round,
@@ -525,8 +549,8 @@ export async function processPackRemake(orderId, env) {
       if(spec.packCopyVersion)story=await ensureDeliveryCopy(story,spec,orderId,env);
       const storyJson = JSON.stringify(story);
       const storyHash = await sha256(storyJson);
-      const proof = await recordCall(remake, phase, 0, async () => {
-        const result = spec.packCopyVersion?{}:await auditStagedStory(story, spec, blueprint, env, env.FETCH || fetch);
+      const proof = spec.packCopyVersion ? {storyHash} : await recordCall(remake, phase, 0, async () => {
+        const result = await auditStagedStory(story, spec, blueprint, env, env.FETCH || fetch);
         return { value: { storyHash }, usage: result.usage, responseId: result.responseId };
       }, env);
       if (proof.storyHash !== storyHash) throw new ApiError(422, 'GENERATION_QA_FAILED', 'The game differs from the checked blueprint.');

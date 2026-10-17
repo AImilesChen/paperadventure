@@ -26,7 +26,7 @@ export function updateProgressState(order) {
   const complete=remake.status==='ready';
   const current=complete?6:remake.storyReady||['pdf','storage'].includes(remake.phase)?5:remake.phase==='audit'?4:3;
   return {completed:complete?7:current,current,busy:['queued','generating'].includes(remake.status),failed:remake.status==='failed',waiting:false,
-    label:complete?'Replacement game pack ready':remake.status==='failed'?'Replacement game creation stopped':current===5?'Creating and checking both PDFs':current===4?'Checking the complete game':'Building the five checkpoints',updatedAt:remake.updatedAt};
+    label:complete?'Replacement game pack ready':remake.status==='failed'?'Replacement game creation stopped':current===5?'Creating and checking both PDFs':current===4?'Checking the complete game':'Building the five checkpoints',updatedAt:remake.updatedAt,reason:remake.status==='failed'?remake.failureReason:null,checkLabel:'Last game check'};
 }
 
 export default function OrderUpdateProgress({order}) {
@@ -40,7 +40,7 @@ export default function OrderUpdateProgress({order}) {
     <details><summary>View progress details</summary>
       <p className="live-note">{state.completed} of 7 milestones completed. Progress records saved steps, not elapsed time.</p>
       <ol className="order-update-steps">{steps.map((label,index)=><li key={label} className={index<state.completed?'is-complete':index===state.current?'is-current':''} aria-current={index===state.current?'step':undefined}><span>{index<state.completed?'✓':index+1}</span>{label}</li>)}</ol>
-      {state.failed&&state.reason&&<p className="live-note">Last plan check: {state.reason}</p>}
+      {state.failed&&state.reason&&<p className="live-note">{state.checkLabel||'Last plan check'}: {state.reason}</p>}
       {state.updatedAt&&<p className="live-note">Last saved update: {new Date(state.updatedAt.replace(' ','T')+'Z').toLocaleString()}.</p>}
     </details>
     {state.waiting&&<a className="button" href="#personal-plan-review">Review your plan</a>}
