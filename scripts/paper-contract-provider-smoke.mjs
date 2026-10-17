@@ -6,7 +6,7 @@ import {generateSinglePlan} from '../backend/plan-proposals.mjs';
 import {repairBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,
   generateBlueprintFrameStep,generateBlueprintMaterialStep,generateBlueprintClosingStep,assembleBlueprintSteps} from '../backend/staged-story.mjs';
 import {buildGamePdf} from '../backend/pdf.mjs';
-import {ensureDeliveryCopy} from '../backend/delivery-copy-service.mjs';
+import {ensureDeliveryCopy,deliveryCopyStatus} from '../backend/delivery-copy-service.mjs';
 import {verifyPrintedPuzzles} from '../backend/paper-proof.mjs';
 import {clockSpec as checkedClockSpec} from '../content/paper-contract-qa.mjs';
 
@@ -115,7 +115,9 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
       }
     }
     phase='delivery-copy';
-    story=await ensureDeliveryCopy(story,approved,`synthetic-${item.id}`,{...env,...deliveryDatabase(`synthetic-${item.id}`)},privateFetch);
+    const syntheticOrderId=`synthetic-${item.id}`,deliveryEnv={...env,...deliveryDatabase(syntheticOrderId)};
+    try{story=await ensureDeliveryCopy(story,approved,syntheticOrderId,deliveryEnv,privateFetch);}
+    catch(error){const status=await deliveryCopyStatus(syntheticOrderId,deliveryEnv,story,approved);console.log(JSON.stringify({id:item.id,phase:'delivery-copy-detail',errorCode:status.errorCode,formatIssue:status.formatIssue}));throw error;}
     phase='pdf';
     if(verifyPrintedPuzzles(story).length!==5||story.spine?.links?.length!==4)throw Error('A printable finding or story link is missing.');
     await writeFile(`${directory}/${item.id}.json`,JSON.stringify({spec:approved,story},null,2));
