@@ -35,6 +35,16 @@ const fitRecordFeature=value=>{
   return `${prefix} ${words.join(' ')}`;
 };
 const featureBanned=/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i;
+// Apply the same printable fact rule before a material step is saved. A bad
+// record must be retried as its own step, not reused by blueprint assembly.
+export const checkedPrintedRecordFacts=(features,number)=>{
+  const normalized=Array.isArray(features)?features.map(value=>text(fitRecordFeature(value),`Checkpoint ${number} printed feature`,32)):[];
+  if(normalized.length!==2||!unique(normalized)||normalized.some(value=>featureBanned.test(value)))
+    throw Error(`Checkpoint ${number} needs two concrete, distinct printed record facts; generic features cannot be substituted.`);
+  if(normalized.some(value=>!/^(?:Mentions|Names) [A-Za-z]/i.test(value)))
+    throw Error(`Checkpoint ${number} printed features must describe the contents of every record.`);
+  return normalized;
+};
 const featureStop=new Set(['this','that','with','from','into','before','after','needed','need','helps','help','using','used','final','first','action','story','discovery','identifies','identify','gives','give','provides','provide','allows','allow','required','requires','carry','complete','completes']);
 const fallbackRecordFeatures=(candidate,spec,index)=>{
   const discovery=candidate.storyFrame?.discoveries?.[index];

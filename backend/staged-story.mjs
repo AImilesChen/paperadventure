@@ -2,7 +2,7 @@ import { ApiError, requireText, validateGeneratedStage, validateGeneratedStory }
 import { aiProvider } from './openai.mjs';
 import { materialTypes, validatePrintableMaterial, validateMaterialSet } from './printable-material.mjs';
 import { compileControlledPuzzle, controlledStageText, validateControlledPuzzle, controlledMaterialTypes } from './controlled-puzzles.mjs';
-import {invalidStoryOrderAction,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
+import {checkedPrintedRecordFacts,invalidStoryOrderAction,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
 import {paperContractTypes,paperActions,paperAction,assertGoalStillOpen} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
 import {compileStorySpine,prepareStoryFrame,selectedStoryFinding,validateStorySpine} from './story-spine.mjs';
@@ -317,6 +317,14 @@ export async function generateBlueprintMaterialStep(spec,storyFrame,number,earli
     const labels=result.data?.material?.items?.map(item=>item?.label);
     if(!Array.isArray(labels)||labels.length!==4||labels.some(label=>invalidStoryOrderAction(label,storyFrame.actions[0],spec.plan.goal))){
       const error=new ApiError(422,'BLUEPRINT_INVALID',`Checkpoint ${number} ordering material needs four natural unfinished story actions with concrete objects.`);
+      error.stageNumber=number;error.usage=result.usage;error.responseId=result.responseId;error.candidate=result.data;
+      throw error;
+    }
+  }
+  if(spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&['evidence_cards','decision_record'].includes(type)){
+    try{checkedPrintedRecordFacts(result.data.features,number);}
+    catch(cause){
+      const error=new ApiError(422,'BLUEPRINT_INVALID',cause.message);
       error.stageNumber=number;error.usage=result.usage;error.responseId=result.responseId;error.candidate=result.data;
       throw error;
     }
