@@ -47,6 +47,13 @@ export function normalizeDeliveryCopy(story,input){
   const copy=typography(structuredClone(input));
   if(copy?.links&&!Array.isArray(copy.links)&&typeof copy.links==='object')copy.links=story.stages.slice(0,4).map(stage=>copy.links[`checkpoint_${stage.number}`]);
   if(copy?.stages?.length!==5||copy.actions?.length!==3||copy.links?.length!==4)return copy;
+  // Shorten only redundant wording; never slice an instruction or remove its
+  // action, object, destination or deadline to make an overlong field fit.
+  copy.actions.forEach(action=>{
+    if(typeof action.description!=='string'||action.description.length<=140)return;
+    action.description=action.description.replace(/\bthe friendly shopkeeper\b/gi,'the shopkeeper');
+    if(action.description.length>140)action.description=action.description.replace(/,\s+then\s+/i,'; ');
+  });
   if(copy.materialLabels){
     story.stages.forEach((stage,index)=>{if(stage.number<5&&(records(stage)||stage.material.type==='order_tiles'))copy.stages[index].labels=copy.materialLabels[`checkpoint_${stage.number}`];});
     delete copy.materialLabels;
