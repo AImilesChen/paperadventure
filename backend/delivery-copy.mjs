@@ -111,7 +111,9 @@ function validateCopy(story,copy,fieldsOnly=false){
     if(part.facts?.length!==(records(stage)?2:0)&&!(fieldsOnly&&records(stage)&&part.facts?.length===1))fail('Record stages need exactly two facts; other puzzles cannot gain hidden conditions.');
     if(fieldsOnly&&records(stage))continue;
     for(const fact of part.facts){
-      text(fact.yes,'Positive printed fact',66,true);text(fact.no,'Alternative printed fact',66,true);
+      // 66 is a generation target. Retain complete facts within the existing
+      // cited-finding bound; the renderer checks every actual record/card box.
+      text(fact.yes,'Positive printed fact',100,true);text(fact.no,'Alternative printed fact',100,true);
       if(fact.yes===fact.no||/^(?:Mentions|Names)\b/i.test(fact.yes))fail('Printed facts must be statements, not keyword checks.');
       if([fact.yes,fact.no].some(value=>(value.match(/[.!?]/g)||[]).length!==1))fail('Each printed fact must be one sentence.');
     }
