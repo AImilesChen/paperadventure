@@ -70,7 +70,7 @@ async function structuredResponse(spec, env, fetcher, {name,schema,instructions,
   // materials and short consequence steps repeatedly exhausted that budget;
   // reserve thinking for the causal frame and independent full-game review.
   const reasoningNames=new Set(['story_frame','story_frame_repair',
-    'staged_story_audit','staged_story_adjudication']);
+    'staged_story_audit']);
   const careful=(spec.packQualityVersion||0)>=8&&reasoningNames.has(name);
   let response;
   try {
