@@ -10,6 +10,7 @@ import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,deliveryCopy
 import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {validateGeneratedStory} from './domain.mjs';
+import {sha256} from './security.mjs';
 
 async function fixture(){
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:4,packLayoutVersion:4};
@@ -23,6 +24,7 @@ function database(){
   db.exec(readFileSync(new URL('./migrations/0026_printed_delivery_copy.sql',import.meta.url),'utf8'));
   db.exec(readFileSync(new URL('./migrations/0027_delivery_copy_checkpoints.sql',import.meta.url),'utf8'));
   db.exec(readFileSync(new URL('./migrations/0028_explicit_saved_fact_repair.sql',import.meta.url),'utf8'));
+  db.exec(readFileSync(new URL('./migrations/0029_bound_delivery_copy_revision.sql',import.meta.url),'utf8'));
   return {db,DB:{prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first:async()=>stmt.get(...values)||null,run:async()=>({meta:{changes:stmt.run(...values).changes}})};}}}}};
 }
 test('final visible records solve uniquely, keep every digit, and reject a modified witness or code',async()=>{
@@ -313,6 +315,52 @@ test('a failed extra review stays blocked at three actual calls and cannot be gr
   for(let attempt=0;attempt<3;attempt++)await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,fetcher),{code:'DELIVERY_COPY_REVIEW'});
   const status=await deliveryCopyStatus('fixture',env,story,edition);assert.equal(status.calls,3);assert.equal(status.reviewPassed,false);assert.equal(status.resumeAvailable,false);assert.equal(status.factRepairAvailable,false);
   await assert.rejects(()=>grantSavedFactRepair('fixture',env,story,edition));assert.equal(calls,3);
+});
+test('a bound text-only revision gets one new exact review without altering the exhausted original',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};let oldCalls=0;
+  const oldFetcher=async()=>{oldCalls++;return Response.json({output_text:JSON.stringify(oldCalls===1?copy:{pass:false,issues:[{stageNumber:1,code:'UNSUPPORTED_CAUSE',quote:copy.links[0].fact,reason:'This claim needs evidence.'}]})});};
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,oldFetcher),{code:'DELIVERY_COPY_REVIEW'});
+  const old=db.prepare('SELECT source_sha256,spec_sha256,normalized_sha256,audit_json,calls FROM custom_delivery_copy').get();
+  assert.equal(old.calls,2);
+  const revised=structuredClone(copy);
+  revised.celebration='The team restores the clock and hears the noon bell ring again. The townspeople cheer as the signal returns.';
+  validateDeliveryCopy(story,revised);
+  const hash=await sha256(JSON.stringify(revised));
+  db.prepare('INSERT INTO custom_delivery_copy_revisions (order_id,policy,source_sha256,spec_sha256,base_sha256,copy_json,copy_sha256) VALUES (?,?,?,?,?,?,?)').run('fixture','printed-causal-copy-1',old.source_sha256,old.spec_sha256,old.normalized_sha256,JSON.stringify(revised),hash);
+  const before=await deliveryCopyStatus('fixture',env,story,edition);
+  assert.equal(before.revisionSaved,true);assert.equal(before.resumeAvailable,true);assert.equal(before.calls,2);
+  let reviewCalls=0;
+  const reviewFetcher=async(_url,{body})=>{reviewCalls++;const request=JSON.parse(body);assert.equal(request.text.format.name,'bound_printed_copy_audit');assert.ok(JSON.parse(request.input).units.length>0);return Response.json({output_text:JSON.stringify({pass:true,issues:[]})});};
+  const checked=await ensureDeliveryCopy(story,edition,'fixture',env,reviewFetcher);
+  await requireDeliveryReview(checked,edition,'fixture',env);
+  assert.equal(checked.deliveryCopy.celebration,revised.celebration);
+  assert.equal(reviewCalls,1);assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,2);
+  assert.equal(db.prepare('SELECT audit_calls FROM custom_delivery_copy_revisions').get().audit_calls,1);
+  assert.equal(db.prepare('SELECT audit_json FROM custom_delivery_copy').get().audit_json,old.audit_json);
+  await ensureDeliveryCopy(story,edition,'fixture',env,reviewFetcher);assert.equal(reviewCalls,1);
+  await assert.rejects(()=>requireDeliveryReview({...checked,deliveryCopy:copy},edition,'fixture',env),{code:'DELIVERY_COPY_REVIEW_STALE'});
+});
+
+test('a revision with an invented audit quote cannot consume another request on retry',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
+  let calls=0;
+  const original=async()=>{calls++;return Response.json({output_text:JSON.stringify(calls===1?copy:{pass:false,issues:[{stageNumber:1,code:'THEME',quote:copy.stages[0].title,reason:'Review rejected this edition.'}]})});};
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,original),{code:'DELIVERY_COPY_REVIEW'});
+  const old=db.prepare('SELECT source_sha256,spec_sha256,normalized_sha256 FROM custom_delivery_copy').get();
+  const revised=structuredClone(copy);
+  revised.celebration='The team restores the clock and hears the noon bell ring again. The townspeople cheer as the signal returns.';
+  const hash=await sha256(JSON.stringify(revised));
+  db.prepare('INSERT INTO custom_delivery_copy_revisions (order_id,policy,source_sha256,spec_sha256,base_sha256,copy_json,copy_sha256) VALUES (?,?,?,?,?,?,?)').run('fixture','printed-causal-copy-1',old.source_sha256,old.spec_sha256,old.normalized_sha256,JSON.stringify(revised),hash);
+  let reviewCalls=0;
+  const badReview=async()=>{reviewCalls++;return Response.json({output_text:JSON.stringify({pass:false,issues:[{stageNumber:1,code:'THEME',evidenceId:'$.stages.0.title',quote:'A sentence absent from the printed title.',reason:'This quotation is invented.'}]})});};
+  for(let attempt=0;attempt<2;attempt++)await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,badReview),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
+  assert.equal(reviewCalls,1);
+  assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,2);
+  assert.equal(db.prepare('SELECT audit_calls,audit_passed FROM custom_delivery_copy_revisions').get().audit_calls,1);
+  assert.equal(db.prepare('SELECT audit_passed FROM custom_delivery_copy_revisions').get().audit_passed,0);
+  await assert.rejects(()=>requireDeliveryReview({...story,deliveryCopy:revised},edition,'fixture',env));
 });
 test('invented ocean and space editions preserve all solutions across different story vocabulary',async()=>{
   const base=await fixture();
