@@ -117,7 +117,7 @@ test('long ordering labels keep a complete causal link without truncating its co
   const frame=structuredClockFrame();
   frame.discoveries[2].consequence='The checked signal gear sequence keeps the tower parts aligned before the final repair begins.';
   const spine=compileStorySpine(frame,raw.stages,paperContractTypes(clockSpec.plan),8);
-  assert.match(spine.links[2].reason,/^The four printed steps form the checked order\\. /);
+  assert.match(spine.links[2].reason,/^The four printed steps form the checked order\. /);
   assert.ok(spine.links[2].reason.endsWith(frame.discoveries[2].consequence));
   assert.ok(spine.links[2].reason.length<=180);
 });
