@@ -24,7 +24,7 @@ jobs:
       - uses: actions/download-artifact@v6
         with:
           name: synthetic-paper-contract-packs
-          run-id: '39019473667'
+          run-id: '39019723230'
           github-token: ${{ github.token }}
           path: tmp/provider-replay
       - name: Generate only invented QA scenarios
