@@ -56,7 +56,9 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
       const approved=saved.spec;
       phase='delivery-copy';
       const syntheticOrderId=`synthetic-${item.id}`,deliveryEnv={...env,...deliveryDatabase(syntheticOrderId)};
-      const story=await ensureDeliveryCopy(source,approved,syntheticOrderId,deliveryEnv,privateFetch);
+      let story;
+      try{story=await ensureDeliveryCopy(source,approved,syntheticOrderId,deliveryEnv,privateFetch);}
+      catch(error){const status=await deliveryCopyStatus(syntheticOrderId,deliveryEnv,source,approved);console.log(JSON.stringify({id:item.id,phase:'delivery-copy-detail',errorCode:status.errorCode,formatIssue:status.formatIssue}));throw error;}
       phase='pdf';
       if(verifyPrintedPuzzles(story).length!==5||story.spine?.links?.length!==4)throw Error('A printable finding or story link is missing.');
       await writeFile(`${directory}/${item.id}.json`,JSON.stringify({spec:approved,story},null,2));
