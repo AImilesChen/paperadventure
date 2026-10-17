@@ -106,6 +106,22 @@ test('quality version 6 uses structured causal fields instead of keyword matchin
   assert.throws(()=>prepareStoryFrame(unrelated,6),/intended final action/);
 });
 
+test('long ordering labels keep a complete causal link without truncating its consequence',()=>{
+  const raw=linkedClockContext();
+  raw.stages[2].material.items=[
+    'Inspect the spare signal gear housing',
+    'Check the upper clock shaft support',
+    'Align the signal gear teeth at noon',
+    'Record the signal gear fitting order',
+  ].map(label=>({label}));
+  const frame=structuredClockFrame();
+  frame.discoveries[2].consequence='The checked signal gear sequence keeps the tower parts aligned before the final repair begins.';
+  const spine=compileStorySpine(frame,raw.stages,paperContractTypes(clockSpec.plan),8);
+  assert.match(spine.links[2].reason,/^The four printed steps form the checked order\\. /);
+  assert.ok(spine.links[2].reason.endsWith(frame.discoveries[2].consequence));
+  assert.ok(spine.links[2].reason.length<=180);
+});
+
 test('quality version 9 reopens a premature frame consequence without another provider call',()=>{
   const frame=structuredClockFrame();
   frame.discoveries[2].consequence='The signal gear was repaired and the bell rang.';
