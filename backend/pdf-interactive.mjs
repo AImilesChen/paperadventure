@@ -309,9 +309,8 @@ function guideStage(stage,spec,story){
       ...(story.spine&&stage.number===5?[['CONNECT THE FOUR DISCOVERIES','Review each checked discovery aloud before the team names the final action.'],...story.spine.links.map((link,index)=>[`DISCOVERY ${index+1}`,link.reason]),['WHY THIS ACTION',`These discoveries support ${story.spine.resolution}. The four recorded digits identify its printed code; read the ending only after the team checks both the story reason and the code.`]]:[]),
       ['STORY AND NEXT PAGE',stage.number===5?'The four earlier results identify the final action. After the team explains the code, release Player page 12 and read the ending.':`This check gives the next discovery, but the mission is not finished yet. Release checkpoint ${stage.number+1}, Player pages ${stage.number*2+2}-${stage.number*2+3}.`],
     ];
-    // Letter is 50 points shorter than A4; keep the same readable text and
-    // reclaim the inter-section whitespace before spilling a checkpoint.
-    const sectionGap=spec.paper==='Letter'?3:10;
+    // Keep checkpoint sections together on both paper sizes without reducing text size.
+    const sectionGap=3;
     const sectionHeight=([,value])=>wrap(value,77).length*14+16+sectionGap;
     const pageStart=y,capacity=pageStart-67;
     const groups=[[]];
