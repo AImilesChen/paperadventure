@@ -44,6 +44,18 @@ test('copy validation rejects noun lists and invented cited evidence',async()=>{
   assert.throws(()=>validateDeliveryCopy(story,ungrounded),/exact printed finding/);
 });
 
+test('a blocked closing reports its current bounded rule and counts without exposing saved prose or consuming review',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
+  copy.celebration='The clock turns and Pip cheers.';
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};let calls=0;
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>{calls++;return Response.json({output_text:JSON.stringify(copy)});}),{code:'DELIVERY_COPY_INVALID'});
+  const status=await deliveryCopyStatus('fixture',env,story,edition);
+  assert.deepEqual(status.formatIssue,{field:'closing',rule:'sentence_count',length:31,limit:240,sentences:1});
+  assert.equal(calls,1);assert.equal(status.resumeAvailable,false);
+  assert.doesNotMatch(JSON.stringify(status),/The clock turns|Pip cheers/);
+  assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,1);
+});
+
 test('valid English verbs and numbered findings survive normalization without duplicated final labels',async()=>{
   const {story,copy}=await fixture(),input=structuredClone(copy);
   for(const [index,verb] of ['Retrieve','Restore','Examine'].entries()){
