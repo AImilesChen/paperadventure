@@ -34,6 +34,13 @@
 .shelf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
 .shelf-game{overflow:hidden;display:flex;flex-direction:column;border:1px solid #c6dce5;border-radius:15px;background:#fffdf9;box-shadow:0 5px 0 #b7dbe766}
 .shelf-game>img{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover}.shelf-game-copy{padding:24px;display:flex;flex-direction:column;flex:1}
+.adventure-cover{--cover-paper:#f7e8cc;--cover-ink:#673d22;position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:space-between;gap:22px;min-height:250px;padding:28px 28px 22px 40px;border-left:12px solid var(--cover-ink);background:var(--cover-paper);color:var(--cover-ink)}
+.adventure-cover[data-tone="1"]{--cover-paper:#dbece8;--cover-ink:#20544c}.adventure-cover[data-tone="2"]{--cover-paper:#e4e3f4;--cover-ink:#47416a}.adventure-cover[data-tone="3"]{--cover-paper:#f6dfd6;--cover-ink:#7c3d2c}.adventure-cover[data-tone="4"]{--cover-paper:#ddeaf3;--cover-ink:#254f70}.adventure-cover[data-tone="5"]{--cover-paper:#e9edce;--cover-ink:#495527}
+.adventure-cover::before{content:"";position:absolute;inset:12px;border:1px solid currentColor;opacity:.2;z-index:-1;pointer-events:none}
+.adventure-cover-label{font-size:.65rem;letter-spacing:.18em;font-weight:900}.adventure-cover-compass{position:absolute;right:18px;top:22px;opacity:.12;z-index:-1;pointer-events:none}
+.adventure-cover-title{max-width:95%;font-family:'Bree Serif',Georgia,serif;font-size:clamp(1.5rem,2.6vw,2.05rem);line-height:1.3;overflow-wrap:anywhere}.adventure-cover-long .adventure-cover-title{font-size:1.45rem}
+.adventure-cover-footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:.72rem;font-weight:800;letter-spacing:.04em}
+@media(max-width:650px){.adventure-cover{min-height:230px;padding:24px 24px 20px 30px}.adventure-cover-title{font-size:1.65rem}.adventure-cover-long .adventure-cover-title{font-size:1.4rem}}
 .shelf-game h2{font-family:'Bree Serif',serif;font-size:1.6rem;line-height:1.3;margin:10px 0}
 .shelf-status{align-self:flex-start;padding:6px 10px;border-radius:6px;background:#edf4f7;color:#466273;font-size:.8rem;font-weight:800}
 .status-published{background:#e5f4e9;color:#286148}.status-fulfilling,.status-paid{background:#fff0d7;color:#805212}

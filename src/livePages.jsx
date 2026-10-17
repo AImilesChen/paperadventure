@@ -9,6 +9,7 @@ import './livePages.css';
 import FreeDownload from './freeDownload.jsx';
 import { createDownloadZip } from './downloadZip.mjs';
 import OrderUpdateProgress, {themeUpdatePending} from './orderUpdateProgress.jsx';
+import AdventureCover from './adventureCover.jsx';
 
 async function api(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', headers: { ...(options.body ? { 'content-type': 'application/json' } : {}), ...(options.headers || {}) }, ...options });
@@ -127,7 +128,7 @@ export function LiveShelf({ Link }) {
         <div className={'shelf-grid ' + (section === 'orders' ? 'shelf-history' : '')}>{visible.map(order => {
           const downloadPaper = order.product_kind === 'ready' ? paper : order.paper;
           return <article className="shelf-game" key={order.id}>
-            {order.image && <img src={order.image} alt="" width="800" height="600" loading="lazy" />}
+            <AdventureCover order={order} />
             <div className="shelf-game-copy"><span className="eyebrow">{order.setting === 'classroom' ? 'CLASSROOM' : 'HOME'} · {order.product_kind === 'ready' ? 'READY-MADE' : 'AI CUSTOM'}</span><h2>{order.title || 'Your adventure'}</h2>
               <p className={'shelf-status status-' + order.status}>{order.checkoutExpired ? 'Checkout expired · not paid' : order.status === 'failed' && !order.paid_at ? 'Checkout unsuccessful · not paid' : order.status === 'pending_payment' ? 'Unfinished checkout · not paid' : order.status === 'failed' && order.paid_at ? 'Paid · PDF creation stopped · action needed' : order.planStatus === 'needs_help' ? 'Paid · plan generation stopped · action needed' : order.planStatus === 'review' ? 'Paid · personal plan ready for review' : order.planStatus === 'confirmed' ? 'Paid · creating PDFs' : order.paid_at ? 'Paid · ' + (orderLabel[order.status] || order.status) : orderLabel[order.status] || order.status}</p>
               <p className="live-note">Order {order.id.slice(0,8).toUpperCase()} · {order.paid_at ? 'Paid ' + date(order.paid_at) : 'Started ' + date(order.created_at)} · {formatUsd(order.amount_total)}<br />{order.accessExpiresAt && 'Downloads until ' + date(order.accessExpiresAt)}</p>
