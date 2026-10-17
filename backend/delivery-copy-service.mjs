@@ -64,7 +64,7 @@ const fieldFrom=detail=>{
   if(/story event|Checkpoint title/i.test(detail))return 'scene';
   return null;
 };
-function boundedFormatIssue(error,copy){
+function boundedFormatIssue(error,copy,story){
   const detail=String(error.message||''),field=fieldFrom(detail);
   const match=detail.match(/^(Closing|Action ([1-3]) (label|instructions)|Checkpoint title|Story event|Printed piece label|Positive printed fact|Alternative printed fact|Cited printed fact|Story consequence) needs (?:printable English within (\d+) characters|a complete sentence)\.$/);
   if(match){
@@ -80,6 +80,7 @@ function boundedFormatIssue(error,copy){
     ['Each printed fact must be one sentence.','fact_sentences'],
     ['The printed edition is incomplete.','shape'],
   ]);
+  if(rules.get(detail)==='fact_count')return {field:'record_fact',rule:'fact_count',counts:copy.stages.slice(0,5).map(part=>Array.isArray(part.facts)?Math.min(part.facts.length,100):0),expected:story.stages.map(stage=>stage.number<5&&['decision_record','evidence_cards'].includes(stage.material.type)?2:0)};
   return {field:field||'puzzle',rule:rules.get(detail)||'other_format'};
 }
 const diagnosticMessages={
@@ -103,8 +104,9 @@ export async function deliveryCopyStatus(orderId,env,story,spec){
   if(story&&spec){
     bound=matches(row,await boundHashes(story,spec));
     if(bound&&candidate)try{checkedCopy(sourceStory(story),candidate);draftValid=true;}catch(error){
+      try{
       const normalized=normalizeDeliveryCopy(sourceStory(story),candidate);
-      formatIssue=boundedFormatIssue(error,normalized);currentField=formatIssue.field;
+      formatIssue=boundedFormatIssue(error,normalized,story);currentField=formatIssue.field;
       // Recompute a bounded diagnosis under the CURRENT compiler, without
       // exporting saved model prose or relying on an obsolete error message.
       if(fieldFrom(error.message||'')==='closing'){
@@ -112,6 +114,7 @@ export async function deliveryCopyStatus(orderId,env,story,spec){
         const value=typeof closing==='string'?closing:'';
         formatIssue={field:'closing',rule:/outcome and a character response/i.test(error.message)?'sentence_count':/complete sentence/i.test(error.message)?'sentence_boundary':value.length>240?'length':/[^\x20-\x7e]/.test(value)?'characters':'missing',length:Math.min(value.length,100000),limit:240,sentences:(value.match(/[.!?](?: |$)/g)||[]).length};
       }
+      }catch{formatIssue={field:'material',rule:'shape'};currentField='material';}
     }
   }
   let issues=[];

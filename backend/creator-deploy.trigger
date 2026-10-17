@@ -1,1 +1,1 @@
-2026-10-17 diagnose current text bounds and printed proof rules without exposing private prose
+2026-10-17 derive unprinted fact fields from immutable material types before review

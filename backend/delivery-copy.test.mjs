@@ -73,6 +73,22 @@ test('valid English verbs and numbered findings survive normalization without du
   assert.throws(()=>normalizeDeliveryCopy(story,input),/out of range/);
 });
 
+test('unused fact fields are engine-owned while missing printed record facts stay blocked',async()=>{
+  const {story,spec,copy}=await fixture(),{DB}=database(),edition={...spec,packCopyVersion:1};
+  const draft=structuredClone(copy);
+  for(const index of [2,3,4])draft.stages[index].facts=[{yes:'Unused metadata.',no:'Unused alternative.'}];
+  const normalized=normalizeDeliveryCopy(story,draft);validateDeliveryCopy(story,normalized);
+  assert.deepEqual(normalized.stages.slice(2).map(part=>part.facts),[[],[],[]]);
+  assert.deepEqual(normalized.stages.slice(0,2).map(part=>part.facts),copy.stages.slice(0,2).map(part=>part.facts));
+  assert.deepEqual(verifyDeliveryPuzzles(applyDeliveryCopy(story,normalized)).map(proof=>proof.resultDigit),story.stages.map(stage=>stage.material.logic.resultDigit));
+  draft.stages[0].facts=[];
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>Response.json({output_text:JSON.stringify(draft)})));
+  const status=await deliveryCopyStatus('fixture',env,story,edition);
+  assert.deepEqual(status.formatIssue,{field:'record_fact',rule:'fact_count',counts:[0,2,0,0,0],expected:[2,2,0,0,0]});
+  assert.equal(status.resumeAvailable,false);assert.equal(status.calls,1);
+});
+
 test('current consequence bounds replace stale closing diagnostics without exposing any wording',async()=>{
   const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
   const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
@@ -83,6 +99,15 @@ test('current consequence bounds replace stale closing diagnostics without expos
   assert.equal(status.field,'consequence');assert.equal(status.formatIssue.limit,110);
   assert.equal(status.formatIssue.lengths[2],copy.links[2].reason.length);
   assert.doesNotMatch(JSON.stringify(status),/Private consequence/);
+});
+
+test('malformed saved material does not break owner diagnostics or spend its remaining review',async()=>{
+  const {story,spec,copy}=await fixture(),{DB}=database(),edition={...spec,packCopyVersion:1};
+  copy.stages[4]=null;const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>Response.json({output_text:JSON.stringify(copy)})));
+  const status=await deliveryCopyStatus('fixture',env,story,edition);
+  assert.deepEqual(status.formatIssue,{field:'material',rule:'shape'});
+  assert.equal(status.resumeAvailable,false);assert.equal(status.calls,1);
 });
 
 test('an overlong celebration reuses only a complete saved specific closing and still needs its remaining independent review',async()=>{
