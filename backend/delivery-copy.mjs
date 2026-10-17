@@ -50,6 +50,7 @@ export function normalizeDeliveryCopy(story,input){
   // Shorten only redundant wording; never slice an instruction or remove its
   // action, object, destination or deadline to make an overlong field fit.
   copy.actions.forEach(action=>{
+    if(typeof action.label==='string'&&action.label.length>40)action.label=action.label.replace(/,\s+then\s+/i,'; ');
     if(typeof action.description!=='string'||action.description.length<=140)return;
     action.description=action.description.replace(/\bthe friendly shopkeeper\b/gi,'the shopkeeper');
     if(action.description.length>140)action.description=action.description.replace(/\s+waiting there\b/i,'');
