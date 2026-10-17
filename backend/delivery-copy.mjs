@@ -52,6 +52,7 @@ export function normalizeDeliveryCopy(story,input){
   copy.actions.forEach(action=>{
     if(typeof action.description!=='string'||action.description.length<=140)return;
     action.description=action.description.replace(/\bthe friendly shopkeeper\b/gi,'the shopkeeper');
+    if(action.description.length>140)action.description=action.description.replace(/\s+waiting there\b/i,'');
     if(action.description.length>140)action.description=action.description.replace(/,\s+then\s+/i,'; ');
   });
   if(copy.materialLabels){
