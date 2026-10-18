@@ -262,6 +262,27 @@ test('quality version 13 keeps a concrete, causally grounded five-step blueprint
   assert.equal(reviews,2,'theme failure is independently checked before stopping');
 });
 
+test('quality version 15 performs the complete-game audit without a provider request',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.storyFrame=structuredClockFrame();
+  raw.storyFrame.discoveries[0].consequence='The missing noon mark points to the gear.';
+  raw.storyFrame.discoveries[2].consequence='The wheel stays aligned during repair.';
+  raw.storyFrame.discoveries[3].consequence='The upper bridge can carry the part.';
+  raw.spine=compileStorySpine(raw.storyFrame,raw.stages,paperContractTypes(spec.plan),15);
+  raw.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const blueprint=prepareBlueprintCandidate(raw,spec),stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('checkpoint generation must be deterministic');})).stage);
+  const story=assembleStagedStory(spec,blueprint,stages);
+  let providerCalls=0;
+  const result=await auditStagedStory(story,spec,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{providerCalls++;throw Error('final audit must not call the provider');});
+  assert.deepEqual(result,{usage:null,responseId:null});
+  assert.equal(providerCalls,0);
+  const changed=structuredClone(story);changed.stages[0].material.items[0].label='Changed after checkpoint approval';
+  await assert.rejects(()=>auditStagedStory(changed,spec,blueprint,{},async()=>{providerCalls++;}),/differs from its unified paper contract/);
+  assert.equal(providerCalls,0,'deterministic mismatch rejection also avoids the provider');
+});
+
 test('quality version 8 grounds story consequences after the printable pieces exist',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,packLayoutVersion:4};
   const raw=linkedClockContext();
@@ -1298,3 +1319,4 @@ test('each main play style produces printable Home and Classroom packs without a
     for(const paper of ['A4','Letter'])for(const role of ['player','guide'])assert.ok(buildGamePdf(story,{...spec,paper},role).length>1000);
   }
 });
+

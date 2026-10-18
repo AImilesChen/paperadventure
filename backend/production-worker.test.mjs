@@ -18,6 +18,7 @@ import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import { prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory } from './staged-story.mjs';
 import {ensureDeliveryCopy} from './delivery-copy-service.mjs';
 import { packRemakeView, qualityUpgradeEligible, retryPackRemake, processPackRemake } from './pack-remake.mjs';
+import { createDownloadZip } from '../src/downloadZip.mjs';
 async function approvedCustomInput(env,input) {
   const spec=validatePurchase({...input,creatorVersion:2,gameplay:{primary:'reasoning',secondary:[]}}).spec;
   spec.plan=planFixture(spec,spec.direction);spec.planConfirmed=true;
@@ -1899,6 +1900,50 @@ test('contract delivery repairs one rejected context, then retries PDF storage w
   const count=calls.length;await process();assert.equal(calls.length,count);
 });
 
+test('quality v15 reserves every first stage call and publishes both PDFs plus the complete ZIP after old retries',async()=>{
+  const {db,binding}=database(),orderId='reserved-stage-order';
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4,onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
+  delete spec.packCopyVersion;
+  const stored=JSON.stringify(spec);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('reserved-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,?,1499,'USD','paid',CURRENT_TIMESTAMP)").run(orderId,stored,await sha256(stored),'reserved-owner','reserved-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version) VALUES ('reserved-activity',?,'queued',?,2)").run(orderId,stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit) VALUES ('reserved-entitlement',?,'reserved-activity','active',2)").run(orderId);
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,confirmed_version) VALUES (?,'confirmed',1)").run(orderId);
+  const history=db.prepare("INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model,error_code) VALUES (?,?, 'blueprint',5,'failed','fixture','BLUEPRINT_INVALID')");
+  for(let index=0;index<18;index++)history.run(`historical-${index}`,orderId);
+  const context=linkedClockContext(),storyFrame={problem:context.spine.problem,actions:context.stages[4].material.items.map(item=>item.label),discoveries:[
+    {finding:'The signal gear is missing.',consequence:'The missing noon mark points to the gear.',supportsAction:'signal gear'},
+    {finding:'The spare gear fits the shaft.',consequence:'The gear can turn without binding.',supportsAction:'signal gear'},
+    {finding:'The checked order protects the teeth.',consequence:'The wheel stays aligned during repair.',supportsAction:'signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The upper bridge can carry the part.',supportsAction:'signal gear'},
+  ]};
+  const materialContext=structuredClone(context);delete materialContext.spine;
+  materialContext.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const queue=[{orderId}],files=new Map(),providerNames=[];
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
+    PRIVATE_FILES:{put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata}),head:async key=>files.has(key)?{customMetadata:files.get(key).customMetadata}:null},
+    FETCH:async(_url,init)=>{const body=JSON.parse(init.body),name=body.text.format.name,input=JSON.parse(body.input);providerNames.push(name);
+      const value=name==='story_frame'?storyFrame:name==='blueprint_material_stage'?materialContext.stages[input.checkpoint-1]:name==='blueprint_celebration'?{celebration:materialContext.celebration}:name==='grounded_discoveries'?{consequences:storyFrame.discoveries.map(({consequence})=>consequence)}:null;
+      assert.ok(value,`unexpected provider request ${name}`);
+      return Response.json({id:`reserved-${providerNames.length}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});
+    }};
+  for(let step=0;step<4&&db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status!=='published';step++){
+    const job=queue.shift();assert.ok(job,'the saved order should continue to its PDF step');
+    await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('fixture should not need a queue retry');}}]},env);
+  }
+  assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'published');
+  assert.equal(providerNames.filter(name=>name==='staged_story_audit').length,0,'quality v15 completes its final audit without a provider request');
+  assert.equal(db.prepare("SELECT model FROM custom_generation_calls WHERE order_id=? AND phase='audit'").get(orderId).model,'checked-rules-v1');
+  const artifact=db.prepare("SELECT player_r2_key,guide_r2_key FROM artifact_versions WHERE custom_activity_id='reserved-activity' AND status='published'").get();
+  const player=new Uint8Array(files.get(artifact.player_r2_key).body),guide=new Uint8Array(files.get(artifact.guide_r2_key).body);
+  assert.equal(new TextDecoder().decode(player.slice(0,5)),'%PDF-');
+  assert.equal(new TextDecoder().decode(guide.slice(0,5)),'%PDF-');
+  const zip=new Uint8Array(await createDownloadZip([{name:'player-A4.pdf',data:player},{name:'guide-A4.pdf',data:guide}]).arrayBuffer());
+  assert.equal(new DataView(zip.buffer,zip.byteOffset,zip.byteLength).getUint32(0,true),0x04034b50);
+  assert.match(new TextDecoder().decode(zip),/player-A4\.pdf[\s\S]*guide-A4\.pdf/);
+});
+
 test('quality v8 repairs an ending without rebuilding five saved paid checkpoints',async()=>{
   const {db,binding}=database(),orderId='v8-ending-order',owner='v8-owner';
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,packLayoutVersion:4,onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
@@ -2024,3 +2069,4 @@ test('a same-order remake resumes past a failed assembly by replacing its one st
   assert.ok(db.prepare('SELECT blueprint_json FROM custom_pack_remakes WHERE order_id=?').get(orderId).blueprint_json);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
 });
+
