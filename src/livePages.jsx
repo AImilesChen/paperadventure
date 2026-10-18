@@ -500,7 +500,7 @@ export function LiveOrder({ Link, orderId }) {
   const paid = Boolean(order.paidAt);
   const approved = Boolean(order.planReview?.confirmedVersion);
   const correctingTheme = themeUpdatePending(order);
-  const optionalUpgrade=order.kind==='custom'&&order.filesReady&&!correctingTheme&&(!order.remake||order.remake.status==='ready')&&((order.gamePackVersion||1)<2||order.qualityUpgradeAvailable);
+  const optionalUpgrade=order.kind==='custom'&&order.filesReady&&!correctingTheme&&(!order.remake||order.remake.status==='ready')&&(order.gamePackVersion||1)<2&&!order.qualityUpgradeAvailable;
   return <main className="extended-page live-page order-page">
     <div className="order-workspace">
       <Link className="order-back" to="/en/my-adventures/">← My adventures</Link>
