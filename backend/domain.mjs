@@ -49,7 +49,7 @@ export function validatePurchase(input) {
   if (Boolean(proposalTitle) !== Boolean(proposalSummary)) throw new ApiError(400, 'INVALID_SPEC', 'The selected proposal is incomplete.');
   if (input.creatorVersion === 3 && (input.plan || input.previewToken || input.planConfirmed || proposalTitle || proposalSummary)) throw new ApiError(400,'INVALID_SPEC','The personal plan is created after payment.');
   return { offer, spec: { sku: offer.sku, kind: 'custom', setting: offer.setting, themeId, customIdea: idea, players, groups, age, paper, direction, proposalTitle, proposalSummary,
-    ...(input.creatorVersion === 3 ? {gamePackVersion:2,packLogicVersion:1,packContractVersion:1,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4,packCopyVersion:1} : {}),
+    ...(input.creatorVersion === 3 ? {gamePackVersion:2,packLogicVersion:1,packContractVersion:1,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4,packCopyVersion:1,packCausalVersion:1} : {}),
     preferences: Object.fromEntries(['characters','goal','include','avoid'].map(key => [key, input.preferences?.[key] ? requireText(input.preferences[key], `Preference ${key}`, 180) : ''])),
     place: String(input.place || '').trim().slice(0, 180), reading: String(input.reading || '').trim().slice(0, 40), materials: String(input.materials || '').trim().slice(0, 180), ...creatorFields(input) } };
 }
@@ -61,7 +61,7 @@ export function validateSupportedRange(spec, env) {
   const homeMax = Number(env.HOME_PLAYER_MAX);
   const classroomMax = Number(env.CLASSROOM_STUDENT_MAX);
   if (![minimum, maximum, homeMax, classroomMax].every(Number.isInteger) || minimum < 1 || maximum < minimum || homeMax < 2 || classroomMax < 2) throw new ApiError(503, 'SUPPORTED_RANGE_NOT_SET', 'Supported play ranges are not configured.');
-  const match = spec.age.match(/^(\d{1,2})(?:\s*[-–]\s*(\d{1,2}))?(?:\s*(?:years?|yrs?|yo))?$/i);
+  const match = spec.age.match(/^(\d{1,2})(?:\s*[-�C]\s*(\d{1,2}))?(?:\s*(?:years?|yrs?|yo))?$/i);
   if (!match) throw new ApiError(400, 'INVALID_AGE_RANGE', 'Enter one age or a simple range, such as 8-10.');
   const low = Number(match[1]); const high = match[2] ? Number(match[2]) : low;
   if (high < low || low < minimum || high > maximum) throw new ApiError(400, 'UNSUPPORTED_AGE_RANGE', `The current supported age range is ${minimum}-${maximum}.`);

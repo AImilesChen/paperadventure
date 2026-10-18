@@ -12,6 +12,7 @@ import {buildGamePdf} from './pdf.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {sha256} from './security.mjs';
 import {unsupportedLocationClaims} from '../shared/printed-evidence.mjs';
+import {causalEvidenceUnits,validateCausalReview} from './causal-review.mjs';
 
 async function fixture(){
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:4,packLayoutVersion:4};
@@ -129,6 +130,37 @@ test('new-order review sees player pages without adult answers and spends only t
   assert.ok(auditInput.printed.selectedFinalAction.description);
   assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,2);
   assert.ok(saved.deliveryCopy);
+});
+
+test('causal review binds every claimed discovery to the printed player evidence',async()=>{
+  const {story,spec,copy}=await fixture(),printed=applyDeliveryCopy(story,copy);
+  const units=causalEvidenceUnits(printed);
+  const selected=Array.from({length:4},(_,index)=>units.find(unit=>unit.stageNumber===index+1&&unit.kind!=='scene')||units.find(unit=>unit.stageNumber===index+1));
+  const proof={problemToAction:{evidenceId:selected[0].id,quote:selected[0].text.slice(0,40),explanation:'The clue gives a concrete starting fact for the final action.'},
+    discoveries:selected.map((unit,index)=>({stageNumber:index+1,evidenceId:unit.id,quote:unit.text.slice(0,40),supportsAction:'The chosen action',explanation:'This visible clue supports a step of the chosen action.'})),
+    chronology:printed.stages.slice(0,4).filter(stage=>stage.material.type==='order_tiles').map(stage=>({stageNumber:stage.number,consistent:true,explanation:'The sequence is preparation before the story consequence.'}))};
+  const audit={pass:true,issues:[],causalProof:proof};
+  assert.equal(validateCausalReview(audit,printed),audit);
+  assert.throws(()=>validateCausalReview({pass:true,issues:[]},printed),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
+  const invented=structuredClone(audit);invented.causalProof.discoveries[1].quote='A puppet is now inside the locked tower.';
+  assert.throws(()=>validateCausalReview(invented,printed),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
+  const reversed=structuredClone(audit);if(reversed.causalProof.chronology.length){reversed.causalProof.chronology[0].consistent=false;assert.throws(()=>validateCausalReview(reversed,printed),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});}
+  const {DB}=database();let calls=0;
+  const edition={...spec,packQualityVersion:15,packCopyVersion:1,packCausalVersion:1};
+  const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,{body})=>{
+    const request=JSON.parse(body);calls++;
+    if(calls===1)return Response.json({output_text:JSON.stringify(copy)});
+    assert.ok(request.text.format.schema.properties.causalProof);
+    assert.equal(JSON.parse(request.input).evidenceUnits.length,units.length);
+    return Response.json({output_text:JSON.stringify(audit)});
+  });
+  assert.equal(calls,2);
+  await requireDeliveryReview(saved,edition,'fixture',{DB});
+  const {DB:blockedDB}=database();let blockedCalls=0;
+  const blockedFetcher=async()=>{blockedCalls++;return Response.json({output_text:JSON.stringify(blockedCalls===1?copy:{pass:true,issues:[]})});};
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',{DB:blockedDB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},blockedFetcher),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',{DB:blockedDB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},blockedFetcher),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
+  assert.equal(blockedCalls,2,'a missing causal proof cannot trigger another model request');
 });
 
 test('complete consequences above the writing target stay intact when the combined block and both PDFs fit',async()=>{
