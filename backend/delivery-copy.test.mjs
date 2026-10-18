@@ -5,8 +5,8 @@ import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {clockSpec} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory} from './staged-story.mjs';
-import {validateDeliveryCopy,normalizeDeliveryCopy,applyDeliveryCopy,verifyDeliveryPuzzles,validatePlayerEvidence} from './delivery-copy.mjs';
-import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,deliveryCopySchemaFor,grantSavedFactRepair,playerOnlyReviewInput} from './delivery-copy-service.mjs';
+import {validateDeliveryCopy,normalizeDeliveryCopy,applyDeliveryCopy,verifyDeliveryPuzzles,validatePlayerEvidence,groundedDeliveryClosing} from './delivery-copy.mjs';
+import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,deliveryCopySchemaFor,grantSavedFactRepair,playerOnlyReviewInput,resolveGroundedClosingAudit} from './delivery-copy-service.mjs';
 import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {validateGeneratedStory} from './domain.mjs';
@@ -92,6 +92,19 @@ test('player evidence gate uses the complete player pack without accepting adult
 test('location check distinguishes a concrete place from an infinitive instruction',()=>{
   assert.deepEqual(unsupportedLocationClaims('The clue tells the team to reveal the puppet.', 'The printed puppet clue is ready.'),[]);
   assert.deepEqual(unsupportedLocationClaims('Moonheart rests at the awning rail.', 'A lantern hangs nearby.'),['awning rail']);
+});
+
+test('printed closing follows the selected action and retires only its superseded contradiction',async()=>{
+  const {story,copy}=await fixture(),sentences=copy.celebration.match(/[^.!?]+[.!?]/g).map(value=>value.trim());
+  const closing=groundedDeliveryClosing(copy);
+  assert.ok(closing.includes(copy.actions[0].description.replace(/[.!?]+$/,'').slice(1)));
+  assert.ok(closing.endsWith(sentences.at(-1)));
+  assert.ok(applyDeliveryCopy(story,copy).ending.endsWith(closing));
+
+  const issue={stageNumber:5,code:'CONTRADICTION',quote:sentences[0],reason:'The destination contradicts the selected action.'};
+  assert.deepEqual(resolveGroundedClosingAudit({pass:false,issues:[issue]},copy),{pass:true,issues:[]});
+  const unrelated={...issue,code:'THEME'};
+  assert.deepEqual(resolveGroundedClosingAudit({pass:false,issues:[unrelated]},copy),{pass:false,issues:[unrelated]});
 });
 
 test('new-order review sees player pages without adult answers and spends only the existing two calls',async()=>{
@@ -271,7 +284,7 @@ test('an overlong celebration reuses only a complete saved specific closing and 
   const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};let requests=0;
   const checked=await ensureDeliveryCopy(source,edition,'fixture',env,async(_url,{body})=>{
     const request=JSON.parse(body);requests++;
-    if(requests===2){assert.equal(request.text.format.name,'printed_copy_audit');assert.ok(JSON.parse(request.input).printed.ending.endsWith(saved));}
+    if(requests===2){assert.equal(request.text.format.name,'printed_copy_audit');assert.ok(JSON.parse(request.input).printed.ending.endsWith(groundedDeliveryClosing({...copy,celebration:saved})));}
     return Response.json({output_text:JSON.stringify(requests===1?draft:{pass:true,issues:[]})});
   });
   assert.equal(checked.deliveryCopy.celebration,saved);assert.equal(draft.celebration.length>240,true);
