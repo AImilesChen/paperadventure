@@ -1,0 +1,30 @@
+name: Diagnose remake stage 2 failure
+on:
+  push:
+    branches: [diagnose-remake2-8e4468a9]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Read all rounds and latest failure
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase,stage_number,status,error_code,generation_round,error_detail FROM custom_pack_remake_calls WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807' ORDER BY created_at DESC,id DESC LIMIT 8" > "$RUNNER_TEMP/calls.json"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const rows=p=>{const d=JSON.parse(fs.readFileSync(p,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]};
+          const classify=v=>{const s=String(v||'').toLowerCase();
+            if(/ordering material needs four natural|order tiles need|worksheet instruction/i.test(s))return 'ORDER_TILE_LABELS';
+            if(/record fact|two concrete|two printed/i.test(s))return 'RECORD_FACTS';
+            if(/repeats a printed action/i.test(s))return 'ORDER_TILE_REPEAT';
+            if(/closing|ending|celebration|outcome|two complete sentences|two-sentence/i.test(s))return 'CLOSING';
+            if(/story link|discover|consequence|finding|supports|final action|causal/i.test(s))return 'STORY_LINK';
+            if(/blueprint|frame|assemble/i.test(s))return 'BLUEPRINT';
+            return 'OTHER';};
+          console.log('CALLS', JSON.stringify(rows(process.env.RUNNER_TEMP+'/calls.json').map(r=>({phase:r.phase,stage:r.stage_number,status:r.status,code:r.error_code,round:r.generation_round,cat:classify(r.error_detail)}))));
+          NODE
