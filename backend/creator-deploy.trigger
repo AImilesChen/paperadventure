@@ -17,3 +17,4 @@
 2026-10-18 deploy complete-player-pack evidence validation
 2026-10-18 deploy final-player-page evidence validation
 2026-10-18 deploy preserved final player scene
+2026-10-18 deploy action-grounded closing recovery
