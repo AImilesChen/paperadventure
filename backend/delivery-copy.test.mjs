@@ -149,7 +149,7 @@ test('causal review binds every claimed discovery to the printed player evidence
   const edition={...spec,packQualityVersion:15,packCopyVersion:1,packCausalVersion:1};
   const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,{body})=>{
     const request=JSON.parse(body);calls++;
-    if(calls===1)return Response.json({output_text:JSON.stringify(copy)});
+    if(calls===1){assert.match(request.instructions,/A past sighting is not proof/);return Response.json({output_text:JSON.stringify(copy)});}
     assert.ok(request.text.format.schema.properties.causalProof);
     assert.equal(JSON.parse(request.input).evidenceUnits.length,units.length);
     return Response.json({output_text:JSON.stringify(audit)});
