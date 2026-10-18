@@ -1,0 +1,107 @@
+name: Resume order 8E4468A9 from saved game once
+on:
+  push:
+    branches: [recover-order-8e4468a9]
+permissions:
+  contents: read
+concurrency:
+  group: recover-order-8e4468a9
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Verify saved work and resume exactly this order
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/recover.mjs" <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          const id = '8e4468a9-9847-43ae-b1b7-20e05c32f807';
+          const run = sql => {
+            const raw = execFileSync('npx', ['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--json','--command',sql], {encoding:'utf8',maxBuffer:1024*1024});
+            const data = JSON.parse(raw);
+            const batches = Array.isArray(data) ? data : [data];
+            if (batches.some(batch => batch.success === false)) throw Error('D1 query failed');
+            return {rows:batches.flatMap(batch => batch.results || []),changes:batches.reduce((n,batch)=>n+Number(batch.meta?.changes||0),0)};
+          };
+          const state = () => run(`SELECT
+            o.status order_status,o.product_kind,(o.paid_at IS NOT NULL) paid,
+            a.status activity_status,a.delivery_retry_used,a.generation_version,
+            p.status plan_status,p.confirmed_version,
+            (SELECT COUNT(*) FROM custom_game_blueprints b WHERE b.order_id=o.id) blueprints,
+            (SELECT COUNT(*) FROM custom_game_stages s WHERE s.order_id=o.id) saved_stages,
+            (SELECT COUNT(*) FROM custom_story_checkpoints s WHERE s.order_id=o.id) checkpoints,
+            (SELECT COUNT(*) FROM artifact_versions v WHERE v.custom_activity_id=a.id AND v.status='published') artifacts,
+            (SELECT error_code FROM generation_usage u WHERE u.order_id=o.id AND u.status='failed' ORDER BY attempt DESC LIMIT 1) latest_error,
+            (SELECT policy FROM custom_delivery_copy c WHERE c.order_id=o.id) copy_policy,
+            (SELECT calls FROM custom_delivery_copy c WHERE c.order_id=o.id) copy_calls,
+            (SELECT candidate_json IS NOT NULL FROM custom_delivery_copy c WHERE c.order_id=o.id) candidate_saved,
+            (SELECT normalized_json IS NOT NULL FROM custom_delivery_copy c WHERE c.order_id=o.id) normalized_saved,
+            (SELECT audit_json IS NOT NULL FROM custom_delivery_copy c WHERE c.order_id=o.id) audit_saved,
+            (SELECT error_code FROM custom_delivery_copy c WHERE c.order_id=o.id) copy_error
+            FROM orders o
+            JOIN custom_activities a ON a.order_id=o.id
+            JOIN custom_plan_orders p ON p.order_id=o.id
+            WHERE o.id='${id}'`).rows[0];
+          const safe = s => ({
+            order_status:s?.order_status,activity_status:s?.activity_status,retry_used:Number(s?.delivery_retry_used||0),
+            plan_status:s?.plan_status,confirmed_version:Number(s?.confirmed_version||0),
+            blueprints:Number(s?.blueprints||0),saved_stages:Number(s?.saved_stages||0),
+            checkpoints:Number(s?.checkpoints||0),artifacts:Number(s?.artifacts||0),
+            latest_error:s?.latest_error||null,copy_policy:s?.copy_policy||null,
+            copy_calls:Number(s?.copy_calls||0),candidate_saved:!!s?.candidate_saved,
+            normalized_saved:!!s?.normalized_saved,audit_saved:!!s?.audit_saved,
+            copy_error:s?.copy_error||null
+          });
+          const before=state();
+          console.log('Preflight:',JSON.stringify(safe(before)));
+          if (!before || before.order_status!=='failed' || before.activity_status!=='failed' ||
+              before.product_kind!=='custom' || Number(before.paid)!==1 ||
+              before.plan_status!=='confirmed' || Number(before.confirmed_version)<1 ||
+              Number(before.delivery_retry_used)!==0 ||
+              Number(before.blueprints)!==1 || Number(before.saved_stages)!==5 ||
+              Number(before.checkpoints)!==0 || Number(before.artifacts)!==0 ||
+              before.latest_error!=='DELIVERY_COPY_INVALID' ||
+              before.copy_policy!=='printed-causal-copy-1' || Number(before.copy_calls)!==1 ||
+              !before.candidate_saved || !before.normalized_saved || before.audit_saved ||
+              before.copy_error!=='DELIVERY_COPY_INVALID') {
+            throw Error('Order state differs from the approved saved-progress recovery; no changes made');
+          }
+          const failed=run(`SELECT COUNT(*) count FROM generation_usage WHERE order_id='${id}' AND status='failed'`).rows[0]?.count||0;
+          const activityChanged=run(`UPDATE custom_activities
+            SET status='queued',lease_until=NULL,delivery_retry_used=1,delivery_retry_baseline=${Number(failed)}
+            WHERE order_id='${id}' AND status='failed' AND delivery_retry_used=0`);
+          if (activityChanged.changes!==1) throw Error('Activity was not reserved; no further changes made');
+          const orderChanged=run(`UPDATE orders SET status='fulfilling'
+            WHERE id='${id}' AND status='failed'
+            AND EXISTS (SELECT 1 FROM custom_activities WHERE order_id='${id}' AND status='queued' AND delivery_retry_used=1)`);
+          if (orderChanged.changes!==1) throw Error('Order was not moved to fulfilling; operator review required');
+          run(`UPDATE delivery_notifications SET status='blocked'
+            WHERE order_id='${id}' AND kind='generation_failed' AND status='pending'`);
+          const queued=state();
+          if (queued.order_status!=='fulfilling' || queued.activity_status!=='queued' || Number(queued.delivery_retry_used)!==1)
+            throw Error('Postflight state mismatch; operator review required');
+          console.log('Queued from saved blueprint, five checkpoints, and saved copy. No plan or checkpoint was regenerated by this workflow.');
+          for (let i=0;i<40;i++) {
+            await new Promise(resolve=>setTimeout(resolve,15000));
+            const current=state();
+            if (i%4===3 || current.order_status==='published' || current.order_status==='failed')
+              console.log('Status:',JSON.stringify(safe(current)));
+            if (current.order_status==='published' && current.activity_status==='published' && Number(current.artifacts)>=1) {
+              console.log('DELIVERY_READY');
+              process.exit(0);
+            }
+            if (current.order_status==='failed' || current.activity_status==='failed') {
+              throw Error('Resumed delivery stopped again: '+String(current.latest_error||current.copy_error||'UNKNOWN'));
+            }
+          }
+          const last=state();
+          console.log('Final observed status:',JSON.stringify(safe(last)));
+          if (!['queued','generating'].includes(last.activity_status)) throw Error('Unexpected recovery status');
+          console.log('Recovery is still processing after the observation window.');
+          NODE
+          node "$RUNNER_TEMP/recover.mjs"
