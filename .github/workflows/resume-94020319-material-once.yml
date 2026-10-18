@@ -28,7 +28,7 @@ jobs:
               AND EXISTS (SELECT 1 FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_frame' AND c.status='passed')
               AND EXISTS (SELECT 1 FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=1 AND c.status='passed')
               AND (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2)=2
-              AND (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2 AND c.status='failed' AND c.error_code='BLUEPRINT_INVALID' AND c.error_detail LIKE '%repeats a printed action from an earlier checkpoint%')=2
+              AND (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2 AND c.status='failed' AND c.error_code='BLUEPRINT_INVALID' AND INSTR(LOWER(c.error_detail),'repeats a printed action from an earlier checkpoint') > 0)=2
               AND EXISTS (SELECT 1 FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2 AND c.status='failed' AND c.result_json IS NOT NULL);
           "
       - name: Requeue only the same stopped paid activity
