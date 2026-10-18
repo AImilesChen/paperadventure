@@ -48,11 +48,22 @@ test('copy validation rejects noun lists and invented cited evidence',async()=>{
   assert.throws(()=>validateDeliveryCopy(story,ungrounded),/exact printed finding/);
 });
 
-test('player evidence gate catches a finale location absent from player material',async()=>{
+test('player evidence gate uses the complete player pack without accepting adult-only evidence',async()=>{
   const {story,copy}=await fixture(),printed=applyDeliveryCopy(story,copy);
   validatePlayerEvidence(printed);
-  printed.spine.links[1].reason=`${printed.spine.links[1].finding} Tracing the blue trunk route reveals Moonheart at the awning rail.`;
-  assert.throws(()=>validatePlayerEvidence(printed),/Checkpoint 2 claims a location absent from its player material: awning rail/);
+
+  const missing=structuredClone(printed);
+  missing.spine.links[1].reason=`${missing.spine.links[1].finding} Tracing the blue trunk route reveals Moonheart at the awning rail.`;
+  assert.throws(()=>validatePlayerEvidence(missing),/Checkpoint 2 claims a location absent from its player material: awning rail/);
+
+  const crossCheckpoint=structuredClone(missing);
+  crossCheckpoint.stages[2].storyContext+=' A painted sign identifies the awning rail.';
+  assert.doesNotThrow(()=>validatePlayerEvidence(crossCheckpoint));
+
+  const adultOnly=structuredClone(missing);
+  adultOnly.stages[2].explanation+=' The adult guide identifies the awning rail.';
+  assert.throws(()=>validatePlayerEvidence(adultOnly),/Checkpoint 2 claims a location absent from its player material: awning rail/);
+
   const player=playerOnlyReviewInput(printed);
   assert.equal(player.spine,undefined);
   assert.equal(player.ending,undefined);
