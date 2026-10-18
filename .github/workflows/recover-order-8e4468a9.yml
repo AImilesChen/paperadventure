@@ -66,9 +66,9 @@ jobs:
               Number(before.blueprints)!==1 || Number(before.saved_stages)!==5 ||
               Number(before.checkpoints)!==0 || Number(before.artifacts)!==0 ||
               before.latest_error!=='STAGED_GENERATION_STOPPED' ||
-              before.copy_policy!=='printed-causal-copy-1' || Number(before.copy_calls)!==1 ||
-              !before.candidate_saved || !before.normalized_saved || before.audit_saved ||
-              before.copy_error!=='DELIVERY_COPY_INVALID') {
+              before.copy_policy!=='printed-causal-copy-1' || Number(before.copy_calls)!==2 ||
+              !before.candidate_saved || !before.normalized_saved || !before.audit_saved ||
+              before.copy_error!=='DELIVERY_COPY_REVIEW') {
             throw Error('Order state differs from the approved saved-progress recovery; no changes made');
           }
           const failed=run(`SELECT COUNT(*) count FROM generation_usage WHERE order_id='${id}' AND status='failed'`).rows[0]?.count||0;
