@@ -1333,10 +1333,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     }
   } catch (caught) {
     const code=typeof caught?.code==='string' && /^[A-Z0-9_]{1,60}$/.test(caught.code)?caught.code:'UNEXPECTED';
-    const phaseCalls=await countCalls(budgetPhase,stageNumber),calls=await totalCalls();
-    const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
-    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<totalLimit() && phaseCalls<stepLimit(budgetPhase,stageNumber);
-    if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
+    const phaseCalls=await countCalls(budgetPhase,stageNumber),retries=await retryCalls(),deterministicPhase=isDeterministic(budgetPhase);\n    const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);\n    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && phaseCalls<stepLimit(budgetPhase,stageNumber) && (deterministicPhase||phaseCalls===0||retries<retryLimit());\n    if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
     if(String(code).startsWith('DELIVERY_COPY_'))canRetry=false;
     if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&(spec.packQualityVersion||0)<8&&canRetry&&await countCalls('blueprint',0)<stepLimit('blueprint')){
       await env.DB.batch([
