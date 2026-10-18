@@ -1,0 +1,51 @@
+name: Resume delivery-copy stuck 8E4468A9
+on:
+  push:
+    branches: [resume-deliverycopy-8e4468a9]
+permissions:
+  contents: read
+jobs:
+  resume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Clear stale delivery copy and resume
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/resume.mjs" <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          const id = '8e4468a9-9847-43ae-b1b7-20e05c32f807';
+          const run = sql => {
+            const raw = execFileSync('npx',['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--json','--command',sql],{encoding:'utf8',maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
+            const d = JSON.parse(raw), batches = Array.isArray(d) ? d : [d];
+            if (batches.some(b => b.success === false)) throw Error('D1 query failed');
+            return { rows: batches.flatMap(b => b.results||[]), changes: batches.reduce((n,b)=>n+Number(b.meta?.changes||0),0) };
+          };
+          const q = sql => run(sql).rows;
+          const state = () => q(`SELECT status,phase,error_code,recovery_round,quality_epoch,published_version,
+            (SELECT COUNT(*) FROM custom_delivery_copy c WHERE c.order_id=r.order_id) copy_rows,
+            (SELECT COUNT(*) FROM custom_pack_remake_calls c WHERE c.order_id=r.order_id AND c.status='passed' AND c.phase='blueprint_material') mat_ok
+            FROM custom_pack_remakes r WHERE order_id='${id}'`)[0];
+          const before = state();
+          console.log('BEFORE', JSON.stringify(before));
+          if (!before || before.status !== 'failed' || !['audit','blueprint','checkpoint'].includes(before.phase) || before.published_version !== null)
+            { console.log('Not in a resumable failed state; no changes made.'); process.exit(0); }
+          run(`DELETE FROM custom_delivery_copy WHERE order_id='${id}'`);
+          run(`DELETE FROM custom_delivery_copy_revisions WHERE order_id='${id}'`);
+          run(`DELETE FROM custom_delivery_fact_repairs WHERE order_id='${id}'`);
+          const changed = run(`UPDATE custom_pack_remakes SET status='queued',failure_count=0,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='${id}' AND status='failed'`);
+          if (changed.changes !== 1) { console.log('Resume did not apply; no changes made.'); process.exit(0); }
+          console.log('QUEUED', JSON.stringify(state()));
+          for (let i=0;i<36;i++) {
+            await new Promise(resolve=>setTimeout(resolve,15000));
+            const cur = state();
+            if (i%4===3 || cur.status==='ready' || cur.status==='failed') console.log('POLL', JSON.stringify(cur));
+            if (cur.status==='ready') { console.log('REMAKE_READY'); process.exit(0); }
+            if (cur.status==='failed') { console.log('REMAKE_FAILED'); process.exit(0); }
+          }
+          console.log('OBSERVED', JSON.stringify(state()));
+          NODE
+          node "$RUNNER_TEMP/resume.mjs"
