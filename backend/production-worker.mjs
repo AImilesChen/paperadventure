@@ -1128,8 +1128,8 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
   if (!lease.meta?.changes) return;
   await query(env.DB,"UPDATE orders SET status = 'fulfilling' WHERE id = ? AND status = 'paid'",order.id).run();
   let phase='blueprint',budgetPhase='blueprint',stageNumber=0;
-  let recoveredSavedMaterial=!!(await query(env.DB,"SELECT id FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",order.id).first());
-  let recoveringSavedMaterial=recoveredSavedMaterial;
+  let recoveredSavedMaterial=false;
+  let recoveringSavedMaterial=!!(await query(env.DB,"SELECT id FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",order.id).first());
   const stepLimit=kind=>spec.packExperienceVersion>=2?(kind==='blueprint'?5+Number(recoveredSavedMaterial):kind==='audit'?3:STAGED_STEP_CALL_LIMIT):STAGED_STEP_CALL_LIMIT;
   const totalLimit=()=>spec.packExperienceVersion>=2?18+Number(recoveringSavedMaterial)*2:STAGED_AI_CALL_LIMIT;
   const fetcher=env.FETCH||fetch;
