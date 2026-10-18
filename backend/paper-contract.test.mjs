@@ -562,6 +562,42 @@ test('saved material is rechecked by the current printed-fact gate before reuse'
   assert.deepEqual(validateSavedBlueprintMaterialStep(spec,frame,1,saved),saved);
 });
 
+test('a malformed printable material stops at its own generation step',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14};
+  const frame=structuredClockFrame(),raw=linkedClockContext().stages[0];
+  let calls=0;
+  const fetcher=async()=>{calls++;return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({...raw,material:{...raw.material,items:raw.material.items.slice(0,2)}})}]}]});};
+  await assert.rejects(()=>generateBlueprintMaterialStep(spec,frame,1,[],{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'},fetcher),error=>{
+    assert.equal(error.code,'BLUEPRINT_INVALID');
+    assert.equal(error.stageNumber,1);
+    assert.match(error.message,/Checkpoint 1 needs 3 printable pieces/);
+    return true;
+  });
+  assert.equal(calls,1);
+});
+
+test('a saved material cannot pass with repeated story subjects or an early completed goal',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14};
+  const frame=structuredClockFrame(),raw=linkedClockContext().stages[0];
+  const repeated=structuredClone(raw);
+  repeated.material.items[1].label='Bell hammer note';
+  assert.throws(()=>validateSavedBlueprintMaterialStep(spec,frame,1,repeated),/repeated subjects/);
+  const completed=structuredClone(raw);
+  completed.material.items[1].label='Restored noon bell report';
+  assert.throws(()=>validateSavedBlueprintMaterialStep(spec,frame,1,completed),/goal|unfinished|outcome/i);
+  assert.deepEqual(validateSavedBlueprintMaterialStep(spec,frame,1,raw),raw);
+});
+
+test('a repeated ordering action is rejected at the second material step',()=>{
+  const plan=alignPaperPlan({...clockSpec.plan,stages:clockSpec.plan.stages.map((stage,index)=>({...stage,mechanic:index<2?'sequence':'reasoning'}))});
+  const spec={...clockSpec,plan,packExperienceVersion:3,packQualityVersion:14};
+  const frame=structuredClockFrame(),first=structuredClone(linkedClockContext().stages[2]);
+  const second=structuredClone(first);
+  second.material.items[0].label='Stop signal';
+  assert.deepEqual(validateSavedBlueprintMaterialStep(spec,frame,1,first),first);
+  assert.throws(()=>validateSavedBlueprintMaterialStep(spec,frame,2,second,[first]),/repeats a printed action/);
+});
+
 test('quality 14 refuses a generic story ending instead of publishing fallback copy',()=>{
   const spec={...clockSpec,packQualityVersion:14};
   assert.throws(()=>deliverableClosing('',spec,{actions:['Align signal gear']}),/specific two-sentence outcome/);
@@ -1190,4 +1226,4 @@ test('each main play style produces printable Home and Classroom packs without a
     assert.equal(verifyPrintedPuzzles(story).length,5);
     for(const paper of ['A4','Letter'])for(const role of ['player','guide'])assert.ok(buildGamePdf(story,{...spec,paper},role).length>1000);
   }
-});
+});
