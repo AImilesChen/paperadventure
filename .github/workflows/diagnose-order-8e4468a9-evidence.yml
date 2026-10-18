@@ -33,10 +33,24 @@ jobs:
             instr(lower(coalesce(json_extract(s.stage_json,'$.material.logic'),'')),c.missing)>0 logic
           FROM custom_game_stages s CROSS JOIN c
           WHERE s.order_id='${ORDER_ID}' ORDER BY s.stage_number" > "$RUNNER_TEMP/fields.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "WITH c AS (
+            SELECT lower(trim(rtrim(substr(error_detail,instr(lower(error_detail),'player material: ')+length('player material: ')),'.'))) missing,
+              normalized_json
+            FROM custom_delivery_copy WHERE order_id='${ORDER_ID}' AND policy='printed-causal-copy-1'
+          )
+          SELECT
+            instr(lower(coalesce(json_extract(normalized_json,'$.stages[4].scene'),'')),missing)>0 final_scene,
+            instr(lower(coalesce(json_extract(normalized_json,'$.links.checkpoint_1.reason'),'')),missing)>0 link_1,
+            instr(lower(coalesce(json_extract(normalized_json,'$.links.checkpoint_2.reason'),'')),missing)>0 link_2,
+            instr(lower(coalesce(json_extract(normalized_json,'$.links.checkpoint_3.reason'),'')),missing)>0 link_3,
+            instr(lower(coalesce(json_extract(normalized_json,'$.links.checkpoint_4.reason'),'')),missing)>0 link_4
+          FROM c" > "$RUNNER_TEMP/final.json"
           node - <<'NODE'
           const fs=require('node:fs');
           const data=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/fields.json','utf8'));
           const rows=(Array.isArray(data)?data:[data]).flatMap(x=>x.results||[]);
           if(rows.length!==5)throw Error('Expected five saved stages');
-          console.log(JSON.stringify(rows));
+          const finalData=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/final.json','utf8'));
+          const finalRows=(Array.isArray(finalData)?finalData:[finalData]).flatMap(x=>x.results||[]);
+          console.log(JSON.stringify({saved_fields:rows,normalized_fields:finalRows[0]||null}));
           NODE
