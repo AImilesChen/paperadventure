@@ -1163,10 +1163,10 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
   const extraBlueprintCalls=Number(blueprintRecovery?.extra_calls||0)+Number(deterministicBlueprintRecovery?.extra_calls||0)+Number(causalBlueprintRecovery?.extra_calls||0);
   const extraDownstreamCalls=Number(downstreamRecovery?.extra_calls||0);
   const stepLimit=(kind,number=0)=>spec.packExperienceVersion>=2?(kind==='blueprint'?5+Number(recoveredSavedMaterial)+extraBlueprintCalls:kind==='audit'?3:(kind==='blueprint_material'&&(spec.packQualityVersion||0)>=15?3:STAGED_STEP_CALL_LIMIT)+(kind==='blueprint_material'?(extraMaterialCalls.get(number)||0):0)):STAGED_STEP_CALL_LIMIT;
-  const totalLimit=()=>spec.packExperienceVersion>=2?18+Number(recoveringSavedMaterial)*2+recoveryCallTotal+extraBlueprintCalls+extraDownstreamCalls:STAGED_AI_CALL_LIMIT;
+  const retryLimit=()=>spec.packExperienceVersion>=2?4+Number(recoveringSavedMaterial)*2+recoveryCallTotal+extraBlueprintCalls+extraDownstreamCalls:STAGED_AI_CALL_LIMIT;
   const fetcher=env.FETCH||fetch;
   const countCalls=async (kind,number)=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ?',order.id,kind,number).first())?.count||0);
-  const totalCalls=async()=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ?',order.id).first())?.count||0);
+  const retryCalls=async()=>Number((await query(env.DB,"SELECT COALESCE(SUM(retries),0) AS count FROM (SELECT COUNT(*) - 1 AS retries FROM custom_generation_calls WHERE order_id = ? AND model <> 'checked-rules-v1' GROUP BY phase,stage_number HAVING COUNT(*) > 1)",order.id).first())?.count||0);\n  const providerBlueprintSteps=new Set(['blueprint','blueprint_frame','blueprint_material','blueprint_closing']);\n  const isDeterministic=kind=>spec.gamePackVersion===2&&spec.packLogicVersion===1&&!providerBlueprintSteps.has(kind)&&!(spec.packContractVersion===1&&kind==='audit'&&(spec.packQualityVersion||0)<15);
   const call=async (kind,number,produce,expectedHash=null,reuse=true,validateCached=null)=>{
     const cached=reuse?await query(env.DB,"SELECT id,result_json FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id,kind,number).first():null;
     if (cached) {
@@ -1182,11 +1182,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
         recoveringSavedMaterial=true;
       }
     }
-    if (await countCalls(kind,number)>=stepLimit(kind,number) || await totalCalls()>=totalLimit())
-      throw new ApiError(422,'STAGED_BUDGET_EXHAUSTED','The safe generation limit was reached.');
-    const providerBlueprintSteps=new Set(['blueprint','blueprint_frame','blueprint_material','blueprint_closing']);
-    const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&!providerBlueprintSteps.has(kind)&&!(spec.packContractVersion===1&&kind==='audit');
-    const provider=deterministic?null:aiProvider(env);
+    const deterministic=isDeterministic(kind);\n    const used=await countCalls(kind,number);\n    if (used>=stepLimit(kind,number) || (!deterministic&&used>0&&await retryCalls()>=retryLimit()))\n      throw new ApiError(422,'STAGED_BUDGET_EXHAUSTED','The safe generation limit was reached.');\n    const provider=deterministic?null:aiProvider(env);
     if (!deterministic&&!provider) throw new ApiError(503,'GENERATION_NOT_CONFIGURED','Story generation is not configured.');
     const id=crypto.randomUUID();
     await query(env.DB,"INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model) VALUES (?,?,?,?,'started',?)",id,order.id,kind,number,deterministic?'checked-rules-v1':provider.model).run();
@@ -1304,7 +1300,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
           const failedStage=auditError.stageNumber;
           if(spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&auditError.code==='GENERATION_QA_FAILED'&&!auditError.terminalThemeMismatch&&
               Number.isInteger(failedStage)&&failedStage>=0&&failedStage<=5&&
-              await totalCalls()<totalLimit()&&await countCalls('audit',0)<stepLimit('audit')) {
+              await countCalls('audit',0)<stepLimit('audit')) {
             const repairSlot=failedStage+1;
             phase='blueprint';budgetPhase='blueprint';stageNumber=repairSlot;
             const repaired=validateBlueprint(await call('blueprint',repairSlot,async()=>{
