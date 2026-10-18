@@ -1147,6 +1147,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
       } catch (caught) {
         if (!validateCached) throw caught;
         await query(env.DB,"UPDATE custom_generation_calls SET status = 'failed',error_code = 'SAVED_STEP_INVALID',error_detail = ? WHERE id = ? AND status = 'passed'",String(caught?.message||'Saved material needs rechecking.').slice(0,1000),cached.id).run();
+        recoveringSavedMaterial=true;
       }
     }
     if (await countCalls(kind,number)>=stepLimit(kind) || await totalCalls()>=totalLimit())
