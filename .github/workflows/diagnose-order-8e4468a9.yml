@@ -1,0 +1,26 @@
+name: Diagnose order 8E4468A9 safely
+on:
+  push:
+    branches: [diagnose-order-8e4468a9]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ORDER_ID: '8e4468a9-9847-43ae-b1b7-20e05c32f807'
+    steps:
+      - name: Read safe failure categories
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase,stage_number,status,error_code,error_detail FROM custom_generation_calls WHERE order_id = '${ORDER_ID}' ORDER BY created_at,id" > "$RUNNER_TEMP/calls.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT attempt,status,phase,error_code,error_detail FROM generation_usage WHERE order_id = '${ORDER_ID}' ORDER BY attempt" > "$RUNNER_TEMP/usage.json"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const rows=p=>{const d=JSON.parse(fs.readFileSync(p,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]};
+          const classify=v=>{const s=String(v||'').toLowerCase();if(/record fact|both printed|two printed/.test(s))return 'RECORD_FACTS';if(/story link consequence must name a printed piece/.test(s))return 'UNRELATED_CONSEQUENCE';if(/story link does not name part of the final action/.test(s))return 'NO_ACTION_SUPPORT';if(/at least three checkpoint discoveries must print|at least three discoveries must directly name/.test(s))return 'INSUFFICIENT_ACTION_SUPPORT';if(/story link must cite both printed record facts/.test(s))return 'MISSING_RECORD_FACTS';if(/story link promises another investigation/.test(s))return 'FUTURE_INVESTIGATION';if(/story link must state both the checked finding/.test(s))return 'MISSING_FINDING_OR_CONSEQUENCE';if(/story link must explain why/.test(s))return 'NO_CAUSAL_EXPLANATION';if(/story link needs a fictional reason/.test(s))return 'NO_FICTIONAL_REASON';if(/story link must contain complete sentences/.test(s))return 'INCOMPLETE_LINK_SENTENCE';if(/ending|closing|outcome|celebration/.test(s))return 'CLOSING';if(/printable|print fit|too long|character limit|page limit/.test(s))return 'PRINT_FIT';if(/material|paper piece|printed piece|clue|tile/.test(s))return 'MATERIAL';if(/story link|story spine|discover|consequence|finding|supports? (the )?final action|final action/.test(s))return 'STORY_LINK';if(/format|schema|json|response|missing|required|invalid field/.test(s))return 'FIELD_FORMAT';return 'OTHER'};
+          for(const r of rows(process.env.RUNNER_TEMP+'/calls.json')) console.log(JSON.stringify({source:'call',phase:r.phase,stage_number:r.stage_number,status:r.status,error_code:r.error_code,reason_category:r.status==='failed'?classify(r.error_detail):null,checkpoint_hint:Number((String(r.error_detail||'').match(/checkpoint\s+([1-5])/i)||[])[1]||0)}));
+          for(const r of rows(process.env.RUNNER_TEMP+'/usage.json')) console.log(JSON.stringify({source:'usage',attempt:r.attempt,status:r.status,phase:r.phase,error_code:r.error_code,reason_category:r.status==='failed'?classify(r.error_detail):null,checkpoint_hint:Number((String(r.error_detail||'').match(/checkpoint\s+([1-5])/i)||[])[1]||0)}));
+          NODE
