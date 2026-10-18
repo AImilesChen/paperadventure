@@ -66,7 +66,7 @@ export function remakeSpec(original) {
     ...original,
     gamePackVersion: 2,
     packLogicVersion: 1,
-    ...(original.packContractVersion===1?{packExperienceVersion:3,packQualityVersion:Math.max(CURRENT_PACK_QUALITY_VERSION,original.packQualityVersion||0),packLayoutVersion:CURRENT_PACK_LAYOUT_VERSION,packCopyVersion:1}:{}),
+    ...(original.packContractVersion===1?{packExperienceVersion:3,packQualityVersion:Math.max(CURRENT_PACK_QUALITY_VERSION,original.packQualityVersion||0),packLayoutVersion:CURRENT_PACK_LAYOUT_VERSION,packCopyVersion:1,packCausalVersion:1}:{}),
     plan: {
       ...plan,
       title: shorten(plan.title, 70),
@@ -106,7 +106,7 @@ export function qualityUpgradeEligible(purchase, activity, latestFormat, hasRevi
     (purchase.packLayoutVersion || 0) < CURRENT_PACK_LAYOUT_VERSION && (activity.packLayoutVersion || 0) < CURRENT_PACK_LAYOUT_VERSION;
   return purchase?.gamePackVersion === 2 && purchase.packContractVersion === 1 &&
     activity?.packContractVersion === 1 && latestFormat === 2 && !hasRevision &&
-    (qualityOutdated || layoutOutdated || (previous||purchase).packCopyVersion!==1);
+    (qualityOutdated || layoutOutdated || (previous||activity).packCopyVersion!==1 || (previous||activity).packCausalVersion!==1);
 }
 
 async function requireApprovedReplacement(orderId,db){
