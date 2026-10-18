@@ -1,4 +1,4 @@
-name: Read order quality version
+name: Read original activity spec
 on:
   push:
     branches: [dump-proof-8e4468a9]
@@ -12,32 +12,21 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump spec version fields
+      - name: Dump activity spec
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT spec_json FROM custom_pack_remakes WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/r.json"
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT story_spec_json FROM custom_activities WHERE id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/a.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT id, order_id, status, story_spec_json FROM custom_activities WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/a.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          function rows(f){
-            try{
-              const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));
-              const arr=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
-              return arr;
-            }catch(e){ return null; }
-          }
-          for(const f of ['r.json','a.json']){
-            const arr=rows(f);
-            console.log('=== '+f+' ===');
-            if(!arr){ console.log('PARSE_ERROR'); continue; }
+          try{
+            const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/a.json','utf8'));
+            const arr=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
+            console.log('ROW_COUNT', arr.length);
             for(const row of arr){
-              const key = f==='r.json' ? 'spec_json' : 'story_spec_json';
+              console.log('ID', row.id, 'STATUS', row.status);
               try{
-                const s=JSON.parse(row[key]||'null');
-                console.log('packQualityVersion=', s&&s.packQualityVersion);
-                console.log('packCausalVersion=', s&&s.packCausalVersion);
-                console.log('packExperienceVersion=', s&&s.packExperienceVersion);
-                console.log('packCopyVersion=', s&&s.packCopyVersion);
-              }catch(e){ console.log('SPEC_PARSE_FAIL'); }
+                const s=JSON.parse(row.story_spec_json||'null');
+                console.log('ACTIVITY_QUALITY', s&&s.packQualityVersion, 'CAUSAL', s&&s.packCausalVersion);
+              }catch(e){ console.log('ACTIVITY_SPEC_PARSE_FAIL'); }
             }
-          }
+          }catch(e){ console.log('TOP_ERR', e.message); }
           NODE
