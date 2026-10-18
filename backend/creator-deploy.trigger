@@ -7,3 +7,4 @@
 2026-10-18 deploy PR #46 player-evidence quality checks for new packs
 2026-10-18 deploy PR #47 bounded blueprint material retry on paid orders
 2026-10-18 deploy PR #48 scoped ordering label repair
+2026-10-18 deploy global story-chain repair routing
