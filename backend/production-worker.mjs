@@ -22,6 +22,20 @@ const query = (db, sql, ...values) => db.prepare(sql).bind(...values);
 const error = (status, code, message) => json({ error: { code, message } }, status);
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 const nonRetryableStoryCodes = new Set(['GENERATION_INVALID','GENERATION_QA_FAILED','INVALID_SPEC','GENERATION_NOT_CONFIGURED','STAGED_GENERATION_STOPPED']);
+const materialRetryReason=/repeats a printed action from an earlier checkpoint|labels must name fictional story pieces or actions/i;
+async function recoverableStoppedMaterial(db,orderId,spec){
+  if((spec?.packQualityVersion||0)<15)return false;
+  const latest=await query(db,"SELECT phase,stage_number,status,error_code,error_detail FROM custom_generation_calls WHERE order_id = ? ORDER BY rowid DESC LIMIT 1",orderId).first();
+  const stage=Number(latest?.stage_number);
+  if(latest?.phase!=='blueprint_material'||latest.status!=='failed'||latest.error_code!=='BLUEPRINT_INVALID'||
+     !Number.isInteger(stage)||stage<1||stage>4||!materialRetryReason.test(latest.error_detail||''))return false;
+  const counts=await query(db,"SELECT COUNT(*) AS total, SUM(CASE WHEN phase = 'blueprint_material' AND stage_number = ? THEN 1 ELSE 0 END) AS stage_calls FROM custom_generation_calls WHERE order_id = ?",stage,orderId).first();
+  // Preserve every saved call and leave room for the remaining checked steps.
+  return Number(counts?.stage_calls)===2&&Number(counts?.total)+(5-stage)+3<=18;
+}
+const deliveryRetryBlocked=(failure,materialRecovery)=>Boolean(failure?.error_code==='STORY_CHECKPOINT_MISMATCH'||
+  (failure?.phase==='story'&&nonRetryableStoryCodes.has(failure.error_code)&&
+   !(failure.error_code==='STAGED_GENERATION_STOPPED'&&materialRecovery)));
 const emailHash = (env, email) => sha256(`${env.SESSION_SECRET}|${email}`);
 function accessMonths(spec) {
   const months = spec?.onlineRedownloadMonths;
@@ -531,13 +545,15 @@ async function myOrders(request, env) {
       ? await query(env.DB,'SELECT status,delivery_retry_used FROM custom_activities WHERE order_id = ?',order.id).first() : null;
     const lastPdfFailure = failedDelivery
       ? await query(env.DB,"SELECT phase,error_code FROM generation_usage WHERE order_id = ? AND status = 'failed' ORDER BY attempt DESC LIMIT 1",order.id).first() : null;
+    const materialRecovery=failedDelivery&&!failedDelivery.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
+      ? await recoverableStoppedMaterial(env.DB,order.id,spec) : false;
     const cover = order.product_kind === 'custom' && order.paid_at ? await query(env.DB,'SELECT status FROM order_theme_covers WHERE order_id = ?',order.id).first() : null;
     const { purchase_spec_json, ...safe } = order;
     return { ...safe, checkoutExpired: Boolean(expired), setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
       image: order.product_kind === 'ready' ? story?.image || world?.image : cover?.status === 'ready' && order.status !== 'refunded' ? '/api/v1/orders/'+order.id+'/cover' : '/assets/custom-adventure-workshop-v1.jpg',
       coverStatus: cover?.status || null, coverAvailable: Boolean(coverGenerationReady(env) && order.product_kind === 'custom' && order.paid_at && order.status !== 'refunded'),
       paper: spec.paper, planStatus: paidPlan?.status || null,
-      deliveryRetryAvailable: Boolean(order.paid_at && paidPlan?.confirmed_version && failedDelivery?.status === 'failed' && !failedDelivery.delivery_retry_used && !(lastPdfFailure?.phase === 'story' && nonRetryableStoryCodes.has(lastPdfFailure.error_code)) && lastPdfFailure?.error_code !== 'STORY_CHECKPOINT_MISMATCH'),
+      deliveryRetryAvailable: Boolean(order.paid_at && paidPlan?.confirmed_version && failedDelivery?.status === 'failed' && !failedDelivery.delivery_retry_used && !deliveryRetryBlocked(lastPdfFailure,materialRecovery)),
       filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
   }));
   return json({ orders });
@@ -636,8 +652,10 @@ async function orderView(request, env, orderId) {
   });
   const failedAttempts = pdfGenerationHistory.filter(item => item.status === 'failed').length;
   const lastPdfFailure = pdfRows.filter(item => item.status === 'failed').at(-1);
-  const retryBlocked = (lastPdfFailure?.phase === 'story' && nonRetryableStoryCodes.has(lastPdfFailure.error_code)) || lastPdfFailure?.error_code === 'STORY_CHECKPOINT_MISMATCH';
   const spec = JSON.parse(order.purchase_spec_json);
+  const materialRecovery=order.status==='failed'&&!activity?.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
+    ? await recoverableStoppedMaterial(env.DB,order.id,spec) : false;
+  const retryBlocked=deliveryRetryBlocked(lastPdfFailure,materialRecovery);
   const revisionRows = order.product_kind === 'custom'
     ? (await query(env.DB,'SELECT id,stage_number,status,version_number,created_at,completed_at FROM revision_requests WHERE order_id = ? ORDER BY created_at DESC LIMIT 5',order.id).all()).results || []
     : [];
@@ -712,7 +730,9 @@ async function retryCustomDelivery(request, env, orderId) {
   const activity = await query(env.DB,'SELECT id,status,delivery_retry_used FROM custom_activities WHERE order_id = ?',orderId).first();
   if (activity?.status !== 'failed' || activity.delivery_retry_used) throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review.');
   const lastPdfFailure = await query(env.DB,"SELECT phase,error_code FROM generation_usage WHERE order_id = ? AND status = 'failed' ORDER BY attempt DESC LIMIT 1",orderId).first();
-  if ((lastPdfFailure?.phase === 'story' && nonRetryableStoryCodes.has(lastPdfFailure.error_code)) || lastPdfFailure?.error_code === 'STORY_CHECKPOINT_MISMATCH') throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review before another model request.');
+  const materialRecovery=lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
+    ? await recoverableStoppedMaterial(env.DB,orderId,JSON.parse(order.purchase_spec_json)) : false;
+  if (deliveryRetryBlocked(lastPdfFailure,materialRecovery)) throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review before another model request.');
   const artifact = await query(env.DB,"SELECT id FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' LIMIT 1",activity.id).first();
   if (artifact) throw new ApiError(409,'FILES_ALREADY_CREATED','Files were already created. Refresh this order.');
   const failed = await query(env.DB,"SELECT COUNT(*) AS count FROM generation_usage WHERE order_id = ? AND status = 'failed'",orderId).first();
@@ -1136,7 +1156,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
   const recoveryRows=(await query(env.DB,"SELECT stage_number,extra_calls FROM custom_generation_recovery_grants WHERE order_id = ? AND phase = 'blueprint_material'",order.id).all()).results||[];
   const extraMaterialCalls=new Map(recoveryRows.map(row=>[Number(row.stage_number),Number(row.extra_calls)]));
   const recoveryCallTotal=[...extraMaterialCalls.values()].reduce((sum,count)=>sum+count,0);
-  const stepLimit=(kind,number=0)=>spec.packExperienceVersion>=2?(kind==='blueprint'?5+Number(recoveredSavedMaterial):kind==='audit'?3:STAGED_STEP_CALL_LIMIT+(kind==='blueprint_material'?(extraMaterialCalls.get(number)||0):0)):STAGED_STEP_CALL_LIMIT;
+  const stepLimit=(kind,number=0)=>spec.packExperienceVersion>=2?(kind==='blueprint'?5+Number(recoveredSavedMaterial):kind==='audit'?3:(kind==='blueprint_material'&&(spec.packQualityVersion||0)>=15?3:STAGED_STEP_CALL_LIMIT)+(kind==='blueprint_material'?(extraMaterialCalls.get(number)||0):0)):STAGED_STEP_CALL_LIMIT;
   const totalLimit=()=>spec.packExperienceVersion>=2?18+Number(recoveringSavedMaterial)*2+recoveryCallTotal:STAGED_AI_CALL_LIMIT;
   const fetcher=env.FETCH||fetch;
   const countCalls=async (kind,number)=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ?',order.id,kind,number).first())?.count||0);

@@ -672,6 +672,34 @@ test('paid plan attempts do not exhaust PDF retries and a failed paid order can 
   assert.equal(shelf.orders.find(order=>order.id==='pdf-order').deliveryRetryAvailable,false);
 });
 
+test('a stopped v15 material step can resume once on the same paid order',async()=>{
+  const {db,binding}=database(),owner=await sha256('test-session-secret|adult@example.com'),jobs=[];
+  const spec=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  assert.equal(spec.packQualityVersion,15);
+  const stored=JSON.stringify(spec);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('material-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('material-order','custom','custom_home',?,?,?,?,1499,'USD','failed',CURRENT_TIMESTAMP)").run(stored,await sha256(stored),owner,'material-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version) VALUES ('material-activity','material-order','failed',?,2)").run(JSON.stringify({...spec,plan:planFixture(spec),planConfirmed:true}));
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version) VALUES ('material-order','confirmed',1,1)").run();
+  db.prepare("INSERT INTO generation_usage (order_id,attempt,model,status,phase,error_code) VALUES ('material-order',1,'fixture','failed','story','STAGED_GENERATION_STOPPED')").run();
+  const insert=db.prepare("INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model,error_code,error_detail) VALUES (?,'material-order',?,?,?,'fixture',?,?)");
+  insert.run('frame','blueprint_frame',0,'passed',null,null);
+  insert.run('stage-one','blueprint_material',1,'passed',null,null);
+  insert.run('stage-two-first','blueprint_material',2,'failed','BLUEPRINT_INVALID','Checkpoint 2 repeats a printed action from an earlier checkpoint.');
+  insert.run('stage-two-second','blueprint_material',2,'failed','BLUEPRINT_INVALID','Checkpoint 2 labels must name fictional story pieces or actions, not worksheet instructions.');
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>jobs.push(job)}};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const get=path=>handleProductionApi(request(path,'GET',undefined,headers),env).then(response=>response.json());
+  assert.equal((await get('/api/v1/orders/material-order')).deliveryRetryAvailable,true);
+  assert.equal((await get('/api/v1/my-orders')).orders.find(order=>order.id==='material-order').deliveryRetryAvailable,true);
+  const retry=await handleProductionApi(request('/api/v1/orders/material-order/retry-delivery','POST',undefined,headers),env);
+  assert.equal(retry.status,202);
+  assert.deepEqual(jobs,[{orderId:'material-order'}]);
+  assert.equal(db.prepare("SELECT delivery_retry_used FROM custom_activities WHERE order_id='material-order'").get().delivery_retry_used,1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_generation_calls WHERE order_id='material-order'").get().n,4,'the recovery request does not invoke the model itself');
+});
+
 test('free proposal endpoint returns two short directions and enforces an IP budget', async () => {
   const { binding } = database();
   const env = { ...config(binding), LEGACY_PROPOSALS_ENABLED: 'true', OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', FETCH: async () => Response.json({ output: [{ content: [{ type: 'output_text', text: JSON.stringify({ proposals: [{ id: 'mystery', title: 'Lost note', summary: 'Follow a missing note.' }, { id: 'mission', title: 'Shared map', summary: 'Rebuild a map together.' }] }) }] }], usage: { input_tokens: 90, output_tokens: 60 } }) };
