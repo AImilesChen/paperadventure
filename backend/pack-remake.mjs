@@ -3,7 +3,7 @@ import { aiProvider } from './openai.mjs';
 import { sha256, sha256Bytes } from './security.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
 import { generateBlueprint, repairBlueprint, validateBlueprint, prepareBlueprintCandidate, generateStagedCheckpoint, repairStagedCheckpoint, assembleStagedStory, auditStagedStory, auditCheckpointSemantics,
-  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, deliverableClosing } from './staged-story.mjs';
+  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, deliverableClosing, validateSavedBlueprintMaterialStep } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,grantSavedFactRepair} from './delivery-copy-service.mjs';
 
@@ -306,16 +306,26 @@ export async function packRemakeView(db, orderId) {
   };
 }
 
-async function recordCall(remake, phase, stageNumber, produce, env, {reuse=true}={}) {
+async function recordCall(remake, phase, stageNumber, produce, env, {reuse=true,validateCached=null,recoveredSavedMaterial=false}={}) {
   const db = env.DB;
   const spec=JSON.parse(remake.spec_json);
   const round = remake.recovery_round + 1;
   const deterministic = deterministicCheckpoint(phase,spec,stageNumber);
-  const cached = reuse ? await query(db, "SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", remake.order_id, remake.quality_epoch, remake.logic_epoch, phase, stageNumber).first() : null;
-  if (cached) return JSON.parse(cached.result_json);
+  const cached = reuse ? await query(db, "SELECT id,result_json FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", remake.order_id, remake.quality_epoch, remake.logic_epoch, phase, stageNumber).first() : null;
+  if (cached) {
+    try {
+      const value=JSON.parse(cached.result_json);
+      validateCached?.(value);
+      return value;
+    } catch (caught) {
+      if (!validateCached) throw caught;
+      await query(db,"UPDATE custom_pack_remake_calls SET status = 'failed',error_code = 'SAVED_STEP_INVALID',error_detail = ? WHERE id = ? AND status = 'passed'",String(caught?.message||'Saved material needs rechecking.').slice(0,1000),cached.id).run();
+    }
+  }
   const stepCount = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', remake.order_id, remake.quality_epoch, remake.logic_epoch, phase, stageNumber, round).first();
   const total = await query(db, "SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND model != 'checked-rules-v1'", remake.order_id, remake.quality_epoch, remake.logic_epoch, round).first();
-  if ((!deterministic && stepCount.n >= stepLimit(phase,spec)) || (!deterministic && total.n >= MAX_CALLS))
+  const savedMaterialRejected=!!(await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",remake.order_id,remake.quality_epoch,remake.logic_epoch).first());
+  if ((!deterministic && stepCount.n >= stepLimit(phase,spec)+Number(phase==='blueprint'&&stageNumber===0&&recoveredSavedMaterial)) || (!deterministic && total.n >= MAX_CALLS+Number(savedMaterialRejected)*2))
     throw new ApiError(422, 'REMAKE_BUDGET_EXHAUSTED', 'The safe model-call limit was reached. Your original game remains available.');
   const id = crypto.randomUUID();
   await query(db, "INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,round_number,generation_round,logic_epoch,quality_epoch) VALUES (?,?,?,?,'started',?,?,?,?,?)", id, remake.order_id, phase, stageNumber, deterministic?'checked-rules-v1':aiProvider(env).model, Math.min(round,2), round, remake.logic_epoch, remake.quality_epoch).run();
@@ -459,7 +469,21 @@ export async function processPackRemake(orderId, env) {
     if (!remake.blueprint_json) {
       const prior = await query(db, "SELECT result_json,error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'failed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1", orderId,remake.quality_epoch,remake.logic_epoch).first();
       let generatedBlueprint;
-      const resumable=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&!prior;
+      let savedMaterialRepair=false;
+      if(prior&&spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8){
+        const savedFrame=await query(db,"SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_frame' AND stage_number = 0 AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch).first();
+        if(savedFrame){
+          const frame=JSON.parse(savedFrame.result_json);
+          const alreadyRejected=await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch).first();
+          savedMaterialRepair=!!alreadyRejected;
+          for(let number=1;number<=4&&!savedMaterialRepair;number++){
+            const saved=await query(db,"SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch,number).first();
+            if(saved)try{validateSavedBlueprintMaterialStep(spec,frame,number,JSON.parse(saved.result_json));}
+              catch{savedMaterialRepair=true;}
+          }
+        }
+      }
+      const resumable=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&(!prior||savedMaterialRepair);
       if(resumable){
         budgetPhase='blueprint_frame';stageNumber=0;
         const frame=await recordCall(remake,budgetPhase,0,async()=>{
@@ -473,8 +497,9 @@ export async function processPackRemake(orderId, env) {
             const prior=(spec.packQualityVersion||0)>=13?await query(db,"SELECT error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'failed' ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch,number).first():null;
             const result=await generateBlueprintMaterialStep(spec,frame,number,materials,env,env.FETCH||fetch,prior?.error_detail||null);
             return {value:result.data,usage:result.usage,responseId:result.responseId};
-          },env));
+          },env,{validateCached:value=>validateSavedBlueprintMaterialStep(spec,frame,number,value)}));
         }
+        const recoveredSavedMaterial=!!(await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch).first());
         budgetPhase='blueprint_closing';stageNumber=0;
         const closing=await recordCall(remake,budgetPhase,0,async()=>{
           const result=await generateBlueprintClosingStep(spec,frame,env,env.FETCH||fetch);
@@ -484,7 +509,7 @@ export async function processPackRemake(orderId, env) {
         generatedBlueprint=await recordCall(remake,'blueprint',0,async()=>{
           const result=await assembleBlueprintSteps(spec,frame,materials,closing,env,env.FETCH||fetch);
           return {value:result.blueprint,usage:result.usage,responseId:result.responseId};
-        },env);
+        },env,{recoveredSavedMaterial});
       }else{
         budgetPhase='blueprint';stageNumber=0;
         generatedBlueprint=await recordCall(remake, 'blueprint', 0, async () => {
@@ -568,12 +593,14 @@ export async function processPackRemake(orderId, env) {
     const detail=(phase==='repair'&&stageNumber?`Checkpoint ${stageNumber}: `:'')+String(caught?.message||'Unknown failure');
     const total = await query(db, "SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND model != 'checked-rules-v1'", orderId, remake.quality_epoch, remake.logic_epoch, remake.recovery_round + 1).first();
     const step = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', orderId, remake.quality_epoch, remake.logic_epoch, budgetPhase, stageNumber, remake.recovery_round + 1).first();
-    if((spec.packQualityVersion||0)>=7&&remake.blueprint_json&&['STAGE_SEMANTIC_INVALID','GENERATION_QA_FAILED'].includes(code)&&!caught.terminalThemeMismatch&&Number.isInteger(caught.stageNumber)&&caught.stageNumber>=0&&caught.stageNumber<=5&&total.n<MAX_CALLS&&remake.failure_count<2){
+    const savedMaterialRejected=!!(await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch).first());
+    const maxCalls=MAX_CALLS+Number(savedMaterialRejected)*2;
+    if((spec.packQualityVersion||0)>=7&&remake.blueprint_json&&['STAGE_SEMANTIC_INVALID','GENERATION_QA_FAILED'].includes(code)&&!caught.terminalThemeMismatch&&Number.isInteger(caught.stageNumber)&&caught.stageNumber>=0&&caught.stageNumber<=5&&total.n<maxCalls&&remake.failure_count<2){
       await query(db,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'repair',lease_until = NULL,failure_count = failure_count + 1,error_code = ?,error_detail = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'",code,detail.slice(0,1000),orderId).run();
       await queueNext(orderId,env);
       return;
     }
-    let retry = total.n < MAX_CALLS && (deterministicCheckpoint(budgetPhase,spec,stageNumber) || step.n < stepLimit(budgetPhase,spec)) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING','REMAKE_BUDGET_EXHAUSTED'].includes(code);
+    let retry = total.n < maxCalls && (deterministicCheckpoint(budgetPhase,spec,stageNumber) || step.n < stepLimit(budgetPhase,spec)+Number(budgetPhase==='blueprint'&&stageNumber===0&&savedMaterialRejected)) && remake.failure_count < 2 && !['REMAKE_BLUEPRINT_CHANGED','REMAKE_STORY_CHANGED','REMAKE_SOURCE_MISSING','REMAKE_BUDGET_EXHAUSTED'].includes(code);
     if(caught.terminalThemeMismatch||String(code).startsWith('DELIVERY_COPY_'))retry=false;
     if (deterministicCheckpoint(budgetPhase,spec,stageNumber) && code === 'GENERATION_INVALID') retry = false;
     if (code === 'GENERATION_QA_FAILED') {
@@ -604,4 +631,3 @@ export async function processPackRemake(orderId, env) {
     if (retry) await queueNext(orderId, env);
   }
 }
-
