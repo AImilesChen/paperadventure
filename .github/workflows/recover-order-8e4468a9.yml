@@ -105,3 +105,4 @@ jobs:
           console.log('Recovery is still processing after the observation window.');
           NODE
           node "$RUNNER_TEMP/recover.mjs"
+# Resume after preserved final-scene deploy
