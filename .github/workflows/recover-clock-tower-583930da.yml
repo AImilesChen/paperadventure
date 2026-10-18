@@ -37,6 +37,7 @@ jobs:
             FROM orders o JOIN custom_activities a ON a.order_id=o.id
             JOIN custom_plan_orders p ON p.order_id=o.id WHERE o.id='${id}'`).rows[0];
           const before = state();
+          console.log('Preflight fields:', JSON.stringify(before ? {order_status:before.order_status,paid:before.paid,activity_status:before.activity_status,delivery_retry_used:before.delivery_retry_used,generation_version:before.generation_version,plan_status:before.plan_status,confirmed_version:before.confirmed_version,material_calls:before.material_calls,first_material_passed:before.first_material_passed,last_error:before.last_error,candidate_items:before.candidate_items,grants:before.grants,artifacts:before.artifacts,blueprints:before.blueprints} : null));
           if (!before || before.order_status !== 'failed' || before.activity_status !== 'failed' ||
               before.product_kind !== 'custom' || Number(before.paid)!==1 ||
               Number(before.delivery_retry_used)!==1 || Number(before.generation_version)!==2 ||
