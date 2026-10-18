@@ -31,6 +31,8 @@ jobs:
             instr(coalesce(json_extract(a.normalized_json,'$.stages[4].scene'),''),coalesce(a.quote,'_NO_QUOTE_'))>0 rewritten_scene_quote,
             EXISTS(SELECT 1 FROM json_each(json_extract(a.normalized_json,'$.actions')) x WHERE instr(coalesce(json_extract(x.value,'$.description'),''),coalesce(a.quote,'_NO_QUOTE_'))>0 OR instr(coalesce(json_extract(x.value,'$.label'),''),coalesce(a.quote,'_NO_QUOTE_'))>0) action_quote,
             instr(coalesce(json_extract(a.normalized_json,'$.celebration'),''),coalesce(a.quote,'_NO_QUOTE_'))>0 closing_quote,
+            instr(substr(coalesce(json_extract(a.normalized_json,'$.celebration'),''),1,instr(coalesce(json_extract(a.normalized_json,'$.celebration'),''),'. ')+1),coalesce(a.quote,'_NO_QUOTE_'))>0 closing_first_quote,
+            instr(substr(coalesce(json_extract(a.normalized_json,'$.celebration'),''),instr(coalesce(json_extract(a.normalized_json,'$.celebration'),''),'. ')+2),coalesce(a.quote,'_NO_QUOTE_'))>0 closing_second_quote,
             instr(a.reason,'location')>0 reason_location,
             instr(a.reason,'route')>0 reason_route,
             instr(a.reason,'destination')>0 reason_destination,
