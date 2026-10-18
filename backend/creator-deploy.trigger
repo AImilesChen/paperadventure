@@ -16,3 +16,4 @@
 2026-10-18 deploy reserved stage budgets and deterministic v15 audit
 2026-10-18 deploy complete-player-pack evidence validation
 2026-10-18 deploy final-player-page evidence validation
+2026-10-18 deploy preserved final player scene
