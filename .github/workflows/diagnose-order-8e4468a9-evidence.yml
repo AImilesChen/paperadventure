@@ -16,6 +16,31 @@ jobs:
       - name: Return field-presence booleans only
         shell: bash
         run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "WITH a AS (
+            SELECT c.normalized_json,
+              json_extract(j.value,'$.quote') quote,
+              lower(json_extract(j.value,'$.reason')) reason
+            FROM custom_delivery_copy c, json_each(json_extract(c.audit_json,'$.issues')) j
+            WHERE c.order_id='${ORDER_ID}' AND c.policy='printed-causal-copy-1'
+            LIMIT 1
+          ), s AS (
+            SELECT stage_json FROM custom_game_stages WHERE order_id='${ORDER_ID}' AND stage_number=5
+          )
+          SELECT
+            instr(coalesce(json_extract(s.stage_json,'$.storyContext'),''),coalesce(a.quote,'_NO_QUOTE_'))>0 original_scene_quote,
+            instr(coalesce(json_extract(a.normalized_json,'$.stages[4].scene'),''),coalesce(a.quote,'_NO_QUOTE_'))>0 rewritten_scene_quote,
+            EXISTS(SELECT 1 FROM json_each(json_extract(a.normalized_json,'$.actions')) x WHERE instr(coalesce(json_extract(x.value,'$.description'),''),coalesce(a.quote,'_NO_QUOTE_'))>0 OR instr(coalesce(json_extract(x.value,'$.label'),''),coalesce(a.quote,'_NO_QUOTE_'))>0) action_quote,
+            instr(coalesce(json_extract(a.normalized_json,'$.celebration'),''),coalesce(a.quote,'_NO_QUOTE_'))>0 closing_quote,
+            instr(a.reason,'location')>0 reason_location,
+            instr(a.reason,'route')>0 reason_route,
+            instr(a.reason,'destination')>0 reason_destination,
+            instr(a.reason,'recipient')>0 reason_recipient,
+            instr(a.reason,'already')>0 reason_already,
+            instr(a.reason,'before')>0 reason_before,
+            instr(a.reason,'after')>0 reason_after,
+            instr(a.reason,'action')>0 reason_action,
+            instr(a.reason,'scene')>0 reason_scene
+          FROM a CROSS JOIN s" > "$RUNNER_TEMP/audit-source.json"
           npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT
             json_extract(j.value,'$.stageNumber') stage_number,
             json_extract(j.value,'$.code') issue_code
@@ -59,5 +84,7 @@ jobs:
           const finalRows=(Array.isArray(finalData)?finalData:[finalData]).flatMap(x=>x.results||[]);
           const auditData=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/audit.json','utf8'));
           const auditRows=(Array.isArray(auditData)?auditData:[auditData]).flatMap(x=>x.results||[]);
-          console.log(JSON.stringify({saved_fields:rows,normalized_fields:finalRows[0]||null,audit_issues:auditRows}));
+          const sourceData=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/audit-source.json','utf8'));
+          const sourceRows=(Array.isArray(sourceData)?sourceData:[sourceData]).flatMap(x=>x.results||[]);
+          console.log(JSON.stringify({saved_fields:rows,normalized_fields:finalRows[0]||null,audit_issues:auditRows,audit_source:sourceRows[0]||null}));
           NODE
