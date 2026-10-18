@@ -1,0 +1,32 @@
+name: Dump order materials and frame
+on:
+  push:
+    branches: [dump-order-8e4468a9]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Dump frame and materials
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT result_json FROM custom_pack_remake_calls WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807' AND phase='blueprint_frame' AND status='passed' ORDER BY id DESC LIMIT 1" > "$RUNNER_TEMP/frame.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase,stage_number,result_json FROM custom_pack_remake_calls WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807' AND phase='blueprint_material' AND status='passed' ORDER BY stage_number" > "$RUNNER_TEMP/mat.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT result_json FROM custom_pack_remake_calls WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807' AND phase='blueprint_closing' AND status='passed' ORDER BY id DESC LIMIT 1" > "$RUNNER_TEMP/closing.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT spec_json FROM custom_pack_remakes WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/spec.json"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const rows=p=>{const d=JSON.parse(fs.readFileSync(p,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]};
+          const frame=rows(process.env.RUNNER_TEMP+'/frame.json')[0]?.result_json;
+          const mats=rows(process.env.RUNNER_TEMP+'/mat.json').map(r=>({stage:r.stage_number,data:r.result_json}));
+          const closing=rows(process.env.RUNNER_TEMP+'/closing.json')[0]?.result_json;
+          const spec=rows(process.env.RUNNER_TEMP+'/spec.json')[0]?.spec_json;
+          console.log('FRAME', frame);
+          console.log('MATS', JSON.stringify(mats));
+          console.log('CLOSING', closing);
+          console.log('SPEC', spec);
+          NODE
