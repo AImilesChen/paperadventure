@@ -380,8 +380,12 @@ export async function repairBlueprint(spec,candidate,reason,env,fetcher=fetch) {
       let storyFrame=prepareStoryFrame(raw.storyFrame,spec.packQualityVersion||4);
       raw.stages=normalizeStoryOrderActions(normalizeStoryCodeWords(raw.stages,spec),storyFrame,spec);
       const types=paperContractTypes(spec.plan);
-      const match=String(reason).match(/Checkpoint\s+([1-5])/i);
-      const number=match?Number(match[1]):/spine|resolution|final action|story problem|linked finding/i.test(String(reason))?5:0;
+      const reasonText=String(reason);
+      const match=reasonText.match(/Checkpoint\s+([1-5])/i);
+      // Closing validators name the closing explicitly. Any other unnumbered
+      // linked-game failure belongs to the story frame or its causal chain.
+      // Sending it to closing repair leaves the rejected field unchanged.
+      const number=match?Number(match[1]):/ending|celebration|closing|two complete sentences|character (?:or|and) community response|concrete result of the final action/i.test(reasonText)?0:5;
       const causalDiscoveryRepair=(spec.packQualityVersion||0)>=6&&number>=1&&number<=4&&!/material facts:/i.test(String(reason))&&/causal|consequence|discovery|finding|story link|supports/i.test(String(reason));
       let result,grounded=null;
       if(causalDiscoveryRepair){

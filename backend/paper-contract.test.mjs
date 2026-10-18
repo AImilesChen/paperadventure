@@ -250,6 +250,23 @@ test('quality version 8 re-grounds saved discoveries after repairing one materia
   assert.deepEqual(result.blueprint.stages[1].material.logic.context.labels,raw.stages[1].material.items.map(item=>item.label));
 });
 
+test('an unnumbered story-chain error repairs the frame instead of the closing',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.storyFrame=structuredClockFrame();
+  raw.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  let requested='';
+  await assert.rejects(
+    repairBlueprint(spec,raw,'The story chain does not connect enough printed findings to the final action.',
+      {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+        requested=JSON.parse(request.body).text.format.name;
+        throw Error('route checked');
+      }),
+    /story provider could not complete/i,
+  );
+  assert.equal(requested,'story_frame_repair');
+});
+
 test('quality version 8 replaces a generic code word with an approved story word before grounding',()=>{
   const plan=structuredClone(clockSpec.plan);
   plan.goal='Restore the exhibit CASE label before the visitors arrive.';
