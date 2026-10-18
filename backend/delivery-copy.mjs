@@ -205,8 +205,8 @@ export function applyDeliveryCopy(story,copy=story.deliveryCopy,check=true){
 // solver reads the actual printed witness/rule sentences and candidate rows.
 // Run after the final copy is applied: the blueprint's older links are not
 // evidence for facts introduced while rewriting the printable edition.
-// A final action combines all four earlier discoveries, so a concrete place
-// may be established on any of those player pages. Adult-only explanations,
+// A final action combines all four earlier discoveries, and the final player
+// page may name the place where that action happens. Adult-only explanations,
 // distractors and the final action instructions remain excluded.
 function playerEvidenceForStage(stage,link){
   const items=stage.material.items;
@@ -217,7 +217,8 @@ function playerEvidenceForStage(stage,link){
 
 export function validatePlayerEvidence(story){
   const links=(story.spine?.links||[]).slice(0,4);
-  const printed=links.map((link,index)=>story.stages[index]?playerEvidenceForStage(story.stages[index],link):'').filter(Boolean).join(' ');
+  const discoveryPages=links.map((link,index)=>story.stages[index]?playerEvidenceForStage(story.stages[index],link):'');
+  const printed=[...discoveryPages,story.stages?.[4]?.storyContext].filter(Boolean).join(' ');
   for(const [index,link] of links.entries()){
     // The normalized copy prints finding + reason together, but only the
     // consequence is a claim that needs independent source evidence.
