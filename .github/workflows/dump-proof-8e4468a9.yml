@@ -14,14 +14,19 @@ jobs:
     steps:
       - name: Dump audit and candidate
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT audit_json,candidate_json,error_code FROM custom_delivery_copy WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/d.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT audit_json,candidate_json,error_code,error_detail FROM custom_delivery_copy WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/d.json"
           node - <<'NODE'
           const fs=require('node:fs');
           const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/d.json','utf8'));
           const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
           for(const r of rows){
             console.log('ERROR_CODE', r.error_code);
-            try{ console.log('AUDIT', r.audit_json); }catch{}
+            try{ console.log('ERROR_DETAIL', r.error_detail); }catch{}
+            try{
+              const a=JSON.parse(r.audit_json||'null');
+              console.log('AUDIT_PASS', a&&a.pass);
+              console.log('AUDIT_ISSUES', JSON.stringify(a&&a.issues));
+            }catch(e){ console.log('AUDIT_RAW', r.audit_json); }
             try{ console.log('CANDIDATE', r.candidate_json); }catch{}
           }
           NODE
