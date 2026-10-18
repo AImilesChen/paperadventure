@@ -324,7 +324,7 @@ async function recordCall(remake, phase, stageNumber, produce, env, {reuse=true,
   }
   const stepCount = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', remake.order_id, remake.quality_epoch, remake.logic_epoch, phase, stageNumber, round).first();
   const total = await query(db, "SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND model != 'checked-rules-v1'", remake.order_id, remake.quality_epoch, remake.logic_epoch, round).first();
-  const savedMaterialRejected=!!(await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",remake.order_id,remake.quality_epoch,remake.logic_epoch).first());
+  const savedMaterialRejected=!!(await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",remake.order_id,remake.quality_epoch,remake.logic_epoch,round).first());
   if ((!deterministic && stepCount.n >= stepLimit(phase,spec)+Number(phase==='blueprint'&&stageNumber===0&&recoveredSavedMaterial)) || (!deterministic && total.n >= MAX_CALLS+Number(savedMaterialRejected)*2))
     throw new ApiError(422, 'REMAKE_BUDGET_EXHAUSTED', 'The safe model-call limit was reached. Your original game remains available.');
   const id = crypto.randomUUID();
@@ -499,7 +499,7 @@ export async function processPackRemake(orderId, env) {
             return {value:result.data,usage:result.usage,responseId:result.responseId};
           },env,{validateCached:value=>validateSavedBlueprintMaterialStep(spec,frame,number,value)}));
         }
-        const recoveredSavedMaterial=!!(await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch).first());
+        const recoveredSavedMaterial=!!(await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch,remake.recovery_round+1).first());
         budgetPhase='blueprint_closing';stageNumber=0;
         const closing=await recordCall(remake,budgetPhase,0,async()=>{
           const result=await generateBlueprintClosingStep(spec,frame,env,env.FETCH||fetch);
@@ -593,7 +593,7 @@ export async function processPackRemake(orderId, env) {
     const detail=(phase==='repair'&&stageNumber?`Checkpoint ${stageNumber}: `:'')+String(caught?.message||'Unknown failure');
     const total = await query(db, "SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND model != 'checked-rules-v1'", orderId, remake.quality_epoch, remake.logic_epoch, remake.recovery_round + 1).first();
     const step = await query(db, 'SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = ? AND stage_number = ? AND generation_round = ?', orderId, remake.quality_epoch, remake.logic_epoch, budgetPhase, stageNumber, remake.recovery_round + 1).first();
-    const savedMaterialRejected=!!(await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch).first());
+    const savedMaterialRejected=!!(await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch,remake.recovery_round+1).first());
     const maxCalls=MAX_CALLS+Number(savedMaterialRejected)*2;
     if((spec.packQualityVersion||0)>=7&&remake.blueprint_json&&['STAGE_SEMANTIC_INVALID','GENERATION_QA_FAILED'].includes(code)&&!caught.terminalThemeMismatch&&Number.isInteger(caught.stageNumber)&&caught.stageNumber>=0&&caught.stageNumber<=5&&total.n<maxCalls&&remake.failure_count<2){
       await query(db,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'repair',lease_until = NULL,failure_count = failure_count + 1,error_code = ?,error_detail = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND status = 'generating'",code,detail.slice(0,1000),orderId).run();
