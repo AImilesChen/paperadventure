@@ -1,4 +1,4 @@
-name: Read closing vs action of order
+name: Read audit issue of order
 on:
   push:
     branches: [dump-proof-8e4468a9]
@@ -12,21 +12,15 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump candidate celebration and actions
+      - name: Dump audit issue
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT candidate_json,normalized_json FROM custom_delivery_copy WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/d.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT audit_json,error_code FROM custom_delivery_copy WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/d.json"
           node - <<'NODE'
           const fs=require('node:fs');
           const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/d.json','utf8'));
           const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
           for(const r of rows){
-            for(const key of ['candidate_json','normalized_json']){
-              try{
-                const c=JSON.parse(r[key]||'null');
-                console.log('=== '+key+' ===');
-                console.log('CELEBRATION', c&&c.celebration);
-                console.log('ACTIONS', JSON.stringify(c&&c.actions));
-              }catch(e){ console.log(key, 'parse-fail'); }
-            }
+            console.log('ERROR_CODE', r.error_code);
+            try{ const a=JSON.parse(r.audit_json||'null'); console.log('AUDIT_PASS', a&&a.pass); console.log('AUDIT_ISSUES', JSON.stringify(a&&a.issues)); }catch(e){ console.log('AUDIT_RAW', r.audit_json); }
           }
           NODE
