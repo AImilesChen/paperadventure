@@ -11,6 +11,7 @@ import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {sha256} from './security.mjs';
+import {unsupportedLocationClaims} from '../shared/printed-evidence.mjs';
 
 async function fixture(){
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:4,packLayoutVersion:4};
@@ -58,6 +59,11 @@ test('player evidence gate catches a finale location absent from player material
   assert.equal(player.checkpoints[0].explanation,undefined);
   assert.equal(player.checkpoints[0].answerIndex,undefined);
   assert.ok(player.checkpoints[0].material.items.length>0);
+});
+
+test('location check distinguishes a concrete place from an infinitive instruction',()=>{
+  assert.deepEqual(unsupportedLocationClaims('The clue tells the team to reveal the puppet.', 'The printed puppet clue is ready.'),[]);
+  assert.deepEqual(unsupportedLocationClaims('Moonheart rests at the awning rail.', 'A lantern hangs nearby.'),['awning rail']);
 });
 
 test('new-order review sees player pages without adult answers and spends only the existing two calls',async()=>{
