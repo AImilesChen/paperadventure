@@ -58,8 +58,9 @@
 .order-download-primary .live-downloads a{font-size:.85rem}
 .order-next-step{display:grid;gap:13px;margin:30px 0 8px;padding:24px;border:2px solid #9fc9d9;border-radius:12px;background:#edf8fc}
 .order-next-step.is-ready{border-color:#7ebd9a;background:#eaf7ee}
-.order-next-step h3{margin:0;font-size:1.35rem;line-height:1.25;color:#0d294f}
+.order-next-step h2{margin:0;font-size:1.35rem;line-height:1.25;color:#0d294f}
 .order-next-step p{margin:0;max-width:63ch}
+.order-next-step>.button{justify-self:start;display:inline-flex;align-items:center;gap:9px}
 .order-next-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:4px}
 .order-next-actions .button,.order-next-actions .button-quiet{display:inline-flex;align-items:center;gap:9px;text-decoration:none}
 .live-panel .order-feedback{margin-top:32px;padding:20px 0 0;border-top:1px solid #c5dbe4}
@@ -108,6 +109,11 @@
 .order-package-downloads .live-note{margin:0 0 16px}
 .order-package-downloads .live-downloads{margin-bottom:0}
 .order-package-downloads .live-downloads a{justify-content:space-between;padding:13px 15px;border:1px solid #a8cbd8;border-radius:8px;background:#f5fafc;text-decoration:none}
+.order-earlier-downloads,.order-optional-upgrade{margin-top:20px;border:1px solid #b6d5e0;border-radius:10px;background:#f5fafc}
+.order-earlier-downloads>summary,.order-optional-upgrade>summary{padding:15px 18px;color:#155576;font-weight:800;cursor:pointer}
+.order-earlier-downloads .order-package-downloads{margin:0;padding:18px;border-top:1px solid #cee1e8}
+.order-earlier-downloads .complete-pack-button{background:#f7fbfd;color:#155576;border-color:#9ec6d7;box-shadow:none}
+.order-optional-upgrade>.order-pack-remake{margin:0;border:0;box-shadow:none}
 .order-generation-round+.order-generation-round{margin-top:22px}
 .order-generation-round h3{margin:0 0 12px;font-size:1rem}
 .order-generation-round ol{display:grid;gap:10px;list-style:none;margin:0;padding:0}
@@ -128,6 +134,7 @@
 .order-status-action{display:grid;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid #cbdfe6}
 .order-status-action strong{color:#0d294f;font-size:.96rem;line-height:1.35}
 .order-status-action p{margin:0}
+.order-status-action .button-quiet{justify-self:start;display:inline-flex;align-items:center;gap:8px}
 .order-status-action.is-pending{padding:16px;border:1px solid #b4d5e2;border-radius:10px;background:#edf8fc}
 .order-sidebar .order-refresh-button{display:flex;width:100%;min-height:48px;margin:2px 0 0;justify-content:center}
 .order-sidebar .order-refresh-button:disabled{cursor:wait;opacity:.72}
