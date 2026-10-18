@@ -5,8 +5,8 @@ import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {clockSpec} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory} from './staged-story.mjs';
-import {validateDeliveryCopy,normalizeDeliveryCopy,applyDeliveryCopy,verifyDeliveryPuzzles} from './delivery-copy.mjs';
-import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,deliveryCopySchemaFor,grantSavedFactRepair} from './delivery-copy-service.mjs';
+import {validateDeliveryCopy,normalizeDeliveryCopy,applyDeliveryCopy,verifyDeliveryPuzzles,validatePlayerEvidence} from './delivery-copy.mjs';
+import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,deliveryCopySchemaFor,grantSavedFactRepair,playerOnlyReviewInput} from './delivery-copy-service.mjs';
 import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {validateGeneratedStory} from './domain.mjs';
@@ -45,6 +45,42 @@ test('copy validation rejects noun lists and invented cited evidence',async()=>{
   assert.throws(()=>validateDeliveryCopy(story,bad),/complete instructions/);
   const ungrounded=structuredClone(copy);ungrounded.links[0].fact='The seal means the chest is safe.';
   assert.throws(()=>validateDeliveryCopy(story,ungrounded),/exact printed finding/);
+});
+
+test('player evidence gate catches a finale location absent from player material',async()=>{
+  const {story,copy}=await fixture(),printed=applyDeliveryCopy(story,copy);
+  validatePlayerEvidence(printed);
+  printed.spine.links[1].reason=`${printed.spine.links[1].finding} Tracing the blue trunk route reveals Moonheart at the awning rail.`;
+  assert.throws(()=>validatePlayerEvidence(printed),/Checkpoint 2 claims a location absent from its player material: awning rail/);
+  const player=playerOnlyReviewInput(printed);
+  assert.equal(player.spine,undefined);
+  assert.equal(player.ending,undefined);
+  assert.equal(player.checkpoints[0].explanation,undefined);
+  assert.equal(player.checkpoints[0].answerIndex,undefined);
+  assert.ok(player.checkpoints[0].material.items.length>0);
+});
+
+test('new-order review sees player pages without adult answers and spends only the existing two calls',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database();
+  const edition={...spec,packQualityVersion:15,packCopyVersion:1};
+  let calls=0;
+  const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,{body})=>{
+    const request=JSON.parse(body);
+    calls++;
+    if(calls===1)return Response.json({output_text:JSON.stringify(copy)});
+    assert.equal(request.text.format.name,'printed_copy_audit');
+    const input=JSON.parse(request.input);
+    assert.equal(input.printed,undefined);
+    assert.equal(input.playerPages.spine,undefined);
+    assert.equal(input.playerPages.ending,undefined);
+    assert.equal(input.playerPages.checkpoints[0].explanation,undefined);
+    assert.equal(input.playerPages.checkpoints[0].answerIndex,undefined);
+    assert.equal(input.selectedFinalAction.description,copy.actions[0].description);
+    return Response.json({output_text:JSON.stringify({pass:true,issues:[]})});
+  });
+  assert.equal(calls,2);
+  assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,2);
+  assert.ok(saved.deliveryCopy);
 });
 
 test('complete consequences above the writing target stay intact when the combined block and both PDFs fit',async()=>{

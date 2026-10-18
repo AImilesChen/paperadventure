@@ -37,16 +37,21 @@ function paperOpening(premise){
   return `${premise.trim()} Complete four printed checks to collect four result digits. Their combined code identifies the final action that completes this mission.`;
 }
 
-export function paperPlanMechanics(gameplay={}){
+export function paperPlanMechanics(gameplay={},qualityVersion=14){
   const primary=gameplay.primary||'reasoning';
   const support=gameplay.secondary||[];
+  if(qualityVersion>=15){
+    const other=[...new Set(support.filter(mechanic=>mechanic!==primary))];
+    // The finale remains the selected main style; the playable checks vary.
+    return [primary,primary,other[0]||'reasoning',other[1]||'reasoning',primary];
+  }
   return [primary,primary,primary,support[0]||'reasoning',support[1]||'reasoning'];
 }
 
-export function completePaperPlan(candidate,gameplay){
+export function completePaperPlan(candidate,gameplay,qualityVersion=14){
   if(candidate?.stages?.length!==5)throw Error('Five planned checkpoints are required.');
   for(let index=0;index<4;index++)assertGoalStillOpen([candidate.stages[index]?.scene||'',candidate.stages[index]?.storyBeat||''],candidate.goal,index+1);
-  const mechanics=paperPlanMechanics(gameplay);
+  const mechanics=paperPlanMechanics(gameplay,qualityVersion);
   const types=paperContractTypes({stages:mechanics.map(mechanic=>({mechanic}))});
   return alignPaperPlan({...candidate,...(candidate.premise?{opening:paperOpening(candidate.premise)}:{}),id:['mystery','mission'].includes(candidate.id)?candidate.id:'mission',stages:candidate.stages.map((stage,index)=>({...stage,
     number:index+1,mechanic:mechanics[index],scene:stage.scene||`At printed checkpoint ${index+1}`,storyContext:stage.storyBeat?`${stage.scene.trim().replace(/[.!?]+$/,'')}. ${stage.storyBeat.trim()}`:paperStoryMoment(stage.scene||`At printed checkpoint ${index+1}`,types[index],index+1)}))});

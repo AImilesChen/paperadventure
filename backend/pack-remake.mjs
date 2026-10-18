@@ -66,7 +66,7 @@ export function remakeSpec(original) {
     ...original,
     gamePackVersion: 2,
     packLogicVersion: 1,
-    ...(original.packContractVersion===1?{packExperienceVersion:3,packQualityVersion:CURRENT_PACK_QUALITY_VERSION,packLayoutVersion:CURRENT_PACK_LAYOUT_VERSION,packCopyVersion:1}:{}),
+    ...(original.packContractVersion===1?{packExperienceVersion:3,packQualityVersion:Math.max(CURRENT_PACK_QUALITY_VERSION,original.packQualityVersion||0),packLayoutVersion:CURRENT_PACK_LAYOUT_VERSION,packCopyVersion:1}:{}),
     plan: {
       ...plan,
       title: shorten(plan.title, 70),
@@ -632,4 +632,4 @@ export async function processPackRemake(orderId, env) {
     if(!retry)await query(db,"INSERT INTO custom_delivery_incidents (order_id,phase,error_code) VALUES (?,?,?) ON CONFLICT(order_id) DO UPDATE SET phase = excluded.phase,error_code = excluded.error_code,status = 'open',alert_status = 'pending',alert_attempts = 0,alerted_at = NULL",orderId,phase,code).run();
     if (retry) await queueNext(orderId, env);
   }
-}
+}

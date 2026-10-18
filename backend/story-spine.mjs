@@ -1,4 +1,5 @@
 import {assertGoalStillOpen} from '../shared/paper-contract.mjs';
+import {unsupportedLocationClaims} from '../shared/printed-evidence.mjs';
 
 const plain = (value,label,max) => {
   if(typeof value!=='string'||!value.trim()||value.length>max||/[^\x20-\x7e]/.test(value))
@@ -196,6 +197,14 @@ export function selectedStoryFinding(stage,type,number){
   return labels[(number+1)%3];
 }
 
+
+const stagePlayerText=(stage,type)=>{
+  const items=stage?.material?.items||[];
+  const selected=items.find(item=>item.label===stage?.options?.[stage.answerIndex]);
+  const evidence=type==='order_tiles'?items.slice(0,4):selected?[selected]:[];
+  return [stage?.storyContext,stage?.clue,stage?.material?.instruction,...evidence.flatMap(item=>[item.label,item.detail])].filter(Boolean).join(' ');
+};
+
 const purposeFallbacks=[
   'This shows what the team must fix before choosing the final action.',
   'This identifies what the team needs before choosing the final action.',
@@ -298,6 +307,10 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
       const printed=groundingTerms(source),claimed=groundingTerms(structured.consequence);
       if(![...claimed].some(word=>printed.has(word)))
         throw Error(`Checkpoint ${index+1} story link consequence must name a printed piece or fact, not introduce an unrelated event.`);
+      if(qualityVersion>=15){
+        const missing=unsupportedLocationClaims(structured.consequence,stagePlayerText(stages[index],types[index]));
+        if(missing.length)throw Error(`Checkpoint ${index+1} story link claims a location absent from its player material: ${missing[0]}.`);
+      }
       if(qualityVersion>=14){
         const action=actionTerms(resolution),support=actionTerms(structured.supportsAction);
         const grounded=[...support].filter(word=>action.has(word)&&printed.has(word));
@@ -305,7 +318,7 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
         // even when its record does not repeat the final action noun verbatim.
         const concreteAction=[...action].filter(word=>!['hand','carry','give','take','bring','move','send','put','place','open','close','fix','make'].includes(word));
         const explained=concreteAction.some(word=>claimed.has(word));
-        if(grounded.length||explained)printedActionLinks++;
+        if(grounded.length||(qualityVersion<15&&explained))printedActionLinks++;
         else if(![...support].some(word=>action.has(word)))
           throw Error(`Checkpoint ${index+1} story link does not name part of the final action.`);
       }

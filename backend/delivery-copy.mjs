@@ -2,6 +2,7 @@
 // Every rewritten row is assembled from the original truth table, not an AI
 // answer key. This contract is shared by review, rendering and publication.
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
+import {unsupportedLocationClaims} from '../shared/printed-evidence.mjs';
 
 export const COPY_POLICY='printed-causal-copy-1';
 const fail=message=>{throw Object.assign(Error(message),{code:'DELIVERY_COPY_INVALID',terminalThemeMismatch:true});};
@@ -198,6 +199,26 @@ export function applyDeliveryCopy(story,copy=story.deliveryCopy,check=true){
   const code=story.stages.slice(0,4).map(stage=>stage.material.logic.resultDigit).join('');
   result.ending=`The four checked results form code ${code}, which matches "${copy.actions[0].label}" on the final sheet. ${copy.celebration}`;
   return result;
+}
+
+// Solve the final visible edition independently. For rewritten records the
+// solver reads the actual printed witness/rule sentences and candidate rows.
+// Run after the final copy is applied: the blueprint's older links are not
+// evidence for facts introduced while rewriting the printable edition.
+export function validatePlayerEvidence(story){
+  for(const [index,link] of (story.spine?.links||[]).entries()){
+    if(index>=4)break;
+    const stage=story.stages[index],items=stage.material.items;
+    const chosen=items.find(item=>item.label===stage.options[stage.answerIndex]);
+    const printed=[stage.storyContext,stage.clue,stage.material.instruction,link.finding,
+      ...(stage.material.type==='order_tiles'?items.slice(0,4):chosen?[chosen]:[]).flatMap(item=>[item.label,item.detail])].filter(Boolean).join(' ');
+    // The normalized copy prints finding + reason together, but only the
+    // consequence is a claim that needs independent source evidence.
+    const reason=link.reason.slice(link.finding.length).trim();
+    const missing=unsupportedLocationClaims(reason,printed);
+    if(missing.length)fail(`Checkpoint ${index+1} claims a location absent from its player material: ${missing[0]}.`);
+  }
+  return story;
 }
 
 // Solve the final visible edition independently. For rewritten records the

@@ -46,11 +46,14 @@ test('plan validation normalizes printable typography without accepting non-Engl
   plan.summary='钟楼的谜题';
   assert.throws(()=>validatePlan(plan,spec));
 });
-test('a code-led paid plan may use two reasoning support tasks so printable material types remain possible',()=>{
+test('a new code-led plan varies its four playable puzzles while retaining the main style',()=>{
   const spec=validatePurchase({...input,creatorVersion:3,gameplay:{primary:'code',secondary:[],request:''}}).spec;
   const plan=planFixture({...spec,gameplay:{primary:'reasoning',secondary:[]}});
-  plan.stages.forEach((stage,index)=>{stage.mechanic=index<3?'code':'reasoning';});
-  assert.equal(validatePlan(plan,spec).stages[4].mechanic,'reasoning');
+  plan.stages.forEach((stage,index)=>{stage.mechanic=['code','code','reasoning','reasoning','code'][index];});
+  assert.equal(validatePlan(plan,spec).stages[4].mechanic,'code');
+  const oldAllocation={...plan,stages:plan.stages.map((stage,index)=>({...stage,mechanic:index<3?'code':'reasoning'}))};
+  assert.throws(()=>validatePlan(oldAllocation,spec),/three different paper activities/);
+  assert.equal(validatePlan(oldAllocation,{...spec,packQualityVersion:14}).stages[4].mechanic,'reasoning');
   const impossible={...plan,stages:plan.stages.map(stage=>({...stage,mechanic:'code'}))};
   assert.throws(()=>validatePlan(impossible,spec),/varied paper actions/);
 });
@@ -203,7 +206,7 @@ test('new paid plans generate narrative only; setup and selected main-style allo
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(calls++?{pass:true,issues:[]}:candidate)}]}]});
   });
   assert.equal(calls,2);
-  assert.deepEqual(result.plan.stages.map(stage=>stage.mechanic),['sequence','sequence','sequence','reasoning','reasoning']);
+  assert.deepEqual(result.plan.stages.map(stage=>stage.mechanic),['sequence','sequence','reasoning','reasoning','sequence']);
   assert.match(result.plan.roles,/Reader, Paper Handler, Checker and Recorder/);
   assert.match(result.plan.preparation,/Keep the adult guide and ending private/);
 });

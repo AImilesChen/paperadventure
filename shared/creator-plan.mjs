@@ -97,7 +97,14 @@ export function validatePlan(value, spec) {
   if (!spec.packContractVersion && spec.gamePackVersion===2 && spec.packLogicVersion===1 &&
       (!plan.stages.some(item=>['reasoning','discussion'].includes(item.mechanic)) || !plan.stages.some(item=>['reasoning','sequence'].includes(item.mechanic))))
     throw new Error('The checked paper game needs both evidence and an ordering or route-compatible checkpoint.');
-  if(spec.packContractVersion===1)paperContractTypes(plan);
+  if(spec.packContractVersion===1){
+    const types=paperContractTypes(plan);
+    if((spec.packQualityVersion||0)>=15){
+      const first=types.slice(0,4),counts=first.map(type=>first.filter(other=>other===type).length);
+      if(new Set(first).size<3||Math.max(...counts)>2)
+        throw new Error('The four playable checkpoints need at least three different paper activities, with no type used more than twice.');
+    }
+  }
   if (spec.gamePackVersion===2 && (plan.title.length>70 || plan.opening.length>350 || plan.roles.length>180 || plan.goal.length>180 || plan.stages.some(item=>item.title.length>60 || item.task.length>180 || item.teamwork.length>150)))
     throw new Error('The paper-pack plan needs concise headings, roles and player tasks that fit the printed sheets.');
   return plan;
