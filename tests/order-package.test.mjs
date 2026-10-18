@@ -101,8 +101,10 @@ test('a delivered order renders its original download card during theme correcti
       assert.equal(orderNextStep(value).title,title);
       assert.equal(orderNextStep(value).href||null,href);
       const banner=renderToStaticMarkup(createElement(OrderNextStep,{order:value}));
-      assert.equal((banner.match(/class="button"/g)||[]).length,href?1:0,'only one primary next-step link is shown');
+      if(href==='#download-game')assert.equal(banner,'','ready files are shown directly in the download section');
+      else assert.equal((banner.match(/class="button"/g)||[]).length,href?1:0,'only one primary next-step link is shown');
     }
+    assert.equal(renderToStaticMarkup(createElement(OrderNextStep,{order:{...delivered,kind:'ready',paidAt:'2026-10-16'}})),'','ready-made downloads also need no duplicate banner');
     assert.match(html,/Download existing PDFs while the replacement is pending/);
     assert.match(html,/Download original game · ZIP/);
   } finally {
