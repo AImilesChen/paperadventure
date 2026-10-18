@@ -47,10 +47,10 @@ export function validateCausalReview(audit,story){
     used.add(unit.id);
   }
   const orderStages=story.stages.slice(0,4).filter(stage=>stage.material?.type==='order_tiles').map(stage=>stage.number);
-  if(!Array.isArray(proof.chronology)||proof.chronology.length!==orderStages.length)fail();
-  for(const [index,number] of orderStages.entries()){
-    const entry=proof.chronology[index];
-    if(entry?.stageNumber!==number||entry.consistent!==true||clean(entry.explanation).length<20)fail();
+  if(!Array.isArray(proof.chronology))fail();
+  for(const number of orderStages){
+    const entry=proof.chronology.find(item=>item?.stageNumber===number);
+    if(!entry||entry.consistent!==true||clean(entry.explanation).length<20)fail();
   }
   return audit;
 }

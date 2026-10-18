@@ -145,6 +145,12 @@ test('causal review binds every claimed discovery to the printed player evidence
   const invented=structuredClone(audit);invented.causalProof.discoveries[1].quote='A puppet is now inside the locked tower.';
   assert.throws(()=>validateCausalReview(invented,printed),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
   const reversed=structuredClone(audit);if(reversed.causalProof.chronology.length){reversed.causalProof.chronology[0].consistent=false;assert.throws(()=>validateCausalReview(reversed,printed),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});}
+  // A provider may over-report chronology for every checkpoint, not just the
+  // order-tiles ones. The order-tiles entries must still be present and valid,
+  // but extra non-tile entries are harmless and must not deadlock delivery.
+  const overReported=structuredClone(audit);
+  overReported.causalProof.chronology=printed.stages.slice(0,4).map(stage=>({stageNumber:stage.number,consistent:true,explanation:'The consequence respects the printed sequence of this checkpoint.'}));
+  assert.equal(validateCausalReview(overReported,printed),overReported);
   const {DB}=database();let calls=0;
   const edition={...spec,packQualityVersion:15,packCopyVersion:1,packCausalVersion:1};
   const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,{body})=>{
