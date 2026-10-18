@@ -14,3 +14,4 @@
 2026-10-18 deploy provider-free causal-link recovery for order 583930DA
 2026-10-18 deploy scoped downstream resume for order 583930DA
 2026-10-18 deploy reserved stage budgets and deterministic v15 audit
+2026-10-18 deploy complete-player-pack evidence validation
