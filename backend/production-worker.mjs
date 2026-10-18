@@ -1156,8 +1156,10 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
   const recoveryRows=(await query(env.DB,"SELECT stage_number,extra_calls FROM custom_generation_recovery_grants WHERE order_id = ? AND phase = 'blueprint_material'",order.id).all()).results||[];
   const extraMaterialCalls=new Map(recoveryRows.map(row=>[Number(row.stage_number),Number(row.extra_calls)]));
   const recoveryCallTotal=[...extraMaterialCalls.values()].reduce((sum,count)=>sum+count,0);
-  const stepLimit=(kind,number=0)=>spec.packExperienceVersion>=2?(kind==='blueprint'?5+Number(recoveredSavedMaterial):kind==='audit'?3:(kind==='blueprint_material'&&(spec.packQualityVersion||0)>=15?3:STAGED_STEP_CALL_LIMIT)+(kind==='blueprint_material'?(extraMaterialCalls.get(number)||0):0)):STAGED_STEP_CALL_LIMIT;
-  const totalLimit=()=>spec.packExperienceVersion>=2?18+Number(recoveringSavedMaterial)*2+recoveryCallTotal:STAGED_AI_CALL_LIMIT;
+  const blueprintRecovery=await query(env.DB,"SELECT extra_calls FROM custom_blueprint_recovery_grants WHERE order_id = ? AND reason_code = 'STORY_REPAIR_ROUTING'",order.id).first();
+  const extraBlueprintCalls=Number(blueprintRecovery?.extra_calls||0);
+  const stepLimit=(kind,number=0)=>spec.packExperienceVersion>=2?(kind==='blueprint'?5+Number(recoveredSavedMaterial)+extraBlueprintCalls:kind==='audit'?3:(kind==='blueprint_material'&&(spec.packQualityVersion||0)>=15?3:STAGED_STEP_CALL_LIMIT)+(kind==='blueprint_material'?(extraMaterialCalls.get(number)||0):0)):STAGED_STEP_CALL_LIMIT;
+  const totalLimit=()=>spec.packExperienceVersion>=2?18+Number(recoveringSavedMaterial)*2+recoveryCallTotal+extraBlueprintCalls:STAGED_AI_CALL_LIMIT;
   const fetcher=env.FETCH||fetch;
   const countCalls=async (kind,number)=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ?',order.id,kind,number).first())?.count||0);
   const totalCalls=async()=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ?',order.id).first())?.count||0);
