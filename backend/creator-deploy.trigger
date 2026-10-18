@@ -5,3 +5,4 @@
 2026-10-18 deploy PR #42 source-step material quality gates
 2026-10-18 deploy scoped stage-2 material recovery and accurate blueprint progress
 2026-10-18 deploy PR #46 player-evidence quality checks for new packs
+2026-10-18 deploy PR #47 bounded blueprint material retry on paid orders
