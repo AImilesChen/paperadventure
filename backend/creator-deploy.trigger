@@ -3,3 +3,4 @@
 2026-10-17 deploy PR #40 record-fact material validation
 2026-10-18 deploy PR #41 saved-step revalidation and bounded resume
 2026-10-18 deploy PR #42 source-step material quality gates
+2026-10-18 deploy scoped stage-2 material recovery and accurate blueprint progress

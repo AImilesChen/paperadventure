@@ -673,8 +673,8 @@ async function orderView(request, env, orderId) {
     ]);
     const completedStages=(stageRows.results||[]).map(row=>row.stage_number);
     const nextStage=[1,2,3,4,5].find(number=>!completedStages.includes(number))||null;
-    generationProgress={phase:order.status==='published'?'delivered':story?'pdf':nextStage?'checkpoint':blueprint?'audit':'blueprint',
-      blueprintReady:Boolean(blueprint),completedStages,currentStage:nextStage,auditPassed:Boolean(audit),storyReady:Boolean(story)};
+    generationProgress={phase:order.status==='published'?'delivered':story?'pdf':!blueprint?'blueprint':nextStage?'checkpoint':'audit',
+      blueprintReady:Boolean(blueprint),completedStages,currentStage:blueprint?nextStage:null,auditPassed:Boolean(audit),storyReady:Boolean(story)};
   }
   return json({ id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
@@ -1130,8 +1130,11 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
   let phase='blueprint',budgetPhase='blueprint',stageNumber=0;
   let recoveredSavedMaterial=false;
   let recoveringSavedMaterial=!!(await query(env.DB,"SELECT id FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",order.id).first());
-  const stepLimit=kind=>spec.packExperienceVersion>=2?(kind==='blueprint'?5+Number(recoveredSavedMaterial):kind==='audit'?3:STAGED_STEP_CALL_LIMIT):STAGED_STEP_CALL_LIMIT;
-  const totalLimit=()=>spec.packExperienceVersion>=2?18+Number(recoveringSavedMaterial)*2:STAGED_AI_CALL_LIMIT;
+  const recoveryRows=(await query(env.DB,"SELECT stage_number,extra_calls FROM custom_generation_recovery_grants WHERE order_id = ? AND phase = 'blueprint_material'",order.id).all()).results||[];
+  const extraMaterialCalls=new Map(recoveryRows.map(row=>[Number(row.stage_number),Number(row.extra_calls)]));
+  const recoveryCallTotal=[...extraMaterialCalls.values()].reduce((sum,count)=>sum+count,0);
+  const stepLimit=(kind,number=0)=>spec.packExperienceVersion>=2?(kind==='blueprint'?5+Number(recoveredSavedMaterial):kind==='audit'?3:STAGED_STEP_CALL_LIMIT+(kind==='blueprint_material'?(extraMaterialCalls.get(number)||0):0)):STAGED_STEP_CALL_LIMIT;
+  const totalLimit=()=>spec.packExperienceVersion>=2?18+Number(recoveringSavedMaterial)*2+recoveryCallTotal:STAGED_AI_CALL_LIMIT;
   const fetcher=env.FETCH||fetch;
   const countCalls=async (kind,number)=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ?',order.id,kind,number).first())?.count||0);
   const totalCalls=async()=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ?',order.id).first())?.count||0);
@@ -1150,7 +1153,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
         recoveringSavedMaterial=true;
       }
     }
-    if (await countCalls(kind,number)>=stepLimit(kind) || await totalCalls()>=totalLimit())
+    if (await countCalls(kind,number)>=stepLimit(kind,number) || await totalCalls()>=totalLimit())
       throw new ApiError(422,'STAGED_BUDGET_EXHAUSTED','The safe generation limit was reached.');
     const providerBlueprintSteps=new Set(['blueprint','blueprint_frame','blueprint_material','blueprint_closing']);
     const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&!providerBlueprintSteps.has(kind)&&!(spec.packContractVersion===1&&kind==='audit');
@@ -1207,8 +1210,8 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
           for(let number=1;number<=5;number++){
             budgetPhase='blueprint_material';stageNumber=number;
             materialSteps.push(await call('blueprint_material',number,async()=>{
-              const prior=(spec.packQualityVersion||0)>=13?await query(env.DB,"SELECT error_detail FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'failed' ORDER BY created_at DESC,id DESC LIMIT 1",order.id,number).first():null;
-              const result=await generateBlueprintMaterialStep(spec,frame,number,materialSteps,env,fetcher,prior?.error_detail||null);
+              const prior=(spec.packQualityVersion||0)>=13?await query(env.DB,"SELECT error_detail,result_json FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'failed' ORDER BY created_at DESC,id DESC LIMIT 1",order.id,number).first():null;
+              const result=await generateBlueprintMaterialStep(spec,frame,number,materialSteps,env,fetcher,prior?.error_detail||null,prior?.result_json?JSON.parse(prior.result_json):null);
               return {value:result.data,usage:result.usage,responseId:result.responseId};
             },null,true,value=>validateSavedBlueprintMaterialStep(spec,frame,number,value,materialSteps)));
           }
@@ -1307,7 +1310,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     const code=typeof caught?.code==='string' && /^[A-Z0-9_]{1,60}$/.test(caught.code)?caught.code:'UNEXPECTED';
     const phaseCalls=await countCalls(budgetPhase,stageNumber),calls=await totalCalls();
     const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
-    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<totalLimit() && phaseCalls<stepLimit(budgetPhase);
+    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<totalLimit() && phaseCalls<stepLimit(budgetPhase,stageNumber);
     if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
     if(String(code).startsWith('DELIVERY_COPY_'))canRetry=false;
     if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&(spec.packQualityVersion||0)<8&&canRetry&&await countCalls('blueprint',0)<stepLimit('blueprint')){
