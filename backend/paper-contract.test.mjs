@@ -379,6 +379,31 @@ test('an unnumbered story-chain error repairs the frame instead of the closing',
   assert.equal(requested,'story_frame_repair');
 });
 
+test('an unprinted location is repaired from saved player evidence without another provider call',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.storyFrame={
+    problem:'The tower remains silent while the traveler waits below.',
+    actions:['Fit signal gear','Reset tower hands','Replace bell rope'],
+    discoveries:[
+      {finding:'The signal gear is missing.',consequence:'The noon mark identifies the signal gear for fitting.',supportsAction:'signal gear'},
+      {finding:'The spare gear fits the shaft.',consequence:'The spare gear waits at the unseen balcony.',supportsAction:'signal gear'},
+      {finding:'The checked order protects the teeth.',consequence:'The step "Stop the signal" prepares "Test the bell".',supportsAction:'signal gear'},
+      {finding:'The upper bridge reaches the gear room.',consequence:'The open Upper bridge gives the team a route for the final action.',supportsAction:'signal gear'},
+    ],
+  };
+  raw.spine=compileStorySpine(raw.storyFrame,raw.stages,paperContractTypes(spec.plan),15);
+  raw.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  assert.throws(()=>prepareBlueprintCandidate(raw,spec),/unseen balcony/);
+  let providerCalls=0;
+  const result=await repairBlueprint(spec,raw,
+    'Checkpoint 2 story link claims a location absent from its player material: unseen balcony.',
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{providerCalls++;throw Error('provider must not run');});
+  assert.equal(providerCalls,0);
+  assert.doesNotMatch(result.blueprint.storyFrame.discoveries[1].consequence,/unseen balcony/i);
+  assert.equal(validateBlueprint(result.blueprint,spec).stages.length,5);
+});
+
 test('a short provider closing is completed without another model retry',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:9};
   const frame=structuredClockFrame();
