@@ -2,6 +2,8 @@
 // indices are used here only to select the mechanically proved material; they
 // never become evidence in the model's causal explanation.
 const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
+const normId=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+const normText=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
 
 export function causalEvidenceUnits(story){
   return story.stages.slice(0,4).flatMap((stage,index)=>{
@@ -28,8 +30,14 @@ export function validateCausalReview(audit,story){
   if(!proof||!Array.isArray(proof.discoveries)||proof.discoveries.length!==4||!proof.problemToAction)fail();
   const used=new Set();
   const check=(entry,stageNumber)=>{
-    const unit=units.find(item=>item.id===entry?.evidenceId&&(!stageNumber||item.stageNumber===stageNumber));
-    if(!unit||!entry.quote||!unit.text.includes(clean(entry.quote))||clean(entry.explanation).length<20)fail();
+    if(!entry||!entry.quote||clean(entry.explanation).length<20)fail();
+    const eid=normId(entry.evidenceId);
+    const quote=normText(entry.quote);
+    const candidates=units.filter(item=>!stageNumber||item.stageNumber===stageNumber);
+    const byId=candidates.find(item=>normId(item.id)===eid);
+    if(byId){if(!normText(byId.text).includes(quote))fail();return byId;}
+    const unit=candidates.find(item=>normText(item.text).includes(quote));
+    if(!unit)fail();
     return unit;
   };
   check(proof.problemToAction);
