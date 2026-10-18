@@ -18,3 +18,4 @@
 2026-10-18 deploy final-player-page evidence validation
 2026-10-18 deploy preserved final player scene
 2026-10-18 deploy action-grounded closing recovery
+2026-10-18 deploy PR #65 grounded causal review for new custom packs
