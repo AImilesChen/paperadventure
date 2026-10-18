@@ -134,7 +134,7 @@ const storySubject=(candidate,spec,index)=>{
 const goalTerms=goal=>new Set((String(goal||'').toLowerCase().match(/[a-z]{4,}/g)||[]).filter(word=>
   !['find','with','that','from','their','they','then','will','into','before','after','again','help','make','complete','finish','restore','repair','rescue','return','deliver','missing','story','journey'].includes(word)));
 const closesGoal=(label,goal)=>completedOutcome.test(label)&&[...goalTerms(goal)].some(word=>new RegExp(`\\b${word}\\b`,'i').test(label));
-const stableOrderLabels=(candidate,spec,index)=>{
+export const stableOrderLabels=(candidate,spec,index)=>{
   const subject=storySubject(candidate,spec,index);
   return [`Inspect ${subject}`,`Gather ${subject} supplies`,`Prepare ${subject} parts`,`Position ${subject}`].map(value=>fitLabel(value));
 };
@@ -439,5 +439,5 @@ export function contextualStageText(stage,style='base'){
   if(style==='clear')return {clue:`Read, compare, then record. ${clue}`,hint,explanation};
   if(style!=='base')throw Error('Unsupported contract wording.');
   return {clue,hint,explanation};
-}
-
+}
+

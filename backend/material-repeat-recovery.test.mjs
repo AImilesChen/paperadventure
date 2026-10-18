@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {clockSpec} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {generateBlueprintMaterialStep,validateSavedBlueprintMaterialStep} from './staged-story.mjs';
+import {invalidStoryOrderAction} from './contextual-puzzles.mjs';
 
 test('repeated order action is isolated to the saved material on retry',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,
@@ -70,5 +71,20 @@ test('a bad label-only repair is rejected without replacing the saved valid fiel
     'Checkpoint 2 labels must name fictional story pieces or actions, not worksheet instructions.',previous),
   /not worksheet instructions/);
   assert.equal(previous.material.items[1].label,'Match the printed tiles');
+});
+
+test('a repeated invalid ordering action falls back to stable story labels on retry instead of exhausting the step budget',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14,
+    plan:{...clockSpec.plan,stages:clockSpec.plan.stages.map((stage,index)=>index<2?{...stage,mechanic:'sequence'}:stage)}};
+  const frame={actions:['Install the spare signal gear'],discoveries:[{finding:'The tower path is safe.'},{finding:'The lantern path reaches the repair room.'}]};
+  const bad=structuredClone(linkedClockContext().stages[2]);
+  bad.material.items=[{label:'Arrange the tiles'},{label:'Sort the tiles'},{label:'Match the tiles'},{label:'Record the tiles'}];
+  const result=await generateBlueprintMaterialStep(spec,frame,2,[],{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'},
+    async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(bad)}]}]}),
+    'Checkpoint 2 ordering material needs four natural unfinished story actions with concrete objects.');
+  const labels=result.data.material.items.map(item=>item.label);
+  assert.equal(labels.length,4);
+  assert.equal(new Set(labels).size,4);
+  for(const label of labels) assert.equal(invalidStoryOrderAction(label,frame.actions[0],spec.plan.goal),false);
 });
 

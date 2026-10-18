@@ -2,7 +2,7 @@ import { ApiError, requireText, validateGeneratedStage, validateGeneratedStory }
 import { aiProvider } from './openai.mjs';
 import { materialTypes, validatePrintableMaterial, validateMaterialSet } from './printable-material.mjs';
 import { compileControlledPuzzle, controlledStageText, validateControlledPuzzle, controlledMaterialTypes } from './controlled-puzzles.mjs';
-import {checkedPrintedRecordFacts,invalidStoryOrderAction,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint,validateContextualMaterialStep} from './contextual-puzzles.mjs';
+import {checkedPrintedRecordFacts,invalidStoryOrderAction,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint,stableOrderLabels,validateContextualMaterialStep} from './contextual-puzzles.mjs';
 import {paperContractTypes,paperActions,paperAction,assertGoalStillOpen} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
 import {compileStorySpine,prepareStoryFrame,selectedStoryFinding,validateStorySpine} from './story-spine.mjs';
@@ -373,6 +373,19 @@ export async function generateBlueprintMaterialStep(spec,storyFrame,number,earli
   }
   try{validateSavedBlueprintMaterialStep(spec,storyFrame,number,result.data,earlierStages);}
   catch(cause){
+    // Order tiles carry the strictest v13+ rules (no worksheet language, no
+    // route fragments, no completed goal). A provider can repeat the same
+    // "Arrange"/"Sort"/"Record" rejection until the step budget is exhausted
+    // and the paid order deadlocks. On a retry, fall back to the theme-aware
+    // deterministic labels derived from the approved story frame, so a paid
+    // order can never exhaust its budget on this one field.
+    if(type==='order_tiles'&&(spec.packQualityVersion||0)>=13&&previousIssue&&!repairingLabels){
+      const stable=stableOrderLabels({storyFrame},spec,number-1);
+      const fallback={...result.data,material:{...result.data.material,
+        items:(result.data.material?.items||[]).map((item,index)=>({...item,label:stable[index]}))}};
+      try{validateSavedBlueprintMaterialStep(spec,storyFrame,number,fallback,earlierStages);return {...result,data:fallback};}
+      catch{}
+    }
     const error=new ApiError(422,'BLUEPRINT_INVALID',cause.message);
     error.stageNumber=number;error.usage=result.usage;error.responseId=result.responseId;error.candidate=result.data;
     throw error;
