@@ -4,7 +4,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {buildContextPuzzle,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {alignPrintedActionLinks,missingPrintedActionLinks,assembleBlueprintSteps,generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep,generateBlueprintMaterialStep,deliverableClosing} from './staged-story.mjs';
+import {alignPrintedActionLinks,missingPrintedActionLinks,assembleBlueprintSteps,generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep,generateBlueprintMaterialStep,validateSavedBlueprintMaterialStep,deliverableClosing} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
@@ -553,6 +553,13 @@ test('quality 14 rejects generic printed facts at the material step before savin
   await assert.rejects(()=>generateBlueprintMaterialStep(spec,frame,1,[],env,response(['Mentions signal gear','Mentions signal gear'])),/two concrete, distinct printed record facts/);
   const good=await generateBlueprintMaterialStep(spec,frame,1,[],env,response(raw.features));
   assert.deepEqual(good.data.features,raw.features);
+});
+
+test('saved material is rechecked by the current printed-fact gate before reuse',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14};
+  const frame=structuredClockFrame(),saved=linkedClockContext().stages[0];
+  assert.throws(()=>validateSavedBlueprintMaterialStep(spec,frame,1,{...saved,features:['Mentions answer','Names result']}),/two concrete, distinct printed record facts/);
+  assert.deepEqual(validateSavedBlueprintMaterialStep(spec,frame,1,saved),saved);
 });
 
 test('quality 14 refuses a generic story ending instead of publishing fallback copy',()=>{
@@ -1184,4 +1191,3 @@ test('each main play style produces printable Home and Classroom packs without a
     for(const paper of ['A4','Letter'])for(const role of ['player','guide'])assert.ok(buildGamePdf(story,{...spec,paper},role).length>1000);
   }
 });
-
