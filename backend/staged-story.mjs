@@ -444,7 +444,10 @@ const blueprintRepairNumber=reason=>{
   const checkpoint=text.match(/Checkpoint\s+([1-5])/i);
   if(checkpoint)return Number(checkpoint[1]);
   if(/ending|celebration|closing|two complete sentences|character (?:or|and) community response|concrete result of the final action/i.test(text))return 0;
-  return /spine|resolution|final action|final choice|story problem|linked finding/i.test(text)?5:0;
+  // Closing validators name the closing explicitly above. Every other
+  // unnumbered linked-game failure belongs to the story frame or causal chain.
+  // Sending it to closing repair leaves the rejected field unchanged.
+  return 5;
 };
 
 export async function generateBlueprint(spec,env,fetcher=fetch) {
