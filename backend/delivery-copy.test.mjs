@@ -74,12 +74,12 @@ test('new-order review sees player pages without adult answers and spends only t
   });
   assert.equal(calls,2);
   assert.equal(auditName,'printed_copy_audit');
-  assert.equal(auditInput.printed,undefined);
-  assert.equal(auditInput.playerPages.spine,undefined);
-  assert.equal(auditInput.playerPages.ending,undefined);
-  assert.equal(auditInput.playerPages.checkpoints[0].explanation,undefined);
-  assert.equal(auditInput.playerPages.checkpoints[0].answerIndex,undefined);
-  assert.ok(auditInput.selectedFinalAction.description);
+  assert.equal(auditInput.printed.stages,undefined);
+  assert.equal(auditInput.printed.playerPages.spine,undefined);
+  assert.equal(auditInput.printed.playerPages.ending,undefined);
+  assert.equal(auditInput.printed.playerPages.checkpoints[0].explanation,undefined);
+  assert.equal(auditInput.printed.playerPages.checkpoints[0].answerIndex,undefined);
+  assert.ok(auditInput.printed.selectedFinalAction.description);
   assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,2);
   assert.ok(saved.deliveryCopy);
 });
