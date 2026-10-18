@@ -362,6 +362,23 @@ test('a closing error that mentions the final action repairs only the closing',a
   assert.deepEqual(result.blueprint.storyFrame.actions,prepareStoryFrame(raw.storyFrame,9).actions);
 });
 
+test('an unnumbered story-chain error repairs the frame instead of the closing',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.storyFrame=structuredClockFrame();
+  raw.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  let requested='';
+  await assert.rejects(
+    repairBlueprint(spec,raw,'The story chain does not connect enough printed findings to the final action.',
+      {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,request)=>{
+        requested=JSON.parse(request.body).text.format.name;
+        throw Error('route checked');
+      }),
+    /story provider could not complete/i,
+  );
+  assert.equal(requested,'story_frame_repair');
+});
+
 test('a short provider closing is completed without another model retry',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:9};
   const frame=structuredClockFrame();
