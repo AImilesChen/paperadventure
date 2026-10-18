@@ -1,0 +1,42 @@
+name: Classify order 8E4468A9 evidence fields safely
+on:
+  push:
+    branches: [diagnose-order-8e4468a9-evidence]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ORDER_ID: '8e4468a9-9847-43ae-b1b7-20e05c32f807'
+    steps:
+      - name: Return field-presence booleans only
+        shell: bash
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "WITH c AS (
+            SELECT lower(trim(rtrim(substr(error_detail,instr(lower(error_detail),'player material: ')+length('player material: ')),'.'))) missing
+            FROM custom_delivery_copy WHERE order_id='${ORDER_ID}' AND policy='printed-causal-copy-1'
+          )
+          SELECT s.stage_number,
+            instr(lower(coalesce(json_extract(s.stage_json,'$.storyContext'),'')),c.missing)>0 story_context,
+            instr(lower(coalesce(json_extract(s.stage_json,'$.clue'),'')),c.missing)>0 clue,
+            instr(lower(coalesce(json_extract(s.stage_json,'$.task'),'')),c.missing)>0 task,
+            instr(lower(coalesce(json_extract(s.stage_json,'$.hint'),'')),c.missing)>0 hint,
+            instr(lower(coalesce(json_extract(s.stage_json,'$.explanation'),'')),c.missing)>0 explanation,
+            instr(lower(coalesce(json_extract(s.stage_json,'$.material.instruction'),'')),c.missing)>0 instruction,
+            EXISTS(SELECT 1 FROM json_each(json_extract(s.stage_json,'$.options')) x WHERE instr(lower(coalesce(x.value,'')),c.missing)>0) options,
+            EXISTS(SELECT 1 FROM json_each(json_extract(s.stage_json,'$.material.items')) x WHERE instr(lower(coalesce(json_extract(x.value,'$.label'),'')),c.missing)>0) item_label,
+            EXISTS(SELECT 1 FROM json_each(json_extract(s.stage_json,'$.material.items')) x WHERE instr(lower(coalesce(json_extract(x.value,'$.detail'),'')),c.missing)>0) item_detail,
+            instr(lower(coalesce(json_extract(s.stage_json,'$.material.logic'),'')),c.missing)>0 logic
+          FROM custom_game_stages s CROSS JOIN c
+          WHERE s.order_id='${ORDER_ID}' ORDER BY s.stage_number" > "$RUNNER_TEMP/fields.json"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const data=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/fields.json','utf8'));
+          const rows=(Array.isArray(data)?data:[data]).flatMap(x=>x.results||[]);
+          if(rows.length!==5)throw Error('Expected five saved stages');
+          console.log(JSON.stringify(rows));
+          NODE
