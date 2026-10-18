@@ -1,4 +1,4 @@
-name: Resume Clock Tower order 583930DA once
+name: Resume Clock Tower deterministic location recovery once
 on:
   workflow_dispatch:
 permissions:
@@ -11,7 +11,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Verify and resume only the saved second material checkpoint
+      - name: Verify the scoped grant and resume this paid order only
         shell: bash
         run: |
           cat > "$RUNNER_TEMP/recover.mjs" <<'NODE'
@@ -24,49 +24,39 @@ jobs:
             if (batches.some(batch => batch.success === false)) throw Error('D1 query failed');
             return {rows:batches.flatMap(batch => batch.results || []),changes:batches.reduce((n,batch)=>n+Number(batch.meta?.changes||0),0)};
           };
-          const state = () => run(`SELECT o.status order_status, o.product_kind, (o.paid_at IS NOT NULL) paid,
+          const state = () => run(`SELECT o.status order_status,o.product_kind,(o.paid_at IS NOT NULL) paid,
             a.status activity_status,a.delivery_retry_used,a.generation_version,
             p.status plan_status,p.confirmed_version,
-            (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2) material_calls,
-            (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=1 AND c.status='passed') first_material_passed,
-            (SELECT error_code FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2 ORDER BY c.created_at DESC,c.id DESC LIMIT 1) last_error,
-            (SELECT CASE WHEN instr(lower(error_detail),'labels must name fictional story pieces')>0 THEN 'WORKSHEET_LABEL' ELSE 'OTHER' END FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2 ORDER BY c.created_at DESC,c.id DESC LIMIT 1) last_error_class,
-            (SELECT CASE WHEN result_json IS NOT NULL AND json_valid(result_json) THEN json_array_length(result_json,'$.material.items') ELSE -1 END FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2 ORDER BY c.created_at DESC,c.id DESC LIMIT 1) candidate_items,
-            (SELECT COUNT(*) FROM custom_generation_recovery_grants g WHERE g.order_id=o.id AND g.phase='blueprint_material' AND g.stage_number=2) grants,
-            (SELECT COUNT(*) FROM artifact_versions v WHERE v.custom_activity_id=a.id) artifacts,
-            (SELECT COUNT(*) FROM custom_game_blueprints b WHERE b.order_id=o.id) blueprints
+            (SELECT COUNT(*) FROM custom_blueprint_deterministic_recovery_grants g WHERE g.order_id=o.id AND g.extra_calls=1 AND g.reason_code='UNPRINTED_LOCATION') deterministic_grants,
+            (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint') blueprint_calls,
+            (SELECT error_code FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint' ORDER BY c.created_at DESC,c.id DESC LIMIT 1) last_error,
+            (SELECT CASE WHEN instr(lower(error_detail),'story link claims a location absent from its player material:')>0 THEN 'UNPRINTED_LOCATION' ELSE 'OTHER' END FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint' ORDER BY c.created_at DESC,c.id DESC LIMIT 1) last_error_class,
+            (SELECT COUNT(*) FROM custom_game_blueprints b WHERE b.order_id=o.id) blueprints,
+            (SELECT COUNT(*) FROM custom_story_checkpoints s WHERE s.order_id=o.id) checkpoints,
+            (SELECT COUNT(*) FROM artifact_versions v WHERE v.custom_activity_id=a.id) artifacts
             FROM orders o JOIN custom_activities a ON a.order_id=o.id
             JOIN custom_plan_orders p ON p.order_id=o.id WHERE o.id='${id}'`).rows[0];
           const before = state();
-          console.log('Preflight fields:', JSON.stringify(before ? {order_status:before.order_status,paid:before.paid,activity_status:before.activity_status,delivery_retry_used:before.delivery_retry_used,generation_version:before.generation_version,plan_status:before.plan_status,confirmed_version:before.confirmed_version,material_calls:before.material_calls,first_material_passed:before.first_material_passed,last_error:before.last_error,last_error_class:before.last_error_class,candidate_items:before.candidate_items,grants:before.grants,artifacts:before.artifacts,blueprints:before.blueprints} : null));
+          console.log('Preflight:', JSON.stringify(before));
           if (!before || before.order_status !== 'failed' || before.activity_status !== 'failed' ||
               before.product_kind !== 'custom' || Number(before.paid)!==1 ||
-              Number(before.delivery_retry_used)!==1 || Number(before.generation_version)!==2 ||
               before.plan_status !== 'confirmed' || Number(before.confirmed_version)<1 ||
-              Number(before.material_calls)!==3 || Number(before.first_material_passed)<1 ||
-              before.last_error !== 'BLUEPRINT_INVALID' || before.last_error_class !== 'WORKSHEET_LABEL' || Number(before.candidate_items)!==4 ||
-              Number(before.grants)!==0 || Number(before.artifacts)!==0 || Number(before.blueprints)!==0)
-            throw Error('Order state differs from the approved one-step recovery; no changes made');
-          console.log('Preflight passed: paid approved order; three calls; saved stage 1; four-item failed stage 2 candidate; no files.');
-          const granted=run(`INSERT INTO custom_generation_recovery_grants (order_id,phase,stage_number,extra_calls,reason_code)
-            SELECT o.id,'blueprint_material',2,1,'REPEATED_ORDER_ACTION'
-            FROM orders o JOIN custom_activities a ON a.order_id=o.id JOIN custom_plan_orders p ON p.order_id=o.id
-            WHERE o.id='${id}' AND o.product_kind='custom' AND o.status='failed' AND o.paid_at IS NOT NULL
-            AND a.status='failed' AND a.delivery_retry_used=1 AND a.generation_version=2
-            AND p.status='confirmed' AND p.confirmed_version IS NOT NULL
-            AND (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2)=3
-            AND NOT EXISTS (SELECT 1 FROM custom_generation_recovery_grants g WHERE g.order_id=o.id AND g.phase='blueprint_material' AND g.stage_number=2)`);
-          if (granted.changes!==1) throw Error('One-call grant was not reserved; order was not queued');
-          const orderChanged=run(`UPDATE orders SET status='fulfilling' WHERE id='${id}' AND status='failed'
-            AND EXISTS (SELECT 1 FROM custom_generation_recovery_grants WHERE order_id='${id}' AND phase='blueprint_material' AND stage_number=2 AND extra_calls=1)`);
-          if (orderChanged.changes!==1) throw Error('Grant exists, but order was not moved to fulfilling; operator review required');
-          const activityChanged=run(`UPDATE custom_activities SET status='queued',lease_until=NULL WHERE order_id='${id}' AND status='failed'
-            AND delivery_retry_used=1 AND generation_version=2
+              Number(before.deterministic_grants)!==1 ||
+              before.last_error !== 'BLUEPRINT_INVALID' || before.last_error_class !== 'UNPRINTED_LOCATION' ||
+              Number(before.blueprints)!==0 || Number(before.checkpoints)!==0 || Number(before.artifacts)!==0)
+            throw Error('Order state differs from the approved deterministic recovery; no changes made');
+          const orderChanged=run(`UPDATE orders SET status='fulfilling'
+            WHERE id='${id}' AND status='failed'
+            AND EXISTS (SELECT 1 FROM custom_blueprint_deterministic_recovery_grants
+              WHERE order_id='${id}' AND extra_calls=1 AND reason_code='UNPRINTED_LOCATION')`);
+          if (orderChanged.changes!==1) throw Error('Order was not moved to fulfilling');
+          const activityChanged=run(`UPDATE custom_activities SET status='queued',lease_until=NULL
+            WHERE order_id='${id}' AND status='failed'
             AND EXISTS (SELECT 1 FROM orders WHERE id='${id}' AND status='fulfilling')`);
-          if (activityChanged.changes!==1) throw Error('Order is fulfilling, but activity was not queued; operator review required');
+          if (activityChanged.changes!==1) throw Error('Activity was not queued; operator review required');
           const after=state();
-          if (after.order_status!=='fulfilling' || after.activity_status!=='queued' || Number(after.grants)!==1 || Number(after.material_calls)!==3)
+          if (after.order_status!=='fulfilling' || after.activity_status!=='queued' || Number(after.deterministic_grants)!==1)
             throw Error('Postflight state mismatch; operator review required');
-          console.log('Recovery queued for saved checkpoint 2 with exactly one additional material call. No model call was made by this workflow.');
+          console.log('Queued exactly this paid order for deterministic location recovery. This workflow made no model call.');
           NODE
           node "$RUNNER_TEMP/recover.mjs"
