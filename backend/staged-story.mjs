@@ -572,6 +572,7 @@ export async function repairBlueprint(spec,candidate,reason,env,fetcher=fetch) {
       raw.stages=normalizeStoryOrderActions(normalizeStoryCodeWords(raw.stages,spec),storyFrame,spec);
       const types=paperContractTypes(spec.plan);
       const causalDiscoveryRepair=(spec.packQualityVersion||0)>=6&&number>=1&&number<=4&&!/material facts:/i.test(String(reason))&&/causal|consequence|discovery|finding|story link|supports/i.test(String(reason));
+      const deterministicCausalLinkRepair=/at least three checkpoint discoveries must link a printed fact to the final action/i.test(String(reason));
       let result,grounded=null;
       if(causalDiscoveryRepair){
         const unprintedLocation=/story link claims a location absent from its player material/i.test(String(reason));
@@ -583,6 +584,12 @@ export async function repairBlueprint(spec,candidate,reason,env,fetcher=fetch) {
             input:{qualityIssue:String(reason).slice(0,400),checkpoint:number,approvedGoal:spec.plan.goal,fixedPrintedFinding:selectedStoryFinding(raw.stages[number-1],types[number-1],number),fixedPrintedPieces:raw.stages[number-1].material.items.map(item=>item.label),fixedPrintedFeatures:raw.stages[number-1].features||[],fixedFinalAction:storyFrame.actions[0],currentDiscovery:storyFrame.discoveries[number-1]}});
         const discoveries=storyFrame.discoveries.map((item,index)=>index===number-1?result.data:item);
         raw.storyFrame=prepareStoryFrame({...storyFrame,discoveries},spec.packQualityVersion||4);
+      }else if(deterministicCausalLinkRepair){
+        // The saved consequences already passed printed-evidence and location
+        // grounding. Re-run the corrected causal validator without asking the
+        // provider to rewrite the frame or any checkpoint material.
+        result={data:storyFrame,usage:null,responseId:null};
+        raw.storyFrame=storyFrame;
       }else if(number===5){
         result=await structuredResponse(spec,env,fetcher,{name:'story_frame_repair',schema:frameSchema(spec),maxOutput:1100,invalidCode:'BLUEPRINT_INVALID',
           instructions:(spec.packQualityVersion||0)>=6

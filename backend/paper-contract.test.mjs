@@ -10,7 +10,7 @@ import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
 import {alignPaperPlan,paperContractTypes,completePaperPlan} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
-import {compileStorySpine,prepareStoryFrame,validateStorySpine} from './story-spine.mjs';
+import {compileStorySpine,prepareStoryFrame,selectedStoryFinding,validateStorySpine} from './story-spine.mjs';
 
 test('long provider story-frame text is fitted before printable validation',()=>{
   const frame=prepareStoryFrame({
@@ -401,6 +401,33 @@ test('an unprinted location is repaired from saved player evidence without anoth
     {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{providerCalls++;throw Error('provider must not run');});
   assert.equal(providerCalls,0);
   assert.doesNotMatch(result.blueprint.storyFrame.discoveries[1].consequence,/unseen balcony/i);
+  assert.equal(validateBlueprint(result.blueprint,spec).stages.length,5);
+});
+
+test('grounded causal explanations pass without repeating the final-action noun in printed labels',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4};
+  const raw=linkedClockContext(),types=paperContractTypes(spec.plan);
+  const actions=['Ring noon chime','Reset tower hands','Replace bell rope'];
+  const consequences=raw.stages.slice(0,4).map((stage,index)=>{
+    const finding=selectedStoryFinding(stage,types[index],index+1);
+    if(types[index]==='order_tiles')return `The step "${stage.material.items[0].label}" prepares the chime work.`;
+    if(types[index]==='route_board')return `The open ${finding} keeps chime ringing within reach.`;
+    return `The ${finding} shows why chime ringing must wait.`;
+  });
+  raw.storyFrame={problem:'The tower remains silent while the traveler waits below.',actions,
+    discoveries:consequences.map((consequence,index)=>({finding:`The printed finding ${index+1} is confirmed.`,consequence,supportsAction:'chime'}))};
+  raw.stages[4].material.items=actions.map(label=>({label}));
+  raw.spine=compileStorySpine(raw.storyFrame,raw.stages,types,15);
+  raw.celebration='The noon chime rings across the town and time begins moving again. Pip smiles, thanks the team, and opens the square for everyone.';
+  assert.ok(missingPrintedActionLinks(raw.storyFrame,raw.stages,types).length>=3,
+    'the printed pieces intentionally avoid repeating the final-action noun');
+  assert.doesNotThrow(()=>prepareBlueprintCandidate(raw,spec),
+    'a grounded printed fact may support the action through its checked causal sentence');
+  let providerCalls=0;
+  const result=await repairBlueprint(spec,raw,
+    'At least three checkpoint discoveries must link a printed fact to the final action.',
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{providerCalls++;throw Error('provider must not run');});
+  assert.equal(providerCalls,0);
   assert.equal(validateBlueprint(result.blueprint,spec).stages.length,5);
 });
 
