@@ -7,7 +7,7 @@ import { createServer } from 'vite';
 test('a delivered order renders its original download card during theme correction', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
   try {
-    const { OrderPackage, PackRemake, PaidPlanReview } = await vite.ssrLoadModule('/src/livePages.jsx');
+    const { OrderPackage, PackRemake, PaidPlanReview, OrderNextStep, orderNextStep } = await vite.ssrLoadModule('/src/livePages.jsx');
     const {updateProgressState,themeUpdatePending}=await vite.ssrLoadModule('/src/orderUpdateProgress.jsx');
     const order = {
       id: 'example-order', kind: 'custom', sku: 'custom_classroom', status: 'published',
@@ -39,7 +39,7 @@ test('a delivered order renders its original download card during theme correcti
     const repairHtml=renderToStaticMarkup(createElement(PaidPlanReview,{order:oldScenes,refresh:()=>{}}));
     assert.match(repairHtml,/Update game pack at no charge/);
     assert.match(repairHtml,/does not use an included plan edit/);
-    assert.match(repairHtml,/disabled=""[^>]*>Approve this plan and create PDFs/);
+    assert.doesNotMatch(repairHtml,/Approve this plan and create PDFs/);
     assert.match(updateProgressState(oldScenes).label,/need repair before approval/);
     for(const [status,progress,expected] of [
       ['queued',null,'Waiting to prepare'],
@@ -51,7 +51,7 @@ test('a delivered order renders its original download card during theme correcti
       assert.match(rendered,new RegExp(expected));
       assert.match(rendered,/Replacement game pack progress/);
       assert.equal(rendered.includes('aria-busy="true"'),status!=='review');
-      if(status==='review')assert.match(rendered,/href="#personal-plan-review"/);
+      if(status==='review')assert.doesNotMatch(rendered,/href="#personal-plan-review"/,'progress does not duplicate the single next-step link');
       const original=renderToStaticMarkup(createElement(OrderPackage,{order:inFlight,orderId:order.id,selectedPaper:'A4'}));
       assert.match(original,/Original version complete/,'a corrected plan awaiting approval is not a delivered replacement');
     }
@@ -88,6 +88,22 @@ test('a delivered order renders its original download card during theme correcti
     assert.equal(updateProgressState(delivered).completed,7);
     assert.equal(updateProgressState(delivered).busy,false);
     assert.equal(themeUpdatePending(delivered),false);
+    const nextCases=[
+      [{...order,paidAt:'2026-10-16',planReview:{status:'review',activeVersion:2,confirmedVersion:1,qualityReplanUsed:true}},'Review the corrected plan','#personal-plan-review'],
+      [{...order,paidAt:'2026-10-16',planReview:{status:'review',activeVersion:2,confirmedVersion:1,qualityReplanUsed:true,storyScenesRequired:true,storySceneRepairAvailable:true}},'Repair the story scenes','#personal-plan-review'],
+      [{...order,paidAt:'2026-10-16',planReview:{status:'review',activeVersion:2,confirmedVersion:1,qualityReplanUsed:true,storyScenesRequired:true}},'Get help with the story scenes','#order-help'],
+      [{...order,paidAt:'2026-10-16',planReview:{status:'confirmed',confirmedVersion:1},remake:{status:'generating'}},'Your new game pack is being prepared',null],
+      [{...copyStopped,planReview:{status:'confirmed',confirmedVersion:1}},'Continue the saved game check','#order-remake'],
+      [{...delivered,paidAt:'2026-10-16'},'Download your game','#download-game'],
+    ];
+    for(const [value,title,href] of nextCases){
+      assert.equal(orderNextStep(value).title,title);
+      assert.equal(orderNextStep(value).href||null,href);
+      const banner=renderToStaticMarkup(createElement(OrderNextStep,{order:value}));
+      assert.equal((banner.match(/class="button"/g)||[]).length,href?1:0,'only one primary next-step link is shown');
+    }
+    assert.match(html,/Download existing PDFs while the replacement is pending/);
+    assert.match(html,/Download original game · ZIP/);
   } finally {
     await vite.close();
   }
