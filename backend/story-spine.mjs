@@ -313,12 +313,15 @@ export function validateStorySpine(spine,stages,types,goal,qualityVersion=4){
       }
       if(qualityVersion>=14){
         const action=actionTerms(resolution),support=actionTerms(structured.supportsAction);
-        const grounded=[...support].filter(word=>action.has(word)&&printed.has(word));
-        // A printed fact can support the action through an explicit causal sentence
-        // even when its record does not repeat the final action noun verbatim.
+        // A discovery links a printed fact to the final action through a pair:
+        // supportsAction names part of the action (already enforced by
+        // normalizeDiscovery) while the consequence repeats a printed piece
+        // (enforced above). Count that pair instead of requiring one noun to
+        // appear in the support, the action AND the printed text at once.
+        const grounded=[...support].some(word=>action.has(word));
         const concreteAction=[...action].filter(word=>!['hand','carry','give','take','bring','move','send','put','place','open','close','fix','make'].includes(word));
         const explained=concreteAction.some(word=>claimed.has(word));
-        if(grounded.length||explained)printedActionLinks++;
+        if(grounded||explained)printedActionLinks++;
         else if(![...support].some(word=>action.has(word)))
           throw Error(`Checkpoint ${index+1} story link does not name part of the final action.`);
       }
