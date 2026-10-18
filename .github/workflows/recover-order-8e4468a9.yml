@@ -62,7 +62,7 @@ jobs:
           if (!before || before.order_status!=='failed' || before.activity_status!=='failed' ||
               before.product_kind!=='custom' || Number(before.paid)!==1 ||
               before.plan_status!=='confirmed' || Number(before.confirmed_version)<1 ||
-              Number(before.delivery_retry_used)!==0 ||
+              Number(before.delivery_retry_used)!==1 ||
               Number(before.blueprints)!==1 || Number(before.saved_stages)!==5 ||
               Number(before.checkpoints)!==0 || Number(before.artifacts)!==0 ||
               before.latest_error!=='STAGED_GENERATION_STOPPED' ||
@@ -73,8 +73,8 @@ jobs:
           }
           const failed=run(`SELECT COUNT(*) count FROM generation_usage WHERE order_id='${id}' AND status='failed'`).rows[0]?.count||0;
           const activityChanged=run(`UPDATE custom_activities
-            SET status='queued',lease_until=NULL,delivery_retry_used=1,delivery_retry_baseline=${Number(failed)}
-            WHERE order_id='${id}' AND status='failed' AND delivery_retry_used=0`);
+            SET status='queued',lease_until=NULL,delivery_retry_baseline=${Number(failed)}
+            WHERE order_id='${id}' AND status='failed' AND delivery_retry_used=1`);
           if (activityChanged.changes!==1) throw Error('Activity was not reserved; no further changes made');
           const orderChanged=run(`UPDATE orders SET status='fulfilling'
             WHERE id='${id}' AND status='failed'
