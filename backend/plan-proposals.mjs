@@ -9,7 +9,7 @@ const strings = names => Object.fromEntries(names.map(name=>[name,{type:'string'
 export function inspectSavedPlan(candidate,spec){
   const normalized=spec.packContractVersion===1?normalizePlanCandidate(candidate):candidate;
   try{
-    const plan=validatePlan(spec.packContractVersion===1?completePaperPlan({...normalized,storySceneVersion:1,id:normalized?.id||spec.direction||'mission'},spec.gameplay):normalized,spec);
+    const plan=validatePlan(spec.packContractVersion===1?completePaperPlan({...normalized,storySceneVersion:1,id:normalized?.id||spec.direction||'mission'},spec.gameplay,spec.packQualityVersion):normalized,spec);
     return {candidate:normalized,plan,issue:null,issues:[]};
   }catch{const issues=spec.packContractVersion===1?planFormatIssues(normalized):[];return {candidate:normalized,plan:null,issue:issues[0]||null,issues};}
 }
@@ -53,7 +53,7 @@ async function prepareSinglePlan(spec, env, fetcher, { kind = 'initial', scope =
   const paperFields=['id','title','summary','premise','goal'];
   const themeContract=spec.packContractVersion===1&&(spec.packQualityVersion||0)>=14;
   const paidProposal = spec.packContractVersion===1 ? {type:'object',additionalProperties:false,required:[...paperFields,...(themeContract?['themeAnchors']:[]),'stages'],properties:{...Object.fromEntries(paperFields.map(key=>[key,{type:'string',maxLength:{id:7,title:70,summary:400,premise:160,goal:150}[key]}])),...(themeContract?{themeAnchors:{type:'array',minItems:1,maxItems:3,items:{type:'string',maxLength:45}}}:{}),stages:{type:'array',minItems:5,maxItems:5,items:{type:'object',additionalProperties:false,required:['number','scene','storyBeat'],properties:{number:{type:'integer',minimum:1,maximum:5},scene:{type:'string',maxLength:60},storyBeat:{type:'string',maxLength:140}}}}}} : {...proposal, properties: {...proposal.properties, stages: {type: 'array', items: paidCheckpoint}}};
-  const fixedMechanics=paperPlanMechanics(spec.gameplay),fixedTypes=spec.packContractVersion===1?paperContractTypes({stages:fixedMechanics.map(mechanic=>({mechanic}))}):[];
+  const fixedMechanics=paperPlanMechanics(spec.gameplay,spec.packQualityVersion),fixedTypes=spec.packContractVersion===1?paperContractTypes({stages:fixedMechanics.map(mechanic=>({mechanic}))}):[];
   const contractRules=spec.packContractVersion===1 ? `Each stage needs scene (a short fictional location) and storyBeat (one complete sentence describing the character, event or obstacle and its purpose toward the mission). These are story intentions, not solved clues or invented observations. The engine preserves this event visibly in storyContext and supplies the separate printed task. Supported printed actions: ${JSON.stringify(paperActions)}. The final checkpoint combines the first four result digits to choose a concrete final action. Use varied actions in the first four stages. End the opening with a complete sentence. Each storyContext must connect to the next; the final action resolves the purchased goal. ${kind==='targeted'&&scope?.startsWith('stage')?'For a checkpoint edit keep its printed action fields unchanged and edit only its scene and storyBeat.':''}` : '';
   const themeRules=spec.packContractVersion===1&&(spec.packQualityVersion||0)>=13
     ? themeMeaningRules+planStoryRules+(themeContract?' Return themeAnchors as one to three concise English names or motifs from the purchased idea, to guide later story and material generation. They are semantic references, not words that must be repeated in every scene. ':'')
@@ -77,7 +77,7 @@ async function prepareSinglePlan(spec, env, fetcher, { kind = 'initial', scope =
   }
   const checkPlan = raw => {
     if(spec.packContractVersion===1)raw=normalizePlanCandidate(raw);
-    const initial=validatePlan(spec.packContractVersion===1?completePaperPlan({...raw,storySceneVersion:1,id:previousPlan?.id||spec.direction||'mission'},spec.gameplay):raw,spec);
+    const initial=validatePlan(spec.packContractVersion===1?completePaperPlan({...raw,storySceneVersion:1,id:previousPlan?.id||spec.direction||'mission'},spec.gameplay,spec.packQualityVersion):raw,spec);
     const plan = spec.packContractVersion===1?validatePlan(alignPaperPlan(initial),spec):initial;
     if(spec.packContractVersion===1)validatePaperPlan(plan);
     if (previousPlan && JSON.stringify(plan) === JSON.stringify(previousPlan)) throw new Error('Unchanged plan');

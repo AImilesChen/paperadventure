@@ -655,7 +655,7 @@ async function orderView(request, env, orderId) {
   const themeReplanAttempts=order.status==='published'&&paidPlan?.confirmed_version
     ? Number((await query(env.DB,"SELECT COUNT(*) AS count FROM custom_plan_requests WHERE order_id = ? AND kind = 'full' AND base_version = ? AND attempts > 0",order.id,paidPlan.confirmed_version).first())?.count||0) : 0;
   const themeReplanFailed=order.status==='published'&&paidPlan?.status==='confirmed'&&themeReplanAttempts>0&&!paidPlan.quality_replan_used;
-  const stoppedFormat=savedFormatRecovery(planWork,{...spec,packQualityVersion:14});
+  const stoppedFormat=savedFormatRecovery(planWork,{...spec,packQualityVersion:Math.max(14,spec.packQualityVersion||0)});
   const formatResumeAvailable=Boolean(themeReplanFailed&&paidPlan.active_version>paidPlan.confirmed_version&&planWork?.result_version===paidPlan.active_version&&accessActive(entitlement)&&(!remake||remake.status==='ready')&&stoppedFormat.available);
   const replacementPlanBlocked=Boolean(paidPlan?.confirmed_version&&paidPlan.active_version>paidPlan.confirmed_version&&paidPlan.status==='confirmed');
   const themeReplanFailure=themeReplanFailed
@@ -781,7 +781,8 @@ async function changePaidPlan(request, env, orderId) {
     const entitlement=await query(env.DB,'SELECT status,access_expires_at FROM entitlements WHERE order_id = ?',orderId).first();
     const row=await query(env.DB,'SELECT plan_json FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',orderId,version).first();
     const remake=await query(env.DB,'SELECT status FROM custom_pack_remakes WHERE order_id = ?',orderId).first();
-    const spec={...JSON.parse(order.purchase_spec_json),packQualityVersion:14};
+    const purchase=JSON.parse(order.purchase_spec_json);
+    const spec={...purchase,packQualityVersion:Math.max(14,purchase.packQualityVersion||0)};
     const recovery=savedFormatRecovery(prior,spec);
     const eligible=formatResume?state.status==='confirmed'&&!state.quality_replan_used&&recovery.available:state.status==='review'&&prior?.status==='published'&&checkpoint?.candidate&&!checkpoint.sceneRepairUsed&&prior.provider_calls<=3;
     if(!eligible||!accessActive(entitlement)||hasStoryScenes(row?JSON.parse(row.plan_json):null)||remake&&remake.status!=='ready')
@@ -843,7 +844,8 @@ async function changePaidPlan(request, env, orderId) {
     const row = await query(env.DB,'SELECT plan_json FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',orderId,version).first();
     const qualityApproval=order.status==='published'&&state.quality_replan_used&&state.confirmed_version&&version>state.confirmed_version;
     if(order.status==='published'&&!qualityApproval)throw new ApiError(409,'PLAN_NOT_REVIEWABLE','This order has no replacement theme plan to approve.');
-    const spec = {...JSON.parse(order.purchase_spec_json),...(qualityApproval?{packQualityVersion:14}:{})};
+    const purchase=JSON.parse(order.purchase_spec_json);
+    const spec = {...purchase,...(qualityApproval?{packQualityVersion:Math.max(14,purchase.packQualityVersion||0)}:{})};
     let plan; try { plan=validatePlan(JSON.parse(row?.plan_json),spec); } catch { throw new ApiError(409,'PLAN_INVALID','This plan cannot be confirmed. Contact support.'); }
     if(qualityApproval&&!hasStoryScenes(plan))throw new ApiError(409,'STORY_SCENES_REQUIRED','This replacement still has location-only scenes. Repair its story scenes before approving PDFs.');
     const updatedSpec = {...spec,plan,direction:plan.id,proposalTitle:plan.title,proposalSummary:plan.summary,planConfirmed:true};
@@ -1079,7 +1081,8 @@ async function publishPlanRequest(requestId,env) {
   const usageAttempt=(await query(env.DB,'SELECT COALESCE(MAX(attempt),0) + 1 AS next FROM generation_usage WHERE order_id = ?',order.id).first()).next;
   try {
     const themeReplan=order.status==='published'&&request.kind==='full';
-    const spec={...JSON.parse(order.purchase_spec_json),...(themeReplan?{packQualityVersion:14}:{})};
+    const purchase=JSON.parse(order.purchase_spec_json);
+    const spec={...purchase,...(themeReplan?{packQualityVersion:Math.max(14,purchase.packQualityVersion||0)}:{})};
     const base=request.base_version ? await query(env.DB,'SELECT plan_json FROM custom_plan_versions WHERE order_id = ? AND version_number = ?',order.id,request.base_version).first() : null;
     if (request.base_version && !base) throw new Error('Previous plan version is missing');
     const previousPlan=base?JSON.parse(base.plan_json):null;
@@ -1532,5 +1535,5 @@ export default {
     for (const item of revisions.results || []) await env.GENERATION_QUEUE.send({ type: 'revision', revisionId: item.id });
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
-};
-
+};
+

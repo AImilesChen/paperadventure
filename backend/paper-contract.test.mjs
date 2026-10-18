@@ -88,6 +88,8 @@ test('missing record facts are printed from the fixed method, object and destina
   assert.equal(new Set(result.stages.slice(0,3).map(stage=>stage.features.join('|'))).size,3);
   assert.deepEqual(result.stages[3],before[3]);assert.deepEqual(result.stages[4],before[4]);
   assert.deepEqual(alignPrintedActionLinks(spec,frame,result.stages).stages,result.stages,'passed materials are reused');
+  assert.deepEqual(alignPrintedActionLinks({...spec,packQualityVersion:15},frame,stages).stages,before,
+    'new orders must not manufacture keyword-only evidence in place of a printed fact');
 });
 
 test('quality version 6 uses structured causal fields instead of keyword matching',()=>{
@@ -1226,4 +1228,4 @@ test('each main play style produces printable Home and Classroom packs without a
     assert.equal(verifyPrintedPuzzles(story).length,5);
     for(const paper of ['A4','Letter'])for(const role of ['player','guide'])assert.ok(buildGamePdf(story,{...spec,paper},role).length>1000);
   }
-});
+});
