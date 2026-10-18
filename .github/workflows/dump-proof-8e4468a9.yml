@@ -1,4 +1,4 @@
-name: Read record facts of order
+name: Read order quality version
 on:
   push:
     branches: [dump-proof-8e4468a9]
@@ -12,17 +12,17 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump record facts
+      - name: Dump quality version fields
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT candidate_json FROM custom_delivery_copy WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/d.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT id, pack_quality_version, quality_epoch, phase, error_code FROM custom_pack_remakes WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/r.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT id, pack_quality_version FROM custom_activities WHERE id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/a.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/d.json','utf8'));
-          const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
-          for(const r of rows){
-            try{ const c=JSON.parse(r.candidate_json||'null');
-              console.log('RECORDFACTS', JSON.stringify(c&&c.recordFacts));
-              console.log('LINKS', JSON.stringify(c&&c.links));
-            }catch(e){ console.log('PARSEFAIL', r.candidate_json); }
+          for(const f of ['r.json','a.json']){
+            try{
+              const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));
+              const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
+              console.log('=== '+f+' ===', JSON.stringify(rows));
+            }catch(e){ console.log(f, 'ERR', e.message); }
           }
           NODE
