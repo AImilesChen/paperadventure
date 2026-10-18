@@ -24,7 +24,7 @@ function Alert({ children }) { return <p className="live-alert" role="alert"><Wa
 
 const orderLabel = { pending_payment: 'Payment not confirmed', paid: 'Payment confirmed · queued', fulfilling: 'Generating and checking', published: 'Files ready', failed: 'PDF creation stopped · action needed', refunded: 'Refunded' };
 
-function CompletePackDownload({ orderId, paper, setting }) {
+function CompletePackDownload({ orderId, paper, setting, label = 'Download complete game · ZIP' }) {
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('');
   async function download() {
     if (busy) return;
@@ -43,7 +43,7 @@ function CompletePackDownload({ orderId, paper, setting }) {
       setTimeout(() => URL.revokeObjectURL(url), 60000); setNotice('ZIP prepared with both PDFs. Extract it before opening the files.');
     } catch (failure) { setError(failure.message); } finally { setBusy(false); }
   }
-  return <div className="complete-pack-download"><button type="button" className="button complete-pack-button" disabled={busy} onClick={download}>{busy ? 'Preparing your complete pack…' : 'Download complete game · ZIP'} <DownloadSimple size={20} /></button>{busy && <p role="status">Fetching both {paper === 'Letter' ? 'US Letter' : 'A4'} PDFs…</p>}{notice && <p className="live-note" role="status">{notice}</p>}{error && <Alert>{error} No ZIP is saved unless both PDFs are available.</Alert>}</div>;
+  return <div className="complete-pack-download"><button type="button" className="button complete-pack-button" disabled={busy} onClick={download}>{busy ? 'Preparing your complete pack…' : label} <DownloadSimple size={20} /></button>{busy && <p role="status">Fetching both {paper === 'Letter' ? 'US Letter' : 'A4'} PDFs…</p>}{notice && <p className="live-note" role="status">{notice}</p>}{error && <Alert>{error} No ZIP is saved unless both PDFs are available.</Alert>}</div>;
 }
 
 function ThemeCoverStatus({order,refresh}) {
@@ -156,8 +156,8 @@ function OrderQualityActions({order,onHelp}) {
     <span className="eyebrow">AFTER YOU DOWNLOAD</span><h2 id="order-quality-title">Want to improve this game?</h2>
     <p>Use the option that matches the problem. Both stay with this paid order; there is no new checkout.</p>
     <div className="order-quality-grid">
-      {canRevise&&<div><h3>Change one checkpoint</h3><p>Adjust the reading level, difficulty or instructions in one existing checkpoint. Only a successful revised file uses an included change.</p><a className="button" href="#order-revision">Choose a checkpoint <ArrowRight size={17}/></a></div>}
-      <div><h3>{legacy?'Create a new version of the whole pack':'Report an error in the pack'}</h3><p>{legacy?'Your earlier pack can be rebuilt in the new paper-material format on this paid order. The original files stay available while the new version is created and checked.':'If a clue, answer or file is wrong, record the issue on this order for review. This is separate from your included preference changes.'}</p>{legacy?<a className="button-quiet" href="#order-remake">View no-charge remake <ArrowRight size={17}/></a>:<button type="button" className="button-quiet" onClick={()=>onHelp('clue','I found an error in my delivered game pack: ')}>Report a game error <ArrowRight size={17}/></button>}</div>
+      {canRevise&&<div><h3>Change one checkpoint</h3><p>Adjust the reading level, difficulty or instructions in one existing checkpoint. Only a successful revised file uses an included change.</p><a className="button-quiet" href="#order-revision">Choose a checkpoint <ArrowRight size={17}/></a></div>}
+      <div><h3>{legacy?'Create a new version of the whole pack':'Report an error in the pack'}</h3><p>{legacy?'Your earlier pack can be rebuilt in the new paper-material format on this paid order. The original files stay available while the new version is created and checked.':'If a clue, answer or file is wrong, record the issue on this order for review. This is separate from your included preference changes.'}</p>{legacy?<a className="button-quiet" href="#order-remake" onClick={()=>{const upgrade=document.querySelector('.order-optional-upgrade');if(upgrade)upgrade.open=true;}}>View no-charge remake <ArrowRight size={17}/></a>:<button type="button" className="button-quiet" onClick={()=>onHelp('clue','I found an error in my delivered game pack: ')}>Report a game error <ArrowRight size={17}/></button>}</div>
     </div>
   </section>;
 }
@@ -251,7 +251,7 @@ export function PaidPlanReview({order,refresh}) {
 
     {qualityReview&&<a className="paid-plan-skip" href="#paid-plan-next">Go to approval ↓</a>}
     {review.pending&&<p className="paid-plan-pending" role="status">{review.qualityReplanUsed?'Preparing a corrected theme plan':review.pending==='initial'?'Creating your first plan':'Preparing your requested change'}… You can return later through My adventures.</p>}
-    {review.status==='needs_help'&&<div className="paid-plan-recovery" role="status"><p>{review.activeVersion ? 'Your earlier valid plan is saved. Return to it to review, edit or approve it.' : review.retryAvailable ? 'You can try the first plan again once at no charge. If it still fails, report the problem below for help or refund-policy review.' : 'This plan needs manual help. Report the problem below for assistance or refund-policy review.'}</p>{review.retryAvailable&&<button type="button" className="button" disabled={busy} onClick={()=>action({action:'retry_initial'})}>{busy?'Requesting…':'Retry my plan at no charge'} <ArrowRight size={17}/></button>}{review.activeVersion>0&&<button type="button" className="button" disabled={busy} onClick={()=>action({action:'resume_review'})}>Return to my saved plan <ArrowRight size={17}/></button>}</div>}
+    {review.status==='needs_help'&&<div className="paid-plan-recovery" role="status"><p>{review.activeVersion ? 'Your earlier valid plan is saved. Return to it to review, edit or approve it.' : review.retryAvailable ? 'You can try the first plan again once at no charge. If it still fails, report the problem below for help or refund-policy review.' : 'This plan needs manual help. Report the problem below for assistance or refund-policy review.'}</p>{review.retryAvailable&&!review.activeVersion&&<button type="button" className="button" disabled={busy} onClick={()=>action({action:'retry_initial'})}>{busy?'Requesting…':'Retry my plan at no charge'} <ArrowRight size={17}/></button>}{review.activeVersion>0&&<button type="button" className="button" disabled={busy} onClick={()=>action({action:'resume_review'})}>Return to my saved plan <ArrowRight size={17}/></button>}</div>}
 
     {review.versions.length>0&&<div className="paid-plan-versions"><h3>Your saved plans</h3><p>Saved versions stay available for comparison without using another change.</p><div className="creator-plan-options">{review.versions.filter(item=>item.version===review.activeVersion).map(item=><article key={item.version} className={item.version===review.activeVersion?'selected':''}><h4>Version {item.version} · {item.plan.title}</h4>{review.confirmedVersion&&<p className="live-note">{item.version===review.confirmedVersion?'Approved for your existing files':item.version>review.confirmedVersion?'Saved replacement · not approved':'Earlier saved version'}</p>}<p>{item.plan.summary}</p><details open={item.version===review.activeVersion&&reviewable}><summary>Read this five-checkpoint plan</summary><PlanPreview plan={item.plan} showPreparation={false}/></details>{reviewable&&!qualityReview&&item.version!==review.activeVersion&&<button type="button" className="button-quiet" disabled={busy} onClick={()=>action({action:'select',version:item.version})}>Use this version</button>}</article>)}</div>{review.versions.length>1&&<details><summary>Earlier saved plans</summary>{review.versions.filter(item=>item.version!==review.activeVersion).map(item=><article key={item.version}><h4>Version {item.version} · {item.plan.title}</h4><PlanPreview plan={item.plan} showPreparation={false}/>{reviewable&&!qualityReview&&<button type="button" className="button-quiet" disabled={busy} onClick={()=>action({action:'select',version:item.version})}>Use this version</button>}</article>)}</details>}</div>}
 
@@ -278,7 +278,7 @@ export function PaidPlanReview({order,refresh}) {
         {review.storyScenesRequired&&<p>This saved replacement contains locations without complete story events. Repair and review its five scenes before approving. Original PDFs stay available. This repair uses the remaining budget of the same request and does not use an included plan edit.</p>}
         {review.storySceneRepairAvailable&&<button type="button" className="button" disabled={busy} onClick={()=>action({action:'repair_story_scenes',version:review.activeVersion})}>{busy?'Starting…':'Update game pack at no charge'} <ArrowRight size={17}/></button>}
         {review.storyScenesRequired&&!review.storySceneRepairAvailable&&<p>No scene repair remains within this request's limit. Use the order help section for review.</p>}
-        <button type="button" className="button" disabled={busy||review.storyScenesRequired||!qualityReview&&hasUnsentFeedback} onClick={()=>action({action:'confirm',version:review.activeVersion})}>Approve this plan and create PDFs <ArrowRight size={17}/></button>
+        {!review.storyScenesRequired&&<button type="button" className="button" disabled={busy||!qualityReview&&hasUnsentFeedback} onClick={()=>action({action:'confirm',version:review.activeVersion})}>Approve this plan and create PDFs <ArrowRight size={17}/></button>}
         {hasUnsentFeedback ? <p className="paid-plan-approval-note">You have an unsent change request. Return to that change type to submit or clear it before approving.</p> : <p className="paid-plan-approval-note">If a plan does not work for you, use the help form below before approval.</p>}
       </section>
     </div>}
@@ -297,14 +297,31 @@ function DeliveryRecovery({order,refresh}) {
   return <section className="live-revision paid-plan-recovery delivery-failed" role="status"><span className="eyebrow">PDF DELIVERY STOPPED</span><h3>No game pack is available to download yet</h3><p>Your approved plan is saved, but the full game package was not completed. This order is no longer generating automatically, so there is no download button yet. Plan edits closed when you approved this version; checkpoint revisions become available only after a complete pack is delivered.</p>{order.deliveryRetryAvailable ? <><p>You can restart PDF creation on this same paid order at no charge. This does not use a plan edit or post-delivery revision.</p><button type="button" className="button" disabled={busy} onClick={retry}>{busy?'Requesting…':'Retry PDF creation at no charge'} <ArrowRight size={17}/></button></> : <><p>Self-service retries are unavailable. Ask for help with this order or request a refund review. You do not need to pay again.</p><a className="button" href={'mailto:support@paperadventure.app?subject=' + encodeURIComponent('PDF delivery failed · order ' + order.id.slice(0, 8).toUpperCase())}>Email support about this order <ArrowRight size={17}/></a><a className="delivery-report-link" href="#order-help" onClick={() => { const help = document.getElementById('order-help'); if (help) help.open = true; }}>Or record a report on this order</a></>}<p className="delivery-location">If the files are completed after recovery, the ZIP and both PDFs will appear at the top of this order and under My games.</p>{notice&&<p>{notice}</p>}{error&&<Alert>{error}</Alert>}</section>;
 }
 
-function OrderNextStep({order,refresh,Link}) {
-  if (order.kind !== 'custom' || !order.paidAt || !order.planReview?.confirmedVersion || order.status === 'failed' || order.status === 'refunded' || order.status === 'published' && !order.filesReady) return null;
-  const ready = order.filesReady;
-  return <section className={'order-next-step ' + (ready ? 'is-ready' : '')} aria-live="polite">
-    <span className="eyebrow">{ready ? 'NEXT STEP · DOWNLOAD' : 'NEXT STEP · WAIT FOR DELIVERY'}</span>
-    <h3>{ready ? 'Your game package is ready' : order.generationProgress && !order.generationProgress.storyReady ? 'Your game is being built one checkpoint at a time' : 'Your PDFs are being created and checked'}</h3>
-    <p>{ready ? 'Download the Player Pack and separate adult guide. Your finished game is also saved under My games.' : 'Your plan is approved. Nothing else needs to be filled in or paid for. This page checks the order automatically every 10 seconds; you can leave and return from My adventures.'}</p>
-    <div className="order-next-actions">{ready ? <a className="button" href="#download-game">Go to PDF downloads <DownloadSimple size={18}/></a> : <button type="button" className="button" onClick={refresh}>Check PDF status now <ArrowRight size={18}/></button>}<Link className="button-quiet" to="/en/my-adventures/">Open My adventures</Link></div>
+export function orderNextStep(order) {
+  const review=order.planReview||{},remake=order.remake;
+  if(order.status==='refunded')return {title:'This order was refunded',detail:'There is no game creation action on this order.'};
+  if(!order.paidAt)return {title:'Payment is not confirmed',detail:'No game package will be created until payment is confirmed.'};
+  if(order.kind==='ready')return order.filesReady?{title:'Download your game',detail:'The complete ZIP contains the Player Pack and adult guide.',href:'#download-game',action:'Go to downloads'}:{title:'Waiting for your files',detail:'This order will show downloads when its files are ready.'};
+  if(review.pending)return {title:review.qualityReplanUsed?'Your corrected plan is being prepared':'Your personal plan is being prepared',detail:'No action is needed now. This page updates automatically.'};
+  if(review.storyScenesRequired&&review.status==='review'&&!review.themeReplanFailed)return review.storySceneRepairAvailable?{title:'Repair the story scenes',detail:'The saved plan needs complete story events before it can be approved. Your current files remain available.',href:'#personal-plan-review',action:'Go to scene repair'}:{title:'Get help with the story scenes',detail:'This plan cannot be approved until its scenes are reviewed. Your current files remain available.',href:'#order-help',action:'Open order help'};
+  if(review.themeReplanFailed&&(order.themePlanRepairAvailable||review.formatResumeAvailable))return {title:'Continue the saved plan check',detail:'The correction stopped before approval. Continue on this paid order; existing PDFs remain available.',href:'#order-remake',action:'Go to plan recovery'};
+  if(review.themeReplanFailed)return {title:'Get help with the stopped plan correction',detail:'The original files remain available. The correction needs a review before it can continue.',href:'#order-help',action:'Open order help'};
+  if(review.status==='review'&&!review.pending)return {title:review.qualityReplanUsed?'Review the corrected plan':'Review your plan',detail:'Check the story and five checkpoints. Approving the plan starts the game package.',href:'#personal-plan-review',action:'Go to plan review'};
+  if(review.status==='needs_help')return review.activeVersion>0?{title:'Return to your saved plan',detail:'A valid version is saved on this paid order. Review it to continue.',href:'#personal-plan-review',action:'Go to saved plan'}:review.retryAvailable?{title:'Retry your plan',detail:'A no-charge retry is available on this paid order.',href:'#personal-plan-review',action:'Go to plan retry'}:{title:'Get help with your plan',detail:'The plan stopped and needs a review before a package can be made.',href:'#order-help',action:'Open order help'};
+  if(['queued','generating'].includes(remake?.status))return {title:'Your new game pack is being prepared',detail:'No action is needed now. Saved steps and current files remain on this order.'};
+  if(remake?.status==='failed')return remake.recoveryAvailable?{title:'Continue the saved game check',detail:'The replacement stopped. Resume the saved work on this paid order; no new checkout is needed.',href:'#order-remake',action:'Go to game recovery'}:{title:'Get help with the stopped replacement',detail:'The existing PDFs remain available. The replacement needs a review before it can continue.',href:'#order-help',action:'Open order help'};
+  if(order.themePlanRepairAvailable&&!review.qualityReplanUsed)return {title:'Start the plan correction',detail:'The corrected theme plan will be prepared on this paid order.',href:'#order-remake',action:'Go to plan correction'};
+  if(['queued','generating'].includes(review.status))return {title:review.qualityReplanUsed?'Your corrected plan is being prepared':'Your personal plan is being prepared',detail:'No action is needed now. This page updates automatically.'};
+  if(order.status==='failed')return order.deliveryRetryAvailable?{title:'Retry game delivery',detail:'Your approved plan is saved. Retry creation on this paid order at no charge.',href:'#delivery-recovery',action:'Go to delivery recovery'}:{title:'Get help with game delivery',detail:'No complete package was delivered. Ask for help on this order without paying again.',href:'#order-help',action:'Open order help'};
+  if(order.filesReady)return {title:'Download your game',detail:'The complete ZIP contains the Player Pack and adult guide.',href:'#download-game',action:'Go to downloads'};
+  return {title:'Your game is being prepared',detail:'No action is needed now. This page updates automatically.'};
+}
+
+export function OrderNextStep({order}) {
+  const next=orderNextStep(order);
+  return <section className={'order-next-step'+(order.filesReady&&next.href==='#download-game'?' is-ready':'')} aria-label="Next step" aria-live="polite">
+    <span className="eyebrow">NEXT STEP</span><h2>{next.title}</h2><p>{next.detail}</p>
+    {next.href&&<a className="button" href={next.href} onClick={next.href==='#order-help'?()=>{const help=document.getElementById('order-help');if(help)help.open=true;}:undefined}>{next.action} <ArrowRight size={18}/></a>}
   </section>;
 }
 
@@ -343,11 +360,15 @@ export function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
       <div><strong>{guide}</strong><span>Adult instructions and answers · PDF</span><small>{ready ? 'Ready' : 'Not ready'}</small></div>
       <div><strong>Complete game</strong><span>Both PDFs together · ZIP</span><small>{ready ? 'Ready' : 'Not ready'}</small></div>
     </div>
-    {ready && <div id="download-game" className="order-package-downloads">
+     {ready && (originalProgress ? <details className="order-earlier-downloads"><summary>Download existing PDFs while the replacement is pending</summary><div id="download-game" className="order-package-downloads">
+       <p className="live-note">These files belong to the original version.</p>
+       <CompletePackDownload orderId={orderId} paper={paper} setting={order.sku.includes('classroom') ? 'classroom' : 'home'} label="Download original game · ZIP"/>
+       <div className="live-downloads">{['player','guide'].map(role=><a key={role} href={'/api/v1/files/' + orderId + '/' + role + '?paper=' + paper}>{role === 'player' ? 'Original Player Pack' : `Original ${guide}`} <DownloadSimple size={17}/></a>)}</div>
+     </div></details> : <div id="download-game" className="order-package-downloads">
       {order.kind === 'ready' ? <label className="order-paper-choice">Paper size<select aria-label="Paper size" value={selectedPaper} onChange={event=>setSelectedPaper(event.target.value)}><option value="A4">A4</option><option value="Letter">US Letter</option></select></label> : <p className="live-note">Paper size: {paper === 'Letter' ? 'US Letter' : paper}</p>}
       <CompletePackDownload orderId={orderId} paper={paper} setting={order.sku.includes('classroom') ? 'classroom' : 'home'}/>
       <div className="live-downloads">{['player','guide'].map(role=><a key={role} href={'/api/v1/files/' + orderId + '/' + role + '?paper=' + paper}>{role === 'player' ? 'Player Pack' : guide} <DownloadSimple size={17}/></a>)}</div>
-    </div>}
+     </div>)}
   </section>;
 }
 
@@ -478,7 +499,7 @@ export function LiveOrder({ Link, orderId }) {
   const paid = Boolean(order.paidAt);
   const approved = Boolean(order.planReview?.confirmedVersion);
   const correctingTheme = themeUpdatePending(order);
-  const awaitingApproval = order.kind === 'custom' && order.status === 'paid' && order.planReview?.status === 'review' && !order.planReview.pending && !approved;
+  const optionalUpgrade=order.kind==='custom'&&order.filesReady&&!correctingTheme&&(!order.remake||order.remake.status==='ready')&&((order.gamePackVersion||1)<2||order.qualityUpgradeAvailable);
   return <main className="extended-page live-page order-page">
     <div className="order-workspace">
       <Link className="order-back" to="/en/my-adventures/">← My adventures</Link>
@@ -486,10 +507,12 @@ export function LiveOrder({ Link, orderId }) {
         <div><span className="eyebrow">YOUR ADVENTURE ORDER</span><h1>{title}</h1><p>Order {order.id.slice(0,8).toUpperCase()} · {order.kind === 'ready' ? 'Ready-made' : order.sku.includes('classroom') ? 'Custom Classroom' : 'Custom Home'}</p></div>
         <span className={'order-current-status status-' + order.status}>{order.filesReady && (correctingTheme || order.remake && order.remake.status !== 'ready') ? 'Original files ready' : orderLabel[order.status] || order.status}</span>
       </header>
+      <OrderNextStep order={order}/>
       <div className="order-layout">
         <div className="order-main">
-          <PackRemake order={order} refresh={refresh}/>
+          {!optionalUpgrade&&<PackRemake order={order} refresh={refresh}/>}
           <OrderPackage order={order} orderId={orderId} selectedPaper={selectedPaper} setSelectedPaper={setSelectedPaper}/>
+          {optionalUpgrade&&<details className="order-optional-upgrade"><summary>Optional no-charge quality upgrade</summary><PackRemake order={order} refresh={refresh}/></details>}
           <OrderQualityActions order={order} onHelp={openHelp}/>
           <RevisionForm order={order} refresh={refresh}/>
           <PdfGenerationHistory order={order}/>
@@ -501,21 +524,10 @@ export function LiveOrder({ Link, orderId }) {
           <dl><div><dt>Payment</dt><dd>{paid ? 'Confirmed' : 'Not confirmed'}</dd></div><div><dt>Total</dt><dd>{formatUsd(order.amountTotal)} · {order.currency}</dd></div><div><dt>Paper</dt><dd>{order.paper === 'Letter' ? 'US Letter' : order.paper || 'Choose on download'}</dd></div>{order.kind === 'custom' && <div><dt>Plan</dt><dd>{approved ? `Version ${order.planReview.confirmedVersion} approved` : 'Awaiting approval'}</dd></div>}<div><dt>Files</dt><dd>{order.filesReady ? correctingTheme ? order.planReview?.themeReplanFailed ? 'Original ready · correction stopped' : 'Original ready · correction pending' : order.remake && order.remake.status !== 'ready' ? 'Original ready · new pending' : 'Ready' : 'Not available yet'}</dd></div></dl>
           {order.filesReady && order.accessExpiresAt && <p>Online re-download until {new Date(order.accessExpiresAt.replace(' ','T') + 'Z').toLocaleDateString()}.</p>}
           {order.kind === 'custom' && paid && <p>Plan changes happen before approval. Checkpoint revisions appear after your complete game is delivered.</p>}
-          {awaitingApproval ? <div className="order-status-action">
-            <strong>Next step: review your plan</strong>
-            <p>Your payment is confirmed. PDF creation begins after you approve the five-checkpoint plan.</p>
-            <a className="button order-refresh-button" href="#personal-plan-review">Review your plan <ArrowRight size={18}/></a>
-          </div> : <div className={'order-status-action ' + (['queued', 'generating'].includes(order.remake?.status) ? 'is-pending' : '')}>
-            <strong>{['queued', 'generating'].includes(order.remake?.status) ? 'New pack in progress' : 'Need the latest status?'}</strong>
-            <p>This checks the server for updated files and progress. It does not create a new order or charge you.</p>
-            <button type="button" className="button order-refresh-button" onClick={() => refresh({ announce: true })} disabled={refreshing}>
-              {refreshing ? 'Checking status…' : 'Check for updates'} <ArrowClockwise className={refreshing ? 'is-spinning' : ''} size={18}/>
-            </button>
-            {refreshNotice && <p className="order-refresh-notice" role="status">{refreshNotice}</p>}
-          </div>}
+          <div className="order-status-action"><strong>Order status</strong><p>Progress refreshes automatically while this page is open. You can also check it now.</p><button type="button" className="button-quiet" onClick={() => refresh({ announce: true })} disabled={refreshing}>{refreshing ? 'Checking status…' : 'Refresh status'} <ArrowClockwise className={refreshing ? 'is-spinning' : ''} size={18}/></button>{refreshNotice && <p className="order-refresh-notice" role="status">{refreshNotice}</p>}</div>
         </aside>
       </div>
-      <section className="order-help-footer" aria-label="Help with this order">
+       <section id="delivery-recovery" className="order-help-footer" aria-label="Help with this order">
         <DeliveryRecovery order={order} refresh={refresh}/>
         <IssueForm orderId={orderId} failedDelivery={order.kind === 'custom' && order.status === 'failed' && paid} initialRequest={helpRequest}/>
         {order.status !== 'failed' && <p className="live-note">If a file is missing or incorrect, use the help form. A system correction does not use a paid revision.</p>}

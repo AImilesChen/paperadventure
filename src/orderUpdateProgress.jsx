@@ -43,7 +43,6 @@ export default function OrderUpdateProgress({order}) {
       {state.failed&&state.reason&&<p className="live-note">{state.checkLabel||'Last plan check'}: {state.reason}</p>}
       {state.updatedAt&&<p className="live-note">Last saved update: {new Date(state.updatedAt.replace(' ','T')+'Z').toLocaleString()}.</p>}
     </details>
-    {state.waiting&&<a className="button" href="#personal-plan-review">Review your plan</a>}
     {state.busy&&<p className="live-note">Status updates automatically while this page is open. You can return to this order later.</p>}
   </div>;
 }
