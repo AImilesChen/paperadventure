@@ -5,7 +5,7 @@ import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {generateBlueprintMaterialStep,validateSavedBlueprintMaterialStep} from './staged-story.mjs';
 
 test('repeated order action is isolated to the saved material on retry',async()=>{
-  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14,
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,
     plan:{...clockSpec.plan,stages:clockSpec.plan.stages.map((stage,index)=>index<2?{...stage,mechanic:'sequence'}:stage)}};
   const frame={actions:['Install the spare signal gear'],discoveries:[{finding:'The tower path is safe.'},{finding:'The lantern path reaches the repair room.'}]};
   const earlier={material:{items:[{label:'Inspect the bell tower steps'},{label:'Gather the brass gears'},{label:'Prepare the clock shaft'},{label:'Position the spare rope'}]}};
@@ -22,13 +22,15 @@ test('repeated order action is isolated to the saved material on retry',async()=
   const result=await generateBlueprintMaterialStep(spec,frame,2,[earlier],{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'},async(_url,init)=>{
     const sent=JSON.parse(init.body);
     requestInput=JSON.parse(sent.input);requestInstructions=sent.instructions;
-    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(corrected)}]}]});
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({replacements:['Trace the lantern path','Secure the puppet']})}]}]});
   },'Checkpoint 2 repeats a printed action from an earlier checkpoint.',previous);
-  assert.deepEqual(requestInput.previousMaterial,previous);
   assert.deepEqual(requestInput.invalidItemNumbers,[1,4]);
-  assert.match(requestInstructions,/replace EVERY listed invalid label/);
-  assert.match(requestInstructions,/Never start with Compare, Match/);
+  assert.deepEqual(requestInput.previousLabels,previous.material.items.map(item=>item.label));
+  assert.match(requestInstructions,/Repair ONLY the listed ordering action labels/);
+  assert.match(requestInstructions,/Never begin Compare, Match/);
   assert.equal(result.data.material.items[0].label,'Trace the lantern path');
+  assert.equal(result.data.material.items[2].label,previous.material.items[2].label);
+  assert.equal(result.data.features[0],previous.features[0]);
   assert.equal(earlier.material.items[0].label,'Inspect the bell tower steps');
 });
 
@@ -50,10 +52,23 @@ test('a retry identifies repeated and worksheet-style ordering labels together',
   const result=await generateBlueprintMaterialStep(spec,frame,2,[earlier],{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'},async(_url,init)=>{
     const sent=JSON.parse(init.body),input=JSON.parse(sent.input);
     requestInput=input;
-    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(corrected)}]}]});
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({replacements:['Trace the lantern path','Align the copper wire','Secure the puppet']})}]}]});
   },'Checkpoint 2 repeats a printed action from an earlier checkpoint.',previous);
   assert.deepEqual(requestInput.invalidItemNumbers,[1,2,4]);
-  assert.equal(requestInput.previousMaterial.material.items[2].label,'Thread the copper wire');
+  assert.equal(requestInput.previousLabels[2],'Thread the copper wire');
   assert.equal(result.data.material.items[1].label,'Align the copper wire');
+});
+
+test('a bad label-only repair is rejected without replacing the saved valid fields',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,
+    plan:{...clockSpec.plan,stages:clockSpec.plan.stages.map((stage,index)=>index<2?{...stage,mechanic:'sequence'}:stage)}};
+  const frame={actions:['Install the spare signal gear'],discoveries:[{finding:'The tower path is safe.'},{finding:'The lantern path reaches the repair room.'}]};
+  const previous=structuredClone(linkedClockContext().stages[2]);
+  previous.material.items[1].label='Match the printed tiles';
+  await assert.rejects(generateBlueprintMaterialStep(spec,frame,2,[],{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'},
+    async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({replacements:['Sort the printed tiles']})}]}]}),
+    'Checkpoint 2 labels must name fictional story pieces or actions, not worksheet instructions.',previous),
+  /not worksheet instructions/);
+  assert.equal(previous.material.items[1].label,'Match the printed tiles');
 });
 
