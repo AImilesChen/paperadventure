@@ -90,6 +90,7 @@ test('a delivered order renders its original download card during theme correcti
     assert.equal(themeUpdatePending(delivered),false);
     const nextCases=[
       [{...order,paidAt:'2026-10-16',planReview:{status:'review',activeVersion:2,confirmedVersion:1,qualityReplanUsed:true}},'Review the corrected plan','#personal-plan-review'],
+      [{...order,paidAt:'2026-10-16',planReview:{status:'review',pending:'correction',confirmedVersion:1,qualityReplanUsed:true}},'Your corrected plan is being prepared',null],
       [{...order,paidAt:'2026-10-16',planReview:{status:'review',activeVersion:2,confirmedVersion:1,qualityReplanUsed:true,storyScenesRequired:true,storySceneRepairAvailable:true}},'Repair the story scenes','#personal-plan-review'],
       [{...order,paidAt:'2026-10-16',planReview:{status:'review',activeVersion:2,confirmedVersion:1,qualityReplanUsed:true,storyScenesRequired:true}},'Get help with the story scenes','#order-help'],
       [{...order,paidAt:'2026-10-16',planReview:{status:'confirmed',confirmedVersion:1},remake:{status:'generating'}},'Your new game pack is being prepared',null],
