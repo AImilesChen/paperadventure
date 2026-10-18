@@ -1380,7 +1380,7 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
   let blueprintCalls=0,failedMaterialTwo=false;const blueprintProviderCalls=[];
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
     PRIVATE_FILES:{get:async key=>files.get(key)||null,put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata})},
-    FETCH:async(_url,init)=>{const body=JSON.parse(init.body),name=body.text.format.name,input=JSON.parse(body.input);blueprintProviderCalls.push({name,checkpoint:input.checkpoint||0});if(name==='story_frame')blueprintCalls++;if(name==='blueprint_material_stage'&&input.checkpoint===2&&!failedMaterialTwo){failedMaterialTwo=true;return Response.json({error:{message:'temporary material failure'}},{status:502});}const value=name==='printed_copy_repair'?clockDeliveryCopy(input.source):name==='story_frame'?storyFrame:name==='blueprint_material_stage'?materialContext.stages[input.checkpoint-1]:name==='blueprint_celebration'?{celebration:materialContext.celebration}:name==='grounded_discoveries'?{consequences:storyFrame.discoveries.map(({consequence})=>consequence)}:{pass:true,issues:[]};return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});}};
+    FETCH:async(_url,init)=>{const body=JSON.parse(init.body),name=body.text.format.name,input=JSON.parse(body.input);blueprintProviderCalls.push({name,checkpoint:input.checkpoint||0});if(name==='story_frame')blueprintCalls++;if(name==='blueprint_material_stage'&&input.checkpoint===2&&!failedMaterialTwo){failedMaterialTwo=true;return Response.json({error:{message:'temporary material failure'}},{status:502});}const units=input.evidenceUnits||[],scene=number=>units.find(unit=>unit.id===`checkpoint_${number}_scene`),proof=name==='printed_copy_audit'&&units.length?{problemToAction:{evidenceId:scene(1).id,quote:scene(1).text.slice(0,20),explanation:'The first printed scene introduces the missing signal gear.'},discoveries:[1,2,3,4].map(stageNumber=>({stageNumber,evidenceId:scene(stageNumber).id,quote:scene(stageNumber).text.slice(0,20),supportsAction:'fit the signal gear',explanation:'This printed clue supports fitting the signal gear.'})),chronology:units.filter(unit=>unit.kind==='sequence').map(unit=>unit.stageNumber).filter((number,index,all)=>all.indexOf(number)===index).map(stageNumber=>({stageNumber,consistent:true,explanation:'The consequence follows the printed order of the tiles.'}))}:null;const value=name==='printed_copy_repair'?clockDeliveryCopy(input.source):name==='story_frame'?storyFrame:name==='blueprint_material_stage'?materialContext.stages[input.checkpoint-1]:name==='blueprint_celebration'?{celebration:materialContext.celebration}:name==='grounded_discoveries'?{consequences:storyFrame.discoveries.map(({consequence})=>consequence)}:{pass:true,issues:[],...(proof?{causalProof:proof}:{})};return Response.json({id:'quality-fixture',output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});}};
   const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
   const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
   const view=()=>handleProductionApi(request('/api/v1/orders/quality-order','GET',undefined,headers),env).then(response=>response.json());
@@ -1543,6 +1543,32 @@ test('quality v7 saves a blueprint and earlier checkpoint while repairing one re
   assert.ok(queue.length>=5);
 });
 
+test('a delivered quality-v15 pack without causal review can start one same-order update without generation on click',async()=>{
+  const {db,binding}=database(),orderId='causal-upgrade-order',owner='causal-upgrade-owner';
+  const spec={...clockSpec,packQualityVersion:15,packLayoutVersion:4,packCopyVersion:1};
+  const stored=JSON.stringify(spec),original=new TextEncoder().encode('%PDF- original delivered pack');
+  const hash=createHash('sha256').update(original).digest('hex'),queue=[];
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('causal-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,'causal-price',1499,'USD','published',CURRENT_TIMESTAMP)").run(orderId,stored,await sha256(stored),owner);
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('causal-activity',?,'published',?)").run(orderId,stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,access_expires_at) VALUES ('causal-entitlement',?,'causal-activity','active',datetime('now','+6 months'))").run(orderId);
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,pack_format_version,player_r2_key,guide_r2_key,player_sha256,guide_sha256) VALUES ('causal-artifact','causal-activity',1,'published',2,'original/player.pdf','original/guide.pdf',?,?)").run(hash,hash);
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},PRIVATE_FILES:{get:async()=>({body:original,customMetadata:{sha256:hash}})},FETCH:async()=>{throw Error('Starting an update must not call a provider');}};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const view=()=>handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,headers),env).then(response=>response.json());
+  assert.equal((await view()).qualityUpgradeAvailable,true);
+  assert.equal((await handleProductionApi(request(`/api/v1/orders/${orderId}/pack-remake`,'POST',undefined,headers),env)).status,202);
+  assert.deepEqual(queue,[{type:'pack_remake',orderId}]);
+  assert.equal(JSON.parse(db.prepare('SELECT spec_json FROM custom_pack_remakes WHERE order_id=?').get(orderId).spec_json).packCausalVersion,1);
+  assert.equal((await view()).qualityUpgradeAvailable,false);
+  assert.equal((await view()).remake.status,'queued');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM artifact_versions').get().n,1);
+  const download=await handleProductionApi(request(`/api/v1/files/${orderId}/player?paper=A4`,'GET',undefined,headers),env);
+  assert.deepEqual(new Uint8Array(await download.arrayBuffer()),original);
+});
+
 test('current quality and revised checked packs cannot start the free full-pack upgrade',()=>{
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false),true);
   assert.equal(qualityUpgradeEligible({...clockSpec,packQualityVersion:3},clockSpec,2,false),true);
@@ -1558,7 +1584,8 @@ test('current quality and revised checked packs cannot start the free full-pack 
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:10,packLayoutVersion:4}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:11,packLayoutVersion:4}),true);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:12,packLayoutVersion:4}),true);
-  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:14,packLayoutVersion:4,packCopyVersion:1}),false);
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:14,packLayoutVersion:4,packCopyVersion:1}),true,'a published pack without causal review can be updated');
+  assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,false,{...clockSpec,packQualityVersion:15,packLayoutVersion:4,packCopyVersion:1,packCausalVersion:1}),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,2,true),false);
   assert.equal(qualityUpgradeEligible(clockSpec,clockSpec,1,false),false);
 });
