@@ -4,7 +4,7 @@ import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessT
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage } from './openai.mjs';
 import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint,
-  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps } from './staged-story.mjs';
+  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, validateSavedBlueprintMaterialStep } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import {ensureDeliveryCopy,requireDeliveryReview} from './delivery-copy-service.mjs';
 import { verifyGoogleCredential } from './google-auth.mjs';
@@ -1128,18 +1128,28 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
   if (!lease.meta?.changes) return;
   await query(env.DB,"UPDATE orders SET status = 'fulfilling' WHERE id = ? AND status = 'paid'",order.id).run();
   let phase='blueprint',budgetPhase='blueprint',stageNumber=0;
-  const stepLimit=kind=>spec.packExperienceVersion>=2?(kind==='blueprint'?5:kind==='audit'?3:STAGED_STEP_CALL_LIMIT):STAGED_STEP_CALL_LIMIT;
-  const totalLimit=spec.packExperienceVersion>=2?18:STAGED_AI_CALL_LIMIT;
+  let recoveredSavedMaterial=!!(await query(env.DB,"SELECT id FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",order.id).first());
+  let recoveringSavedMaterial=recoveredSavedMaterial;
+  const stepLimit=kind=>spec.packExperienceVersion>=2?(kind==='blueprint'?5+Number(recoveredSavedMaterial):kind==='audit'?3:STAGED_STEP_CALL_LIMIT):STAGED_STEP_CALL_LIMIT;
+  const totalLimit=()=>spec.packExperienceVersion>=2?18+Number(recoveringSavedMaterial)*2:STAGED_AI_CALL_LIMIT;
   const fetcher=env.FETCH||fetch;
   const countCalls=async (kind,number)=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ?',order.id,kind,number).first())?.count||0);
   const totalCalls=async()=>Number((await query(env.DB,'SELECT COUNT(*) AS count FROM custom_generation_calls WHERE order_id = ?',order.id).first())?.count||0);
-  const call=async (kind,number,produce,expectedHash=null,reuse=true)=>{
-    const cached=reuse?await query(env.DB,"SELECT result_json FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id,kind,number).first():null;
+  const call=async (kind,number,produce,expectedHash=null,reuse=true,validateCached=null)=>{
+    const cached=reuse?await query(env.DB,"SELECT id,result_json FROM custom_generation_calls WHERE order_id = ? AND phase = ? AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id,kind,number).first():null;
     if (cached) {
-      const value=JSON.parse(cached.result_json);
-      if (!expectedHash || value.storySha256===expectedHash) return value;
+      try {
+        const value=JSON.parse(cached.result_json);
+        if (!expectedHash || value.storySha256===expectedHash) {
+          validateCached?.(value);
+          return value;
+        }
+      } catch (caught) {
+        if (!validateCached) throw caught;
+        await query(env.DB,"UPDATE custom_generation_calls SET status = 'failed',error_code = 'SAVED_STEP_INVALID',error_detail = ? WHERE id = ? AND status = 'passed'",String(caught?.message||'Saved material needs rechecking.').slice(0,1000),cached.id).run();
+      }
     }
-    if (await countCalls(kind,number)>=stepLimit(kind) || await totalCalls()>=totalLimit)
+    if (await countCalls(kind,number)>=stepLimit(kind) || await totalCalls()>=totalLimit())
       throw new ApiError(422,'STAGED_BUDGET_EXHAUSTED','The safe generation limit was reached.');
     const providerBlueprintSteps=new Set(['blueprint','blueprint_frame','blueprint_material','blueprint_closing']);
     const deterministic=spec.gamePackVersion===2&&spec.packLogicVersion===1&&!providerBlueprintSteps.has(kind)&&!(spec.packContractVersion===1&&kind==='audit');
@@ -1168,8 +1178,23 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
         phase='blueprint';budgetPhase='blueprint';stageNumber=0;
         const prior=spec.packContractVersion===1?await query(env.DB,"SELECT result_json,error_detail FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'failed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id).first():null;
         let generatedBlueprint;
-        const resumable=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&!prior;
+        let savedMaterialRepair=false;
+        if(prior&&spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8){
+          const savedFrame=await query(env.DB,"SELECT result_json FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_frame' AND stage_number = 0 AND status = 'passed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id).first();
+          if(savedFrame){
+            const frame=JSON.parse(savedFrame.result_json);
+            const alreadyRejected=await query(env.DB,"SELECT id FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",order.id).first();
+            savedMaterialRepair=!!alreadyRejected;
+            for(let number=1;number<=4&&!savedMaterialRepair;number++){
+              const saved=await query(env.DB,"SELECT result_json FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id,number).first();
+              if(saved)try{validateSavedBlueprintMaterialStep(spec,frame,number,JSON.parse(saved.result_json));}
+                catch{savedMaterialRepair=true;}
+            }
+          }
+        }
+        const resumable=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&(!prior||savedMaterialRepair);
         if(resumable){
+          recoveringSavedMaterial=savedMaterialRepair||recoveringSavedMaterial;
           budgetPhase='blueprint_frame';
           const frame=await call('blueprint_frame',0,async()=>{
             const result=await generateBlueprintFrameStep(spec,env,fetcher);
@@ -1182,8 +1207,9 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
               const prior=(spec.packQualityVersion||0)>=13?await query(env.DB,"SELECT error_detail FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'failed' ORDER BY created_at DESC,id DESC LIMIT 1",order.id,number).first():null;
               const result=await generateBlueprintMaterialStep(spec,frame,number,materialSteps,env,fetcher,prior?.error_detail||null);
               return {value:result.data,usage:result.usage,responseId:result.responseId};
-            }));
+            },null,true,value=>validateSavedBlueprintMaterialStep(spec,frame,number,value)));
           }
+          recoveredSavedMaterial=!!(await query(env.DB,"SELECT id FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",order.id).first());
           budgetPhase='blueprint_closing';stageNumber=0;
           const closing=await call('blueprint_closing',0,async()=>{
             const result=await generateBlueprintClosingStep(spec,frame,env,fetcher);
@@ -1243,7 +1269,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
           const failedStage=auditError.stageNumber;
           if(spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&auditError.code==='GENERATION_QA_FAILED'&&!auditError.terminalThemeMismatch&&
               Number.isInteger(failedStage)&&failedStage>=0&&failedStage<=5&&
-              await totalCalls()<totalLimit&&await countCalls('audit',0)<stepLimit('audit')) {
+              await totalCalls()<totalLimit()&&await countCalls('audit',0)<stepLimit('audit')) {
             const repairSlot=failedStage+1;
             phase='blueprint';budgetPhase='blueprint';stageNumber=repairSlot;
             const repaired=validateBlueprint(await call('blueprint',repairSlot,async()=>{
@@ -1278,7 +1304,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     const code=typeof caught?.code==='string' && /^[A-Z0-9_]{1,60}$/.test(caught.code)?caught.code:'UNEXPECTED';
     const phaseCalls=await countCalls(budgetPhase,stageNumber),calls=await totalCalls();
     const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
-    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<totalLimit && phaseCalls<stepLimit(budgetPhase);
+    let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && calls<totalLimit() && phaseCalls<stepLimit(budgetPhase);
     if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
     if(String(code).startsWith('DELIVERY_COPY_'))canRetry=false;
     if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&(spec.packQualityVersion||0)<8&&canRetry&&await countCalls('blueprint',0)<stepLimit('blueprint')){
@@ -1501,5 +1527,4 @@ export default {
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
 };
-
 
