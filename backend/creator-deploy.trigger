@@ -30,3 +30,5 @@
 # deploy causal review tolerant matching 2026-10-18T16:38:40Z
 
 # deploy causal review chronology tolerance 2026-10-18T16:51:14Z
+
+# deploy closing reaction re-placement fix 2026-10-18T17:11:19Z

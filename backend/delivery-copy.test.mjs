@@ -106,6 +106,15 @@ test('printed closing follows the selected action and retires only its supersede
   assert.deepEqual(resolveGroundedClosingAudit({pass:false,issues:[issue]},copy),{pass:true,issues:[]});
   const unrelated={...issue,code:'THEME'};
   assert.deepEqual(resolveGroundedClosingAudit({pass:false,issues:[unrelated]},copy),{pass:false,issues:[unrelated]});
+
+  // A reaction that re-places the finished object after the selected action
+  // seats it elsewhere contradicts the outcome; drop that clause instead of
+  // letting the printed closing name two different destinations.
+  const repositions=structuredClone(copy);
+  repositions.celebration='Twinkle reaches Puppeteer Mira at the lantern-lit booth. Mira beams as she lifts the lid and sets Twinkle on the shelf before the lanterns glow.';
+  const stripped=groundedDeliveryClosing(repositions);
+  assert.ok(stripped.endsWith('Mira beams.'));
+  assert.ok(!stripped.includes('shelf'));
 });
 
 test('new-order review sees player pages without adult answers and spends only the existing two calls',async()=>{

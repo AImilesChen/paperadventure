@@ -160,12 +160,20 @@ function validateCopy(story,copy,fieldsOnly=false){
   return structuredClone(copy);
 }
 
+// A closing reaction must respond to success without re-placing the finished
+// object. Providers sometimes append "as she lifts the lid and sets Twinkle on
+// the shelf" after the selected action already seated it in the chest, and the
+// reviewer then rejects the closing as a target mismatch. Drop that clause so
+// the reaction stays a plain emotional response.
+const repositionsFinalObject=reaction=>/\bas\s+(?:she|he|they)\s+(?:lifts?|sets?|places?|puts?|seats?|carries?|moves?|raises?|lowers?)\b/i.test(reaction);
+const closingReaction=reaction=>repositionsFinalObject(reaction)?reaction.replace(/\s+as\s+(?:she|he|they)\s+(?:lifts?|sets?|places?|puts?|seats?|carries?|moves?|raises?|lowers?)\b.*$/i,'').trim().replace(/[.!?]$/,'')+'.':reaction;
+
 export function groundedDeliveryClosing(copy){
   const instruction=String(copy?.actions?.[0]?.description||'').trim().replace(/[.!?]+$/,'');
   const reaction=(String(copy?.celebration||'').match(/[^.!?]+[.!?]/g)||[]).at(-1)?.trim();
   if(!instruction||!reaction)fail('The closing needs an outcome and a character response.');
   const clause=instruction[0].toLowerCase()+instruction.slice(1);
-  return text(`They ${clause}. ${reaction}`,'Closing',240,true);
+  return text(`They ${clause}. ${closingReaction(reaction)}`,'Closing',240,true);
 }
 
 export function applyDeliveryCopy(story,copy=story.deliveryCopy,check=true){
