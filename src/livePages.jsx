@@ -319,7 +319,8 @@ export function orderNextStep(order) {
 
 export function OrderNextStep({order}) {
   const next=orderNextStep(order);
-  return <section className={'order-next-step'+(order.filesReady&&next.href==='#download-game'?' is-ready':'')} aria-label="Next step" aria-live="polite">
+  if(next.href==='#download-game')return null;
+  return <section className="order-next-step" aria-label="Next step" aria-live="polite">
     <span className="eyebrow">NEXT STEP</span><h2>{next.title}</h2><p>{next.detail}</p>
     {next.href&&<a className="button" href={next.href} onClick={next.href==='#order-help'?()=>{const help=document.getElementById('order-help');if(help)help.open=true;}:undefined}>{next.action} <ArrowRight size={18}/></a>}
   </section>;
