@@ -64,6 +64,15 @@ test('player evidence gate uses the complete player pack without accepting adult
   finalPlayerPage.stages[4].storyContext+=' A painted sign identifies the awning rail.';
   assert.doesNotThrow(()=>validatePlayerEvidence(finalPlayerPage));
 
+  const sourceFinalPage=structuredClone(story);
+  sourceFinalPage.stages[4].storyContext+=' A painted sign identifies the awning rail.';
+  const rewrittenCopy=structuredClone(copy);
+  rewrittenCopy.stages[4].scene='The companions compare their four saved digits before choosing an action.';
+  const preservedFinalPage=applyDeliveryCopy(sourceFinalPage,rewrittenCopy);
+  preservedFinalPage.spine.links[1].reason=`${preservedFinalPage.spine.links[1].finding} Tracing the blue trunk route reveals Moonheart at the awning rail.`;
+  assert.equal(preservedFinalPage.stages[4].storyContext,sourceFinalPage.stages[4].storyContext);
+  assert.doesNotThrow(()=>validatePlayerEvidence(preservedFinalPage));
+
   const finalInstructions=structuredClone(missing);
   finalInstructions.stages[4].material.instruction+=' Continue at the awning rail.';
   assert.throws(()=>validatePlayerEvidence(finalInstructions),/Checkpoint 2 claims a location absent from its player material: awning rail/);

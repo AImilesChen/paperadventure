@@ -165,7 +165,9 @@ export function applyDeliveryCopy(story,copy=story.deliveryCopy,check=true){
   if(check)validateDeliveryCopy(story,copy);
   const result=structuredClone(story);delete result.deliveryCopy;
   result.stages=result.stages.map((original,index)=>{
-    const part=copy.stages[index],stage={...original,title:part.title,storyContext:part.scene,material:structuredClone(original.material)},oldLabels=original.material.items.map(item=>item.label);
+    // Checkpoint 5 is the final player-visible setup for the approved action.
+    // Preserve its validated location instead of letting a copy edit remove it.
+    const part=copy.stages[index],stage={...original,title:part.title,storyContext:original.number===5?original.storyContext:part.scene,material:structuredClone(original.material)},oldLabels=original.material.items.map(item=>item.label);
     const rename=value=>oldLabels.slice(0,part.labels.length).map((label,i)=>({label,i})).sort((a,b)=>b.label.length-a.label.length).reduce((out,{label,i})=>out.split(label).join(`\u0001${i}\u0001`),value).replace(/\u0001(\d)\u0001/g,(_,i)=>part.labels[Number(i)]);
     stage.material.items=stage.material.items.map((item,i)=>({...item,label:part.labels[i]||item.label,detail:rename(item.detail)}));
     stage.options=stage.options.map(rename);
