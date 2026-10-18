@@ -1,0 +1,49 @@
+name: Resume remake line for order 8E4468A9
+on:
+  push:
+    branches: [resume-remake-8e4468a9]
+permissions:
+  contents: read
+jobs:
+  resume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Resume remake and observe
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/resume.mjs" <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          const id = '8e4468a9-9847-43ae-b1b7-20e05c32f807';
+          const run = sql => {
+            const raw = execFileSync('npx',['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--json','--command',sql],{encoding:'utf8',maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
+            const d = JSON.parse(raw), batches = Array.isArray(d) ? d : [d];
+            if (batches.some(b => b.success === false)) throw Error('D1 query failed');
+            return { rows: batches.flatMap(b => b.results||[]), changes: batches.reduce((n,b)=>n+Number(b.meta?.changes||0),0) };
+          };
+          const q = sql => run(sql).rows;
+          const state = () => q(`SELECT status,phase,error_code,recovery_round,quality_epoch,json_extract(spec_json,'$.packQualityVersion') AS qv,
+            (SELECT COUNT(*) FROM custom_pack_remake_calls c WHERE c.order_id=r.order_id AND c.phase='blueprint_frame' AND c.status='passed') frame,
+            (SELECT COUNT(*) FROM custom_pack_remake_calls c WHERE c.order_id=r.order_id AND c.phase='blueprint_material' AND c.status='passed') material_ok,
+            (SELECT COUNT(*) FROM custom_pack_remake_calls c WHERE c.order_id=r.order_id AND c.phase='blueprint_material' AND c.status='failed') material_bad
+            FROM custom_pack_remakes r WHERE order_id='${id}'`)[0];
+          const before = state();
+          console.log('BEFORE', JSON.stringify(before));
+          if (!before || before.status !== 'failed' || before.phase !== 'blueprint' || before.error_code !== 'BLUEPRINT_INVALID' || Number(before.recovery_round) >= 2)
+            { console.log('Not in the expected failed-blueprint state; no changes made.'); process.exit(0); }
+          const changed = run(`UPDATE custom_pack_remakes SET status='queued',failure_count=0,recovery_round=recovery_round+1,recovery_count=MIN(recovery_count+1,1),lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='${id}' AND status='failed' AND recovery_round<2 AND (published_version IS NULL OR quality_epoch>0) AND error_code='BLUEPRINT_INVALID'`);
+          if (changed.changes !== 1) { console.log('Resume did not apply; no changes made.'); process.exit(0); }
+          console.log('QUEUED', JSON.stringify(state()));
+          for (let i=0;i<24;i++) {
+            await new Promise(resolve=>setTimeout(resolve,15000));
+            const cur = state();
+            if (i%4===3 || cur.status==='ready' || cur.status==='failed') console.log('POLL', JSON.stringify(cur));
+            if (cur.status==='ready' && cur.phase==='pdf') { console.log('REMAKE_READY_FOR_PDF'); process.exit(0); }
+            if (cur.status==='failed') { console.log('REMAKE_FAILED_AGAIN'); process.exit(0); }
+          }
+          console.log('OBSERVED', JSON.stringify(state()));
+          NODE
+          node "$RUNNER_TEMP/resume.mjs"
