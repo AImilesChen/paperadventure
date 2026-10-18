@@ -30,6 +30,7 @@ jobs:
             (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2) material_calls,
             (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=1 AND c.status='passed') first_material_passed,
             (SELECT error_code FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2 ORDER BY c.created_at DESC,c.id DESC LIMIT 1) last_error,
+            (SELECT CASE WHEN instr(lower(error_detail),'labels must name fictional story pieces')>0 THEN 'WORKSHEET_LABEL' ELSE 'OTHER' END FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2 ORDER BY c.created_at DESC,c.id DESC LIMIT 1) last_error_class,
             (SELECT CASE WHEN result_json IS NOT NULL AND json_valid(result_json) THEN json_array_length(result_json,'$.material.items') ELSE -1 END FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2 ORDER BY c.created_at DESC,c.id DESC LIMIT 1) candidate_items,
             (SELECT COUNT(*) FROM custom_generation_recovery_grants g WHERE g.order_id=o.id AND g.phase='blueprint_material' AND g.stage_number=2) grants,
             (SELECT COUNT(*) FROM artifact_versions v WHERE v.custom_activity_id=a.id) artifacts,
@@ -37,13 +38,13 @@ jobs:
             FROM orders o JOIN custom_activities a ON a.order_id=o.id
             JOIN custom_plan_orders p ON p.order_id=o.id WHERE o.id='${id}'`).rows[0];
           const before = state();
-          console.log('Preflight fields:', JSON.stringify(before ? {order_status:before.order_status,paid:before.paid,activity_status:before.activity_status,delivery_retry_used:before.delivery_retry_used,generation_version:before.generation_version,plan_status:before.plan_status,confirmed_version:before.confirmed_version,material_calls:before.material_calls,first_material_passed:before.first_material_passed,last_error:before.last_error,candidate_items:before.candidate_items,grants:before.grants,artifacts:before.artifacts,blueprints:before.blueprints} : null));
+          console.log('Preflight fields:', JSON.stringify(before ? {order_status:before.order_status,paid:before.paid,activity_status:before.activity_status,delivery_retry_used:before.delivery_retry_used,generation_version:before.generation_version,plan_status:before.plan_status,confirmed_version:before.confirmed_version,material_calls:before.material_calls,first_material_passed:before.first_material_passed,last_error:before.last_error,last_error_class:before.last_error_class,candidate_items:before.candidate_items,grants:before.grants,artifacts:before.artifacts,blueprints:before.blueprints} : null));
           if (!before || before.order_status !== 'failed' || before.activity_status !== 'failed' ||
               before.product_kind !== 'custom' || Number(before.paid)!==1 ||
               Number(before.delivery_retry_used)!==1 || Number(before.generation_version)!==2 ||
               before.plan_status !== 'confirmed' || Number(before.confirmed_version)<1 ||
               Number(before.material_calls)!==3 || Number(before.first_material_passed)<1 ||
-              before.last_error !== 'WORKSHEET_LABEL' || Number(before.candidate_items)!==4 ||
+              before.last_error !== 'BLUEPRINT_INVALID' || before.last_error_class !== 'WORKSHEET_LABEL' || Number(before.candidate_items)!==4 ||
               Number(before.grants)!==0 || Number(before.artifacts)!==0 || Number(before.blueprints)!==0)
             throw Error('Order state differs from the approved one-step recovery; no changes made');
           console.log('Preflight passed: paid approved order; three calls; saved stage 1; four-item failed stage 2 candidate; no files.');
