@@ -323,6 +323,30 @@ test('quality version 8 grounds story consequences after the printable pieces ex
   assert.doesNotMatch(result.blueprint.storyFrame.discoveries[3].consequence,/carries the gear/i);
 });
 
+test('quality 14 grounding appends the action noun when no consequence names the final action',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14,packLayoutVersion:4};
+  const raw=linkedClockContext();
+  raw.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const materials={celebration:raw.celebration,stages:raw.stages};
+  const initial=structuredClockFrame();
+  // Every consequence stays on its printed fact and never names a concrete
+  // part of "Fit signal gear", so the causal validator would count too few
+  // linked discoveries and reject the finished blueprint.
+  const vague=[
+    'The noon mark stays hidden until the sheet is checked.',
+    'The spare part sits inside the safe room.',
+    'The wheel order keeps the pieces steady.',
+    'The upper path is drawn on the map.',
+  ];
+  const result=await generateBlueprint(spec,{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture',DEEPSEEK_MODEL:'deepseek-flash'},async(_url,request)=>{
+    const body=JSON.parse(request.body),name=body.text.format.name;
+    const data=name==='story_frame'?initial:name==='game_blueprint'?materials:{consequences:vague};
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(data)}]}]});
+  });
+  for(const discovery of result.blueprint.storyFrame.discoveries)
+    assert.match(discovery.consequence,/signal/i);
+});
+
 test('quality version 8 re-grounds saved discoveries after repairing one material',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,packLayoutVersion:4};
   const raw=linkedClockContext();

@@ -258,23 +258,40 @@ const groundedPlayerText=(stage,type)=>[
   ...(stage?.features||[]),
 ].filter(Boolean).join(' ');
 
-const deterministicGroundedConsequence=(stage,type,number)=>{
+const actionNoun=action=>{
+  const stop=new Set(['return','restore','repair','rescue','deliver','hand','carry','give','take','bring','move','send','put','place','open','close','fix','make','complete','finish','solve','recover','before','after','using','through','into','onto','over','under','with','from','between','the','this','that','which','there']);
+  return String(action||'').toLowerCase().match(/[a-z]{4,}/g)?.find(word=>!stop.has(word))||'final action';
+};
+
+const concreteActionWords=action=>[...linkWords(action)].filter(word=>!['hand','carry','give','take','bring','move','send','put','place','open','close','fix','make'].includes(word));
+
+const deterministicGroundedConsequence=(stage,type,number,action)=>{
   const labels=(stage?.material?.items||[]).map(item=>item?.label).filter(Boolean);
   const finding=selectedStoryFinding(stage,type,number);
   const features=(stage?.features||[]).map(value=>String(value).replace(/^(?:Mentions|Names)\s+/i,'').trim()).filter(Boolean);
+  const noun=actionNoun(action);
   if(['evidence_cards','decision_record'].includes(type)&&features.length===2)
-    return `The ${finding} links ${features[0]} with ${features[1]}.`;
+    return `The ${finding} links ${features[0]} with ${features[1]}, supporting the ${noun}.`;
   if(type==='order_tiles'&&labels.length>=2)
-    return `The step "${labels[0]}" prepares "${labels.at(-1)}".`;
-  if(type==='symbol_key')return `The decoded ${finding} confirms a needed final-action condition.`;
-  if(type==='route_board')return `The open ${finding} gives the team a route for the final action.`;
-  return `The ${finding} confirms a needed final-action condition.`;
+    return `The step "${labels[0]}" prepares "${labels.at(-1)}" for the ${noun}.`;
+  if(type==='symbol_key')return `The decoded ${finding} confirms the ${noun} is ready.`;
+  if(type==='route_board')return `The open ${finding} gives the team a route for the ${noun}.`;
+  return `The ${finding} confirms the ${noun} is ready.`;
 };
 
-const groundedConsequence=(proposed,stage,type,number)=>
-  unsupportedLocationClaims(proposed,groundedPlayerText(stage,type)).length
-    ? deterministicGroundedConsequence(stage,type,number)
+const groundedConsequence=(proposed,stage,type,number,action)=>{
+  let grounded=unsupportedLocationClaims(proposed,groundedPlayerText(stage,type)).length
+    ? deterministicGroundedConsequence(stage,type,number,action)
     : proposed;
+  // The causal validator requires each discovery to name a concrete part of
+  // the final action. A grounded consequence that only names printed pieces
+  // still trips "at least three link to the final action", so append the
+  // action noun when the sentence does not already carry a concrete word.
+  const claimed=linkWords(grounded);
+  if(!concreteActionWords(action).some(word=>claimed.has(word)))
+    grounded=`${String(grounded).replace(/[.!?]+$/,'')}, supporting the ${actionNoun(action)}.`;
+  return grounded;
+};
 
 async function groundDiscoveriesAfterMaterials(spec,storyFrame,stages,env,fetcher){
   if((spec.packQualityVersion||0)<8)return {storyFrame,usage:null,responseId:null};
@@ -307,9 +324,9 @@ async function groundDiscoveriesAfterMaterials(spec,storyFrame,stages,env,fetche
     // sentence compiled from the player-visible labels and facts.
     consequence:groundedConsequence(
       types[index]==='route_board'
-        ? `The open ${printed[index].selectedFinding} gives the team a route for the final action.`
+        ? `The open ${printed[index].selectedFinding} gives the team a route for the ${actionNoun(storyFrame.actions[0])}.`
         :result.data.consequences[index],
-      stages[index],types[index],index+1,
+      stages[index],types[index],index+1,storyFrame.actions[0],
     )}));
   const candidateFrame={...storyFrame,discoveries};
   try{return {storyFrame:prepareStoryFrame(candidateFrame,spec.packQualityVersion),usage:result.usage,responseId:result.responseId};}

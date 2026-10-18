@@ -22,3 +22,5 @@
 2026-10-18 deploy PR #66 same-order causal review update for delivered packs
 
 # deploy order-tile deadlock fix 2026-10-18T15:49:57Z
+
+# deploy causal-link action-noun grounding fix 2026-10-18T16:12:15Z
