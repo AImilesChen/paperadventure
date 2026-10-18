@@ -1,0 +1,112 @@
+name: Validate saved Clock Tower stage 2 labels without AI
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: frontend-prd-v13-2026-10-08
+          persist-credentials: false
+      - name: Repair only rejected labels in saved checkpoint 2
+        shell: bash
+        run: |
+          cat > "$GITHUB_WORKSPACE/.operator-stage2.mjs" <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { randomUUID } from 'node:crypto';
+          import { invalidStoryOrderAction } from './backend/contextual-puzzles.mjs';
+          import { validateSavedBlueprintMaterialStep } from './backend/staged-story.mjs';
+          const id='583930da-7d53-4810-8d18-ee9bc6df21ef';
+          const run=sql=>{
+            try{
+              const raw=execFileSync('npx',['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--json','--command',sql],{encoding:'utf8',maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
+              const d=JSON.parse(raw),batches=Array.isArray(d)?d:[d];
+              if(batches.some(b=>b.success===false))throw Error('D1 returned an unsuccessful batch');
+              return {rows:batches.flatMap(b=>b.results||[]),changes:batches.reduce((n,b)=>n+Number(b.meta?.changes||0),0)};
+            }catch{throw Error('Private database operation failed; no private content is logged');}
+          };
+          const q=sql=>run(sql).rows;
+          const state=q(`SELECT o.status order_status,(o.paid_at IS NOT NULL) paid,o.product_kind,
+            a.status activity_status,a.delivery_retry_used,a.generation_version,a.story_spec_json,
+            p.status plan_status,p.confirmed_version,
+            (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint_material' AND c.stage_number=2) material_calls,
+            (SELECT COUNT(*) FROM custom_generation_recovery_grants g WHERE g.order_id=o.id AND g.phase='blueprint_material' AND g.stage_number=2) grants,
+            (SELECT COUNT(*) FROM custom_game_blueprints b WHERE b.order_id=o.id) blueprints,
+            (SELECT COUNT(*) FROM artifact_versions v WHERE v.custom_activity_id=a.id) artifacts
+            FROM orders o JOIN custom_activities a ON a.order_id=o.id JOIN custom_plan_orders p ON p.order_id=o.id
+            WHERE o.id='${id}'`)[0];
+          if(!state||state.order_status!=='failed'||state.activity_status!=='failed'||state.product_kind!=='custom'||
+            Number(state.paid)!==1||Number(state.delivery_retry_used)!==1||Number(state.generation_version)!==2||
+            state.plan_status!=='confirmed'||Number(state.confirmed_version)<1||
+            Number(state.material_calls)!==4||Number(state.grants)!==1||
+            Number(state.blueprints)!==0||Number(state.artifacts)!==0)
+            throw Error('Order is outside the exact saved-stage recovery state; no changes made');
+          const spec=JSON.parse(state.story_spec_json);
+          if((spec.packQualityVersion||0)<15||spec.plan?.title!=='The Clock Tower at Noon'||
+            !/Bell-Ringer's Workshop/i.test(spec.plan?.stages?.[1]?.storyContext||''))
+            throw Error('Approved stage context does not match this one-order repair; no changes made');
+          const frameRow=q(`SELECT result_json FROM custom_generation_calls WHERE order_id='${id}' AND phase='blueprint_frame' AND status='passed' ORDER BY created_at DESC,id DESC LIMIT 1`)[0];
+          const firstRow=q(`SELECT result_json FROM custom_generation_calls WHERE order_id='${id}' AND phase='blueprint_material' AND stage_number=1 AND status='passed' ORDER BY created_at DESC,id DESC LIMIT 1`)[0];
+          const lastRow=q(`SELECT id,result_json,error_code,error_detail FROM custom_generation_calls WHERE order_id='${id}' AND phase='blueprint_material' AND stage_number=2 ORDER BY created_at DESC,id DESC LIMIT 1`)[0];
+          if(!frameRow?.result_json||!firstRow?.result_json||!lastRow?.result_json||
+            lastRow.error_code!=='BLUEPRINT_INVALID'||
+            !/labels must name fictional story pieces/i.test(lastRow.error_detail||''))
+            throw Error('Saved frame or failed candidate does not match the bounded repair; no changes made');
+          const frame=JSON.parse(frameRow.result_json),first=JSON.parse(firstRow.result_json),candidate=JSON.parse(lastRow.result_json);
+          const labels=candidate.material?.items?.map(x=>x?.label);
+          if(!Array.isArray(labels)||labels.length!==4)throw Error('Saved stage 2 has no four-label candidate');
+          const key=x=>String(x||'').toLowerCase().replace(/\b(?:the|a|an)\b/g,'').replace(/[^a-z]+/g,' ').trim().replace(/\s+/g,' ');
+          const earlier=new Set((first.material?.items||[]).map(x=>key(x?.label)));
+          const used=new Set();
+          const invalid=labels.map((label,index)=>{
+            const normalized=key(label);
+            const bad=typeof label!=='string'||label.length>24||/[^\x20-\x7e]/.test(label)||
+              /^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)||
+              invalidStoryOrderAction(label,frame.actions?.[0],spec.plan.goal)||
+              earlier.has(normalized)||used.has(normalized);
+            used.add(normalized);
+            return bad?index:-1;
+          }).filter(index=>index>=0);
+          if(!invalid.length)throw Error('No rejected label position remains; no changes made');
+          const pool=['Examine workshop bench','Gather brass gears','Trace gear trail','Inspect ringer tools',
+            'Search gear cabinet','Follow brass marks','Visit bell workbench','Locate workshop ledger',
+            'Lift dusty gear box','Open ringer drawer','Look under workbench','Collect loose pinions'];
+          const fixed=structuredClone(candidate),kept=new Set(labels.filter((_,index)=>!invalid.includes(index)).map(key));
+          for(const index of invalid){
+            const replacement=pool.find(label=>label.length<=24&&!invalidStoryOrderAction(label,frame.actions?.[0],spec.plan.goal)&&
+              !earlier.has(key(label))&&!kept.has(key(label)));
+            if(!replacement)throw Error('No safe replacement exists for rejected label; no changes made');
+            fixed.material.items[index].label=replacement;
+            kept.add(key(replacement));
+          }
+          try{validateSavedBlueprintMaterialStep(spec,frame,2,fixed,[first]);}
+          catch{throw Error('Saved stage 2 still fails original material validation; no changes made');}
+          if(JSON.stringify({...candidate,material:{...candidate.material,items:fixed.material.items.map((item,index)=>({...item,label:labels[index]}))}})!==JSON.stringify(candidate))
+            throw Error('The repair changed fields outside labels; no changes made');
+          const escape=x=>String(x).replaceAll("'","''");
+          const rowId=randomUUID(),payload=escape(JSON.stringify(fixed));
+          const saved=run(`INSERT INTO custom_generation_calls
+            (id,order_id,phase,stage_number,status,model,result_json,completed_at)
+            SELECT '${rowId}','${id}','blueprint_material',2,'passed','operator-validated-labels-v1','${payload}',CURRENT_TIMESTAMP
+            WHERE (SELECT status FROM orders WHERE id='${id}')='failed'
+            AND (SELECT status FROM custom_activities WHERE order_id='${id}')='failed'
+            AND (SELECT COUNT(*) FROM custom_generation_calls WHERE order_id='${id}' AND phase='blueprint_material' AND stage_number=2)=4
+            AND (SELECT id FROM custom_generation_calls WHERE order_id='${id}' AND phase='blueprint_material' AND stage_number=2 ORDER BY created_at DESC,id DESC LIMIT 1)='${lastRow.id}'
+            AND NOT EXISTS (SELECT 1 FROM custom_generation_calls WHERE order_id='${id}' AND phase='blueprint_material' AND stage_number=2 AND status='passed')`);
+          if(saved.changes!==1)throw Error('Validated candidate was not checkpointed; order was not resumed');
+          const moved=run(`UPDATE orders SET status='fulfilling' WHERE id='${id}' AND status='failed'
+            AND EXISTS (SELECT 1 FROM custom_generation_calls WHERE id='${rowId}' AND status='passed')`);
+          if(moved.changes!==1)throw Error('Validated candidate saved, but order requires operator status review');
+          const queued=run(`UPDATE custom_activities SET status='queued',lease_until=NULL WHERE order_id='${id}' AND status='failed'
+            AND EXISTS (SELECT 1 FROM orders WHERE id='${id}' AND status='fulfilling')`);
+          if(queued.changes!==1)throw Error('Validated candidate saved, but activity requires operator status review');
+          console.log('Saved candidate passed existing stage 2 validation after replacing only '+invalid.length+' rejected labels. Original failed calls retained. Order queued; provider calls added: 0.');
+          NODE
+          node "$GITHUB_WORKSPACE/.operator-stage2.mjs"
