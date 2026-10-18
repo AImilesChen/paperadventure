@@ -21,7 +21,10 @@ AND EXISTS (
   WHERE c.order_id = '583930da-7d53-4810-8d18-ee9bc6df21ef'
     AND c.phase = 'blueprint' AND c.stage_number = 0
     AND c.status = 'failed' AND c.error_code = 'BLUEPRINT_INVALID'
-    AND lower(c.error_detail) LIKE 'checkpoint % story link claims a location absent from its player material:%'
+    AND instr(
+      lower(c.error_detail),
+      'story link claims a location absent from its player material:'
+    ) > 0
     AND c.id = (
       SELECT latest.id FROM custom_generation_calls latest
       WHERE latest.order_id = c.order_id
