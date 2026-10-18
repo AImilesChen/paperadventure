@@ -160,6 +160,14 @@ function validateCopy(story,copy,fieldsOnly=false){
   return structuredClone(copy);
 }
 
+export function groundedDeliveryClosing(copy){
+  const instruction=String(copy?.actions?.[0]?.description||'').trim().replace(/[.!?]+$/,'');
+  const reaction=(String(copy?.celebration||'').match(/[^.!?]+[.!?]/g)||[]).at(-1)?.trim();
+  if(!instruction||!reaction)fail('The closing needs an outcome and a character response.');
+  const clause=instruction[0].toLowerCase()+instruction.slice(1);
+  return text(`They ${clause}. ${reaction}`,'Closing',240,true);
+}
+
 export function applyDeliveryCopy(story,copy=story.deliveryCopy,check=true){
   if(!copy)return story;
   if(check)validateDeliveryCopy(story,copy);
@@ -199,7 +207,7 @@ export function applyDeliveryCopy(story,copy=story.deliveryCopy,check=true){
   });
   result.spine={...story.spine,resolution:copy.actions[0].description,links:copy.links.map(link=>({finding:link.fact,reason:`${link.fact} ${link.reason}`}))};
   const code=story.stages.slice(0,4).map(stage=>stage.material.logic.resultDigit).join('');
-  result.ending=`The four checked results form code ${code}, which matches "${copy.actions[0].label}" on the final sheet. ${copy.celebration}`;
+  result.ending=`The four checked results form code ${code}, which matches "${copy.actions[0].label}" on the final sheet. ${groundedDeliveryClosing(copy)}`;
   return result;
 }
 
