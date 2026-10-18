@@ -1,4 +1,4 @@
-name: Resume Clock Tower causal link recovery once
+name: Resume Clock Tower downstream generation once
 on:
   workflow_dispatch:
 permissions:
@@ -11,7 +11,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Verify the scoped grant and resume this paid order only
+      - name: Verify saved progress and resume this paid order only
         shell: bash
         run: |
           cat > "$RUNNER_TEMP/recover.mjs" <<'NODE'
@@ -27,11 +27,10 @@ jobs:
           const state = () => run(`SELECT o.status order_status,o.product_kind,(o.paid_at IS NOT NULL) paid,
             a.status activity_status,a.delivery_retry_used,a.generation_version,
             p.status plan_status,p.confirmed_version,
-            (SELECT COUNT(*) FROM custom_blueprint_causal_recovery_grants g WHERE g.order_id=o.id AND g.extra_calls=1 AND g.reason_code='PRINTED_CAUSAL_LINK') causal_grants,
-            (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint') blueprint_calls,
-            (SELECT error_code FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint' ORDER BY c.created_at DESC,c.id DESC LIMIT 1) last_error,
-            (SELECT CASE WHEN instr(lower(error_detail),'at least three checkpoint discoveries must link a printed fact to the final action')>0 THEN 'PRINTED_CAUSAL_LINK' ELSE 'OTHER' END FROM custom_generation_calls c WHERE c.order_id=o.id AND c.phase='blueprint' ORDER BY c.created_at DESC,c.id DESC LIMIT 1) last_error_class,
+            (SELECT COUNT(*) FROM custom_generation_downstream_recovery_grants g WHERE g.order_id=o.id AND g.extra_calls=4 AND g.reason_code='POST_CAUSAL_PIPELINE') downstream_grants,
+            (SELECT COUNT(*) FROM custom_generation_calls c WHERE c.order_id=o.id) generation_calls,
             (SELECT COUNT(*) FROM custom_game_blueprints b WHERE b.order_id=o.id) blueprints,
+            (SELECT COUNT(*) FROM custom_game_stages s WHERE s.order_id=o.id) saved_stages,
             (SELECT COUNT(*) FROM custom_story_checkpoints s WHERE s.order_id=o.id) checkpoints,
             (SELECT COUNT(*) FROM artifact_versions v WHERE v.custom_activity_id=a.id) artifacts
             FROM orders o JOIN custom_activities a ON a.order_id=o.id
@@ -41,22 +40,22 @@ jobs:
           if (!before || before.order_status !== 'failed' || before.activity_status !== 'failed' ||
               before.product_kind !== 'custom' || Number(before.paid)!==1 ||
               before.plan_status !== 'confirmed' || Number(before.confirmed_version)<1 ||
-              Number(before.causal_grants)!==1 ||
-              before.last_error !== 'BLUEPRINT_INVALID' || before.last_error_class !== 'PRINTED_CAUSAL_LINK' ||
-              Number(before.blueprints)!==0 || Number(before.checkpoints)!==0 || Number(before.artifacts)!==0)
-            throw Error('Order state differs from the approved causal link recovery; no changes made');
+              Number(before.downstream_grants)!==1 || Number(before.generation_calls)<19 ||
+              Number(before.blueprints)!==1 || Number(before.saved_stages)!==2 ||
+              Number(before.checkpoints)!==0 || Number(before.artifacts)!==0)
+            throw Error('Order state differs from the approved saved-progress recovery; no changes made');
           const orderChanged=run(`UPDATE orders SET status='fulfilling'
             WHERE id='${id}' AND status='failed'
-            AND EXISTS (SELECT 1 FROM custom_blueprint_causal_recovery_grants
-              WHERE order_id='${id}' AND extra_calls=1 AND reason_code='PRINTED_CAUSAL_LINK')`);
+            AND EXISTS (SELECT 1 FROM custom_generation_downstream_recovery_grants
+              WHERE order_id='${id}' AND extra_calls=4 AND reason_code='POST_CAUSAL_PIPELINE')`);
           if (orderChanged.changes!==1) throw Error('Order was not moved to fulfilling');
           const activityChanged=run(`UPDATE custom_activities SET status='queued',lease_until=NULL
             WHERE order_id='${id}' AND status='failed'
             AND EXISTS (SELECT 1 FROM orders WHERE id='${id}' AND status='fulfilling')`);
           if (activityChanged.changes!==1) throw Error('Activity was not queued; operator review required');
           const after=state();
-          if (after.order_status!=='fulfilling' || after.activity_status!=='queued' || Number(after.causal_grants)!==1)
+          if (after.order_status!=='fulfilling' || after.activity_status!=='queued' || Number(after.downstream_grants)!==1)
             throw Error('Postflight state mismatch; operator review required');
-          console.log('Queued exactly this paid order for causal link recovery. This workflow made no model call.');
+          console.log('Queued exactly this paid order from checkpoint 3. This workflow made no model call.');
           NODE
           node "$RUNNER_TEMP/recover.mjs"
