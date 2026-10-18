@@ -1881,3 +1881,86 @@ test('quality v8 repairs an ending without rebuilding five saved paid checkpoint
   assert.equal(view.contentReviewPassed,true);
 });
 
+test('a failed assembly rechecks saved material and replaces only the stale step within one bounded assembly recovery',async()=>{
+  const {db,binding}=database(),orderId='saved-material-order';
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
+  const stored=JSON.stringify(spec),context=linkedClockContext();
+  const frame={problem:context.spine.problem,actions:context.stages[4].material.items.map(item=>item.label),discoveries:[
+    {finding:'The signal gear is missing.',consequence:'The missing noon mark points to the gear.',supportsAction:'signal gear'},
+    {finding:'The spare gear fits the shaft.',consequence:'The gear can turn without binding.',supportsAction:'signal gear'},
+    {finding:'The checked order protects the teeth.',consequence:'The wheel stays aligned during repair.',supportsAction:'Fit signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The upper bridge can carry the part.',supportsAction:'signal gear'},
+  ]};
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('saved-material-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,'saved-material-price',1499,'USD','paid',CURRENT_TIMESTAMP)").run(orderId,stored,await sha256(stored),'saved-material-owner');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version) VALUES ('saved-material-activity',?,'queued',?,2)").run(orderId,stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status) VALUES ('saved-material-entitlement',?,'saved-material-activity','active')").run(orderId);
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,confirmed_version) VALUES (?,'confirmed',1)").run(orderId);
+  const savedCall=db.prepare("INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model,result_json,error_code,error_detail) VALUES (?,?,?,?,'passed','fixture',?,NULL,NULL)");
+  savedCall.run('saved-frame',orderId,'blueprint_frame',0,JSON.stringify(frame));
+  for(let number=1;number<=5;number++){
+    const material=structuredClone(context.stages[number-1]);
+    if(number===1)material.features=['Mentions answer','Names result'];
+    savedCall.run(`saved-material-${number}`,orderId,'blueprint_material',number,JSON.stringify(material));
+  }
+  savedCall.run('saved-closing',orderId,'blueprint_closing',0,JSON.stringify('The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.'));
+  for(let attempt=1;attempt<=5;attempt++)db.prepare("INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model,result_json,error_code,error_detail) VALUES (?,?,'blueprint',0,'failed','fixture','{}','BLUEPRINT_INVALID','Checkpoint 1 needs two concrete, distinct printed record facts')").run(`failed-assembly-${attempt}`,orderId);
+  const calls=[];
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async()=>{}},FETCH:async(_url,request)=>{
+    const body=JSON.parse(request.body),name=body.text.format.name,input=JSON.parse(body.input);calls.push(name);
+    const value=name==='blueprint_material_stage'?context.stages[input.checkpoint-1]
+      :name==='grounded_discoveries'?{consequences:frame.discoveries.map(({consequence})=>consequence)}
+      :name==='staged_story_audit'?{pass:true,issues:[]}:null;
+    assert.ok(value,`unexpected provider request ${name}`);
+    return Response.json({id:`saved-material-${calls.length}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});
+  }};
+  await productionWorker.queue({messages:[{body:{orderId},ack(){},retry(){throw Error('unexpected queue retry');}}]},env);
+  assert.equal(db.prepare("SELECT error_code FROM custom_generation_calls WHERE id='saved-material-1'").get().error_code,'SAVED_STEP_INVALID');
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_generation_calls WHERE order_id=? AND phase='blueprint_material' AND stage_number=1").get(orderId).n,2);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_generation_calls WHERE order_id=? AND phase='blueprint_material' AND stage_number=2").get(orderId).n,1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_generation_calls WHERE order_id=? AND phase='blueprint' AND stage_number=0").get(orderId).n,6);
+  assert.deepEqual(calls.slice(0,2),['blueprint_material_stage','grounded_discoveries']);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_game_blueprints WHERE order_id=?').get(orderId).n,1);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_game_stages WHERE order_id=?').get(orderId).n,5);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
+});
+
+test('a same-order remake resumes past a failed assembly by replacing its one stale saved material',async()=>{
+  const {db,binding}=database(),orderId='remake-saved-material';
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:8,onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
+  const stored=JSON.stringify(spec),context=linkedClockContext();
+  const frame={problem:context.spine.problem,actions:context.stages[4].material.items.map(item=>item.label),discoveries:[
+    {finding:'The signal gear is missing.',consequence:'The missing noon mark points to the gear.',supportsAction:'signal gear'},
+    {finding:'The spare gear fits the shaft.',consequence:'The gear can turn without binding.',supportsAction:'signal gear'},
+    {finding:'The checked order protects the teeth.',consequence:'The wheel stays aligned during repair.',supportsAction:'Fit signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The upper bridge can carry the part.',supportsAction:'signal gear'},
+  ]};
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('remake-saved-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,'remake-saved-price',1499,'USD','published',CURRENT_TIMESTAMP)").run(orderId,stored,await sha256(stored),'remake-saved-owner');
+  db.prepare("INSERT INTO custom_pack_remakes (order_id,status,phase,spec_json,spec_sha256,logic_epoch,quality_epoch,recovery_round) VALUES (?,'queued','blueprint',?,?,1,9,0)").run(orderId,stored,await sha256(stored));
+  const savedCall=db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,result_json,logic_epoch,quality_epoch,generation_round) VALUES (?,?,?,?,'passed','fixture',?,1,9,1)");
+  savedCall.run('remake-frame',orderId,'blueprint_frame',0,JSON.stringify(frame));
+  for(let number=1;number<=5;number++){
+    const material=structuredClone(context.stages[number-1]);
+    if(number===1)material.features=['Mentions answer','Names result'];
+    savedCall.run(`remake-material-${number}`,orderId,'blueprint_material',number,JSON.stringify(material));
+  }
+  savedCall.run('remake-closing',orderId,'blueprint_closing',0,JSON.stringify('The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.'));
+  for(let attempt=1;attempt<=5;attempt++)db.prepare("INSERT INTO custom_pack_remake_calls (id,order_id,phase,stage_number,status,model,result_json,error_code,error_detail,logic_epoch,quality_epoch,generation_round) VALUES (?,?,'blueprint',0,'failed','fixture','{}','BLUEPRINT_INVALID','Checkpoint 1 needs two concrete, distinct printed record facts',1,9,1)").run(`remake-failed-${attempt}`,orderId);
+  const calls=[];
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async()=>{}},FETCH:async(_url,request)=>{
+    const body=JSON.parse(request.body),name=body.text.format.name,input=JSON.parse(body.input);calls.push(name);
+    const value=name==='blueprint_material_stage'?context.stages[input.checkpoint-1]
+      :name==='grounded_discoveries'?{consequences:frame.discoveries.map(({consequence})=>consequence)}:null;
+    assert.ok(value,`unexpected provider request ${name}`);
+    return Response.json({id:`remake-saved-${calls.length}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:10}});
+  }};
+  await processPackRemake(orderId,env);
+  assert.equal(db.prepare("SELECT error_code FROM custom_pack_remake_calls WHERE id='remake-material-1'").get().error_code,'SAVED_STEP_INVALID');
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id=? AND phase='blueprint_material' AND stage_number=1").get(orderId).n,2);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id=? AND phase='blueprint_material' AND stage_number=2").get(orderId).n,1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_pack_remake_calls WHERE order_id=? AND phase='blueprint' AND stage_number=0").get(orderId).n,6);
+  assert.deepEqual(calls,['blueprint_material_stage','grounded_discoveries']);
+  assert.ok(db.prepare('SELECT blueprint_json FROM custom_pack_remakes WHERE order_id=?').get(orderId).blueprint_json);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
+});
