@@ -61,7 +61,7 @@ export function validateSupportedRange(spec, env) {
   const homeMax = Number(env.HOME_PLAYER_MAX);
   const classroomMax = Number(env.CLASSROOM_STUDENT_MAX);
   if (![minimum, maximum, homeMax, classroomMax].every(Number.isInteger) || minimum < 1 || maximum < minimum || homeMax < 2 || classroomMax < 2) throw new ApiError(503, 'SUPPORTED_RANGE_NOT_SET', 'Supported play ranges are not configured.');
-  const match = spec.age.match(/^(\d{1,2})(?:\s*[-�C]\s*(\d{1,2}))?(?:\s*(?:years?|yrs?|yo))?$/i);
+  const match = spec.age.match(/^(\d{1,2})(?:\s*[-–]\s*(\d{1,2}))?(?:\s*(?:years?|yrs?|yo))?$/i);
   if (!match) throw new ApiError(400, 'INVALID_AGE_RANGE', 'Enter one age or a simple range, such as 8-10.');
   const low = Number(match[1]); const high = match[2] ? Number(match[2]) : low;
   if (high < low || low < minimum || high > maximum) throw new ApiError(400, 'UNSUPPORTED_AGE_RANGE', `The current supported age range is ${minimum}-${maximum}.`);
