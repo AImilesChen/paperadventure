@@ -386,10 +386,10 @@ test('an unprinted location is repaired from saved player evidence without anoth
     problem:'The tower remains silent while the traveler waits below.',
     actions:['Fit signal gear','Reset tower hands','Replace bell rope'],
     discoveries:[
-      {finding:'The signal gear is missing.',consequence:'The signal gear is needed for the repair.',supportsAction:'signal gear'},
+      {finding:'The signal gear is missing.',consequence:'The noon mark identifies the signal gear for fitting.',supportsAction:'signal gear'},
       {finding:'The spare gear fits the shaft.',consequence:'The spare gear waits at the unseen balcony.',supportsAction:'signal gear'},
-      {finding:'The checked order protects the teeth.',consequence:'The gear sequence keeps the signal gear ready.',supportsAction:'signal gear'},
-      {finding:'The upper bridge reaches the gear room.',consequence:'The open route keeps the signal gear reachable.',supportsAction:'signal gear'},
+      {finding:'The checked order protects the teeth.',consequence:'The step "Stop the signal" prepares "Test the bell".',supportsAction:'signal gear'},
+      {finding:'The upper bridge reaches the gear room.',consequence:'The open Upper bridge gives the team a route for the final action.',supportsAction:'signal gear'},
     ],
   };
   raw.spine=compileStorySpine(raw.storyFrame,raw.stages,paperContractTypes(spec.plan),15);
