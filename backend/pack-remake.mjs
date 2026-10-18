@@ -476,10 +476,12 @@ export async function processPackRemake(orderId, env) {
           const frame=JSON.parse(savedFrame.result_json);
           const alreadyRejected=await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch).first();
           savedMaterialRepair=!!alreadyRejected;
+          const earlierSaved=[];
           for(let number=1;number<=4&&!savedMaterialRepair;number++){
             const saved=await query(db,"SELECT result_json FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch,number).first();
-            if(saved)try{validateSavedBlueprintMaterialStep(spec,frame,number,JSON.parse(saved.result_json));}
+            if(saved)try{const value=JSON.parse(saved.result_json);validateSavedBlueprintMaterialStep(spec,frame,number,value,earlierSaved);earlierSaved.push(value);}
               catch{savedMaterialRepair=true;}
+            else earlierSaved.push(null);
           }
         }
       }
@@ -497,7 +499,7 @@ export async function processPackRemake(orderId, env) {
             const prior=(spec.packQualityVersion||0)>=13?await query(db,"SELECT error_detail FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'failed' ORDER BY generation_round DESC,created_at DESC,id DESC LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch,number).first():null;
             const result=await generateBlueprintMaterialStep(spec,frame,number,materials,env,env.FETCH||fetch,prior?.error_detail||null);
             return {value:result.data,usage:result.usage,responseId:result.responseId};
-          },env,{validateCached:value=>validateSavedBlueprintMaterialStep(spec,frame,number,value)}));
+          },env,{validateCached:value=>validateSavedBlueprintMaterialStep(spec,frame,number,value,materials)}));
         }
         const recoveredSavedMaterial=!!(await query(db,"SELECT id FROM custom_pack_remake_calls WHERE order_id = ? AND quality_epoch = ? AND logic_epoch = ? AND generation_round = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",orderId,remake.quality_epoch,remake.logic_epoch,remake.recovery_round+1).first());
         budgetPhase='blueprint_closing';stageNumber=0;
@@ -630,4 +632,4 @@ export async function processPackRemake(orderId, env) {
     if(!retry)await query(db,"INSERT INTO custom_delivery_incidents (order_id,phase,error_code) VALUES (?,?,?) ON CONFLICT(order_id) DO UPDATE SET phase = excluded.phase,error_code = excluded.error_code,status = 'open',alert_status = 'pending',alert_attempts = 0,alerted_at = NULL",orderId,phase,code).run();
     if (retry) await queueNext(orderId, env);
   }
-}
+}

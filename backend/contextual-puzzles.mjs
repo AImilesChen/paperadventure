@@ -45,6 +45,52 @@ export const checkedPrintedRecordFacts=(features,number)=>{
     throw Error(`Checkpoint ${number} printed features must describe the contents of every record.`);
   return normalized;
 };
+
+// Check provider-owned fields while the individual material is being saved.
+// The five-stage compiler still checks the completed puzzle and story links;
+// these local defects must not consume the later assembly/review budget.
+export function validateContextualMaterialStep(spec,storyFrame,number,data,earlierStages=[]){
+  if((spec.packQualityVersion||0)<14||number===5)return data;
+  const type=paperContractTypes(spec.plan)[number-1];
+  const count=['order_tiles','symbol_key'].includes(type)?4:3;
+  text(data?.material?.title,`Checkpoint ${number} material title`,45);
+  const items=data?.material?.items;
+  if(!Array.isArray(items)||items.length!==count)
+    throw Error(`Checkpoint ${number} needs ${count} printable pieces.`);
+  let labels=items.map(piece=>text(piece?.label,`Checkpoint ${number} piece label`,40));
+  if(type==='symbol_key')labels=['1','2','3','4'];
+  else if(['evidence_cards','decision_record'].includes(type))labels=labels.map(recordLabel);
+  else labels=labels.map(label=>fitLabel(label));
+  if(!unique(labels))throw Error(`Checkpoint ${number} needs ${count} distinct story-specific labels.`);
+  if(type!=='symbol_key'){
+    if(labels.some(label=>worksheetLanguage.test(label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(label)))
+      throw Error(`Checkpoint ${number} labels must name fictional story pieces or actions, not worksheet instructions.`);
+    const scaffold=/^(?:report|note|route|card|record|piece|option)\s+[a-d1-4]\s*:/i;
+    const substance=labels.map(label=>label.replace(scaffold,'').replace(/\s+(?:report|note|route|card|record|log|letter)$/i,'').trim().toLowerCase());
+    if(labels.some(label=>scaffold.test(label))||!unique(substance))
+      throw Error(`Checkpoint ${number} needs distinct named story pieces, not lettered placeholders or repeated subjects.`);
+    assertGoalStillOpen(labels,spec.plan.goal,number);
+  }
+  if(type==='order_tiles'){
+    if(labels.some(label=>invalidStoryOrderAction(label,storyFrame.actions[0],spec.plan.goal)))
+      throw Error(`Checkpoint ${number} ordering material needs four natural unfinished story actions with concrete objects.`);
+    const key=label=>label.toLowerCase().replace(/\b(?:the|a|an)\b/g,'').replace(/[^a-z]+/g,' ').trim().replace(/\s+/g,' ');
+    const previous=new Set(earlierStages.flatMap((stage,index)=>paperContractTypes(spec.plan)[index]==='order_tiles'
+      ?(stage?.material?.items||[]).map(piece=>key(piece?.label)):[]));
+    if(labels.some(label=>previous.has(key(label))))
+      throw Error(`Checkpoint ${number} repeats a printed action from an earlier checkpoint.`);
+  }
+  if(['evidence_cards','decision_record'].includes(type)){
+    if(labels.some(label=>!/(?:note|report|log|letter|ledger|record|card|message|ticket|journal|entry|file|memo|clipping|receipt|statement|page|sheet|slip|document)$/i.test(label)))
+      throw Error(`Checkpoint ${number} candidates must all be comparable written records.`);
+    checkedPrintedRecordFacts(data.features,number);
+  }
+  if(type==='symbol_key'){
+    const used=new Set(earlierStages.filter((stage,index)=>paperContractTypes(spec.plan)[index]==='symbol_key').map(stage=>String(stage?.word||'').toUpperCase()));
+    shortKeyWord(data.word,spec,number-1,used);
+  }
+  return data;
+}
 const featureStop=new Set(['this','that','with','from','into','before','after','needed','need','helps','help','using','used','final','first','action','story','discovery','identifies','identify','gives','give','provides','provide','allows','allow','required','requires','carry','complete','completes']);
 const fallbackRecordFeatures=(candidate,spec,index)=>{
   const discovery=candidate.storyFrame?.discoveries?.[index];
@@ -393,5 +439,5 @@ export function contextualStageText(stage,style='base'){
   if(style==='clear')return {clue:`Read, compare, then record. ${clue}`,hint,explanation};
   if(style!=='base')throw Error('Unsupported contract wording.');
   return {clue,hint,explanation};
-}
-
+}
+

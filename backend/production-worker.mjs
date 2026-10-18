@@ -1186,10 +1186,12 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
             const frame=JSON.parse(savedFrame.result_json);
             const alreadyRejected=await query(env.DB,"SELECT id FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",order.id).first();
             savedMaterialRepair=!!alreadyRejected;
+            const earlierSaved=[];
             for(let number=1;number<=4&&!savedMaterialRepair;number++){
               const saved=await query(env.DB,"SELECT result_json FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id,number).first();
-              if(saved)try{validateSavedBlueprintMaterialStep(spec,frame,number,JSON.parse(saved.result_json));}
+              if(saved)try{const value=JSON.parse(saved.result_json);validateSavedBlueprintMaterialStep(spec,frame,number,value,earlierSaved);earlierSaved.push(value);}
                 catch{savedMaterialRepair=true;}
+              else earlierSaved.push(null);
             }
           }
         }
@@ -1208,7 +1210,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
               const prior=(spec.packQualityVersion||0)>=13?await query(env.DB,"SELECT error_detail FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'failed' ORDER BY created_at DESC,id DESC LIMIT 1",order.id,number).first():null;
               const result=await generateBlueprintMaterialStep(spec,frame,number,materialSteps,env,fetcher,prior?.error_detail||null);
               return {value:result.data,usage:result.usage,responseId:result.responseId};
-            },null,true,value=>validateSavedBlueprintMaterialStep(spec,frame,number,value)));
+            },null,true,value=>validateSavedBlueprintMaterialStep(spec,frame,number,value,materialSteps)));
           }
           recoveredSavedMaterial=!!(await query(env.DB,"SELECT id FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND error_code = 'SAVED_STEP_INVALID' LIMIT 1",order.id).first());
           budgetPhase='blueprint_closing';stageNumber=0;
@@ -1527,5 +1529,5 @@ export default {
     for (const item of revisions.results || []) await env.GENERATION_QUEUE.send({ type: 'revision', revisionId: item.id });
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
-};
-
+};
+
