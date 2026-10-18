@@ -1,0 +1,23 @@
+name: Read round3 blueprint failure
+on:
+  push:
+    branches: [diagnose-round3-8e4468a9]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Read latest failures
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase,stage_number,status,error_code,generation_round,error_detail FROM custom_pack_remake_calls WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807' AND generation_round=3 AND status='failed' ORDER BY created_at DESC,id DESC LIMIT 3" > "$RUNNER_TEMP/f.json"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/f.json','utf8'));
+          const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
+          console.log('ROUND3_FAILED', JSON.stringify(rows.map(r=>({phase:r.phase,stage:r.stage_number,code:r.error_code,detail:r.error_detail}))));
+          NODE
