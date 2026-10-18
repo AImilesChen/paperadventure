@@ -60,6 +60,14 @@ test('player evidence gate uses the complete player pack without accepting adult
   crossCheckpoint.stages[2].storyContext+=' A painted sign identifies the awning rail.';
   assert.doesNotThrow(()=>validatePlayerEvidence(crossCheckpoint));
 
+  const finalPlayerPage=structuredClone(missing);
+  finalPlayerPage.stages[4].storyContext+=' A painted sign identifies the awning rail.';
+  assert.doesNotThrow(()=>validatePlayerEvidence(finalPlayerPage));
+
+  const finalInstructions=structuredClone(missing);
+  finalInstructions.stages[4].material.instruction+=' Continue at the awning rail.';
+  assert.throws(()=>validatePlayerEvidence(finalInstructions),/Checkpoint 2 claims a location absent from its player material: awning rail/);
+
   const adultOnly=structuredClone(missing);
   adultOnly.stages[2].explanation+=' The adult guide identifies the awning rail.';
   assert.throws(()=>validatePlayerEvidence(adultOnly),/Checkpoint 2 claims a location absent from its player material: awning rail/);
