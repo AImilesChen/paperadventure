@@ -1,4 +1,4 @@
-name: Check diag 46b21431
+name: Diagnose deepseek v4 pro
 on:
   push:
     branches: [dump-order-46b21431]
@@ -8,21 +8,30 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    env:
-      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    timeout-minutes: 10
     steps:
-      - name: Check result and detail
+      - name: Probe v4-pro formats
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
         run: |
-          OID='46b21431-0d9f-488c-bdce-0fc1289f8784'
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT a.status AS activity_status, a.published_at, o.status AS order_status, dc.error_code AS copy_error, dc.phase AS copy_phase, dc.audit_passed FROM custom_activities a LEFT JOIN orders o ON o.id=a.order_id LEFT JOIN custom_delivery_copy dc ON dc.order_id=a.order_id WHERE a.order_id='$OID'" > "$RUNNER_TEMP/st.json"
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase,error_code,error_detail,status,model FROM generation_usage WHERE order_id='$OID' ORDER BY attempt DESC LIMIT 2" > "$RUNNER_TEMP/u.json"
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase, stage_number, status, error_code, error_detail FROM custom_generation_calls WHERE order_id='$OID' ORDER BY created_at DESC, id DESC LIMIT 5" > "$RUNNER_TEMP/gc.json"
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT COUNT(*) AS n FROM artifact_versions av JOIN custom_activities ca ON ca.id=av.custom_activity_id WHERE ca.order_id='$OID' AND av.status='published'" > "$RUNNER_TEMP/art.json"
-          node - <<'NODE'
-          const fs=require('node:fs');
-          for(const [k,f] of [['STATUS','st'],['USAGE','u'],['CALL','gc'],['ARTIFACTS','art']]){
-            try{ const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f+'.json','utf8')); const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]; for(const r of rows) console.log(k, JSON.stringify(r)); }catch(e){ console.log(k+'_ERR', e.message); }
-          }
-          NODE
+          test -n "$DEEPSEEK_API_KEY" || { echo "NO_KEY"; exit 1; }
+          echo "=== A plain ==="
+          curl -s -o /tmp/a.json -w "HTTP=%{http_code} SIZE=%{size_download}\n" -X POST https://api.deepseek.com/responses \
+            -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
+            -d '{"model":"deepseek-v4-pro","input":"Say hello in one word.","max_output_tokens":200}'
+          head -c 500 /tmp/a.json; echo
+          echo "=== B reasoning low ==="
+          curl -s -o /tmp/b.json -w "HTTP=%{http_code} SIZE=%{size_download}\n" -X POST https://api.deepseek.com/responses \
+            -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
+            -d '{"model":"deepseek-v4-pro","reasoning":{"effort":"low"},"input":"Say hello in one word.","max_output_tokens":200}'
+          head -c 500 /tmp/b.json; echo
+          echo "=== C json_schema ==="
+          curl -s -o /tmp/c.json -w "HTTP=%{http_code} SIZE=%{size_download}\n" -X POST https://api.deepseek.com/responses \
+            -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
+            -d '{"model":"deepseek-v4-pro","reasoning":{"effort":"low"},"input":"Return a greeting object.","max_output_tokens":400,"text":{"format":{"type":"json_schema","name":"greeting","strict":true,"schema":{"type":"object","additionalProperties":false,"required":["word"],"properties":{"word":{"type":"string"}}}}}}'
+          head -c 800 /tmp/c.json; echo
+          echo "=== D flash json_schema control ==="
+          curl -s -o /tmp/d.json -w "HTTP=%{http_code} SIZE=%{size_download}\n" -X POST https://api.deepseek.com/responses \
+            -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
+            -d '{"model":"deepseek-flash","reasoning":{"effort":"low"},"input":"Return a greeting object.","max_output_tokens":400,"text":{"format":{"type":"json_schema","name":"greeting","strict":true,"schema":{"type":"object","additionalProperties":false,"required":["word"],"properties":{"word":{"type":"string"}}}}}}'
+          head -c 600 /tmp/d.json; echo
