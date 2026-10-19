@@ -1,4 +1,4 @@
-name: Diagnose v4pro large request
+name: Retry order 46b21431 text
 on:
   push:
     branches: [dump-order-46b21431]
@@ -8,30 +8,19 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Probe large requests
-        env:
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
+      - name: Clear and requeue
         run: |
-          test -n "$DEEPSEEK_API_KEY" || { echo "NO_KEY"; exit 1; }
-          node - <<'NODE'
-          const key=process.env.DEEPSEEK_API_KEY;
-          const longInstr='You are a children paper adventure writer. '.repeat(60);
-          const bigInput=JSON.stringify({plan:{goal:'Recover the missing Silver Key before evening check-in.',stages:Array.from({length:5},(_,i)=>({number:i+1,scene:`Scene ${i+1} in the upside-down hotel lobby`,storyBeat:'The explorers inspect an upside-down room rule and a tilted portrait. '.repeat(8),task:'Arrange the printed steps',teamwork:'Rotate roles'})),themeAnchors:['upside-down hotel','Silver Key','lobby']}});
-          async function probe(name,body){
-            try{
-              const r=await fetch('https://api.deepseek.com/responses',{method:'POST',headers:{authorization:`Bearer ${key}`,'content-type':'application/json'},body:JSON.stringify(body)});
-              const t=await r.text();
-              console.log(name,'HTTP',r.status,'SIZE',t.length,'BODY',t.slice(0,160).replace(/\s+/g,' '));
-            }catch(e){ console.log(name,'ERR',e.message); }
-          }
-          const schema={type:'object',additionalProperties:false,required:['problem','actions','discoveries'],properties:{problem:{type:'string'},actions:{type:'array',minItems:3,maxItems:3,items:{type:'string'}},discoveries:{type:'array',minItems:4,maxItems:4,items:{type:'object',additionalProperties:false,required:['finding','consequence','supportsAction'],properties:{finding:{type:'string'},consequence:{type:'string'},supportsAction:{type:'string'}}}}}};
-          (async()=>{
-            await probe('A_bigInput_only',{model:'deepseek-v4-pro',input:bigInput,max_output_tokens:400});
-            await probe('B_longInstr',{model:'deepseek-v4-pro',instructions:longInstr,input:'Return a short object.',max_output_tokens:400});
-            await probe('C_bigMaxTokens',{model:'deepseek-v4-pro',reasoning:{effort:'low'},input:'Return a short object.',max_output_tokens:15300,text:{format:{type:'json_schema',name:'frame',strict:true,schema}}});
-            await probe('D_full',{model:'deepseek-v4-pro',reasoning:{effort:'low'},instructions:longInstr,input:bigInput,max_output_tokens:15300,text:{format:{type:'json_schema',name:'frame',strict:true,schema}}});
-            await probe('E_full_flash',{model:'deepseek-flash',reasoning:{effort:'low'},instructions:longInstr,input:bigInput,max_output_tokens:15300,text:{format:{type:'json_schema',name:'frame',strict:true,schema}}});
-          })();
-          NODE
+          OID='46b21431-0d9f-488c-bdce-0fc1289f8784'
+          for t in custom_game_blueprints custom_game_stages custom_story_checkpoints custom_game_audits custom_generation_calls custom_delivery_copy custom_delivery_fact_repairs custom_delivery_copy_revisions; do
+            npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "DELETE FROM $t WHERE order_id='$OID'" > "$RUNNER_TEMP/del_$t.json" 2>/dev/null
+          done
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_delivery_incidents SET status='resolved' WHERE order_id='$OID'" > /dev/null 2>&1
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_activities SET status='queued', lease_until=NULL, pipeline_failures=0 WHERE order_id='$OID'" > /dev/null
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE orders SET status='fulfilling' WHERE id='$OID'" > /dev/null
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT a.status AS activity_status, o.status AS order_status FROM custom_activities a JOIN orders o ON o.id=a.order_id WHERE a.order_id='$OID'" > "$RUNNER_TEMP/verify.json"
+          node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/verify.json','utf8'));const r=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];console.log('VERIFY',JSON.stringify(r));"
