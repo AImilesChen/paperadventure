@@ -1,4 +1,4 @@
-name: Retry plan 2c87b05d
+name: Check plan progress 2c87b05d
 on:
   push:
     branches: [dump-order-2c87b05d]
@@ -6,22 +6,28 @@ on:
 permissions:
   contents: read
 jobs:
-  retry:
+  inspect:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     env:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Requeue plan request
+      - name: Check
         run: |
           set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
-          RID="plan-$OID-initial"
           W="npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command"
-          $W "UPDATE custom_plan_requests SET status='queued', attempts=0, lease_until=0, completed_at=NULL WHERE id='$RID'" > "$RUNNER_TEMP/r1.json"; echo "R1=$?"
-          $W "UPDATE custom_plan_orders SET status='queued', updated_at=CURRENT_TIMESTAMP WHERE order_id='$OID'" > "$RUNNER_TEMP/r2.json"; echo "R2=$?"
-          $W "UPDATE custom_plan_work SET phase='queued', error_code=NULL, updated_at=CURRENT_TIMESTAMP WHERE order_id='$OID'" > "$RUNNER_TEMP/r3.json"; echo "R3=$?"
-          $W "SELECT r.status AS req_status, r.attempts, p.status AS plan_status, p.active_version, p.confirmed_version, (SELECT COUNT(*) FROM custom_plan_work w WHERE w.order_id='$OID' AND w.candidate_saved=1) AS cand_saved FROM custom_plan_requests r JOIN custom_plan_orders p ON p.order_id=r.order_id WHERE r.id='$RID'" > "$RUNNER_TEMP/v.json"
-          node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/v.json','utf8'));const r=(Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]);console.log('VERIFY',JSON.stringify(r));"
+          $W "SELECT r.status AS req, r.attempts, p.status AS plan, p.active_version, p.confirmed_version, w.phase, w.plan_valid, w.audit_passed, w.provider_calls, w.error_code FROM custom_plan_requests r JOIN custom_plan_orders p ON p.order_id=r.order_id LEFT JOIN custom_plan_work w ON w.request_id=r.id WHERE r.order_id='$OID'" > "$RUNNER_TEMP/a.json"
+          $W "SELECT version_number, request_kind, length(plan_json) AS len FROM custom_plan_versions WHERE order_id='$OID' ORDER BY version_number" > "$RUNNER_TEMP/b.json"
+          $W "SELECT status FROM orders WHERE id='$OID'" > "$RUNNER_TEMP/c.json"
+          $W "SELECT status FROM custom_activities WHERE order_id='$OID'" > "$RUNNER_TEMP/d.json"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const rd=f=>{try{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];}catch(e){return [{ERR:e.message.slice(0,120)}];}};
+          for(const [k,f] of [['PLAN','a'],['VERSIONS','b'],['ORDER','c'],['ACTIVITY','d']]){
+            const rows=rd(f); if(!rows.length)console.log(k,'<none>');
+            for(const r of rows)console.log(k,JSON.stringify(r));
+          }
+          NODE
           true
