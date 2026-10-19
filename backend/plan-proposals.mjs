@@ -201,7 +201,7 @@ export async function generateSinglePlan(spec,env,fetcher,options={}){
     if(providerCalls+(options.previousCalls||0)>=providerCallLimit)throw new ApiError(503,'PLAN_CALL_BUDGET','The plan reached its model-call limit. No further calls were made.');
     await options.onBeforeCall?.(providerCalls+(options.previousCalls||0)+1);
     providerCalls++;
-    const response=await fetcher(url,{...request,signal:AbortSignal.timeout(90000)});
+    const response=await fetcher(url,{...request,signal:AbortSignal.timeout(180000)});
     try{const body=await response.clone().json();usage.input_tokens+=body.usage?.input_tokens||0;usage.output_tokens+=body.usage?.output_tokens||0;responseId=body.id||responseId;}catch{}
     return response;
   };

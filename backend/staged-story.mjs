@@ -78,7 +78,7 @@ async function structuredResponse(spec, env, fetcher, {name,schema,instructions,
   const careful=(spec.packQualityVersion||0)>=8&&reasoningNames.has(name);
   let response;
   try {
-    response=await fetcher(provider.url,{method:'POST',signal:AbortSignal.timeout(90000),headers:{authorization:`Bearer ${provider.key}`,'content-type':'application/json'},body:JSON.stringify({
+    response=await fetcher(provider.url,{method:'POST',signal:AbortSignal.timeout(180000),headers:{authorization:`Bearer ${provider.key}`,'content-type':'application/json'},body:JSON.stringify({
       model:provider.model,...(provider.name==='deepseek'?{reasoning:{effort:careful?'low':'none'}}:{}),instructions,
       input:JSON.stringify(input),max_output_tokens:maxOutput+(spec.packContractVersion===1&&provider.name==='deepseek'?(careful?(['story_frame','story_frame_repair'].includes(name)?14000:9000):2000):0),text:{format:{type:'json_schema',name,strict:true,schema}},
     })});
