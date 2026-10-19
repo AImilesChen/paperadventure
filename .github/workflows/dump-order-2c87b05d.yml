@@ -1,4 +1,4 @@
-name: Export saved steps 2c87b05d
+name: Requeue order 2c87b05d
 on:
   push:
     branches: [dump-order-2c87b05d]
@@ -6,25 +6,30 @@ on:
 permissions:
   contents: read
 jobs:
-  inspect:
+  retry:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     env:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Export
+      - name: Requeue
         run: |
           set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
           W="npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command"
-          $W "SELECT phase, stage_number, result_json FROM custom_generation_calls WHERE order_id='$OID' AND status='passed' AND result_json IS NOT NULL ORDER BY created_at" > "$RUNNER_TEMP/a.json"
-          $W "SELECT story_spec_json FROM custom_activities WHERE order_id='$OID'" > "$RUNNER_TEMP/b.json"
+          # Failed assembly rows carry no usable step and would spend the phase budget.
+          $W "DELETE FROM custom_generation_calls WHERE order_id='$OID' AND phase='blueprint' AND status='failed'" > "$RUNNER_TEMP/d.json"; echo "DEL=$?"
+          $W "UPDATE custom_activities SET status='queued', lease_until=0, pipeline_failures=0 WHERE order_id='$OID'" > "$RUNNER_TEMP/u1.json"; echo "ACT=$?"
+          $W "UPDATE orders SET status='fulfilling' WHERE id='$OID'" > "$RUNNER_TEMP/u2.json"; echo "ORD=$?"
+          $W "SELECT phase, stage_number, status FROM custom_generation_calls WHERE order_id='$OID' ORDER BY created_at" > "$RUNNER_TEMP/a.json"
+          $W "SELECT c.status AS act, o.status AS ord, c.lease_until FROM custom_activities c JOIN orders o ON o.id=c.order_id WHERE c.order_id='$OID'" > "$RUNNER_TEMP/b.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          const rd=f=>{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];};
-          const rows=rd('a.json');
-          const payload={spec:JSON.parse(rd('b.json')[0].story_spec_json),steps:rows.map(r=>({phase:r.phase,stage:Number(r.stage_number),result:JSON.parse(r.result_json)}))};
-          console.log('STEPS_B64',Buffer.from(JSON.stringify(payload)).toString('base64'));
+          const rd=f=>{try{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];}catch(e){return [{ERR:e.message.slice(0,150)}];}};
+          for(const [k,f] of [['STEP','a.json'],['STATE','b.json']]){
+            const rows=rd(f); if(!rows.length)console.log(k,'<none>');
+            for(const r of rows)console.log(k,JSON.stringify(r));
+          }
           NODE
           true
