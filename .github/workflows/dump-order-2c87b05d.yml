@@ -1,4 +1,4 @@
-name: Find artifacts
+name: Verify r2 keys
 on:
   push:
     branches: [dump-order-2c87b05d]
@@ -13,19 +13,17 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Find
+      - name: Verify
         run: |
           set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
           W="npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command"
-          $W "SELECT COUNT(*) AS total FROM artifact_versions" > "$RUNNER_TEMP/a.json"
-          $W "SELECT custom_activity_id, version_number, status, created_at FROM artifact_versions ORDER BY created_at DESC LIMIT 8" > "$RUNNER_TEMP/b.json"
-          $W "SELECT id, order_id, status, published_at FROM custom_activities WHERE order_id='$OID'" > "$RUNNER_TEMP/c.json"
-          $W "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%artifact%'" > "$RUNNER_TEMP/d.json"
+          $W "SELECT version_number, status, player_r2_key, guide_r2_key, length(player_sha256) AS psha, length(guide_sha256) AS gsha FROM artifact_versions WHERE custom_activity_id='activity-$OID'" > "$RUNNER_TEMP/a.json"
+          $W "SELECT status, count(*) AS n FROM entitlements WHERE order_id='$OID' GROUP BY status" > "$RUNNER_TEMP/b.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          const rd=f=>{try{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];}catch(e){return [{ERR:e.message.slice(0,200)}];}};
-          for(const [k,f] of [['TOTAL','a.json'],['ROWS','b.json'],['ACT','c.json'],['TABLES','d.json']]){
+          const rd=f=>{try{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];}catch(e){return [{ERR:e.message.slice(0,300)}];}};
+          for(const [k,f] of [['ART','a.json'],['ENT','b.json']]){
             const rows=rd(f); if(!rows.length)console.log(k,'<none>');
             for(const r of rows)console.log(k,JSON.stringify(r));
           }
