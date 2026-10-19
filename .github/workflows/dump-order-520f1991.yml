@@ -1,4 +1,4 @@
-name: Dump order 520f1991 orders
+name: Downgrade and retry order 520f1991
 on:
   push:
     branches: [dump-order-520f1991]
@@ -12,13 +12,22 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump orders row
+      - name: Downgrade spec to v14 and retry
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT id, status, product_kind, json_extract(purchase_spec_json,'$.packQualityVersion') AS qv, length(purchase_spec_json) AS len FROM orders WHERE id='520f1991-da40-4d70-a9f9-11ff0d8641bc'" > "$RUNNER_TEMP/o.json"
+          OID='520f1991-da40-4d70-a9f9-11ff0d8641bc'
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_activities SET story_spec_json = json_set(story_spec_json, '$.packQualityVersion', 14) WHERE order_id='$OID'" > "$RUNNER_TEMP/s1.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE orders SET purchase_spec_json = json_set(purchase_spec_json, '$.packQualityVersion', 14) WHERE id='$OID'" > "$RUNNER_TEMP/s2.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "DELETE FROM custom_delivery_copy WHERE order_id='$OID'" > "$RUNNER_TEMP/s3.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "DELETE FROM custom_delivery_fact_repairs WHERE order_id='$OID'" > "$RUNNER_TEMP/s4.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "DELETE FROM custom_delivery_copy_revisions WHERE order_id='$OID'" > "$RUNNER_TEMP/s5.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_delivery_incidents SET status='resolved' WHERE order_id='$OID'" > "$RUNNER_TEMP/s6.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_activities SET status='queued', lease_until=NULL, delivery_retry_used=1, delivery_retry_baseline=0 WHERE order_id='$OID' AND status='failed' AND delivery_retry_used=0" > "$RUNNER_TEMP/s7.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE orders SET status='fulfilling' WHERE id='$OID' AND status='failed'" > "$RUNNER_TEMP/s8.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT a.status AS activity_status, a.delivery_retry_used, json_extract(a.story_spec_json,'$.packQualityVersion') AS qv, o.status AS order_status FROM custom_activities a JOIN orders o ON o.id=a.order_id WHERE a.order_id='$OID'" > "$RUNNER_TEMP/verify.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/o.json','utf8'));
-          const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
-          console.log('ORDER_ROWS', rows.length);
-          for(const r of rows) console.log('ORDER', JSON.stringify(r));
+          for(const f of ['s1','s2','s3','s4','s5','s6','s7','s8','verify']){
+            try{ const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f+'.json','utf8')); console.log(f+'_OK', JSON.stringify(d).slice(0,200)); }
+            catch(e){ console.log(f+'_PARSE_FAIL', e.message); }
+          }
           NODE
