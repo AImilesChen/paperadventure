@@ -47,7 +47,7 @@ test('plan validation normalizes printable typography without accepting non-Engl
   assert.throws(()=>validatePlan(plan,spec));
 });
 test('a new code-led plan varies its four playable puzzles while retaining the main style',()=>{
-  const spec=validatePurchase({...input,creatorVersion:3,gameplay:{primary:'code',secondary:[],request:''}}).spec;
+  const spec={...validatePurchase({...input,creatorVersion:3,gameplay:{primary:'code',secondary:[],request:''}}).spec,packQualityVersion:15};
   const plan=planFixture({...spec,gameplay:{primary:'reasoning',secondary:[]}});
   plan.stages.forEach((stage,index)=>{stage.mechanic=['code','code','reasoning','reasoning','code'][index];});
   assert.equal(validatePlan(plan,spec).stages[4].mechanic,'code');
@@ -193,7 +193,7 @@ test('a changed title and opening cannot disguise unchanged story events in a wh
 });
 
 test('new paid plans generate narrative only; setup and selected main-style allocation cannot drift',async()=>{
-  const spec=validatePurchase({...input,creatorVersion:3,gameplay:{primary:'sequence',secondary:['reasoning']}}).spec;
+  const spec={...validatePurchase({...input,creatorVersion:3,gameplay:{primary:'sequence',secondary:['reasoning']}}).spec,packQualityVersion:15};
   const candidate=planFixture({...spec,gameplay:{primary:'reasoning',secondary:[]}});
   candidate.roles='R'.repeat(501);candidate.preparation='P'.repeat(502);
   let calls=0;

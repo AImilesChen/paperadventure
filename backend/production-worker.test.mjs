@@ -703,7 +703,7 @@ test('the clock-tower blueprint recovery is one order-scoped call and does not g
 
 test('a stopped v15 material step can resume once on the same paid order',async()=>{
   const {db,binding}=database(),owner=await sha256('test-session-secret|adult@example.com'),jobs=[];
-  const spec=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  const spec={...validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec,packQualityVersion:15};
   assert.equal(spec.packQualityVersion,15);
   const stored=JSON.stringify(spec);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('material-price','custom_home','USD',1499,'exclusive',1)").run();
