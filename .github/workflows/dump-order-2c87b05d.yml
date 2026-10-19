@@ -1,4 +1,4 @@
-name: Check plan work 2c87b05d
+name: Dump plan candidate 2c87b05d
 on:
   push:
     branches: [dump-order-2c87b05d]
@@ -13,22 +13,41 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump plan work
+      - name: Dump candidate
         run: |
           set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
-          q() { npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "$2" > "$RUNNER_TEMP/$1.json" 2>"$RUNNER_TEMP/$1.err"; echo "Q $1 exit=$?"; }
-          q work "SELECT phase, candidate_saved, plan_valid, audit_passed, provider_calls, error_code, updated_at FROM custom_plan_work WHERE order_id='$OID'"
-          q req "SELECT kind, status, attempts, result_version, created_at, completed_at FROM custom_plan_requests WHERE order_id='$OID' ORDER BY created_at"
-          q copies "SELECT policy, phase, calls, audit_passed, error_code, substr(error_detail,1,200) AS detail FROM custom_delivery_copy WHERE order_id='$OID'"
-          q inc "SELECT phase, error_code, status, created_at FROM custom_delivery_incidents WHERE order_id='$OID'"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT checkpoint_json FROM custom_plan_work WHERE order_id='$OID'" > "$RUNNER_TEMP/ck.json" 2>/dev/null
           node - <<'NODE'
           const fs=require('node:fs');
-          const rd=f=>{try{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f+'.json','utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];}catch(e){return [{ERR:e.message.slice(0,150)}];}};
-          for(const [k,f] of [['WORK','work'],['REQ','req'],['COPY','copies'],['INC','inc']]){
-            const rows=rd(f);
-            if(!rows.length) console.log(k,'<none>');
-            for(const r of rows) console.log(k, JSON.stringify(r));
+          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/ck.json','utf8'));
+          const rows=(Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]);
+          if(!rows.length){console.log('CK <none>');process.exit(0);}
+          const raw=rows[0].checkpoint_json;
+          console.log('CK_LEN',String(raw||'').length);
+          let ck=null;
+          try{ck=JSON.parse(raw);}catch(e){console.log('CK_PARSE_ERR',e.message);}
+          if(ck){
+            console.log('CK_KEYS',JSON.stringify(Object.keys(ck)));
+            console.log('CK_VALID',ck.valid,'ERRCODE',ck.errorCode);
+            console.log('CK_FORMAT_ISSUE',JSON.stringify(ck.formatIssue));
+            console.log('CK_FORMAT_FIELDS',JSON.stringify(ck.formatRepairFields));
+            const c=ck.candidate;
+            if(typeof c==='string'){
+              console.log('CAND_IS_STRING len='+c.length);
+              console.log('CAND_RAW_START',c.slice(0,900));
+              try{ck.candidate=JSON.parse(c);}catch{}
+            }
+            if(ck.candidate&&typeof ck.candidate==='object'){
+              const cand=ck.candidate;
+              console.log('CAND_KEYS',JSON.stringify(Object.keys(cand)));
+              for(const k of ['id','title','summary','premise','goal','themeAnchors']){
+                if(k in cand) console.log('CAND_'+k.toUpperCase(), JSON.stringify(cand[k]), 'len='+String(cand[k]??'').length);
+              }
+              for(const s of (cand.stages||[])){
+                console.log('CAND_STAGE', JSON.stringify({n:s.number,scene:s.scene,storyBeat:s.storyBeat,sceneLen:String(s.scene||'').length,beatLen:String(s.storyBeat||'').length}));
+              }
+            }
           }
           NODE
           true
