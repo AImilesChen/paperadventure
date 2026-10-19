@@ -64,3 +64,5 @@
 # deploy heard outcome scoping 2026-10-19T11:38:50Z
 
 # deploy consequence-first purpose 2026-10-19T12:21:33Z
+
+# deploy delivery copy audit timeout 300s 2026-10-19T12:32:24Z
