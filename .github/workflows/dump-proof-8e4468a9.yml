@@ -1,4 +1,4 @@
-name: Read story resolution and stage5
+name: Read story json keys
 on:
   push:
     branches: [dump-proof-8e4468a9]
@@ -12,7 +12,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump story resolution
+      - name: Dump story keys and spine
         run: |
           npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT story_json FROM custom_pack_remakes WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/d.json"
           node - <<'NODE'
@@ -22,12 +22,9 @@ jobs:
           for(const r of rows){
             try{
               const s=JSON.parse(r.story_json||'null');
-              console.log('RESOLUTION', s&&s.spine&&s.spine.resolution);
-              console.log('STORYFRAME_ACTIONS', JSON.stringify(s&&s.storyFrame&&s.storyFrame.actions));
-              const st5=s&&s.stages&&s.stages[4];
-              console.log('STAGE5_MATERIAL_ITEMS', JSON.stringify(st5&&st5.material&&st5.material.items));
-              console.log('STAGE5_OPTIONS', JSON.stringify(st5&&st5.options));
-              console.log('STAGE5_ANSWERINDEX', st5&&st5.answerIndex);
+              console.log('TOP_KEYS', s?Object.keys(s).join(','):'null');
+              console.log('SPINE', JSON.stringify(s&&s.spine).slice(0,600));
+              console.log('STAGE5', JSON.stringify(s&&s.stages&&s.stages[4]).slice(0,1200));
             }catch(e){ console.log('PARSE_FAIL', e.message); }
           }
           NODE
