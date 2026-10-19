@@ -54,3 +54,5 @@
 # deploy allow concrete rule phrases 2026-10-19T09:25:00Z
 
 # deploy diagnose upstream body 2026-10-19T09:50:53Z
+
+# deploy read body as text 2026-10-19T10:10:25Z
