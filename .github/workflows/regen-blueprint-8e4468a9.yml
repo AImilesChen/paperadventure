@@ -1,0 +1,52 @@
+name: Regenerate blueprint for order 8E4468A9
+on:
+  push:
+    branches: [regen-blueprint-8e4468a9]
+permissions:
+  contents: read
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Reset remake to blueprint phase and regenerate
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/regen.mjs" <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          const id = '8e4468a9-9847-43ae-b1b7-20e05c32f807';
+          const run = sql => {
+            const raw = execFileSync('npx',['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--json','--command',sql],{encoding:'utf8',maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
+            const d = JSON.parse(raw), batches = Array.isArray(d) ? d : [d];
+            if (batches.some(b => b.success === false)) throw Error('D1 query failed: ' + JSON.stringify(batches));
+            return { rows: batches.flatMap(b => b.results||[]), changes: batches.reduce((n,b)=>n+Number(b.meta?.changes||0),0) };
+          };
+          const q = sql => run(sql).rows;
+          const state = () => q(`SELECT status,phase,error_code,quality_epoch,published_version FROM custom_pack_remakes WHERE order_id='${id}'`)[0];
+          const before = state();
+          console.log('BEFORE', JSON.stringify(before));
+          if (!before || before.published_version !== null) { console.log('Not a resumable remake; no changes.'); process.exit(0); }
+
+          // Clear the stale blueprint, stages, story and delivery copy so the
+          // remake rebuilds from the blueprint phase under the new validation.
+          run(`DELETE FROM custom_delivery_copy WHERE order_id='${id}'`);
+          run(`DELETE FROM custom_delivery_copy_revisions WHERE order_id='${id}'`);
+          run(`DELETE FROM custom_delivery_fact_repairs WHERE order_id='${id}'`);
+          const changed = run(`UPDATE custom_pack_remakes SET status='queued',phase='blueprint',blueprint_json=NULL,blueprint_sha256=NULL,stages_json='[]',story_json=NULL,story_sha256=NULL,failure_count=0,recovery_round=0,quality_epoch=quality_epoch+1,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='${id}'`);
+          console.log('RESET', changed.changes);
+          if (changed.changes !== 1) { console.log('RESET_DID_NOT_APPLY'); process.exit(1); }
+          console.log('AFTER_RESET', JSON.stringify(state()));
+
+          for (let i=0;i<52;i++) {
+            await new Promise(resolve=>setTimeout(resolve,15000));
+            const cur = state();
+            if (i%4===3 || cur.status==='ready' || cur.status==='failed') console.log('POLL', JSON.stringify(cur));
+            if (cur.status==='ready') { console.log('REMAKE_READY'); process.exit(0); }
+            if (cur.status==='failed') { console.log('REMAKE_FAILED'); process.exit(0); }
+          }
+          console.log('OBSERVED', JSON.stringify(state()));
+          NODE
+          node "$RUNNER_TEMP/regen.mjs"
