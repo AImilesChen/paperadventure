@@ -120,6 +120,25 @@ const repeatsFinalAction=(label,finalAction)=>{
   const current=words(label),final=words(finalAction);
   return current[0]&&current[0]===final[0]&&current.slice(1).some(word=>final.slice(1).includes(word));
 };
+// The final action places the story's core object (a capitalised proper noun
+// such as "Twinkle" or "Moonheart") at its one true destination. An ordering
+// tile is a preparation step, so it must never place that same object
+// somewhere — otherwise the sequence invents a second, conflicting destination
+// ("Set Twinkle on the shelf" vs "Put Twinkle in the booth chest").
+const finalObjectName=value=>{
+  const words=String(value||'').split(/\s+/);
+  for(let index=1;index<words.length;index++){
+    if(/^[A-Z][a-z]+$/.test(words[index]))return words[index];
+  }
+  return null;
+};
+const placesFinalObject=(label,finalAction)=>{
+  const object=finalObjectName(finalAction);
+  if(!object)return false;
+  return /^(?:set|place|put|seat|position|lay|stand|rest|return|bring|carry|move|install|fit|hang|stow|leave|drop)\b/i.test(label)
+    &&new RegExp(`\\b${object}\\b`).test(label)
+    &&/\b(?:on|in|at|by|into|onto|to|under|over|inside|beside)\s+(?:the\s+)?[a-z]/i.test(label);
+};
 const completedOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
 const visibleOutcome=/\b(?:rings?|chimes?|sounds?|starts?|turns?|opens?|glows?|shines?|lights?|catches?|moves?|works?|returns?|arrives?|reaches?|restored|repaired|rescued|saved|delivered|completed|finished|recovered|solved)\b/i;
 const sharedResponse=/\b(?:smiles?|cheers?|celebrates?|thanks?|welcomes?|applauds?|continues?|begins?|sets out|heads home|gathers?|reunites?)\b/i;
@@ -148,7 +167,7 @@ export const invalidStoryOrderAction=(label,finalAction='',goal='')=>
   ||/^(?:inspect|gather|prepare|position|collect|attach|place|fit|carry|bring)\s+(?:through|across|over|under|into|at|on|in|from|to|with)\b/i.test(label)
   ||/\b(?:through|across|over|under|into|at|on|in|from|to|with|the|a|an)$/i.test(label.trim())
   ||closesGoal(label,goal)||!isInWorldAction(label)
-  ||Boolean(finalAction)&&(label.trim().toLowerCase()===finalAction.trim().toLowerCase()||repeatsFinalAction(label,finalAction));
+  ||Boolean(finalAction)&&(label.trim().toLowerCase()===finalAction.trim().toLowerCase()||repeatsFinalAction(label,finalAction)||placesFinalObject(label,finalAction));
 
 // Quality v9 treats malformed ordering labels as a formatting defect rather
 // than paying the provider to rewrite the checkpoint. The four replacement

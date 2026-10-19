@@ -38,3 +38,5 @@
 # deploy raise reasoning output budget 2026-10-19T01:54:15Z
 
 # deploy use low reasoning effort 2026-10-19T02:14:39Z
+
+# deploy ordering tile final-object placement guard 2026-10-19T02:53:50Z

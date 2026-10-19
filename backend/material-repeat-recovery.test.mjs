@@ -88,3 +88,18 @@ test('a repeated invalid ordering action falls back to stable story labels on re
   for(const label of labels) assert.equal(invalidStoryOrderAction(label,frame.actions[0],spec.plan.goal),false);
 });
 
+test('an ordering tile must not place the final object at a conflicting destination',()=>{
+  const finalAction='Put Twinkle in booth chest before glow';
+  const goal='Find Twinkle the star puppet and bring it back to the puppet booth before the lanterns are lit for the show.';
+  // Placing the final object somewhere the final action does not place it
+  // invents a second, contradictory destination.
+  for(const label of ['Set Twinkle on the shelf','Place Twinkle on the shelf','Position Twinkle by the curtain'])
+    assert.equal(invalidStoryOrderAction(label,finalAction,goal),true,label);
+  // Natural preparation steps stay valid.
+  for(const label of ['Close the puppet chest','Draw the booth curtain','Light the lantern glow'])
+    assert.equal(invalidStoryOrderAction(label,finalAction,goal),false,label);
+  // Deterministic fallback labels are lowercase and stay valid.
+  for(const label of ['Inspect twinkle sequence','Gather twinkle supplies','Position twinkle sequence'])
+    assert.equal(invalidStoryOrderAction(label,finalAction,goal),false,label);
+});
+
