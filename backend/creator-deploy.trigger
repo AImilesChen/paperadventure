@@ -62,3 +62,5 @@
 # deploy causal proof requirement 2026-10-19T10:39:16Z
 
 # deploy heard outcome scoping 2026-10-19T11:38:50Z
+
+# deploy consequence-first purpose 2026-10-19T12:21:33Z

@@ -24,6 +24,21 @@ test('long provider story-frame text is fitted before printable validation',()=>
   assert.match(frame.actions[0],/chamber$/i);
 });
 
+test('a decoded-word finding keeps its story consequence in the purpose',()=>{
+  const frame=prepareStoryFrame({
+    problem:'The tower clock stopped and the town is still waiting for its noon signal.',
+    actions:['Fit the brass gear in the clock tower','Swap the bell rope in the clock tower','Oil the tower steps before noon'],
+    discoveries:[
+      {finding:'The decoded word is CALM.',consequence:'The lobby register note names the brass gear loft, so the team knows where the gear belongs.',supportsAction:'brass gear'},
+      {finding:'The decoded word is LIFT.',consequence:'Bell rope scraps show one torn strand, so the team knows which part failed at noon.',supportsAction:'brass gear'},
+      {finding:'The decoded word is VAST.',consequence:'The tower map marks the gear loft door, so the team can reach the brass gear safely.',supportsAction:'brass gear'},
+      {finding:'The keeper log mentions the noon chime and names a loose gear.',consequence:'The keeper log places the loose brass gear in the loft, so the final fit can happen.',supportsAction:'brass gear'},
+    ],
+  },14);
+  assert.ok(frame.purposes.every(value=>value.length>=28));
+  assert.match(frame.purposes[0],/lobby register note/i);
+});
+
 test('story frame keeps complete actions and conceals an opening that gives away the winning action',()=>{
   const frame=prepareStoryFrame({
     problem:'The parcel must reach the friendly market keeper before the clock closes the gate.',

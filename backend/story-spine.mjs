@@ -178,6 +178,15 @@ export function prepareStoryFrame(frame,qualityVersion=4){
     let purpose;
     try{purpose=fitted(value,`Checkpoint ${index+1} discovery purpose`,100,true);}
     catch{purpose=purposeFallbacks[index];}
+    // A decoded-word finding ("The decoded word is CALM.") is itself a whole
+    // sentence, so it can spend the entire budget and drop the story
+    // consequence that follows it, leaving a bare answer instead of a purpose.
+    // Keep the consequence, which is the part that explains why it matters.
+    const consequence=discoveries?.[index]?.consequence;
+    if(consequence&&purpose.length<28){
+      try{purpose=fitted(consequence,`Checkpoint ${index+1} discovery purpose`,100,true);}
+      catch{}
+    }
     return openPurpose(purpose,index);
   });
   if(purposes.some(value=>value.length<28||/\b(?:digit|code|correct answer|matching option|worksheet)\b/i.test(value)))
