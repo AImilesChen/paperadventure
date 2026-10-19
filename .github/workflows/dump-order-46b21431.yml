@@ -1,4 +1,4 @@
-name: Retry delivery copy 46b21431
+name: Check order 46b21431 final2
 on:
   push:
     branches: [dump-order-46b21431]
@@ -13,14 +13,17 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Clear delivery copy and requeue
+      - name: Check result
         run: |
           OID='46b21431-0d9f-488c-bdce-0fc1289f8784'
-          for t in custom_delivery_copy custom_delivery_fact_repairs custom_delivery_copy_revisions; do
-            npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "DELETE FROM $t WHERE order_id='$OID'" > "$RUNNER_TEMP/del_$t.json" 2>/dev/null
-          done
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_delivery_incidents SET status='resolved' WHERE order_id='$OID'" > /dev/null 2>&1
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_activities SET status='queued', lease_until=NULL, pipeline_failures=0 WHERE order_id='$OID'" > /dev/null
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE orders SET status='fulfilling' WHERE id='$OID'" > /dev/null
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT a.status AS activity_status, o.status AS order_status, (SELECT COUNT(*) FROM custom_game_blueprints WHERE order_id='$OID') AS bp, (SELECT COUNT(*) FROM custom_game_stages WHERE order_id='$OID') AS st FROM custom_activities a JOIN orders o ON o.id=a.order_id WHERE a.order_id='$OID'" > "$RUNNER_TEMP/verify.json"
-          node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/verify.json','utf8'));const r=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];console.log('VERIFY',JSON.stringify(r));"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT a.status AS activity_status, a.published_at, o.status AS order_status, dc.error_code AS copy_error, dc.phase AS copy_phase, dc.calls AS copy_calls, dc.audit_passed FROM custom_activities a LEFT JOIN orders o ON o.id=a.order_id LEFT JOIN custom_delivery_copy dc ON dc.order_id=a.order_id WHERE a.order_id='$OID'" > "$RUNNER_TEMP/st.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase,error_code,error_detail,status,model FROM generation_usage WHERE order_id='$OID' ORDER BY attempt DESC LIMIT 2" > "$RUNNER_TEMP/u.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT COUNT(*) AS n FROM artifact_versions av JOIN custom_activities ca ON ca.id=av.custom_activity_id WHERE ca.order_id='$OID' AND av.status='published'" > "$RUNNER_TEMP/art.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT audit_json FROM custom_delivery_copy WHERE order_id='$OID'" > "$RUNNER_TEMP/au.json"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          for(const [k,f] of [['STATUS','st'],['USAGE','u'],['ARTIFACTS','art']]){
+            try{ const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f+'.json','utf8')); const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]; for(const r of rows) console.log(k, JSON.stringify(r)); }catch(e){ console.log(k+'_ERR', e.message); }
+          }
+          try{ const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/au.json','utf8')); const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]; for(const r of rows){ const a=JSON.parse(r.audit_json||'null'); console.log('AUDIT_PASS',a&&a.pass,'HAS_PROOF',Boolean(a&&a.causalProof),'ISSUES',JSON.stringify(a&&a.issues)); } }catch(e){ console.log('AUDIT_ERR', e.message); }
+          NODE
