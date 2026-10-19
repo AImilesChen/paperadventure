@@ -1,4 +1,4 @@
-name: Diagnose deepseek v4 pro
+name: Diagnose v4pro large request
 on:
   push:
     branches: [dump-order-46b21431]
@@ -10,28 +10,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Probe v4-pro formats
+      - name: Probe large requests
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
         run: |
           test -n "$DEEPSEEK_API_KEY" || { echo "NO_KEY"; exit 1; }
-          echo "=== A plain ==="
-          curl -s -o /tmp/a.json -w "HTTP=%{http_code} SIZE=%{size_download}\n" -X POST https://api.deepseek.com/responses \
-            -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
-            -d '{"model":"deepseek-v4-pro","input":"Say hello in one word.","max_output_tokens":200}'
-          head -c 500 /tmp/a.json; echo
-          echo "=== B reasoning low ==="
-          curl -s -o /tmp/b.json -w "HTTP=%{http_code} SIZE=%{size_download}\n" -X POST https://api.deepseek.com/responses \
-            -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
-            -d '{"model":"deepseek-v4-pro","reasoning":{"effort":"low"},"input":"Say hello in one word.","max_output_tokens":200}'
-          head -c 500 /tmp/b.json; echo
-          echo "=== C json_schema ==="
-          curl -s -o /tmp/c.json -w "HTTP=%{http_code} SIZE=%{size_download}\n" -X POST https://api.deepseek.com/responses \
-            -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
-            -d '{"model":"deepseek-v4-pro","reasoning":{"effort":"low"},"input":"Return a greeting object.","max_output_tokens":400,"text":{"format":{"type":"json_schema","name":"greeting","strict":true,"schema":{"type":"object","additionalProperties":false,"required":["word"],"properties":{"word":{"type":"string"}}}}}}'
-          head -c 800 /tmp/c.json; echo
-          echo "=== D flash json_schema control ==="
-          curl -s -o /tmp/d.json -w "HTTP=%{http_code} SIZE=%{size_download}\n" -X POST https://api.deepseek.com/responses \
-            -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
-            -d '{"model":"deepseek-flash","reasoning":{"effort":"low"},"input":"Return a greeting object.","max_output_tokens":400,"text":{"format":{"type":"json_schema","name":"greeting","strict":true,"schema":{"type":"object","additionalProperties":false,"required":["word"],"properties":{"word":{"type":"string"}}}}}}'
-          head -c 600 /tmp/d.json; echo
+          node - <<'NODE'
+          const key=process.env.DEEPSEEK_API_KEY;
+          const longInstr='You are a children paper adventure writer. '.repeat(60);
+          const bigInput=JSON.stringify({plan:{goal:'Recover the missing Silver Key before evening check-in.',stages:Array.from({length:5},(_,i)=>({number:i+1,scene:`Scene ${i+1} in the upside-down hotel lobby`,storyBeat:'The explorers inspect an upside-down room rule and a tilted portrait. '.repeat(8),task:'Arrange the printed steps',teamwork:'Rotate roles'})),themeAnchors:['upside-down hotel','Silver Key','lobby']}});
+          async function probe(name,body){
+            try{
+              const r=await fetch('https://api.deepseek.com/responses',{method:'POST',headers:{authorization:`Bearer ${key}`,'content-type':'application/json'},body:JSON.stringify(body)});
+              const t=await r.text();
+              console.log(name,'HTTP',r.status,'SIZE',t.length,'BODY',t.slice(0,160).replace(/\s+/g,' '));
+            }catch(e){ console.log(name,'ERR',e.message); }
+          }
+          const schema={type:'object',additionalProperties:false,required:['problem','actions','discoveries'],properties:{problem:{type:'string'},actions:{type:'array',minItems:3,maxItems:3,items:{type:'string'}},discoveries:{type:'array',minItems:4,maxItems:4,items:{type:'object',additionalProperties:false,required:['finding','consequence','supportsAction'],properties:{finding:{type:'string'},consequence:{type:'string'},supportsAction:{type:'string'}}}}}};
+          (async()=>{
+            await probe('A_bigInput_only',{model:'deepseek-v4-pro',input:bigInput,max_output_tokens:400});
+            await probe('B_longInstr',{model:'deepseek-v4-pro',instructions:longInstr,input:'Return a short object.',max_output_tokens:400});
+            await probe('C_bigMaxTokens',{model:'deepseek-v4-pro',reasoning:{effort:'low'},input:'Return a short object.',max_output_tokens:15300,text:{format:{type:'json_schema',name:'frame',strict:true,schema}}});
+            await probe('D_full',{model:'deepseek-v4-pro',reasoning:{effort:'low'},instructions:longInstr,input:bigInput,max_output_tokens:15300,text:{format:{type:'json_schema',name:'frame',strict:true,schema}}});
+            await probe('E_full_flash',{model:'deepseek-flash',reasoning:{effort:'low'},instructions:longInstr,input:bigInput,max_output_tokens:15300,text:{format:{type:'json_schema',name:'frame',strict:true,schema}}});
+          })();
+          NODE
