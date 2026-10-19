@@ -15,21 +15,23 @@ jobs:
     steps:
       - name: Dump state
         run: |
+          set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
-          W="npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command"
-          $W "SELECT status, pipeline_failures, delivery_retry_used, generated_at, published_at FROM custom_activities WHERE order_id='$OID'" > "$RUNNER_TEMP/st.json" 2>/dev/null
-          $W "SELECT status, plan_confirmed, created_at FROM custom_plan_orders WHERE order_id='$OID'" > "$RUNNER_TEMP/plan.json" 2>/dev/null
-          $W "SELECT status, substr(purchase_spec_json,1,400) AS spec_head FROM orders WHERE id='$OID'" > "$RUNNER_TEMP/ord.json" 2>/dev/null
-          $W "SELECT phase, error_code, substr(error_detail,1,300) AS detail, status, model, input_tokens, output_tokens FROM custom_generation_calls WHERE order_id='$OID' ORDER BY id DESC LIMIT 12" > "$RUNNER_TEMP/calls.json" 2>/dev/null
-          $W "SELECT policy, phase, error_code, substr(error_detail,1,300) AS detail, calls, audit_passed FROM custom_delivery_copy WHERE order_id='$OID'" > "$RUNNER_TEMP/copy.json" 2>/dev/null
-          $W "SELECT (SELECT COUNT(*) FROM custom_game_blueprints WHERE order_id='$OID') AS bp, (SELECT COUNT(*) FROM custom_story_checkpoints WHERE order_id='$OID') AS ckpt" > "$RUNNER_TEMP/counts.json" 2>/dev/null
+          q() { npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "$2" > "$RUNNER_TEMP/$1.json" 2>"$RUNNER_TEMP/$1.err"; echo "Q $1 exit=$?"; }
+          q counts "SELECT (SELECT COUNT(*) FROM custom_game_blueprints WHERE order_id='$OID') AS bp, (SELECT COUNT(*) FROM custom_story_checkpoints WHERE order_id='$OID') AS ckpt"
+          q act "SELECT status, pipeline_failures, delivery_retry_used, generation_version, generated_at, published_at FROM custom_activities WHERE order_id='$OID'"
+          q plan "SELECT status, active_version, confirmed_version, updated_at FROM custom_plan_orders WHERE order_id='$OID'"
+          q ord "SELECT status FROM orders WHERE id='$OID'"
+          q spec "SELECT substr(story_spec_json,1,600) AS spec_head FROM custom_activities WHERE order_id='$OID'"
+          q calls "SELECT phase, stage_number, status, model, input_tokens, output_tokens, error_code, substr(error_detail,1,260) AS detail FROM custom_generation_calls WHERE order_id='$OID' ORDER BY created_at DESC LIMIT 12"
+          q copy "SELECT policy, phase, calls, audit_passed, error_code, substr(error_detail,1,260) AS detail FROM custom_delivery_copy WHERE order_id='$OID'"
           node - <<'NODE'
           const fs=require('node:fs');
-          const rd=f=>{try{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f+'.json','utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];}catch(e){return [{ERR:e.message.slice(0,120)}];}};
-          const pr=o=>{try{return JSON.stringify(o);}catch{return String(o);}};
-          for(const [k,f] of [['COUNTS','counts'],['STATUS','st'],['PLAN','plan'],['ORDER','ord'],['COPY','copy'],['CALL','calls']]){
+          const rd=f=>{try{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f+'.json','utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];}catch(e){return [{ERR:e.message.slice(0,150)}];}};
+          for(const [k,f] of [['COUNTS','counts'],['ACT','act'],['PLAN','plan'],['ORDER','ord'],['SPEC','spec'],['CALL','calls'],['COPY','copy']]){
             const rows=rd(f);
             if(!rows.length) console.log(k,'<none>');
-            for(const r of rows) console.log(k, pr(r));
+            for(const r of rows) console.log(k, JSON.stringify(r));
           }
           NODE
+          true
