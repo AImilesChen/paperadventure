@@ -1,0 +1,87 @@
+name: Downgrade order 8E4468A9 to v14
+on:
+  push:
+    branches: [downgrade-8e4468a9-v14]
+permissions:
+  contents: read
+jobs:
+  downgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Downgrade spec to v14 and resume
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/downgrade.mjs" <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { webcrypto } from 'node:crypto';
+          const id = '8e4468a9-9847-43ae-b1b7-20e05c32f807';
+          const run = sql => {
+            const raw = execFileSync('npx',['--yes','wrangler@4.74.0','d1','execute','paper-adventure-stage-db','--remote','--json','--command',sql],{encoding:'utf8',maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
+            const d = JSON.parse(raw), batches = Array.isArray(d) ? d : [d];
+            if (batches.some(b => b.success === false)) throw Error('D1 query failed: ' + JSON.stringify(batches));
+            return { rows: batches.flatMap(b => b.results||[]), changes: batches.reduce((n,b)=>n+Number(b.meta?.changes||0),0) };
+          };
+          const q = sql => run(sql).rows;
+          const sha256hex = async value => {
+            const buf = await webcrypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+            return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+          };
+
+          // 1. downgrade custom_pack_remakes.spec_json
+          const remake = q(`SELECT spec_json,status,phase,error_code,published_version FROM custom_pack_remakes WHERE order_id='${id}'`)[0];
+          console.log('REMAKE_BEFORE', JSON.stringify({status:remake?.status,phase:remake?.phase,error_code:remake?.error_code,published_version:remake?.published_version}));
+          if (!remake) { console.log('NO_REMAKE_ROW'); process.exit(1); }
+          const spec = JSON.parse(remake.spec_json);
+          console.log('SPEC_BEFORE_QV', spec.packQualityVersion);
+          if (spec.packQualityVersion === 15) {
+            spec.packQualityVersion = 14;
+            const newSpecJson = JSON.stringify(spec);
+            const newSpecHash = await sha256hex(newSpecJson);
+            const upd = run(`UPDATE custom_pack_remakes SET spec_json='${newSpecJson.replace(/'/g,"''")}',spec_sha256='${newSpecHash}',updated_at=CURRENT_TIMESTAMP WHERE order_id='${id}'`);
+            console.log('REMAKE_SPEC_UPDATED', upd.changes, 'new_hash', newSpecHash);
+          } else {
+            console.log('SPEC_ALREADY_NOT_15', spec.packQualityVersion);
+          }
+
+          // 2. downgrade custom_activities.story_spec_json (root cause)
+          const act = q(`SELECT story_spec_json FROM custom_activities WHERE order_id='${id}'`)[0];
+          if (act) {
+            const aSpec = JSON.parse(act.story_spec_json);
+            console.log('ACTIVITY_BEFORE_QV', aSpec.packQualityVersion);
+            if (aSpec.packQualityVersion === 15) {
+              aSpec.packQualityVersion = 14;
+              const newActJson = JSON.stringify(aSpec);
+              const au = run(`UPDATE custom_activities SET story_spec_json='${newActJson.replace(/'/g,"''")}',updated_at=CURRENT_TIMESTAMP WHERE order_id='${id}'`);
+              console.log('ACTIVITY_SPEC_UPDATED', au.changes);
+            }
+          } else {
+            console.log('NO_ACTIVITY_ROW');
+          }
+
+          // 3. clear delivery copy so it regenerates under v14
+          const d1 = run(`DELETE FROM custom_delivery_copy WHERE order_id='${id}'`);
+          const d2 = run(`DELETE FROM custom_delivery_copy_revisions WHERE order_id='${id}'`);
+          const d3 = run(`DELETE FROM custom_delivery_fact_repairs WHERE order_id='${id}'`);
+          console.log('DELIVERY_COPY_CLEARED', d1.changes, d2.changes, d3.changes);
+
+          // 4. queue the remake (blueprint/story already v15-valid, reuse them)
+          const changed = run(`UPDATE custom_pack_remakes SET status='queued',failure_count=0,lease_until=NULL,error_code=NULL,error_detail=NULL,completed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE order_id='${id}' AND status='failed'`);
+          console.log('QUEUED', changed.changes);
+          if (changed.changes !== 1) { console.log('QUEUE_DID_NOT_APPLY'); process.exit(1); }
+
+          const state = () => q(`SELECT status,phase,error_code,recovery_round,quality_epoch,published_version FROM custom_pack_remakes WHERE order_id='${id}'`)[0];
+          console.log('AFTER_QUEUE', JSON.stringify(state()));
+          for (let i=0;i<36;i++) {
+            await new Promise(resolve=>setTimeout(resolve,15000));
+            const cur = state();
+            if (i%4===3 || cur.status==='ready' || cur.status==='failed') console.log('POLL', JSON.stringify(cur));
+            if (cur.status==='ready') { console.log('REMAKE_READY'); process.exit(0); }
+            if (cur.status==='failed') { console.log('REMAKE_FAILED'); process.exit(0); }
+          }
+          console.log('OBSERVED', JSON.stringify(state()));
+          NODE
+          node "$RUNNER_TEMP/downgrade.mjs"
