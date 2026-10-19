@@ -1,4 +1,4 @@
-name: Retry audit 2c87b05d
+name: Check final 2c87b05d
 on:
   push:
     branches: [dump-order-2c87b05d]
@@ -6,29 +6,27 @@ on:
 permissions:
   contents: read
 jobs:
-  retry:
+  inspect:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     env:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Reset audit and requeue
+      - name: Check
         run: |
           set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
           W="npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command"
-          # Keep the saved draft; spend only the audit slot again.
-          $W "UPDATE custom_delivery_copy SET calls=1, audit_json=NULL, audit_response_json=NULL, audit_passed=0, error_code=NULL, error_detail=NULL, phase='audit', updated_at=CURRENT_TIMESTAMP WHERE order_id='$OID'" > "$RUNNER_TEMP/u1.json"; echo "COPY=$?"
-          $W "UPDATE custom_delivery_incidents SET status='resolved' WHERE order_id='$OID' AND status='open'" > "$RUNNER_TEMP/u2.json"; echo "INC=$?"
-          $W "UPDATE custom_activities SET status='queued', lease_until=0, pipeline_failures=0 WHERE order_id='$OID'" > "$RUNNER_TEMP/u3.json"; echo "ACT=$?"
-          $W "UPDATE orders SET status='fulfilling' WHERE id='$OID'" > "$RUNNER_TEMP/u4.json"; echo "ORD=$?"
-          $W "SELECT calls, phase, length(candidate_json) AS cand, audit_json IS NULL AS no_audit, error_code FROM custom_delivery_copy WHERE order_id='$OID'" > "$RUNNER_TEMP/a.json"
-          $W "SELECT c.status AS act, o.status AS ord FROM custom_activities c JOIN orders o ON o.id=c.order_id WHERE c.order_id='$OID'" > "$RUNNER_TEMP/b.json"
+          $W "SELECT c.status AS act, c.lease_until, c.generated_at, c.published_at, o.status AS ord FROM custom_activities c JOIN orders o ON o.id=c.order_id WHERE c.order_id='$OID'" > "$RUNNER_TEMP/a.json"
+          $W "SELECT calls, phase, audit_passed, error_code, substr(error_detail,1,240) AS detail, input_tokens, output_tokens, updated_at FROM custom_delivery_copy WHERE order_id='$OID'" > "$RUNNER_TEMP/b.json"
+          $W "SELECT (SELECT COUNT(*) FROM artifact_versions av JOIN custom_activities ca ON ca.id=av.custom_activity_id WHERE ca.order_id='$OID' AND av.status='published') AS pdf, (SELECT COUNT(*) FROM custom_story_checkpoints WHERE order_id='$OID') AS ckpt" > "$RUNNER_TEMP/c.json"
+          $W "SELECT phase, stage_number, status, error_code, substr(error_detail,1,200) AS detail, created_at FROM custom_generation_calls WHERE order_id='$OID' ORDER BY created_at DESC LIMIT 5" > "$RUNNER_TEMP/d.json"
+          $W "SELECT datetime('now') AS now_utc" > "$RUNNER_TEMP/e.json"
           node - <<'NODE'
           const fs=require('node:fs');
           const rd=f=>{try{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];}catch(e){return [{ERR:e.message.slice(0,150)}];}};
-          for(const [k,f] of [['COPY','a.json'],['STATE','b.json']]){
+          for(const [k,f] of [['STATE','a.json'],['COPY','b.json'],['COUNTS','c.json'],['CALL','d.json'],['NOW','e.json']]){
             const rows=rd(f); if(!rows.length)console.log(k,'<none>');
             for(const r of rows)console.log(k,JSON.stringify(r));
           }
