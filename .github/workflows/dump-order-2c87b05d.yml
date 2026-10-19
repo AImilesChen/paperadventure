@@ -1,4 +1,4 @@
-name: Check state 2c87b05d v2
+name: Verify delivery 2c87b05d
 on:
   push:
     branches: [dump-order-2c87b05d]
@@ -13,22 +13,23 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Check
+      - name: Verify
         run: |
           set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
           W="npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command"
-          $W "SELECT c.status AS act, c.published_at, o.status AS ord FROM custom_activities c JOIN orders o ON o.id=c.order_id WHERE c.order_id='$OID'" > "$RUNNER_TEMP/a.json"
-          $W "SELECT calls, phase, audit_passed, error_code, substr(error_detail,1,200) AS detail, updated_at FROM custom_delivery_copy WHERE order_id='$OID'" > "$RUNNER_TEMP/b.json"
-          $W "SELECT pass, issues FROM (SELECT json_extract(audit_json,'\$.pass') AS pass, json_extract(audit_json,'\$.issues') AS issues FROM custom_delivery_copy WHERE order_id='$OID')" > "$RUNNER_TEMP/c.json"
-          $W "SELECT (SELECT COUNT(*) FROM artifact_versions av JOIN custom_activities ca ON ca.id=av.custom_activity_id WHERE ca.order_id='$OID' AND av.status='published') AS pdf" > "$RUNNER_TEMP/d.json"
-          $W "SELECT datetime('now') AS now_utc" > "$RUNNER_TEMP/e.json"
+          $W "SELECT c.status AS act, c.generated_at, c.published_at, o.status AS ord, o.paid_at FROM custom_activities c JOIN orders o ON o.id=c.order_id WHERE c.order_id='$OID'" > "$RUNNER_TEMP/a.json"
+          $W "SELECT av.status, av.version, av.created_at, length(av.storage_key) AS keylen, substr(av.storage_key,1,120) AS storage_key FROM artifact_versions av JOIN custom_activities ca ON ca.id=av.custom_activity_id WHERE ca.order_id='$OID'" > "$RUNNER_TEMP/b.json"
+          $W "SELECT calls, phase, audit_passed, error_code FROM custom_delivery_copy WHERE order_id='$OID'" > "$RUNNER_TEMP/c.json"
+          $W "SELECT kind, status, created_at FROM delivery_notifications WHERE order_id='$OID'" > "$RUNNER_TEMP/d.json"
+          $W "SELECT COUNT(*) AS ckpt FROM custom_story_checkpoints WHERE order_id='$OID'" > "$RUNNER_TEMP/e.json"
+          $W "SELECT datetime('now') AS now_utc" > "$RUNNER_TEMP/f.json"
           node - <<'NODE'
           const fs=require('node:fs');
           const rd=f=>{try{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];}catch(e){return [{ERR:e.message.slice(0,150)}];}};
-          for(const [k,f] of [['STATE','a.json'],['COPY','b.json'],['AUDIT','c.json'],['COUNTS','d.json'],['NOW','e.json']]){
+          for(const [k,f] of [['STATE','a.json'],['ARTIFACT','b.json'],['COPY','c.json'],['NOTIFY','d.json'],['CKPT','e.json'],['NOW','f.json']]){
             const rows=rd(f); if(!rows.length)console.log(k,'<none>');
-            for(const r of rows)console.log(k,JSON.stringify(r).slice(0,900));
+            for(const r of rows)console.log(k,JSON.stringify(r));
           }
           NODE
           true
