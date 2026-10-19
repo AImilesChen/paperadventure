@@ -18,14 +18,16 @@ jobs:
           set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
           W="npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command"
-          $W "SELECT r.status AS req, r.attempts, p.status AS plan, p.active_version, p.confirmed_version, w.phase, w.plan_valid, w.audit_passed, w.provider_calls, w.error_code FROM custom_plan_requests r JOIN custom_plan_orders p ON p.order_id=r.order_id LEFT JOIN custom_plan_work w ON w.request_id=r.id WHERE r.order_id='$OID'" > "$RUNNER_TEMP/a.json"
+          $W "SELECT r.id, r.status AS req, r.attempts, p.status AS plan, p.active_version, p.confirmed_version, w.phase, w.plan_valid, w.audit_passed, w.provider_calls, w.error_code FROM custom_plan_requests r JOIN custom_plan_orders p ON p.order_id=r.order_id LEFT JOIN custom_plan_work w ON w.request_id=r.id WHERE r.order_id='$OID' ORDER BY r.created_at" > "$RUNNER_TEMP/a.json"
           $W "SELECT version_number, request_kind, length(plan_json) AS len FROM custom_plan_versions WHERE order_id='$OID' ORDER BY version_number" > "$RUNNER_TEMP/b.json"
           $W "SELECT status FROM orders WHERE id='$OID'" > "$RUNNER_TEMP/c.json"
-          $W "SELECT status FROM custom_activities WHERE order_id='$OID'" > "$RUNNER_TEMP/d.json"
+          $W "SELECT status, pipeline_failures, generation_version, generated_at FROM custom_activities WHERE order_id='$OID'" > "$RUNNER_TEMP/d.json"
+          $W "SELECT (SELECT COUNT(*) FROM custom_game_blueprints WHERE order_id='$OID') AS bp, (SELECT COUNT(*) FROM custom_story_checkpoints WHERE order_id='$OID') AS ckpt, (SELECT COUNT(*) FROM custom_generation_calls WHERE order_id='$OID') AS calls" > "$RUNNER_TEMP/e.json"
+          $W "SELECT phase, error_code, status, created_at FROM generation_usage WHERE order_id='$OID' ORDER BY attempt DESC LIMIT 4" > "$RUNNER_TEMP/f.json"
           node - <<'NODE'
           const fs=require('node:fs');
           const rd=f=>{try{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];}catch(e){return [{ERR:e.message.slice(0,120)}];}};
-          for(const [k,f] of [['PLAN','a.json'],['VERSIONS','b.json'],['ORDER','c.json'],['ACTIVITY','d.json']]){
+          for(const [k,f] of [['PLAN','a.json'],['VERSIONS','b.json'],['ORDER','c.json'],['ACTIVITY','d.json'],['COUNTS','e.json'],['USAGE','f.json']]){
             const rows=rd(f); if(!rows.length)console.log(k,'<none>');
             for(const r of rows)console.log(k,JSON.stringify(r));
           }
