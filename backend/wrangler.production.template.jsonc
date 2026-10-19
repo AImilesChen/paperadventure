@@ -20,7 +20,7 @@
   "vars": {
     "PUBLIC_ORIGIN": "https://paperadventure.app",
     "AI_PROVIDER": "deepseek",
-    "DEEPSEEK_MODEL": "deepseek-flash",
+    "DEEPSEEK_MODEL": "deepseek-v4-pro",
     "CUSTOM_LICENCE_VERSION": "draft-not-approved",
     "SUPPORTED_AGE_MIN": "0",
     "SUPPORTED_AGE_MAX": "0",

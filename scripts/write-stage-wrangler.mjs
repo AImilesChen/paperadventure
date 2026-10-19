@@ -36,7 +36,7 @@ const config = {
     EMAIL_FROM: 'support@paperadventure.app',
     PUBLIC_ORIGIN: 'https://paperadventure.app',
     AI_PROVIDER: 'deepseek',
-    DEEPSEEK_MODEL: 'deepseek-flash',
+    DEEPSEEK_MODEL: 'deepseek-v4-pro',
     SUPPORTED_AGE_MIN: '6',
     SUPPORTED_AGE_MAX: '12',
     HOME_PLAYER_MAX: '12',
