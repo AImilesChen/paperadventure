@@ -52,3 +52,5 @@
 # deploy switch model to deepseek-v4-pro 2026-10-19T09:13:52Z
 
 # deploy allow concrete rule phrases 2026-10-19T09:25:00Z
+
+# deploy diagnose upstream body 2026-10-19T09:50:53Z

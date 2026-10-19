@@ -86,8 +86,13 @@ async function structuredResponse(spec, env, fetcher, {name,schema,instructions,
     throw new ApiError(502,'GENERATION_UPSTREAM_FAILED','The story provider could not complete this step.',{cause});
   }
   let body;
+  const raw=response.clone();
   try { body=await response.json(); }
-  catch { throw new ApiError(502,'GENERATION_UPSTREAM_FAILED','The story provider returned an unreadable response.'); }
+  catch {
+    let detail='';
+    try{ detail=String(await raw.text()).replace(/\s+/g,' ').trim().slice(0,280); }catch{}
+    throw new ApiError(502,'GENERATION_UPSTREAM_FAILED',`The story provider returned an unreadable response (HTTP ${response.status}${detail?`: ${detail}`:''}).`);
+  }
   if (!response.ok) {
     const failure=new ApiError(502,'GENERATION_UPSTREAM_FAILED','The story provider could not complete this step.');
     failure.usage=body?.usage||null; failure.responseId=body?.id||null;
