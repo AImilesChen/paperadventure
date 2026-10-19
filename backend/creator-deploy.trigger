@@ -66,3 +66,5 @@
 # deploy consequence-first purpose 2026-10-19T12:21:33Z
 
 # deploy delivery copy audit timeout 300s 2026-10-19T12:32:24Z
+
+# deploy missing object bridge fact rule 2026-10-19T12:45:23Z
