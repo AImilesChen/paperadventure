@@ -58,3 +58,5 @@
 # deploy read body as text 2026-10-19T10:10:25Z
 
 # deploy raise provider timeout to 180s 2026-10-19T10:23:51Z
+
+# deploy causal proof requirement 2026-10-19T10:39:16Z
