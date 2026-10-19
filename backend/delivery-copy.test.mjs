@@ -100,7 +100,7 @@ test('printed closing follows the selected action and retires only its supersede
   const closing=groundedDeliveryClosing(copy);
   assert.ok(closing.includes(copy.actions[0].description.replace(/[.!?]+$/,'').slice(1)));
   assert.ok(closing.endsWith(sentences.at(-1)));
-  assert.ok(applyDeliveryCopy(story,copy).ending.endsWith(closing));
+  assert.ok(applyDeliveryCopy(story,copy).ending.includes(closing));
 
   const issue={stageNumber:5,code:'CONTRADICTION',quote:sentences[0],reason:'The destination contradicts the selected action.'};
   assert.deepEqual(resolveGroundedClosingAudit({pass:false,issues:[issue]},copy),{pass:true,issues:[]});
@@ -331,7 +331,7 @@ test('an overlong celebration reuses only a complete saved specific closing and 
   const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};let requests=0;
   const checked=await ensureDeliveryCopy(source,edition,'fixture',env,async(_url,{body})=>{
     const request=JSON.parse(body);requests++;
-    if(requests===2){assert.equal(request.text.format.name,'printed_copy_audit');assert.ok(JSON.parse(request.input).printed.ending.endsWith(groundedDeliveryClosing({...copy,celebration:saved})));}
+    if(requests===2){assert.equal(request.text.format.name,'printed_copy_audit');assert.ok(JSON.parse(request.input).printed.ending.includes(groundedDeliveryClosing({...copy,celebration:saved})));}
     return Response.json({output_text:JSON.stringify(requests===1?draft:{pass:true,issues:[]})});
   });
   assert.equal(checked.deliveryCopy.celebration,saved);assert.equal(draft.celebration.length>240,true);

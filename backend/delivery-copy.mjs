@@ -31,11 +31,14 @@ export function printedFactChoices(story,copy,index){
 }
 const citationWords=value=>new Set((String(value).toLowerCase().match(/[a-z0-9]+/g)||[]).filter(word=>!['a','an','the','is','are','has','have','on','in','of','at'].includes(word)));
 function savedSpecificClosing(story){
-  // The controlled engine prefixes the earned celebration with the checked
-  // code and selected action. Reuse only that complete saved celebration,
-  // never a sliced model response or an invented generic success message.
-  const match=String(story.ending||'').match(/^The four checked results form code [1-3]{4}, which matches "[^"]+" on the final sheet\. (.+)$/);
-  const value=match?typography(match[1]):'';
+  // New endings lead with the grounded outcome and end with the checked-code
+  // confirmation; saved older endings led with the code. Read either order and
+  // reuse only that complete saved celebration, never a sliced model response
+  // or an invented generic success message.
+  const source=String(story.ending||'');
+  const current=source.match(/^(.+?) The four checked results form code [1-3]{4}, which matches "[^"]+" on the final sheet\.$/);
+  const legacy=source.match(/^The four checked results form code [1-3]{4}, which matches "[^"]+" on the final sheet\. (.+)$/);
+  const value=current?typography(current[1]):legacy?typography(legacy[1]):'';
   return value&&value.length<=240&&!/[^\x20-\x7e]/.test(value)&&/[.!?]$/.test(value)&&
     !/\b(?:and|or|the|a|to|from|with|because|so)[.!?]$/i.test(value)&&
     (value.match(/[.!?](?: |$)/g)||[]).length===2&&
@@ -215,7 +218,11 @@ export function applyDeliveryCopy(story,copy=story.deliveryCopy,check=true){
   });
   result.spine={...story.spine,resolution:copy.actions[0].description,links:copy.links.map(link=>({finding:link.fact,reason:`${link.fact} ${link.reason}`}))};
   const code=story.stages.slice(0,4).map(stage=>stage.material.logic.resultDigit).join('');
-  result.ending=`The four checked results form code ${code}, which matches "${copy.actions[0].label}" on the final sheet. ${groundedDeliveryClosing(copy)}`;
+  // The independent review requires the ending to show the chosen action
+  // restoring the goal in its FIRST sentence; a leading "code matches" clause
+  // reads as bookkeeping and gets rejected as a wrong ending order. Put the
+  // grounded outcome first and keep the checked-code confirmation after it.
+  result.ending=`${groundedDeliveryClosing(copy)} The four checked results form code ${code}, which matches "${copy.actions[0].label}" on the final sheet.`;
   return result;
 }
 
