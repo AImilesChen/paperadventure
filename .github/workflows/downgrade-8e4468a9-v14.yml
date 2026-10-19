@@ -31,7 +31,7 @@ jobs:
             return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
           };
 
-          // 1. downgrade custom_pack_remakes.spec_json
+          // 1. downgrade custom_pack_remakes.spec_json (idempotent)
           const remake = q(`SELECT spec_json,status,phase,error_code,published_version FROM custom_pack_remakes WHERE order_id='${id}'`)[0];
           console.log('REMAKE_BEFORE', JSON.stringify({status:remake?.status,phase:remake?.phase,error_code:remake?.error_code,published_version:remake?.published_version}));
           if (!remake) { console.log('NO_REMAKE_ROW'); process.exit(1); }
@@ -47,7 +47,7 @@ jobs:
             console.log('SPEC_ALREADY_NOT_15', spec.packQualityVersion);
           }
 
-          // 2. downgrade custom_activities.story_spec_json (root cause)
+          // 2. downgrade custom_activities.story_spec_json (root cause; no updated_at column)
           const act = q(`SELECT story_spec_json FROM custom_activities WHERE order_id='${id}'`)[0];
           if (act) {
             const aSpec = JSON.parse(act.story_spec_json);
@@ -55,8 +55,10 @@ jobs:
             if (aSpec.packQualityVersion === 15) {
               aSpec.packQualityVersion = 14;
               const newActJson = JSON.stringify(aSpec);
-              const au = run(`UPDATE custom_activities SET story_spec_json='${newActJson.replace(/'/g,"''")}',updated_at=CURRENT_TIMESTAMP WHERE order_id='${id}'`);
+              const au = run(`UPDATE custom_activities SET story_spec_json='${newActJson.replace(/'/g,"''")}' WHERE order_id='${id}'`);
               console.log('ACTIVITY_SPEC_UPDATED', au.changes);
+            } else {
+              console.log('ACTIVITY_ALREADY_NOT_15', aSpec.packQualityVersion);
             }
           } else {
             console.log('NO_ACTIVITY_ROW');
