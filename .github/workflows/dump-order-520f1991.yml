@@ -2,6 +2,7 @@ name: Check order 520f1991 status
 on:
   push:
     branches: [dump-order-520f1991]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
