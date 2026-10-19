@@ -34,12 +34,17 @@ const fitRecordFeature=value=>{
   while(words.length>1&&`${prefix} ${words.join(' ')}`.length>32)words.shift();
   return `${prefix} ${words.join(' ')}`;
 };
-const featureBanned=/\b(?:answer|choice|candidate|digit|result|correct|wrong|rule|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i;
+// "rule" itself is legitimate story material (an upside-down hotel's room rule),
+// so only worksheet-style rule talk is banned; the bare noun stays available to
+// the subject/feature extractors.
+const featureBanned=/\b(?:answer|choice|candidate|digit|result|correct|wrong|clue|match|matches|fits|remaining|remain|ruled out|eliminated|true|false|yes|no|condition|property|fact|facts|printed|both|must)\b/i;
+const worksheetRule=/\b(?:the|a|an|this|that|each|every|one)\s+rules?\b|\brules?\s+(?:says?|states?|shows?|tells?)\b/i;
+const bannedFeature=value=>featureBanned.test(value)||worksheetRule.test(value);
 // Apply the same printable fact rule before a material step is saved. A bad
 // record must be retried as its own step, not reused by blueprint assembly.
 export const checkedPrintedRecordFacts=(features,number)=>{
   const normalized=Array.isArray(features)?features.map(value=>text(fitRecordFeature(value),`Checkpoint ${number} printed feature`,32)):[];
-  if(normalized.length!==2||!unique(normalized)||normalized.some(value=>featureBanned.test(value)))
+  if(normalized.length!==2||!unique(normalized)||normalized.some(value=>bannedFeature(value)))
     throw Error(`Checkpoint ${number} needs two concrete, distinct printed record facts; generic features cannot be substituted.`);
   if(normalized.some(value=>!/^(?:Mentions|Names) [A-Za-z]/i.test(value)))
     throw Error(`Checkpoint ${number} printed features must describe the contents of every record.`);
@@ -373,7 +378,7 @@ export function prepareContextualBlueprint(candidate,spec){
       throw Error(`Checkpoint ${i+1} witness candidates must name story objects or actions, not the witness notes or answer roles.`);
     const usesPrintedFeatures=type==='evidence_cards'||type==='decision_record'&&spec.packExperienceVersion>=2||type==='route_board'&&spec.packExperienceVersion<2;
     let features=usesPrintedFeatures&&i<4?raw.features?.map(value=>text(spec.packExperienceVersion>=3&&['evidence_cards','decision_record'].includes(type)?fitRecordFeature(value):value,`Checkpoint ${i+1} printed feature`,32)):['Checked fact','Matching fact'];
-    if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)&&(features?.some(value=>featureBanned.test(value))||(spec.packQualityVersion||0)>=7&&features?.length===2&&!unique(features))){
+    if(spec.packExperienceVersion>=3&&i<4&&['evidence_cards','decision_record'].includes(type)&&(features?.some(value=>bannedFeature(value))||(spec.packQualityVersion||0)>=7&&features?.length===2&&!unique(features))){
       if((spec.packQualityVersion||0)>=8)throw Error(`Checkpoint ${i+1} needs two concrete, distinct printed record facts; generic features cannot be substituted.`);
       features=fallbackRecordFeatures(candidate,spec,i);
     }
@@ -384,7 +389,7 @@ export function prepareContextualBlueprint(candidate,spec){
       if(features.some(value=>!/^(?:Mentions|Names) [A-Za-z]/i.test(value)))
         throw Error(`Checkpoint ${i+1} printed features must describe the contents of every record.`);
     }
-    if(spec.packExperienceVersion>=2&&i<4&&['evidence_cards','decision_record'].includes(type)&&features.some(value=>featureBanned.test(value)))
+    if(spec.packExperienceVersion>=2&&i<4&&['evidence_cards','decision_record'].includes(type)&&features.some(value=>bannedFeature(value)))
       throw Error(`Checkpoint ${i+1} needs two concrete story properties, not answer or puzzle-state labels.`);
     const word=type==='symbol_key'?spec.packExperienceVersion>=3?shortKeyWord(raw.word,spec,i,new Set(stages.filter(stage=>stage.material.type==='symbol_key').map(stage=>stage.material.logic.context.word))):text(raw.word,`Checkpoint ${i+1} printed key word`,4).toUpperCase():'NOTE';
     if(!/^[A-Z]{4}$/.test(word))throw Error(`Checkpoint ${i+1} printed word must contain four ASCII letters.`);
