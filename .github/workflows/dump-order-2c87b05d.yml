@@ -1,4 +1,4 @@
-name: Dump audit issues 2c87b05d
+name: Dump copy candidate 2c87b05d
 on:
   push:
     branches: [dump-order-2c87b05d]
@@ -17,19 +17,21 @@ jobs:
         run: |
           set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
-          W="npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command"
-          $W "SELECT audit_json, substr(candidate_json,1,2500) AS cand FROM custom_delivery_copy WHERE order_id='$OID'" > "$RUNNER_TEMP/a.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT normalized_json, candidate_json FROM custom_delivery_copy WHERE order_id='$OID'" > "$RUNNER_TEMP/a.json" 2>/dev/null
           node - <<'NODE'
           const fs=require('node:fs');
           const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/a.json','utf8'));
           const rows=(Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]);
-          const raw=rows[0]?.audit_json||'';
-          console.log('AUDIT_LEN',raw.length);
-          let a=null;try{a=JSON.parse(raw);}catch(e){console.log('PARSE_ERR',e.message);}
-          if(a){
-            console.log('AUDIT_KEYS',JSON.stringify(Object.keys(a)));
-            console.log('PASS',a.pass,'ISSUE_COUNT',(a.issues||[]).length,'HAS_PROOF',Boolean(a.causalProof));
-            for(const [i,x] of (a.issues||[]).entries())console.log('ISSUE'+i, JSON.stringify(x));
+          const raw=rows[0]?.normalized_json||rows[0]?.candidate_json||'';
+          console.log('COPY_LEN',raw.length);
+          let c=null;try{c=JSON.parse(raw);}catch(e){console.log('PARSE_ERR',e.message);}
+          if(c){
+            console.log('KEYS',JSON.stringify(Object.keys(c)));
+            console.log('CELEBRATION',JSON.stringify(c.celebration));
+            const acts=c.actions||c.finalActions||[];
+            for(const [i,a] of acts.entries())console.log('ACTION'+i,JSON.stringify(a));
+            for(const [i,s] of (c.stages||[]).entries())console.log('STAGE'+(i+1),JSON.stringify(s));
+            console.log('LINKS',JSON.stringify(c.links));
           }
           NODE
           true
