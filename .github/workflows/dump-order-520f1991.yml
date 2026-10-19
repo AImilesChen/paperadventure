@@ -1,4 +1,4 @@
-name: Dump order 520f1991 copy
+name: Dump order 520f1991 orders
 on:
   push:
     branches: [dump-order-520f1991]
@@ -12,17 +12,13 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump delivery copy
+      - name: Dump orders row
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT * FROM custom_delivery_copy WHERE order_id='520f1991-da40-4d70-a9f9-11ff0d8641bc'" > "$RUNNER_TEMP/dc.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT id, status, product_kind, json_extract(purchase_spec_json,'$.packQualityVersion') AS qv, length(purchase_spec_json) AS len FROM orders WHERE id='520f1991-da40-4d70-a9f9-11ff0d8641bc'" > "$RUNNER_TEMP/o.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/dc.json','utf8'));
+          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/o.json','utf8'));
           const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
-          console.log('DELIVERY_COPY_ROWS', rows.length);
-          for(const r of rows){
-            const r2=Object.assign({},r);
-            for(const k of ['audit_json','candidate_json','repair_response_json','audit_response_json','normalized_json']) if(r2[k]) r2[k]=String(r2[k]).slice(0,300)+'...';
-            console.log('DELIVERY_COPY', JSON.stringify(r2));
-          }
+          console.log('ORDER_ROWS', rows.length);
+          for(const r of rows) console.log('ORDER', JSON.stringify(r));
           NODE
