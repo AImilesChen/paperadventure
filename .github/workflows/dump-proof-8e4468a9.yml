@@ -1,4 +1,4 @@
-name: Read original activity spec
+name: Read audit issue of order
 on:
   push:
     branches: [dump-proof-8e4468a9]
@@ -12,21 +12,15 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump activity spec
+      - name: Dump audit issue
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT id, order_id, status, story_spec_json FROM custom_activities WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/a.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT audit_json,error_code FROM custom_delivery_copy WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/d.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          try{
-            const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/a.json','utf8'));
-            const arr=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
-            console.log('ROW_COUNT', arr.length);
-            for(const row of arr){
-              console.log('ID', row.id, 'STATUS', row.status);
-              try{
-                const s=JSON.parse(row.story_spec_json||'null');
-                console.log('ACTIVITY_QUALITY', s&&s.packQualityVersion, 'CAUSAL', s&&s.packCausalVersion);
-              }catch(e){ console.log('ACTIVITY_SPEC_PARSE_FAIL'); }
-            }
-          }catch(e){ console.log('TOP_ERR', e.message); }
+          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/d.json','utf8'));
+          const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
+          for(const r of rows){
+            console.log('ERROR_CODE', r.error_code);
+            try{ const a=JSON.parse(r.audit_json||'null'); console.log('AUDIT_PASS', a&&a.pass); console.log('AUDIT_ISSUES', JSON.stringify(a&&a.issues)); }catch(e){ console.log('AUDIT_RAW', r.audit_json); }
+          }
           NODE
