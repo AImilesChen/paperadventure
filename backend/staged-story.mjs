@@ -388,6 +388,13 @@ export async function generateBlueprintMaterialStep(spec,storyFrame,number,earli
     });
     result.data={...previousCandidate,material:{...previousCandidate.material,items}};
   }
+  // The provider occasionally returns a material title just over the 45-character
+  // print limit. Trim it to the last whole word so a usable checkpoint is not
+  // discarded (and its step budget burned) purely for title length.
+  if(typeof result.data?.material?.title==='string'&&result.data.material.title.length>45){
+    const trimmed=result.data.material.title.slice(0,45).replace(/\s+\S*$/,'').trim();
+    result.data={...result.data,material:{...result.data.material,title:trimmed||result.data.material.title.slice(0,45)}};
+  }
   try{validateSavedBlueprintMaterialStep(spec,storyFrame,number,result.data,earlierStages);}
   catch(cause){
     // Order tiles carry the strictest v13+ rules (no worksheet language, no
