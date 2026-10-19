@@ -1,4 +1,4 @@
-name: Dump plan candidate 2c87b05d
+name: Export plan payload 2c87b05d
 on:
   push:
     branches: [dump-order-2c87b05d]
@@ -13,41 +13,20 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump candidate
+      - name: Export payload
         run: |
           set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT story_spec_json FROM custom_activities WHERE order_id='$OID'" > "$RUNNER_TEMP/spec.json" 2>/dev/null
           npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT checkpoint_json FROM custom_plan_work WHERE order_id='$OID'" > "$RUNNER_TEMP/ck.json" 2>/dev/null
           node - <<'NODE'
           const fs=require('node:fs');
-          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/ck.json','utf8'));
-          const rows=(Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]);
-          if(!rows.length){console.log('CK <none>');process.exit(0);}
-          const raw=rows[0].checkpoint_json;
-          console.log('CK_LEN',String(raw||'').length);
-          let ck=null;
-          try{ck=JSON.parse(raw);}catch(e){console.log('CK_PARSE_ERR',e.message);}
-          if(ck){
-            console.log('CK_KEYS',JSON.stringify(Object.keys(ck)));
-            console.log('CK_VALID',ck.valid,'ERRCODE',ck.errorCode);
-            console.log('CK_FORMAT_ISSUE',JSON.stringify(ck.formatIssue));
-            console.log('CK_FORMAT_FIELDS',JSON.stringify(ck.formatRepairFields));
-            const c=ck.candidate;
-            if(typeof c==='string'){
-              console.log('CAND_IS_STRING len='+c.length);
-              console.log('CAND_RAW_START',c.slice(0,900));
-              try{ck.candidate=JSON.parse(c);}catch{}
-            }
-            if(ck.candidate&&typeof ck.candidate==='object'){
-              const cand=ck.candidate;
-              console.log('CAND_KEYS',JSON.stringify(Object.keys(cand)));
-              for(const k of ['id','title','summary','premise','goal','themeAnchors']){
-                if(k in cand) console.log('CAND_'+k.toUpperCase(), JSON.stringify(cand[k]), 'len='+String(cand[k]??'').length);
-              }
-              for(const s of (cand.stages||[])){
-                console.log('CAND_STAGE', JSON.stringify({n:s.number,scene:s.scene,storyBeat:s.storyBeat,sceneLen:String(s.scene||'').length,beatLen:String(s.storyBeat||'').length}));
-              }
-            }
-          }
+          const rows=f=>{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];};
+          const spec=rows('spec.json')[0]?.story_spec_json||'';
+          const ck=rows('ck.json')[0]?.checkpoint_json||'';
+          let cand='';
+          try{const p=JSON.parse(ck);cand=typeof p.candidate==='string'?p.candidate:JSON.stringify(p.candidate);}catch{}
+          console.log('SPEC_B64',Buffer.from(spec).toString('base64'));
+          console.log('CAND_B64',Buffer.from(cand).toString('base64'));
           NODE
           true
