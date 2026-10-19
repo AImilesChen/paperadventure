@@ -1,4 +1,4 @@
-name: Export frame 2c87b05d
+name: Export saved steps 2c87b05d
 on:
   push:
     branches: [dump-order-2c87b05d]
@@ -17,11 +17,14 @@ jobs:
         run: |
           set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT result_json FROM custom_generation_calls WHERE order_id='$OID' AND phase='blueprint_frame' AND status='passed' ORDER BY created_at DESC LIMIT 1" > "$RUNNER_TEMP/f.json" 2>/dev/null
+          W="npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command"
+          $W "SELECT phase, stage_number, result_json FROM custom_generation_calls WHERE order_id='$OID' AND status='passed' AND result_json IS NOT NULL ORDER BY created_at" > "$RUNNER_TEMP/a.json"
+          $W "SELECT story_spec_json FROM custom_activities WHERE order_id='$OID'" > "$RUNNER_TEMP/b.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/f.json','utf8'));
-          const rows=(Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]);
-          console.log('FRAME_B64',Buffer.from(rows[0]?.result_json||'').toString('base64'));
+          const rd=f=>{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];};
+          const rows=rd('a.json');
+          const payload={spec:JSON.parse(rd('b.json')[0].story_spec_json),steps:rows.map(r=>({phase:r.phase,stage:Number(r.stage_number),result:JSON.parse(r.result_json)}))};
+          console.log('STEPS_B64',Buffer.from(JSON.stringify(payload)).toString('base64'));
           NODE
           true
