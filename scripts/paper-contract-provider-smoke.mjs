@@ -47,7 +47,16 @@ for(const item of cases.filter(item=>!selectedIds.size||selectedIds.has(item.id)
     phase='blueprint';
     const frame=(await generateBlueprintFrameStep(approved,env,privateFetch)).storyFrame;
     const materials=[];
-    for(let number=1;number<=5;number++)materials.push((await generateBlueprintMaterialStep(approved,frame,number,materials,env,privateFetch)).data);
+    for(let number=1;number<=5;number++){
+      try{
+        materials.push((await generateBlueprintMaterialStep(approved,frame,number,materials,env,privateFetch)).data);
+      }catch(error){
+        // Production retries a failed material step with the prior error so the
+        // order-tiles label fallback can fire. Mirror that here instead of
+        // failing the smoke on the first worksheet-language rejection.
+        materials.push((await generateBlueprintMaterialStep(approved,frame,number,materials,env,privateFetch,error?.message||String(error))).data);
+      }
+    }
     const closing=(await generateBlueprintClosingStep(approved,frame,env,privateFetch)).data.celebration;
     let blueprint;
     try{blueprint=(await assembleBlueprintSteps(approved,frame,materials,closing,env,privateFetch)).blueprint;}
