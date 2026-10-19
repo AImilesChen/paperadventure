@@ -32,3 +32,5 @@
 # deploy causal review chronology tolerance 2026-10-18T16:51:14Z
 
 # deploy closing reaction re-placement fix 2026-10-18T17:11:19Z
+
+# deploy enable deepseek thinking for delivery copy 2026-10-19T01:42:57Z
