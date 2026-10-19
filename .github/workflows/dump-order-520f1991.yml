@@ -1,4 +1,4 @@
-name: Check order 520f1991 status
+name: Redo order 520f1991 blueprint
 on:
   push:
     branches: [dump-order-520f1991]
@@ -13,14 +13,16 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Check status
+      - name: Clear blueprint and requeue
         run: |
           OID='520f1991-da40-4d70-a9f9-11ff0d8641bc'
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT a.status AS activity_status, a.published_at, o.status AS order_status, dc.error_code AS copy_error, dc.phase AS copy_phase, dc.calls AS copy_calls, dc.audit_passed FROM custom_activities a LEFT JOIN orders o ON o.id=a.order_id LEFT JOIN custom_delivery_copy dc ON dc.order_id=a.order_id WHERE a.order_id='$OID'" > "$RUNNER_TEMP/st.json"
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase,error_code,error_detail,status FROM generation_usage WHERE order_id='$OID' ORDER BY attempt DESC LIMIT 2" > "$RUNNER_TEMP/u.json"
+          for t in custom_game_blueprints custom_game_stages custom_story_checkpoints custom_game_audits custom_generation_calls; do
+            npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "DELETE FROM $t WHERE order_id='$OID'" > "$RUNNER_TEMP/del_$t.json"
+          done
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE custom_activities SET status='queued', lease_until=NULL, pipeline_failures=0 WHERE order_id='$OID'" > "$RUNNER_TEMP/req_a.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "UPDATE orders SET status='fulfilling' WHERE id='$OID'" > "$RUNNER_TEMP/req_o.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT a.status AS activity_status, o.status AS order_status FROM custom_activities a JOIN orders o ON o.id=a.order_id WHERE a.order_id='$OID'" > "$RUNNER_TEMP/verify.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          for(const [k,f] of [['STATUS','st'],['USAGE','u']]){
-            try{ const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f+'.json','utf8')); const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]; for(const r of rows) console.log(k, JSON.stringify(r)); }catch(e){ console.log(k+'_ERR', e.message); }
-          }
+          try{ const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/verify.json','utf8')); const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]; console.log('VERIFY', JSON.stringify(rows)); }catch(e){ console.log('VERIFY_ERR', e.message); }
           NODE
