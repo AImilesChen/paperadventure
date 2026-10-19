@@ -1,4 +1,4 @@
-name: Check order 520f1991 status
+name: Check order 520f1991 failure
 on:
   push:
     branches: [dump-order-520f1991]
@@ -13,13 +13,15 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Check status
+      - name: Check failure
         run: |
           OID='520f1991-da40-4d70-a9f9-11ff0d8641bc'
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT a.status AS activity_status, a.published_at, o.status AS order_status, dc.error_code AS copy_error, dc.phase AS copy_phase, dc.calls AS copy_calls, dc.audit_passed FROM custom_activities a LEFT JOIN orders o ON o.id=a.order_id LEFT JOIN custom_delivery_copy dc ON dc.order_id=a.order_id WHERE a.order_id='$OID'" > "$RUNNER_TEMP/st.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase,error_code,error_detail,status FROM generation_usage WHERE order_id='$OID' ORDER BY attempt DESC LIMIT 3" > "$RUNNER_TEMP/u.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT pipeline_failures, delivery_retry_used, delivery_retry_baseline, generation_version, status FROM custom_activities WHERE order_id='$OID'" > "$RUNNER_TEMP/a.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase, stage_number, status, error_code, error_detail FROM custom_generation_calls WHERE order_id='$OID' ORDER BY created_at DESC, id DESC LIMIT 5" > "$RUNNER_TEMP/c.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/st.json','utf8'));
-          const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
-          console.log('STATUS', JSON.stringify(rows));
+          for(const [k,f] of [['USAGE','u'],['ACTIVITY','a'],['CALLS','c']]){
+            try{ const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f+'.json','utf8')); const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]; for(const r of rows) console.log(k, JSON.stringify(r)); }catch(e){ console.log(k+'_ERR', e.message); }
+          }
           NODE
