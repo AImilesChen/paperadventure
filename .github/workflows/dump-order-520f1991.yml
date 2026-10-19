@@ -1,0 +1,50 @@
+name: Dump order 520f1991 state
+on:
+  push:
+    branches: [dump-order-520f1991]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Dump activity
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT id, order_id, status, error_code, error_detail, created_at, updated_at FROM custom_activities WHERE order_id='520f1991-da40-4d70-a9f9-11ff0d8641bc'" > "$RUNNER_TEMP/a.json"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          try{
+            const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/a.json','utf8'));
+            const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
+            console.log('ACTIVITY_ROWS', rows.length);
+            for(const r of rows) console.log('ACTIVITY', JSON.stringify(r));
+          }catch(e){ console.log('ACTIVITY_ERR', e.message); }
+          NODE
+      - name: Dump remake
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status, phase, error_code, error_detail, recovery_round, quality_epoch, published_version, created_at, updated_at FROM custom_pack_remakes WHERE order_id='520f1991-da40-4d70-a9f9-11ff0d8641bc'" > "$RUNNER_TEMP/r.json"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          try{
+            const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/r.json','utf8'));
+            const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
+            console.log('REMAKE_ROWS', rows.length);
+            for(const r of rows) console.log('REMAKE', JSON.stringify(r));
+          }catch(e){ console.log('REMAKE_ERR', e.message); }
+          NODE
+      - name: Dump recent calls
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase, status, error_code, error_detail, stage_number, generation_round, created_at FROM custom_generation_calls WHERE order_id='520f1991-da40-4d70-a9f9-11ff0d8641bc' ORDER BY created_at DESC LIMIT 8" > "$RUNNER_TEMP/c.json"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          try{
+            const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/c.json','utf8'));
+            const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
+            console.log('CALL_ROWS', rows.length);
+            for(const r of rows) console.log('CALL', JSON.stringify(r));
+          }catch(e){ console.log('CALL_ERR', e.message); }
+          NODE
