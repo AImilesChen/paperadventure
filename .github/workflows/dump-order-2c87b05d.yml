@@ -25,7 +25,7 @@ jobs:
           node - <<'NODE'
           const fs=require('node:fs');
           const rd=f=>{try{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];}catch(e){return [{ERR:e.message.slice(0,120)}];}};
-          for(const [k,f] of [['PLAN','a'],['VERSIONS','b'],['ORDER','c'],['ACTIVITY','d']]){
+          for(const [k,f] of [['PLAN','a.json'],['VERSIONS','b.json'],['ORDER','c.json'],['ACTIVITY','d.json']]){
             const rows=rd(f); if(!rows.length)console.log(k,'<none>');
             for(const r of rows)console.log(k,JSON.stringify(r));
           }
