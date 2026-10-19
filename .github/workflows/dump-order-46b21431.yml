@@ -1,4 +1,4 @@
-name: Dump order 46b21431 state
+name: Dump order 46b21431 materials
 on:
   push:
     branches: [dump-order-46b21431]
@@ -13,17 +13,22 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump state
+      - name: Dump plan and material calls
         run: |
           OID='46b21431-0d9f-488c-bdce-0fc1289f8784'
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status, active_version, confirmed_version FROM custom_plan_orders WHERE order_id='$OID'" > "$RUNNER_TEMP/po.json"
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status, published_at, json_extract(story_spec_json,'$.packQualityVersion') AS qv, json_extract(story_spec_json,'$.customIdea') AS idea, json_extract(story_spec_json,'$.setting') AS setting, pipeline_failures, delivery_retry_used FROM custom_activities WHERE order_id='$OID'" > "$RUNNER_TEMP/act.json"
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase, error_code, error_detail, status, model FROM generation_usage WHERE order_id='$OID' ORDER BY attempt DESC LIMIT 3" > "$RUNNER_TEMP/gu.json"
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase, stage_number, status, error_code, error_detail, model FROM custom_generation_calls WHERE order_id='$OID' ORDER BY created_at DESC, id DESC LIMIT 6" > "$RUNNER_TEMP/gc.json"
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT error_code, phase, calls, audit_passed FROM custom_delivery_copy WHERE order_id='$OID'" > "$RUNNER_TEMP/dc.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT version_number, json_extract(plan_json,'$.stages[0].mechanic') AS m1, json_extract(plan_json,'$.stages[1].mechanic') AS m2, json_extract(plan_json,'$.stages[0].scene') AS s1, json_extract(plan_json,'$.goal') AS goal FROM custom_plan_versions WHERE order_id='$OID' ORDER BY version_number DESC LIMIT 1" > "$RUNNER_TEMP/pv.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT phase, stage_number, status, result_json, error_detail FROM custom_generation_calls WHERE order_id='$OID' AND phase='blueprint_material' ORDER BY created_at ASC, id ASC LIMIT 4" > "$RUNNER_TEMP/mc.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          for(const [k,f] of [['PLAN','po'],['ACTIVITY','act'],['USAGE','gu'],['CALLS','gc'],['COPY','dc']]){
-            try{ const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f+'.json','utf8')); const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]; for(const r of rows) console.log(k, JSON.stringify(r)); if(!rows.length) console.log(k+'_EMPTY'); }catch(e){ console.log(k+'_ERR', e.message); }
+          for(const [k,f] of [['PLANVER','pv'],['MATCALL','mc']]){
+            try{
+              const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f+'.json','utf8'));
+              const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
+              for(const r of rows){
+                const o={...r};
+                if(o.result_json){ try{const p=JSON.parse(o.result_json); o.result_json=JSON.stringify({title:p.title,features:p.features,word:p.word,items:(p.items||[]).map(i=>i.label)});}catch(e){o.result_json=String(o.result_json).slice(0,500);} }
+                console.log(k, JSON.stringify(o));
+              }
+            }catch(e){ console.log(k+'_ERR', e.message); }
           }
           NODE
