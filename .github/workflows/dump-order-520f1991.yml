@@ -1,4 +1,4 @@
-name: Dump stage2 content 520f1991
+name: Dump blueprint stage2 520f1991
 on:
   push:
     branches: [dump-order-520f1991]
@@ -13,19 +13,17 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump stage 2
+      - name: Dump blueprint stage 2
         run: |
           OID='520f1991-da40-4d70-a9f9-11ff0d8641bc'
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT candidate_json FROM custom_delivery_copy WHERE order_id='$OID'" > "$RUNNER_TEMP/ca.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT blueprint_json FROM custom_game_blueprints WHERE order_id='$OID'" > "$RUNNER_TEMP/bp.json"
           node - <<'NODE'
           const fs=require('node:fs');
-          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/ca.json','utf8'));
+          const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/bp.json','utf8'));
           const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
           for(const r of rows){
-            const c=JSON.parse(r.candidate_json||'null');
-            if(!c) continue;
-            const s=c.stages&&c.stages[1];
-            console.log('STAGE2', JSON.stringify(s));
-            console.log('ACTIONS', JSON.stringify(c.actions));
+            const b=JSON.parse(r.blueprint_json||'null');
+            if(!b) continue;
+            for(const s of b.stages||[]) console.log('BP_STAGE', s.number, 'TITLE:', JSON.stringify(s.material&&s.material.title), 'TYPE:', s.material&&s.material.type, 'ITEMS:', JSON.stringify((s.material&&s.material.items||[]).map(i=>i.label)));
           }
           NODE
