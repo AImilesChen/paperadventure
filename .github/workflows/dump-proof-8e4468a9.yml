@@ -1,4 +1,4 @@
-name: Read remake field state
+name: Read blueprint actions and checkpoint1
 on:
   push:
     branches: [dump-proof-8e4468a9]
@@ -12,20 +12,23 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Dump remake fields
+      - name: Dump blueprint storyFrame and checkpoint1
         run: |
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT status,phase,error_code,spec_json,blueprint_json,stages_json,story_json FROM custom_pack_remakes WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/d.json"
+          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT blueprint_json FROM custom_pack_remakes WHERE order_id='8e4468a9-9847-43ae-b1b7-20e05c32f807'" > "$RUNNER_TEMP/d.json"
           node - <<'NODE'
           const fs=require('node:fs');
           const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/d.json','utf8'));
           const rows=Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];
           for(const r of rows){
-            console.log('STATUS', r.status, 'PHASE', r.phase, 'ERROR', r.error_code);
-            console.log('BLUEPRINT_NULL', r.blueprint_json===null);
-            console.log('BLUEPRINT_LEN', (r.blueprint_json||'').length);
-            console.log('STAGES_NULL', r.stages_json===null);
-            console.log('STAGES_LEN', (r.stages_json||'').length);
-            console.log('STORY_NULL', r.story_json===null);
-            console.log('STORY_LEN', (r.story_json||'').length);
+            try{
+              const b=JSON.parse(r.blueprint_json||'null');
+              console.log('BP_TOP_KEYS', b?Object.keys(b).join(','):'null');
+              console.log('STORYFRAME_ACTIONS', JSON.stringify(b&&b.storyFrame&&b.storyFrame.actions));
+              const st1=b&&b.stages&&b.stages[0];
+              console.log('STAGE1_TYPE', st1&&st1.material&&st1.material.type);
+              console.log('STAGE1_ITEMS', JSON.stringify(st1&&st1.material&&st1.material.items));
+              console.log('STAGE1_ANSWERINDEX', st1&&st1.answerIndex);
+              console.log('STAGE1_OPTIONS', JSON.stringify(st1&&st1.options));
+            }catch(e){ console.log('PARSE_FAIL', e.message); }
           }
           NODE
