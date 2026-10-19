@@ -1,4 +1,4 @@
-name: Export plan payload 2c87b05d
+name: Retry plan 2c87b05d
 on:
   push:
     branches: [dump-order-2c87b05d]
@@ -6,27 +6,22 @@ on:
 permissions:
   contents: read
 jobs:
-  inspect:
+  retry:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     env:
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Export payload
+      - name: Requeue plan request
         run: |
           set +e
           OID='2c87b05d-6d55-406e-8985-d23e40f14793'
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT story_spec_json FROM custom_activities WHERE order_id='$OID'" > "$RUNNER_TEMP/spec.json" 2>/dev/null
-          npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command "SELECT checkpoint_json FROM custom_plan_work WHERE order_id='$OID'" > "$RUNNER_TEMP/ck.json" 2>/dev/null
-          node - <<'NODE'
-          const fs=require('node:fs');
-          const rows=f=>{const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+f,'utf8'));return Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[];};
-          const spec=rows('spec.json')[0]?.story_spec_json||'';
-          const ck=rows('ck.json')[0]?.checkpoint_json||'';
-          let cand='';
-          try{const p=JSON.parse(ck);cand=typeof p.candidate==='string'?p.candidate:JSON.stringify(p.candidate);}catch{}
-          console.log('SPEC_B64',Buffer.from(spec).toString('base64'));
-          console.log('CAND_B64',Buffer.from(cand).toString('base64'));
-          NODE
+          RID="plan-$OID-initial"
+          W="npx --yes wrangler@4.74.0 d1 execute paper-adventure-stage-db --remote --json --command"
+          $W "UPDATE custom_plan_requests SET status='queued', attempts=0, lease_until=0, completed_at=NULL WHERE id='$RID'" > "$RUNNER_TEMP/r1.json"; echo "R1=$?"
+          $W "UPDATE custom_plan_orders SET status='queued', updated_at=CURRENT_TIMESTAMP WHERE order_id='$OID'" > "$RUNNER_TEMP/r2.json"; echo "R2=$?"
+          $W "UPDATE custom_plan_work SET phase='queued', error_code=NULL, updated_at=CURRENT_TIMESTAMP WHERE order_id='$OID'" > "$RUNNER_TEMP/r3.json"; echo "R3=$?"
+          $W "SELECT r.status AS req_status, r.attempts, p.status AS plan_status, p.active_version, p.confirmed_version, (SELECT COUNT(*) FROM custom_plan_work w WHERE w.order_id='$OID' AND w.candidate_saved=1) AS cand_saved FROM custom_plan_requests r JOIN custom_plan_orders p ON p.order_id=r.order_id WHERE r.id='$RID'" > "$RUNNER_TEMP/v.json"
+          node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/v.json','utf8'));const r=(Array.isArray(d)?d.flatMap(x=>x.results||[]):d.results||[]);console.log('VERIFY',JSON.stringify(r));"
           true
