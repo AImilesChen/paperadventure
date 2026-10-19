@@ -8,7 +8,7 @@ import {alignPrintedActionLinks,missingPrintedActionLinks,assembleBlueprintSteps
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
-import {alignPaperPlan,paperContractTypes,completePaperPlan} from '../shared/paper-contract.mjs';
+import {alignPaperPlan,paperContractTypes,completePaperPlan,assertGoalStillOpen} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
 import {compileStorySpine,prepareStoryFrame,selectedStoryFinding,validateStorySpine} from './story-spine.mjs';
 
@@ -1173,6 +1173,10 @@ test('new pack rejects an early mission outcome before spending calls on later c
   const premature=structuredClone(clockSpec.plan);
   premature.stages[1].scene='Heard the noon bell';
   assert.throws(()=>completePaperPlan(premature,clockSpec.gameplay),/Checkpoint 2 names a completed mission outcome/);
+  const overheard=structuredClone(clockSpec.plan);
+  const goal=clockSpec.plan.goal;
+  assert.doesNotThrow(()=>assertGoalStillOpen(['The keepers meet a worried apprentice who heard a strange rumour just before the noon bell stopped.'],goal,1),'a background event someone heard is not a completed mission');
+  assert.throws(()=>assertGoalStillOpen(['Heard the noon bell'],goal,1),'the goal itself being perceived is still an outcome');
   const abstract=structuredClone(clockBlueprintContext);
   abstract.stages[1].features=['Two ruled out','One remains'];
   assert.throws(()=>prepareContextualBlueprint(abstract,spec),/concrete story properties/);

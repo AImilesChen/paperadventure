@@ -11,12 +11,23 @@ export const paperActions={
 };
 
 // A proposed action such as "repair the clock" is not an accomplished outcome.
-const earlyOutcome=/\b(?:heard|rings|rang|sounds|sounded|restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
+const earlyOutcome=/\b(?:restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i;
+// Perception cannot finish a mission. These verbs only count as an outcome when
+// their own object is the goal ("Heard the noon bell"), never when they report a
+// background event ("the bellhop heard a strange message before the key vanished").
+const perceivedOutcome=/\b(?:heard|rings|rang|sounds|sounded)\b((?:\s+[A-Za-z'-]+){0,2})/gi;
 const goalWords=goal=>new Set(String(goal||'').toLowerCase().match(/[a-z]{4,}/g)?.filter(word=>!['find','with','that','from','their','they','then','will','into','before','after','again','help','make','complete','finish','restore','repair','rescue','return','deliver','missing','story','journey'].includes(word))||[]);
 export function assertGoalStillOpen(texts,goal,number){
   const terms=goalWords(goal);
+  const names=term=>new RegExp(`\\b${term}\\b`,'i');
+  const finished=value=>{
+    if(earlyOutcome.test(value)&&[...terms].some(term=>names(term).test(value)))return true;
+    for(const match of String(value).matchAll(perceivedOutcome))
+      if([...terms].some(term=>names(term).test(match[1])))return true;
+    return false;
+  };
   for(const value of texts){
-    if(earlyOutcome.test(value)&&[...terms].some(term=>new RegExp(`\\b${term}\\b`,'i').test(value)))
+    if(finished(value))
       throw Error(`Checkpoint ${number} names a completed mission outcome before the final action.`);
   }
 }

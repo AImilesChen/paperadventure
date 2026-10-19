@@ -60,3 +60,5 @@
 # deploy raise provider timeout to 180s 2026-10-19T10:23:51Z
 
 # deploy causal proof requirement 2026-10-19T10:39:16Z
+
+# deploy heard outcome scoping 2026-10-19T11:38:50Z
