@@ -1,0 +1,32 @@
+name: Diagnose deepseek-v4-pro response
+on:
+  push:
+    branches: [dump-order-46b21431]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Probe v4-pro formats
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || secrets.DEEPSEEK_KEY || secrets.DEEPSEEK_API_TOKEN }}
+        run: |
+          test -n "$DEEPSEEK_API_KEY" || { echo "NO_KEY"; exit 1; }
+          echo "=== A: plain ==="
+          curl -s -o /tmp/a.json -w "HTTP=%{http_code} SIZE=%{size_download}\n" -X POST https://api.deepseek.com/responses \
+            -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
+            -d '{"model":"deepseek-v4-pro","input":"Say hello in one word.","max_output_tokens":200}'
+          head -c 600 /tmp/a.json; echo
+          echo "=== B: reasoning low ==="
+          curl -s -o /tmp/b.json -w "HTTP=%{http_code} SIZE=%{size_download}\n" -X POST https://api.deepseek.com/responses \
+            -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
+            -d '{"model":"deepseek-v4-pro","reasoning":{"effort":"low"},"input":"Say hello in one word.","max_output_tokens":200}'
+          head -c 600 /tmp/b.json; echo
+          echo "=== C: json_schema ==="
+          curl -s -o /tmp/c.json -w "HTTP=%{http_code} SIZE=%{size_download}\n" -X POST https://api.deepseek.com/responses \
+            -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
+            -d '{"model":"deepseek-v4-pro","reasoning":{"effort":"low"},"input":"Return a greeting object.","max_output_tokens":400,"text":{"format":{"type":"json_schema","name":"greeting","strict":true,"schema":{"type":"object","additionalProperties":false,"required":["word"],"properties":{"word":{"type":"string"}}}}}}'
+          head -c 800 /tmp/c.json; echo
