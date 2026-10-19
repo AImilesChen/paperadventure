@@ -405,7 +405,16 @@ export async function generateBlueprintMaterialStep(spec,storyFrame,number,earli
     // order can never exhaust its budget on this one field.
     if(type==='order_tiles'&&(spec.packQualityVersion||0)>=13&&previousIssue&&!repairingLabels){
       const stable=stableOrderLabels({storyFrame},spec,number-1);
+      // The fallback labels name the story subject, so the printed title must
+      // name it too. Otherwise the page heading ("Bridge Drag Order") and its
+      // pieces ("tied rope") disagree and the independent review rejects the
+      // whole edition for a heading/content mismatch.
+      const subject=stable[0].replace(/^Inspect /,'');
+      const titleSubject=subject.replace(/\b[a-z]/g,letter=>letter.toUpperCase());
+      const scene=String(spec.plan?.stages?.[number-1]?.scene||'').trim();
+      const fallbackTitle=(scene?`${scene}: ${titleSubject} Order`:`${titleSubject} Order`).slice(0,45).replace(/\s+\S*$/,'').trim();
       const fallback={...result.data,material:{...result.data.material,
+        title:fallbackTitle||result.data.material?.title,
         items:(result.data.material?.items||[]).map((item,index)=>({...item,label:stable[index]}))}};
       try{validateSavedBlueprintMaterialStep(spec,storyFrame,number,fallback,earlierStages);return {...result,data:fallback};}
       catch{}
