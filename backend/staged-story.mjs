@@ -863,7 +863,10 @@ export async function auditStagedStory(story,spec,blueprint,env,fetcher=fetch) {
   // V8 makes concrete editorial defects blocking again, with a bounded local
   // repair and the previously delivered pack retained on any terminal failure.
   const qualityVersion=spec.packQualityVersion||0;
-  if(linked&&qualityVersion>=15)return {usage:null,responseId:null};
+  // New orders receive one independent review of the final player-visible
+  // edition after copy and print checks. Do not spend another provider call
+  // reviewing a draft whose wording is about to change.
+  if(linked&&(qualityVersion>=15||spec.packPlayableReviewVersion===1))return {usage:null,responseId:null};
   const strictLinked=linked&&qualityVersion>=5&&(qualityVersion<7||qualityVersion>=8);
   let result;
   try{result=await structuredResponse(spec,env,fetcher,{name:'staged_story_audit',schema:auditSchema,maxOutput:1000,invalidCode:'AUDIT_INVALID',

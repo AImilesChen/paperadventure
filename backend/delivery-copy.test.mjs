@@ -12,7 +12,7 @@ import {buildGamePdf} from './pdf.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {sha256} from './security.mjs';
 import {unsupportedLocationClaims} from '../shared/printed-evidence.mjs';
-import {causalEvidenceUnits,validateCausalReview} from './causal-review.mjs';
+import {causalEvidenceUnits,validateCausalReview,validatePlayableReview} from './causal-review.mjs';
 
 async function fixture(){
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:4,packLayoutVersion:4};
@@ -176,6 +176,48 @@ test('causal review binds every claimed discovery to the printed player evidence
   await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',{DB:blockedDB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},blockedFetcher),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
   await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',{DB:blockedDB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},blockedFetcher),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
   assert.equal(blockedCalls,2,'a missing causal proof cannot trigger another model request');
+});
+
+test('playable review accepts minor wording warnings but still requires three real printed findings',async()=>{
+  const {story,spec,copy}=await fixture(),printed=applyDeliveryCopy(story,copy),units=causalEvidenceUnits(printed);
+  const evidence=[1,2,3].map(stageNumber=>{
+    const unit=units.find(item=>item.stageNumber===stageNumber&&item.kind!=='scene')||units.find(item=>item.stageNumber===stageNumber);
+    return {stageNumber,evidenceId:unit.id,quote:unit.text.slice(0,30),supportsAction:'Supports the selected final action'};
+  });
+  const audit={pass:true,issues:[],warnings:[{stageNumber:2,code:'STYLE',reason:'One sentence is slightly awkward.'}],evidence};
+  assert.equal(validatePlayableReview(audit,printed),audit);
+  assert.throws(()=>validatePlayableReview({...audit,evidence:evidence.slice(0,2)},printed),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
+  const invented=structuredClone(audit);invented.evidence[0].quote='The missing key is already at the tower.';
+  assert.throws(()=>validatePlayableReview(invented,printed),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
+  const edition={...spec,packQualityVersion:14,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1};
+  const {DB,db}=database();let calls=0;
+  const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,{body})=>{
+    const request=JSON.parse(body);calls++;
+    if(calls===1)return Response.json({output_text:JSON.stringify(copy)});
+    assert.ok(request.text.format.schema.properties.warnings);
+    assert.ok(request.text.format.schema.properties.evidence);
+    assert.equal(request.text.format.schema.properties.causalProof,undefined);
+    assert.equal(JSON.parse(request.input).printed.playerPages.checkpoints[0].answerIndex,undefined);
+    return Response.json({output_text:JSON.stringify(audit)});
+  });
+  assert.equal(calls,2);
+  assert.ok(saved.deliveryCopy);
+  await requireDeliveryReview(saved,edition,'fixture',{DB});
+  assert.deepEqual(JSON.parse(db.prepare('SELECT audit_json FROM custom_delivery_copy').get().audit_json).warnings,audit.warnings);
+});
+
+test('playable review still stops missing evidence and a concrete unsupported final action',async()=>{
+  const {story,spec,copy}=await fixture();
+  const edition={...spec,packQualityVersion:14,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1};
+  const {DB}=database();let calls=0;
+  const missingProof=async()=>{calls++;return Response.json({output_text:JSON.stringify(calls===1?copy:{pass:true,issues:[],warnings:[],evidence:[]})});};
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},missingProof),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},missingProof),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});
+  assert.equal(calls,2,'a bad verdict cannot silently pass or spend a third request');
+  const {DB:reviewDB}=database();let reviewed=0;
+  const rejection=async()=>{reviewed++;return Response.json({output_text:JSON.stringify(reviewed===1?copy:{pass:false,issues:[{stageNumber:5,code:'UNSUPPORTED_CAUSE',quote:copy.actions[0].description.slice(0,25),reason:'The final action needs an object not established by the printed clues.'}],warnings:[],evidence:[]})});};
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',{DB:reviewDB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},rejection),{code:'DELIVERY_COPY_REVIEW'});
+  assert.equal(reviewed,2);
 });
 
 test('complete consequences above the writing target stay intact when the combined block and both PDFs fit',async()=>{
