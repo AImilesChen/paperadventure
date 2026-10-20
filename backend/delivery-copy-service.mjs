@@ -34,6 +34,7 @@ const boundHashes=async(story,spec)=>({sourceHash:await sha256(JSON.stringify(so
 const matches=(row,binding)=>row?.source_sha256===binding.sourceHash&&row?.spec_sha256===binding.specHash;
 const read=(db,id)=>query(db,'SELECT * FROM custom_delivery_copy WHERE order_id = ? AND policy = ?',id,COPY_POLICY).first();
 const readFactRepair=(db,id)=>query(db,'SELECT * FROM custom_delivery_fact_repairs WHERE order_id = ? AND policy = ?',id,COPY_POLICY).first();
+const readTransportRecovery=(db,id)=>query(db,'SELECT * FROM custom_delivery_copy_transport_recoveries WHERE order_id = ? AND policy = ?',id,COPY_POLICY).first();
 const readRevision=(db,id)=>query(db,'SELECT * FROM custom_delivery_copy_revisions WHERE order_id = ? AND policy = ?',id,COPY_POLICY).first();
 
 // Supply only text actually printed in the two PDFs, not hidden legacy facts.
@@ -155,7 +156,9 @@ export async function requireDeliveryReview(story,spec,orderId,env){
   }
   if(!row?.audit_passed||!matches(row,await boundHashes(source,spec)))throw failure('DELIVERY_COPY_SOURCE_CHANGED');
   const repair=await readFactRepair(env.DB,orderId);
+  const transport=await readTransportRecovery(env.DB,orderId);
   if(repair&&!await factRepairBinding(row,repair,source,spec))throw failure('DELIVERY_COPY_SOURCE_CHANGED');
+  if(transport&&!matches(transport,await boundHashes(source,spec)))throw failure('DELIVERY_COPY_SOURCE_CHANGED');
   const copy=checkedCopy(source,candidateWithFacts(source,savedCandidate(row),repair));
   if(JSON.stringify(copy)!==JSON.stringify(story.deliveryCopy)||await reviewedHash(row)!==await sha256(JSON.stringify(copy)))throw failure('DELIVERY_COPY_REVIEW_STALE');
   if(spec.packPlayableReviewVersion===1)validatePlayableReview(JSON.parse(row.audit_json||'null'),applyDeliveryCopy(source,copy));
@@ -209,6 +212,7 @@ export async function deliveryCopyStatus(orderId,env,story,spec){
   const row=await read(env.DB,orderId);
   if(!row)return null;
   const repair=await readFactRepair(env.DB,orderId);
+  const transport=await readTransportRecovery(env.DB,orderId);
   const revision=await readRevision(env.DB,orderId);
   if(revision){
     let valid=false,copy=null;
@@ -253,9 +257,9 @@ export async function deliveryCopyStatus(orderId,env,story,spec){
     const copy=checkedCopy(sourceStory(story),candidate);
     reviewProtocol={...boundedAuditProtocol(JSON.parse(row.audit_json),printedReviewInput(applyDeliveryCopy(sourceStory(story),copy))),editionMatches:row.audit_candidate_sha256===await sha256(JSON.stringify(copy))};
   }catch{}
-  const remainingAudit=repairBound?repair.extra_audit_calls===0&&row.calls===2:row.calls===1;
+  const remainingAudit=repairBound?repair.extra_audit_calls===0&&row.calls===2:transport?transport.repair_calls===1&&transport.audit_calls===0:row.calls===1;
   return {phase:['repair','fact_repair','format','render','audit','ready'].includes(row.phase)?row.phase:row.audit_json?'audit':row.candidate_json?'format':'repair',code:diagnosticMessages[row.error_code]?row.error_code:null,
-    message:diagnosticMessages[row.error_code]||null,calls:(Number(row.calls)||0)+(Number(repair?.extra_audit_calls)||0),limit:repairBound?3:2,candidateSaved,formatValid:draftValid,reviewPassed:Boolean(row.audit_passed),
+    message:diagnosticMessages[row.error_code]||null,calls:(Number(row.calls)||0)+(Number(repair?.extra_audit_calls)||0)+(Number(transport?.repair_calls)||0)+(Number(transport?.audit_calls)||0),limit:repairBound||transport?3:2,candidateSaved,formatValid:draftValid,reviewPassed:Boolean(row.audit_passed),
     factRepairAvailable,factRepairGranted:repairBound,factRepairBlock,
     field:draftValid?null:currentField||fieldFrom(row.error_detail||''),formatIssue,issues,reviewProtocol,resumeAvailable:Boolean(bound&&!row.audit_json&&!row.audit_response_json&&(draftValid&&remainingAudit||repairBound&&factRepairBaseValid&&row.calls===1))};
 }
@@ -314,28 +318,32 @@ export async function ensureDeliveryCopy(story,spec,orderId,env,fetcher=env.FETC
   const revision=await readRevision(env.DB,orderId);
   if(revision)return ensureRevisedCopy(source,spec,orderId,env,row,revision,fetcher);
   const factRepair=await readFactRepair(env.DB,orderId);
+  const transport=await readTransportRecovery(env.DB,orderId);
   if(factRepair&&!await factRepairBinding(row,factRepair,source,spec))throw failure('DELIVERY_COPY_SOURCE_CHANGED');
+  if(transport&&!matches(transport,binding))throw failure('DELIVERY_COPY_SOURCE_CHANGED');
   const provider=aiProvider(env);
   let phase='repair';
   const mark=async value=>{phase=value;await query(env.DB,'UPDATE custom_delivery_copy SET phase = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?',value,orderId,COPY_POLICY).run();};
   const call=async(name,schema,instructions,input,slot,copyHash=null)=>{
     if(!provider)throw failure('GENERATION_NOT_CONFIGURED');
     const factCall=name==='printed_fact_repair',extra=slot===2;
-    const reservation=extra?await query(env.DB,'UPDATE custom_delivery_fact_repairs SET extra_audit_calls = extra_audit_calls + 1,audit_candidate_sha256 = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ? AND extra_audit_calls = 0 AND source_sha256 = ? AND spec_sha256 = ? AND fact_json IS NOT NULL AND EXISTS (SELECT 1 FROM custom_delivery_copy WHERE order_id = ? AND policy = ? AND calls = 2)',copyHash,orderId,COPY_POLICY,binding.sourceHash,binding.specHash,orderId,COPY_POLICY).run():await query(env.DB,'UPDATE custom_delivery_copy SET calls = calls + 1,audit_candidate_sha256 = CASE WHEN ? = 1 THEN ? ELSE audit_candidate_sha256 END,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ? AND calls = ? AND source_sha256 = ? AND spec_sha256 = ?',!factCall&&slot===1?1:0,copyHash,orderId,COPY_POLICY,slot,binding.sourceHash,binding.specHash).run();
+    const transportCall=Boolean(transport&&!factCall&&!extra);
+    const isAudit=name==='printed_copy_audit';
+    const reservation=transportCall?await query(env.DB,`UPDATE custom_delivery_copy_transport_recoveries SET ${isAudit?'audit_calls':'repair_calls'} = ${isAudit?'audit_calls':'repair_calls'} + 1 WHERE order_id = ? AND policy = ? AND source_sha256 = ? AND spec_sha256 = ? AND repair_calls = ? AND audit_calls = 0 AND EXISTS (SELECT 1 FROM custom_delivery_copy WHERE order_id = ? AND policy = ? AND calls = 1 AND ${isAudit?'candidate_json IS NOT NULL':'repair_response_json IS NULL AND candidate_json IS NULL'})`,orderId,COPY_POLICY,binding.sourceHash,binding.specHash,isAudit?1:0,orderId,COPY_POLICY).run():extra?await query(env.DB,'UPDATE custom_delivery_fact_repairs SET extra_audit_calls = extra_audit_calls + 1,audit_candidate_sha256 = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ? AND extra_audit_calls = 0 AND source_sha256 = ? AND spec_sha256 = ? AND fact_json IS NOT NULL AND EXISTS (SELECT 1 FROM custom_delivery_copy WHERE order_id = ? AND policy = ? AND calls = 2)',copyHash,orderId,COPY_POLICY,binding.sourceHash,binding.specHash,orderId,COPY_POLICY).run():await query(env.DB,'UPDATE custom_delivery_copy SET calls = calls + 1,audit_candidate_sha256 = CASE WHEN ? = 1 THEN ? ELSE audit_candidate_sha256 END,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ? AND calls = ? AND source_sha256 = ? AND spec_sha256 = ?',isAudit?1:0,copyHash,orderId,COPY_POLICY,slot,binding.sourceHash,binding.specHash).run();
     if(!reservation.meta?.changes)throw failure('DELIVERY_COPY_LIMIT');
-    if(extra)await query(env.DB,'UPDATE custom_delivery_copy SET audit_candidate_sha256 = ? WHERE order_id = ? AND policy = ?',copyHash,orderId,COPY_POLICY).run();
+    if(extra||transportCall&&isAudit)await query(env.DB,'UPDATE custom_delivery_copy SET audit_candidate_sha256 = ? WHERE order_id = ? AND policy = ?',copyHash,orderId,COPY_POLICY).run();
     try{
       const response=await fetcher(provider.url,{method:'POST',signal:AbortSignal.timeout(300000),headers:{authorization:`Bearer ${provider.key}`,'content-type':'application/json'},body:JSON.stringify({model:provider.model,...(provider.name==='deepseek'?{reasoning:{effort:'low'}}:{}),instructions,input:JSON.stringify(input),max_output_tokens:slot===0?24000:16000,text:{format:{type:'json_schema',name,strict:true,schema}}})});
       const body=await response.json();
       // Retain private received output BEFORE parsing, including failed output.
       if(factCall)await query(env.DB,'UPDATE custom_delivery_fact_repairs SET fact_response_json = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?',JSON.stringify(body),orderId,COPY_POLICY).run();
-      else await query(env.DB,`UPDATE custom_delivery_copy SET ${slot===0?'repair_response_json':'audit_response_json'} = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?`,JSON.stringify(body),orderId,COPY_POLICY).run();
+      else await query(env.DB,`UPDATE custom_delivery_copy SET ${isAudit?'audit_response_json':'repair_response_json'} = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?`,JSON.stringify(body),orderId,COPY_POLICY).run();
       if(extra)await query(env.DB,'UPDATE custom_delivery_fact_repairs SET audit_response_json = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?',JSON.stringify(body),orderId,COPY_POLICY).run();
       await query(env.DB,'UPDATE custom_delivery_copy SET response_id = ?,input_tokens = input_tokens + ?,output_tokens = output_tokens + ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?',body.id||null,body.usage?.input_tokens||0,body.usage?.output_tokens||0,orderId,COPY_POLICY).run();
       if(!response.ok)throw failure('DELIVERY_COPY_UPSTREAM');
       const data=providerData(body);
       if(factCall)await query(env.DB,'UPDATE custom_delivery_fact_repairs SET fact_json = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?',JSON.stringify(data),orderId,COPY_POLICY).run();
-      else await query(env.DB,`UPDATE custom_delivery_copy SET ${slot===0?'candidate_json':'audit_json'} = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?`,JSON.stringify(data),orderId,COPY_POLICY).run();
+      else await query(env.DB,`UPDATE custom_delivery_copy SET ${isAudit?'audit_json':'candidate_json'} = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?`,JSON.stringify(data),orderId,COPY_POLICY).run();
       return data;
     }catch(error){throw failure(/^DELIVERY_COPY_/.test(error.code||'')?error.code:'DELIVERY_COPY_RESPONSE');}
   };

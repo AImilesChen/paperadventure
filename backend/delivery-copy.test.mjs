@@ -27,6 +27,7 @@ function database(){
   db.exec(readFileSync(new URL('./migrations/0027_delivery_copy_checkpoints.sql',import.meta.url),'utf8'));
   db.exec(readFileSync(new URL('./migrations/0028_explicit_saved_fact_repair.sql',import.meta.url),'utf8'));
   db.exec(readFileSync(new URL('./migrations/0029_bound_delivery_copy_revision.sql',import.meta.url),'utf8'));
+  db.exec(readFileSync(new URL('./migrations/0035_explicit_copy_transport_recovery.sql',import.meta.url),'utf8'));
   return {db,DB:{prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first:async()=>stmt.get(...values)||null,run:async()=>({meta:{changes:stmt.run(...values).changes}})};}}}}};
 }
 test('final visible records solve uniquely, keep every digit, and reject a modified witness or code',async()=>{
@@ -456,6 +457,32 @@ test('an ambiguous timeout consumes its reservation and cannot purchase a fresh 
   const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},fetcher=async()=>{calls++;throw Error('ambiguous timeout');};
   for(let attempt=0;attempt<3;attempt++)await assert.rejects(()=>ensureDeliveryCopy(story,{...spec,packCopyVersion:1},'fixture',env,fetcher));
   assert.equal(calls,1);assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,1);
+});
+
+test('an explicit transport recovery reuses the bound story and permits only one repair and one audit',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database(),edition={...spec,packCopyVersion:1};
+  const env={DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'};
+  let calls=0;
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>{calls++;throw Error('ambiguous timeout');}),{code:'DELIVERY_COPY_RESPONSE'});
+  const saved=db.prepare('SELECT * FROM custom_delivery_copy').get();
+  assert.equal(saved.calls,1);
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',env,async()=>{calls++;throw Error('unexpected call');}),{code:'DELIVERY_COPY_LIMIT'});
+  assert.equal(calls,1,'automatic redelivery must not spend another request');
+  db.prepare('INSERT INTO custom_delivery_copy_transport_recoveries (order_id,policy,source_sha256,spec_sha256) VALUES (?,?,?,?)').run('fixture',saved.policy,saved.source_sha256,saved.spec_sha256);
+  const fetcher=async(_url,{body})=>{
+    calls++;
+    const name=JSON.parse(body).text.format.name;
+    assert.equal(name,calls===2?'printed_copy_repair':'printed_copy_audit');
+    return Response.json({output_text:JSON.stringify(calls===2?copy:{pass:true,issues:[]})});
+  };
+  const result=await ensureDeliveryCopy(story,edition,'fixture',env,fetcher);
+  assert.ok(result.deliveryCopy);
+  assert.equal(calls,3);
+  assert.deepEqual({...db.prepare('SELECT repair_calls,audit_calls FROM custom_delivery_copy_transport_recoveries').get()},{repair_calls:1,audit_calls:1});
+  assert.equal(db.prepare('SELECT calls,audit_passed FROM custom_delivery_copy').get().calls,1);
+  assert.equal(db.prepare('SELECT audit_passed FROM custom_delivery_copy').get().audit_passed,1);
+  await ensureDeliveryCopy(story,edition,'fixture',env,fetcher);
+  assert.equal(calls,3);
 });
 
 test('explicit saved-fact correction retains the original ledger and draft, then permits exactly one extra bound review',async()=>{
