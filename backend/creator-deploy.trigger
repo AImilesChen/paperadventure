@@ -68,3 +68,5 @@
 # deploy delivery copy audit timeout 300s 2026-10-19T12:32:24Z
 
 # deploy missing object bridge fact rule 2026-10-19T12:45:23Z
+
+# deploy playable edition review 2026-10-20T12:28:56Z
