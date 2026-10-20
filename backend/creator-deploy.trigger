@@ -70,3 +70,4 @@
 # deploy missing object bridge fact rule 2026-10-19T12:45:23Z
 
 # deploy playable edition review 2026-10-20T12:28:56Z
+# deploy PR #70 explicit saved-copy transport recovery 2026-10-20
