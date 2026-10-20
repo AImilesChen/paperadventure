@@ -17,6 +17,7 @@ import { linkedClockContext } from '../content/linked-contract-qa.mjs';
 import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import { prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory } from './staged-story.mjs';
 import {ensureDeliveryCopy} from './delivery-copy-service.mjs';
+import {COPY_POLICY} from './delivery-copy.mjs';
 import { packRemakeView, qualityUpgradeEligible, retryPackRemake, processPackRemake } from './pack-remake.mjs';
 import { createDownloadZip } from '../src/downloadZip.mjs';
 async function approvedCustomInput(env,input) {
@@ -28,7 +29,7 @@ async function approvedCustomInput(env,input) {
 
 function database({includeThemeRecovery=true,includeSemanticRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0024_scoped_semantic_plan_recovery.sql'&&!includeSemanticRecovery)continue;
@@ -699,6 +700,31 @@ test('the clock-tower blueprint recovery is one order-scoped call and does not g
   const {db}=database();
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_blueprint_recovery_grants").get().n,0,'a migration never grants a call when the named failed order is absent');
   assert.throws(()=>db.prepare("INSERT INTO custom_blueprint_recovery_grants (order_id,extra_calls,reason_code) VALUES ('missing',2,'STORY_REPAIR_ROUTING')").run(),/CHECK constraint failed/);
+});
+
+test('a stopped printed-copy transport request offers one owner-initiated continuation without model work at click time',async()=>{
+  const {db,binding}=database(),owner=await sha256('test-session-secret|adult@example.com'),jobs=[];
+  const spec={...validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'An upside-down hotel mystery',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec,packCopyVersion:1};
+  const stored=JSON.stringify(spec);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('copy-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES ('copy-order','custom','custom_home',?,?,?,?,1499,'USD','failed',CURRENT_TIMESTAMP)").run(stored,await sha256(stored),owner,'copy-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version) VALUES ('copy-activity','copy-order','failed',?,2)").run(JSON.stringify({...spec,plan:planFixture(spec),planConfirmed:true}));
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version) VALUES ('copy-order','confirmed',1,1)").run();
+  db.prepare("INSERT INTO generation_usage (order_id,attempt,model,status,phase,error_code) VALUES ('copy-order',1,'fixture','failed','story','STAGED_GENERATION_STOPPED')").run();
+  db.prepare("INSERT INTO custom_delivery_copy (order_id,policy,source_sha256,spec_sha256,calls) VALUES ('copy-order',?,?,?,1)").run(COPY_POLICY,'source-hash','spec-hash');
+  for(let stage=1;stage<=5;stage++)db.prepare("INSERT INTO custom_game_stages (order_id,stage_number,blueprint_sha256,stage_json) VALUES ('copy-order',?,'blueprint','{}')").run(stage);
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>jobs.push(job)}};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const get=path=>handleProductionApi(request(path,'GET',undefined,headers),env).then(response=>response.json());
+  assert.equal((await get('/api/v1/orders/copy-order')).deliveryRetryAvailable,true);
+  assert.equal((await get('/api/v1/my-orders')).orders.find(order=>order.id==='copy-order').deliveryRetryAvailable,true);
+  const retry=await handleProductionApi(request('/api/v1/orders/copy-order/retry-delivery','POST',undefined,headers),env);
+  assert.equal(retry.status,202);
+  assert.deepEqual(jobs,[{orderId:'copy-order'}]);
+  assert.deepEqual({...db.prepare('SELECT repair_calls,audit_calls FROM custom_delivery_copy_transport_recoveries').get()},{repair_calls:0,audit_calls:0});
+  assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,1);
+  assert.equal((await handleProductionApi(request('/api/v1/orders/copy-order/retry-delivery','POST',undefined,headers),env)).status,404);
 });
 
 test('a stopped v15 material step can resume once on the same paid order',async()=>{
