@@ -97,7 +97,46 @@ export function LiveAccount({ Link }) {
     prepare();
     return () => { cancelled = true;signIn?.stop();window.removeEventListener('focus',resume);document.removeEventListener('visibilitychange',resume); };
   }, [retry]);
-  return <main className="extended-page live-page account-page"><section className="account-entry" aria-labelledby="account-title"><div className="account-benefits"><span className="eyebrow">YOUR ADVENTURE ACCOUNT</span><h1 id="account-title">Sign in to your adventures.</h1><p className="account-summary">Access your purchased packs, download your PDFs, and continue creating custom adventures.</p><ul className="account-benefit-list"><li><Books size={26} /><div><h2>Keep your packs together</h2><p>Find your purchased Home and Classroom adventures and download available Player Packs and adult guides.</p></div></li><li><Sparkle size={26} /><div><h2>Continue your custom adventure</h2><p>Return to saved planning drafts and follow your AI adventure from generation to files ready.</p></div></li><li><Receipt size={26} /><div><h2>Follow your orders</h2><p>Check payment and delivery status or get help with a purchase.</p></div></li></ul><Link className="text-link" to="/en/themes/">Browse adventures first <ArrowRight size={18} /></Link></div><div className="account-signin"><div className="live-panel account-card"><span className="eyebrow">FOR PARENTS &amp; TEACHERS</span><h2>Welcome to Paper Adventure</h2><p>Use your adult Google account to get started or return to your adventures.</p><div className="account-google" ref={button} aria-label="Sign in with Google" aria-busy={loading || busy} />{loading && <p className="account-status" role="status">Loading Google sign-in…</p>}{busy && <p className="account-status" role="status">Signing you in…</p>}{error && <><Alert>{error}</Alert><button type="button" className="button-quiet" onClick={() => setRetry(value => value + 1)}>Try again</button></>}<p className="account-child-note">No child account is needed.</p><p className="account-privacy">We use your verified Google email to find your adventures. We do not request access to your contacts or Google Drive. <Link to="/en/privacy/">Read our Privacy Notice</Link>.</p></div><p className="live-note account-support">Need help accessing a purchase? <Link to="/en/help/">Contact support <ArrowRight size={16} /></Link></p></div></section></main>;
+  return <main className="extended-page live-page account-page">
+    <section className="account-entry" aria-labelledby="account-title">
+      <div className="account-benefits">
+        <span className="eyebrow">YOUR ADVENTURE ACCOUNT</span>
+        <h1 id="account-title">Your next adventure starts here.</h1>
+        <p className="account-summary">Sign in to pick up a saved story, find your games, or print your next adventure.</p>
+        <div className="account-illustration" aria-hidden="true">
+          <div className="account-paper account-paper-back"><span /><span /><span /></div>
+          <div className="account-paper account-paper-front">
+            <span className="account-map-sun" />
+            <svg className="account-map-route" viewBox="0 0 420 200" fill="none" preserveAspectRatio="none"><path d="M38 157 C105 157 84 63 172 86 S256 168 316 110 S356 61 390 55" stroke="currentColor" strokeWidth="4" strokeDasharray="6 10" strokeLinecap="round" /></svg>
+            <span className="account-map-stop account-map-stop-one" /><span className="account-map-stop account-map-stop-two" /><span className="account-map-stop account-map-stop-three" />
+            <Sparkle className="account-map-sparkle" size={35} weight="fill" />
+          </div>
+          <div className="account-paper-tab"><Books size={25} weight="duotone" /></div>
+        </div>
+        <ul className="account-benefit-list">
+          <li><Books size={22} /><span>Your printable games</span></li>
+          <li><Sparkle size={22} /><span>Stories in progress</span></li>
+          <li><Receipt size={22} /><span>Orders and downloads</span></li>
+        </ul>
+        <Link className="text-link account-browse" to="/en/themes/">Browse adventures first <ArrowRight size={18} /></Link>
+      </div>
+      <div className="account-signin">
+        <div className="live-panel account-card">
+          <span className="account-card-icon" aria-hidden="true"><Sparkle size={28} weight="fill" /></span>
+          <span className="eyebrow">FOR PARENTS &amp; TEACHERS</span>
+          <h2>Open your adventure shelf</h2>
+          <p className="account-card-intro">Continue with your adult Google account. Your games, drafts and orders will be here.</p>
+          <div className="account-google" ref={button} aria-label="Sign in with Google" aria-busy={loading || busy} />
+          {loading && <p className="account-status" role="status">Loading Google sign-in…</p>}
+          {busy && <p className="account-status" role="status">Signing you in…</p>}
+          {error && <><Alert>{error}</Alert><button type="button" className="button-quiet" onClick={() => setRetry(value => value + 1)}>Try again</button></>}
+          <p className="account-child-note">Just your adult account. No child account needed.</p>
+          <p className="account-privacy">We use your verified Google email to find your adventures. We do not request access to your contacts or Google Drive. <Link to="/en/privacy/">Read our Privacy Notice</Link>.</p>
+        </div>
+        <p className="live-note account-support">Need help accessing a purchase? <Link to="/en/help/">Contact support <ArrowRight size={16} /></Link></p>
+      </div>
+    </section>
+  </main>;
 }
 
 export function LiveShelf({ Link }) {
