@@ -54,3 +54,26 @@ export function validateCausalReview(audit,story){
   }
   return audit;
 }
+
+// The playable-edition policy asks the reviewer for only the printed facts
+// needed by the final action. This checks citations, not the model's prose
+// style; the independent verdict still judges whether those facts suffice.
+export function validatePlayableReview(audit,story){
+  const fail=()=>{throw Object.assign(Error('The playable review did not verify the player evidence.'),{code:'DELIVERY_COPY_AUDIT_PROTOCOL'});};
+  if(!Array.isArray(audit?.warnings)||audit.warnings.length>5||
+    audit.warnings.some(item=>!['STYLE','REPETITION','TITLE'].includes(item?.code)||
+      !Number.isInteger(item.stageNumber)||item.stageNumber<0||item.stageNumber>5||
+      !clean(item.reason)||clean(item.reason).length>160))fail();
+  if(audit.pass!==true)return audit;
+  if(!Array.isArray(audit.evidence)||audit.evidence.length<3||audit.evidence.length>4)fail();
+  const units=causalEvidenceUnits(story),usedStages=new Set(),usedUnits=new Set();
+  for(const entry of audit.evidence){
+    const unit=units.find(item=>normId(item.id)===normId(entry?.evidenceId));
+    if(!unit||!Number.isInteger(entry.stageNumber)||entry.stageNumber!==unit.stageNumber||
+      usedStages.has(unit.stageNumber)||usedUnits.has(unit.id)||
+      !clean(entry.quote)||!normText(unit.text).includes(normText(entry.quote))||
+      clean(entry.supportsAction).length<8)fail();
+    usedStages.add(unit.stageNumber);usedUnits.add(unit.id);
+  }
+  return audit;
+}

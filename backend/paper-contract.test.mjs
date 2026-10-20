@@ -293,6 +293,10 @@ test('quality version 15 performs the complete-game audit without a provider req
   const result=await auditStagedStory(story,spec,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{providerCalls++;throw Error('final audit must not call the provider');});
   assert.deepEqual(result,{usage:null,responseId:null});
   assert.equal(providerCalls,0);
+  const playable={...spec,packQualityVersion:14,packPlayableReviewVersion:1};
+  const playableResult=await auditStagedStory(story,playable,blueprint,{OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{providerCalls++;throw Error('draft audit must not call the provider');});
+  assert.deepEqual(playableResult,{usage:null,responseId:null});
+  assert.equal(providerCalls,0);
   const changed=structuredClone(story);changed.stages[0].material.items[0].label='Changed after checkpoint approval';
   await assert.rejects(()=>auditStagedStory(changed,spec,blueprint,{},async()=>{providerCalls++;}),/differs from its unified paper contract/);
   assert.equal(providerCalls,0,'deterministic mismatch rejection also avoids the provider');
