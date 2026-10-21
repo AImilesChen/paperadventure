@@ -74,3 +74,4 @@
 # deploy PR #71 saved worksheet-label recovery 2026-10-21
 # deploy PR #72 v14 saved worksheet-label recovery 2026-10-21
 # deploy PR #73 checkpoint preview 2026-10-21
+# deploy PR #76 v14 repeated-action repair and scoped order recovery 2026-10-21
