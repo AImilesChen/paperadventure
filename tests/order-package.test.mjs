@@ -88,6 +88,21 @@ test('a delivered order renders its original download card during theme correcti
     assert.equal(updateProgressState(delivered).completed,7);
     assert.equal(updateProgressState(delivered).busy,false);
     assert.equal(themeUpdatePending(delivered),false);
+    const preparing={...order,status:'paid',filesReady:false,paidAt:'2026-10-21',planReview:{status:'generating',pending:'initial',progress:null}};
+    for(const [progress,saved,label] of [
+      [null,null,'Working on the first step'],
+      [{phase:'validating',candidateSaved:true},1,'Checking the plan structure'],
+      [{phase:'auditing',candidateSaved:true,formatChecked:true},2,'Checking the story and theme'],
+      [{phase:'ready',candidateSaved:true,formatChecked:true,reviewPassed:true},3,'Saving your plan for review'],
+    ]){
+      const banner=renderToStaticMarkup(createElement(OrderNextStep,{order:{...preparing,planReview:{...preparing.planReview,progress}}}));
+      assert.match(banner,/Personal plan preparation progress/);
+      assert.match(banner,new RegExp(label));
+      assert.match(banner,saved===null?/<progress[^>]*max="3"(?![^>]*value=)/:new RegExp(`<progress[^>]*max="3"[^>]*value="${saved}"`));
+      assert.doesNotMatch(banner,/\d+%|estimated time/i,'the plan bar must not invent a percentage or ETA');
+    }
+    const reviewReady=renderToStaticMarkup(createElement(OrderNextStep,{order:{...preparing,planReview:{status:'review',pending:null,progress:{phase:'ready',reviewPassed:true}}}}));
+    assert.doesNotMatch(reviewReady,/Personal plan preparation progress/,'the progress bar stops when the plan is ready for approval');
     const nextCases=[
       [{...order,paidAt:'2026-10-16',planReview:{status:'review',activeVersion:2,confirmedVersion:1,qualityReplanUsed:true}},'Review the corrected plan','#personal-plan-review'],
       [{...order,paidAt:'2026-10-16',planReview:{status:'review',pending:'correction',confirmedVersion:1,qualityReplanUsed:true}},'Your corrected plan is being prepared',null],

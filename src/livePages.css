@@ -68,6 +68,10 @@
 .order-next-step h2{margin:0;font-size:1.35rem;line-height:1.25;color:#0d294f}
 .order-next-step p{margin:0;max-width:63ch}
 .order-next-step>.button{justify-self:start;display:inline-flex;align-items:center;gap:9px}
+.plan-preparation-progress{display:grid;gap:9px;max-width:700px;margin-top:5px;color:#164660}
+.plan-preparation-progress strong{font-size:.92rem}
+.plan-preparation-progress progress{display:block;width:100%;height:12px;accent-color:#1b6781}
+.plan-preparation-progress p{font-size:.82rem;line-height:1.4;color:#496b7d}
 .order-next-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:4px}
 .order-next-actions .button,.order-next-actions .button-quiet{display:inline-flex;align-items:center;gap:9px;text-decoration:none}
 .live-panel .order-feedback{margin-top:32px;padding:20px 0 0;border-top:1px solid #c5dbe4}
