@@ -2,7 +2,7 @@ import { ApiError, requireText, validateGeneratedStage, validateGeneratedStory }
 import { aiProvider } from './openai.mjs';
 import { materialTypes, validatePrintableMaterial, validateMaterialSet } from './printable-material.mjs';
 import { compileControlledPuzzle, controlledStageText, validateControlledPuzzle, controlledMaterialTypes } from './controlled-puzzles.mjs';
-import {checkedPrintedRecordFacts,invalidStoryOrderAction,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint,stableOrderLabels,validateContextualMaterialStep} from './contextual-puzzles.mjs';
+import {checkedPrintedRecordFacts,invalidStoryOrderAction,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint,repairWorksheetMaterialLabels,stableOrderLabels,validateContextualMaterialStep} from './contextual-puzzles.mjs';
 import {paperContractTypes,paperActions,paperAction,assertGoalStillOpen} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
 import {compileStorySpine,prepareStoryFrame,selectedStoryFinding,validateStorySpine} from './story-spine.mjs';
@@ -398,6 +398,14 @@ export async function generateBlueprintMaterialStep(spec,storyFrame,number,earli
     const trimmed=result.data.material.title.slice(0,45).replace(/\s+\S*$/,'').trim();
     result.data={...result.data,material:{...result.data.material,title:trimmed||result.data.material.title.slice(0,45)}};
   }
+  // Fix worksheet wording in the returned material before it consumes a
+  // second provider attempt. The saved facts, answer fields and valid labels
+  // stay intact; the complete material validator still has the final say.
+  try{
+    const repaired=recoverSavedWorksheetMaterialStep(spec,storyFrame,number,result.data,earlierStages,
+      'labels must name fictional story pieces or actions');
+    if(repaired)result.data=repaired;
+  }catch{}
   try{validateSavedBlueprintMaterialStep(spec,storyFrame,number,result.data,earlierStages);}
   catch(cause){
     // Order tiles carry the strictest v13+ rules (no worksheet language, no
@@ -445,6 +453,14 @@ export function validateSavedBlueprintMaterialStep(spec,storyFrame,number,data,e
   if(spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&['evidence_cards','decision_record'].includes(type))
     checkedPrintedRecordFacts(data.features,number);
   return data;
+}
+
+export function recoverSavedWorksheetMaterialStep(spec,storyFrame,number,data,earlierStages=[],issue=''){
+  if(!/labels must name fictional story pieces or actions/i.test(issue))return null;
+  const repaired=repairWorksheetMaterialLabels(spec,storyFrame,number,data,earlierStages);
+  if(!repaired)return null;
+  validateSavedBlueprintMaterialStep(spec,storyFrame,number,repaired,earlierStages);
+  return repaired;
 }
 
 export async function generateBlueprintClosingStep(spec,storyFrame,env,fetcher=fetch){

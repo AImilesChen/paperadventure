@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {clockSpec} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
-import {generateBlueprintMaterialStep,validateSavedBlueprintMaterialStep} from './staged-story.mjs';
+import {generateBlueprintMaterialStep,recoverSavedWorksheetMaterialStep,validateSavedBlueprintMaterialStep} from './staged-story.mjs';
 import {invalidStoryOrderAction} from './contextual-puzzles.mjs';
 
 test('repeated order action is isolated to the saved material on retry',async()=>{
@@ -60,17 +60,53 @@ test('a retry identifies repeated and worksheet-style ordering labels together',
   assert.equal(result.data.material.items[1].label,'Align the copper wire');
 });
 
-test('a bad label-only repair is rejected without replacing the saved valid fields',async()=>{
+test('a bad model label repair uses the saved material without replacing its valid fields',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,
     plan:{...clockSpec.plan,stages:clockSpec.plan.stages.map((stage,index)=>index<2?{...stage,mechanic:'sequence'}:stage)}};
   const frame={actions:['Install the spare signal gear'],discoveries:[{finding:'The tower path is safe.'},{finding:'The lantern path reaches the repair room.'}]};
   const previous=structuredClone(linkedClockContext().stages[2]);
   previous.material.items[1].label='Match the printed tiles';
-  await assert.rejects(generateBlueprintMaterialStep(spec,frame,2,[],{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'},
+  const result=await generateBlueprintMaterialStep(spec,frame,2,[],{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'},
     async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({replacements:['Sort the printed tiles']})}]}]}),
-    'Checkpoint 2 labels must name fictional story pieces or actions, not worksheet instructions.',previous),
-  /not worksheet instructions/);
+    'Checkpoint 2 labels must name fictional story pieces or actions, not worksheet instructions.',previous);
+  assert.equal(result.data.features[0],previous.features[0]);
+  assert.equal(result.data.material.items[0].label,previous.material.items[0].label);
+  assert.doesNotThrow(()=>validateSavedBlueprintMaterialStep(spec,frame,2,result.data));
   assert.equal(previous.material.items[1].label,'Match the printed tiles');
+});
+
+test('a saved route material with worksheet wording can be repaired without a provider call',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15};
+  const frame={actions:['Install the spare signal gear'],discoveries:[{},{},{},
+    {finding:'The upper bridge leads back to the keeper.',consequence:'The wheel can return safely.',supportsAction:'upper bridge'}]};
+  const previous=structuredClone(linkedClockContext().stages[3]);
+  previous.material.items[0].label='Compare the printed routes';
+  const original=structuredClone(previous);
+  assert.throws(()=>validateSavedBlueprintMaterialStep(spec,frame,4,previous),/not worksheet instructions/);
+  const repaired=recoverSavedWorksheetMaterialStep(spec,frame,4,previous,[],
+    'Checkpoint 4 labels must name fictional story pieces or actions, not worksheet instructions.');
+  assert.ok(repaired);
+  assert.deepEqual(repaired.material.items.slice(1),original.material.items.slice(1),'valid labels stay intact');
+  assert.deepEqual(repaired.features,original.features);
+  assert.equal(repaired.word,original.word);
+  assert.deepEqual(previous,original,'saved failed candidate is not mutated');
+  assert.doesNotThrow(()=>validateSavedBlueprintMaterialStep(spec,frame,4,repaired));
+  assert.equal(recoverSavedWorksheetMaterialStep(spec,frame,4,previous,[],
+    'Checkpoint 4 printed record facts are missing.'),null,'unrelated failures are not silently repaired');
+});
+
+test('new route materials repair worksheet wording before another model attempt',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15};
+  const frame={actions:['Install the spare signal gear'],discoveries:[{},{},{},
+    {finding:'The upper bridge leads back to the keeper.',consequence:'The wheel can return safely.',supportsAction:'upper bridge'}]};
+  const candidate=structuredClone(linkedClockContext().stages[3]);
+  candidate.material.items[0].label='Compare the printed routes';
+  let calls=0;
+  const result=await generateBlueprintMaterialStep(spec,frame,4,[],{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'},
+    async()=>{calls++;return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(candidate)}]}]});});
+  assert.equal(calls,1);
+  assert.equal(result.data.material.items[1].label,'Side walkway');
+  assert.doesNotThrow(()=>validateSavedBlueprintMaterialStep(spec,frame,4,result.data));
 });
 
 test('a repeated invalid ordering action falls back to stable story labels on retry instead of exhausting the step budget',async()=>{

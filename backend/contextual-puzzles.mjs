@@ -162,6 +162,36 @@ export const stableOrderLabels=(candidate,spec,index)=>{
   const subject=storySubject(candidate,spec,index);
   return [`Inspect ${subject}`,`Gather ${subject} supplies`,`Prepare ${subject} parts`,`Position ${subject}`].map(value=>fitLabel(value));
 };
+// A worksheet-style label is a presentation defect in an otherwise saved
+// material. Rebuild only the labels from the approved frame; keep the scene,
+// printed facts and answers untouched. The normal material validator decides
+// whether the repaired candidate is safe to use.
+export function repairWorksheetMaterialLabels(spec,storyFrame,number,data,earlierStages=[]){
+  if((spec.packQualityVersion||0)<15||!data?.material?.items||number<1||number>4)return null;
+  const type=paperContractTypes(spec.plan)[number-1];
+  if(!['order_tiles','route_board','evidence_cards','decision_record'].includes(type))return null;
+  const items=data.material.items;
+  const expected=type==='order_tiles'?4:3;
+  if(items.length!==expected||items.some(item=>typeof item?.label!=='string'))return null;
+  const bad=items.map(item=>worksheetLanguage.test(item.label)||/^(?:compare|check|match|select|record|sort|read|write|arrange|decode|number)\b/i.test(item.label));
+  if(!bad.some(Boolean))return null;
+  const subject=storySubject({storyFrame},spec,number-1);
+  const replacements=type==='order_tiles'?stableOrderLabels({storyFrame},spec,number-1)
+    :type==='route_board'?['North','Garden','Market'].map(name=>fitLabel(`${name} ${subject} route`))
+    :['Field report','Keeper note','Route log'].map(kind=>recordLabel(`${subject} ${kind}`));
+  const used=new Set(items.filter((_,index)=>!bad[index]).map(item=>item.label.toLowerCase()));
+  let next=0;
+  const repaired={...data,material:{...data.material,items:items.map((item,index)=>{
+    if(!bad[index])return item;
+    while(next<replacements.length&&used.has(replacements[next].toLowerCase()))next++;
+    const label=replacements[next++];
+    if(!label)return item;
+    used.add(label.toLowerCase());
+    return {...item,label};
+  })}};
+  validateContextualMaterialStep(spec,storyFrame,number,repaired,earlierStages);
+  return repaired;
+}
 // A preposition or an abstract direction is not an object children can
 // inspect, gather or position. V9's generic replacement could turn a route
 // fragment such as "through front" into four nonsensical printed actions.
