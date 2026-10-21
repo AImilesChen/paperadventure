@@ -391,11 +391,26 @@ export function orderNextStep(order) {
   return {title:'Your game is being prepared',detail:'No action is needed now. This page updates automatically.'};
 }
 
+export function PlanPreparationProgress({review}) {
+  const work=review.progress;
+  const completed=work?.reviewPassed?3:work?.formatChecked?2:work?.candidateSaved?1:0;
+  const labels={queued:'Waiting to start your plan',generating:'Writing your story plan',validating:'Checking the plan structure',repairing:'Refining the plan structure',auditing:'Checking the story and theme',correcting:'Refining the story and theme',ready:'Saving your plan for review'};
+  const current=labels[work?.phase]||labels[review.status]||'Preparing your plan';
+  return <div className="plan-preparation-progress" aria-label="Personal plan preparation progress" aria-busy="true">
+    <strong>{current}</strong>
+    <progress max={3} {...(completed?{value:completed}:{})} aria-label="Saved plan preparation milestones"/>
+    <p>{completed ? `${completed} of 3 steps saved` : 'Working on the first step'} · Draft, format check, story review. Progress changes when a step is saved.</p>
+  </div>;
+}
+
 export function OrderNextStep({order}) {
   const next=orderNextStep(order);
   if(next.href==='#download-game'||next.href==='#delivery-recovery')return null;
+  const review=order.planReview;
+  const preparingPlan=order.kind==='custom'&&order.paidAt&&!order.filesReady&&(review?.pending||['queued','generating'].includes(review?.status));
   return <section className="order-next-step" aria-label="Next step" aria-live="polite">
     <span className="eyebrow">NEXT STEP</span><h2>{next.title}</h2><p>{next.detail}</p>
+    {preparingPlan&&<PlanPreparationProgress review={review}/>}
     {next.href&&<a className="button" href={next.href} onClick={next.href==='#order-help'?()=>{const help=document.getElementById('order-help');if(help)help.open=true;}:undefined}>{next.action} <ArrowRight size={18}/></a>}
   </section>;
 }
