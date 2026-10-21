@@ -73,3 +73,4 @@
 # deploy PR #70 explicit saved-copy transport recovery 2026-10-20
 # deploy PR #71 saved worksheet-label recovery 2026-10-21
 # deploy PR #72 v14 saved worksheet-label recovery 2026-10-21
+# deploy PR #73 checkpoint preview 2026-10-21
