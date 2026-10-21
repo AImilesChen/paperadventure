@@ -167,7 +167,7 @@ export const stableOrderLabels=(candidate,spec,index)=>{
 // printed facts and answers untouched. The normal material validator decides
 // whether the repaired candidate is safe to use.
 export function repairWorksheetMaterialLabels(spec,storyFrame,number,data,earlierStages=[]){
-  if((spec.packQualityVersion||0)<15||!data?.material?.items||number<1||number>4)return null;
+  if((spec.packQualityVersion||0)<14||!data?.material?.items||number<1||number>4)return null;
   const type=paperContractTypes(spec.plan)[number-1];
   if(!['order_tiles','route_board','evidence_cards','decision_record'].includes(type))return null;
   const items=data.material.items;

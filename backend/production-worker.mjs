@@ -34,7 +34,7 @@ async function recoverableStoppedCopy(db,orderId,spec){
   return Number(saved?.count)===5?row:null;
 }
 async function recoverableStoppedMaterial(db,orderId,spec){
-  if((spec?.packQualityVersion||0)<15)return false;
+  if((spec?.packQualityVersion||0)<14)return false;
   const latest=await query(db,"SELECT phase,stage_number,status,error_code,error_detail FROM custom_generation_calls WHERE order_id = ? ORDER BY rowid DESC LIMIT 1",orderId).first();
   const stage=Number(latest?.stage_number);
   if(latest?.phase!=='blueprint_material'||latest.status!=='failed'||latest.error_code!=='BLUEPRINT_INVALID'||
