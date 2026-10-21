@@ -75,8 +75,8 @@ test('a bad model label repair uses the saved material without replacing its val
   assert.equal(previous.material.items[1].label,'Match the printed tiles');
 });
 
-test('a saved route material with worksheet wording can be repaired without a provider call',()=>{
-  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15};
+test('a saved v14 route material with worksheet wording can be repaired without a provider call',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14};
   const frame={actions:['Install the spare signal gear'],discoveries:[{},{},{},
     {finding:'The upper bridge leads back to the keeper.',consequence:'The wheel can return safely.',supportsAction:'upper bridge'}]};
   const previous=structuredClone(linkedClockContext().stages[3]);
@@ -96,7 +96,7 @@ test('a saved route material with worksheet wording can be repaired without a pr
 });
 
 test('new route materials repair worksheet wording before another model attempt',async()=>{
-  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15};
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14};
   const frame={actions:['Install the spare signal gear'],discoveries:[{},{},{},
     {finding:'The upper bridge leads back to the keeper.',consequence:'The wheel can return safely.',supportsAction:'upper bridge'}]};
   const candidate=structuredClone(linkedClockContext().stages[3]);
