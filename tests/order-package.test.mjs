@@ -105,6 +105,12 @@ test('a delivered order renders its original download card during theme correcti
       else assert.equal((banner.match(/class="button"/g)||[]).length,href?1:0,'only one primary next-step link is shown');
     }
     assert.equal(renderToStaticMarkup(createElement(OrderNextStep,{order:{...delivered,kind:'ready',paidAt:'2026-10-16'}})),'','ready-made downloads also need no duplicate banner');
+    const plainReady={...order,planReview:{status:'confirmed',confirmedVersion:1},themePlanRepairAvailable:false};
+    const readyHtml=renderToStaticMarkup(createElement(OrderPackage,{order:plainReady,orderId:order.id,selectedPaper:'A4'}));
+    assert.match(readyHtml,/Download complete game · ZIP/);
+    assert.doesNotMatch(readyHtml,/order-game-progress|order-package-files/,'a finished order shows downloads directly');
+    const recoverable={...order,status:'failed',filesReady:false,paidAt:'2026-10-16',planReview:{status:'confirmed',confirmedVersion:1},themePlanRepairAvailable:false,deliveryRetryAvailable:true};
+    assert.equal(renderToStaticMarkup(createElement(OrderNextStep,{order:recoverable})),'','the recovery control replaces the jump link');
     assert.match(html,/Download existing PDFs while the replacement is pending/);
     assert.match(html,/Download original game · ZIP/);
   } finally {
