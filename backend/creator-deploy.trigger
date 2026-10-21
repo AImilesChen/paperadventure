@@ -71,3 +71,4 @@
 
 # deploy playable edition review 2026-10-20T12:28:56Z
 # deploy PR #70 explicit saved-copy transport recovery 2026-10-20
+# deploy PR #71 saved worksheet-label recovery 2026-10-21
