@@ -29,7 +29,7 @@ async function approvedCustomInput(env,input) {
 
 function database({includeThemeRecovery=true,includeSemanticRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql','0037_order_8f5d_material_recovery.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0024_scoped_semantic_plan_recovery.sql'&&!includeSemanticRecovery)continue;
@@ -746,6 +746,27 @@ test('the clock-tower blueprint recovery is one order-scoped call and does not g
   const {db}=database();
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_blueprint_recovery_grants").get().n,0,'a migration never grants a call when the named failed order is absent');
   assert.throws(()=>db.prepare("INSERT INTO custom_blueprint_recovery_grants (order_id,extra_calls,reason_code) VALUES ('missing',2,'STORY_REPAIR_ROUTING')").run(),/CHECK constraint failed/);
+});
+
+test('the repeated-action recovery reserves one call only for the unchanged failed paid order',()=>{
+  const {db}=database(),orderId='8f5d8f98-694d-465f-8cef-4d80b9ad6bef';
+  const migration=readFileSync(new URL('./migrations/0037_order_8f5d_material_recovery.sql',import.meta.url),'utf8');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_generation_recovery_grants').get().n,0);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('repeat-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home','{}','hash','owner','repeat-price',1499,'USD','failed',CURRENT_TIMESTAMP)").run(orderId);
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version) VALUES ('repeat-activity',?,'failed','{}',2)").run(orderId);
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version) VALUES (?,'confirmed',1,1)").run(orderId);
+  db.prepare("INSERT INTO generation_usage (order_id,attempt,model,status,phase,error_code) VALUES (?,1,'fixture','failed','story','STAGED_GENERATION_STOPPED')").run(orderId);
+  const insert=db.prepare("INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model,error_code,error_detail,result_json) VALUES (?,?, 'blueprint_material',2,'failed','fixture','BLUEPRINT_INVALID',?,?)");
+  insert.run('repeat-one',orderId,'Checkpoint 2 repeats a printed action from an earlier checkpoint.','{}');
+  db.exec(migration);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_generation_recovery_grants').get().n,0,'one failed call is not an exhausted step');
+  insert.run('repeat-two',orderId,'Checkpoint 2 repeats a printed action from an earlier checkpoint.','{}');
+  db.exec(migration);db.exec(migration);
+  assert.deepEqual({...db.prepare('SELECT stage_number,extra_calls,reason_code FROM custom_generation_recovery_grants WHERE order_id = ?').get(orderId)},
+    {stage_number:2,extra_calls:1,reason_code:'REPEATED_ORDER_ACTION'});
+  assert.equal(db.prepare('SELECT status FROM custom_activities WHERE order_id = ?').get(orderId).status,'failed','migration does not start generation');
+  assert.equal(db.prepare('SELECT status FROM orders WHERE id = ?').get(orderId).status,'failed');
 });
 
 test('a stopped printed-copy transport request offers one owner-initiated continuation without model work at click time',async()=>{

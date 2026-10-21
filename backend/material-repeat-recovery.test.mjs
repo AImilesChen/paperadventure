@@ -6,7 +6,7 @@ import {generateBlueprintMaterialStep,recoverSavedWorksheetMaterialStep,validate
 import {invalidStoryOrderAction} from './contextual-puzzles.mjs';
 
 test('repeated order action is isolated to the saved material on retry',async()=>{
-  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14,
     plan:{...clockSpec.plan,stages:clockSpec.plan.stages.map((stage,index)=>index<2?{...stage,mechanic:'sequence'}:stage)}};
   const frame={actions:['Install the spare signal gear'],discoveries:[{finding:'The tower path is safe.'},{finding:'The lantern path reaches the repair room.'}]};
   const earlier={material:{items:[{label:'Inspect the bell tower steps'},{label:'Gather the brass gears'},{label:'Prepare the clock shaft'},{label:'Position the spare rope'}]}};
