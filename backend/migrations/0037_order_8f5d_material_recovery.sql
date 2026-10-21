@@ -22,7 +22,7 @@ WHERE o.id = '8f5d8f98-694d-465f-8cef-4d80b9ad6bef'
        WHERE c.order_id = o.id AND c.phase = 'blueprint_material'
          AND c.stage_number = 2 AND c.status = 'failed'
          AND c.error_code = 'BLUEPRINT_INVALID'
-         AND c.error_detail LIKE '%repeats a printed action from an earlier checkpoint%'
+         AND instr(COALESCE(c.error_detail, ''), 'repeats a printed action from an earlier checkpoint') > 0
          AND c.result_json IS NOT NULL
          AND c.rowid = (SELECT MAX(last.rowid) FROM custom_generation_calls AS last
               WHERE last.order_id = o.id))
