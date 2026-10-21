@@ -223,6 +223,16 @@ export function applyDeliveryCopy(story,copy=story.deliveryCopy,check=true){
   // reads as bookkeeping and gets rejected as a wrong ending order. Put the
   // grounded outcome first and keep the checked-code confirmation after it.
   result.ending=`${groundedDeliveryClosing(copy)} The four checked results form code ${code}, which matches "${copy.actions[0].label}" on the final sheet.`;
+  // Post-delivery wording changes target the final printed edition. Keep
+  // printed pieces, answers and the reviewed delivery copy unchanged.
+  if(story.printRevisions){
+    for(const [number,value] of Object.entries(story.printRevisions)){
+      const index=Number(number)-1;
+      if(!Number.isInteger(index)||index<0||index>=result.stages.length||!value||
+         !['clue','hint'].every(field=>typeof value[field]==='string'))fail('A checkpoint wording preview is invalid.');
+      result.stages[index]={...result.stages[index],clue:text(value.clue,'Revised clue',400),hint:text(value.hint,'Revised hint',120)};
+    }
+  }
   return result;
 }
 

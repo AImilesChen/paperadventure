@@ -2,7 +2,7 @@ import { publicCatalog, offers, productRights, themes } from '../shared/catalog.
 import { ApiError, validateGeneratedStage, validateGeneratedStory, validatePurchase, validateSupportedRange } from './domain.mjs';
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
-import { aiProvider, generateStory, generateProposals, reviseStage } from './openai.mjs';
+import { aiProvider, generateStory, generateProposals, reviseStage, revisePrintedWording } from './openai.mjs';
 import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint,
   generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, recoverSavedWorksheetMaterialStep, validateSavedBlueprintMaterialStep } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
@@ -16,6 +16,7 @@ import {safePlanFormatIssue} from '../shared/plan-format.mjs';
 import { PLAN_REVIEW_POLICY, hasStoryScenes } from '../shared/plan-quality.mjs';
 import { startPackRemake, retryPackRemake, packRemakeView, processPackRemake, qualityUpgradeEligible } from './pack-remake.mjs';
 import { controlledRevisionStyle } from './controlled-puzzles.mjs';
+import { applyDeliveryCopy, validatePlayerEvidence } from './delivery-copy.mjs';
 import { coverGenerationReady, reserveOrderCover, dispatchOrderCover, processOrderCover, resumeOrderCovers, coverImageType, MAX_COVER_BYTES } from './theme-covers.mjs';
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
@@ -941,7 +942,122 @@ async function fileDownload(request, env, orderId, role) {
   }
   if (!file?.r2_key) throw new ApiError(404, 'FILE_NOT_FOUND', 'The file is not ready.');
   const bytes = await verifiedPdf(env, file);
-  return new Response(bytes, { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="adventure-${role}-${paper}.pdf"`, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
+  const disposition = new URL(request.url).searchParams.get('view') === '1' ? 'inline' : 'attachment';
+  return new Response(bytes, { headers: { 'content-type': 'application/pdf', 'content-disposition': `${disposition}; filename="adventure-${role}-${paper}.pdf"`, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
+}
+
+async function revisionOwner(request,env,orderId){
+  if(!env.DB||!env.PRIVATE_FILES)throw new ApiError(503,'REVISION_NOT_READY','Checkpoint previews are unavailable.');
+  const hash=await authenticatedEmailHash(request,env);
+  if(!hash)throw new ApiError(401,'EMAIL_VERIFICATION_REQUIRED','Sign in with your purchase account.');
+  const order=await query(env.DB,"SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ? AND product_kind = 'custom' AND status = 'published'",orderId,hash).first();
+  if(!order)throw new ApiError(404,'ORDER_NOT_FOUND','No eligible custom order was found.');
+  const entitlement=await query(env.DB,"SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'",orderId).first();
+  if(!entitlement||!accessActive(entitlement))throw new ApiError(403,'ACCESS_EXPIRED','This order is no longer available online.');
+  const activity=await query(env.DB,'SELECT * FROM custom_activities WHERE order_id = ?',orderId).first();
+  const artifact=activity&&await query(env.DB,"SELECT * FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1",activity.id).first();
+  if(!artifact?.story_r2_key)throw new ApiError(409,'STORY_NOT_READY','The current game is not available for a checkpoint preview.');
+  return {order,entitlement,activity,artifact};
+}
+
+async function revisionStory(env,key,expected){
+  const object=key&&await env.PRIVATE_FILES.get(key);
+  if(!object||object.customMetadata?.sha256!==expected)throw new ApiError(503,'STORY_INTEGRITY_FAILED','The game text is temporarily unavailable.');
+  const source=await new Response(object.body).text();
+  if(await sha256(source)!==expected)throw new ApiError(503,'STORY_INTEGRITY_FAILED','The game text is temporarily unavailable.');
+  return JSON.parse(source);
+}
+
+function revisionStageView(stage){
+  if(!stage)return null;
+  return {number:stage.number,title:stage.title,storyContext:stage.storyContext||'',task:stage.task||'',clue:stage.clue||'',
+    options:stage.options||[],hint:stage.hint||'',material:{type:stage.material?.type||'',title:stage.material?.title||'',instruction:stage.material?.instruction||'',items:(stage.material?.items||[]).map(item=>({label:item.label,detail:item.detail}))}};
+}
+
+async function revisionWorkspace(request,env,orderId){
+  const {order,artifact}=await revisionOwner(request,env,orderId);
+  const spec=JSON.parse(order.purchase_spec_json);
+  const story=await revisionStory(env,artifact.story_r2_key,artifact.story_sha256);
+  const visible=applyDeliveryCopy(story);
+  const pending=await query(env.DB,"SELECT * FROM revision_previews WHERE order_id = ? ORDER BY created_at DESC,rowid DESC LIMIT 1",orderId).first();
+  let candidate=null;
+  if(pending?.status==='ready'&&pending.story_r2_key){
+    const draft=await revisionStory(env,pending.story_r2_key,pending.story_sha256);
+    candidate=revisionStageView(applyDeliveryCopy(draft).stages[pending.stage_number-1]);
+  }
+  return json({paper:spec.paper,version:artifact.version_number,customAvailable:Boolean(story.deliveryCopy),
+    stages:visible.stages.map(revisionStageView),
+    preview:pending?{id:pending.id,status:pending.status,stageNumber:pending.stage_number,baseVersion:pending.base_version,candidate}:null});
+}
+
+async function requestRevisionPreview(request,env,orderId){
+  requireSameOrigin(request,env);
+  if(!env.GENERATION_QUEUE||!aiProvider(env))throw new ApiError(503,'REVISION_NOT_READY','Checkpoint previews are unavailable.');
+  const {order,entitlement,activity,artifact}=await revisionOwner(request,env,orderId);
+  if(entitlement.revision_success_used>=entitlement.revision_success_limit||!entitlement.revision_expires_at||
+     Date.parse(`${entitlement.revision_expires_at}Z`)<=Date.now())throw new ApiError(403,'REVISION_LIMIT','No included change remains on this order.');
+  const body=await requestBody(request),stageNumber=Number(body.stageNumber),instruction=String(body.instruction||'').trim(),mode=body.mode==='custom'?'custom':'preset';
+  if(!Number.isInteger(stageNumber)||stageNumber<1||stageNumber>5)throw new ApiError(400,'INVALID_STAGE','Choose a checkpoint from 1 to 5.');
+  if(instruction.length<10||instruction.length>350)throw new ApiError(400,'INVALID_REVISION','Choose one supported change.');
+  const spec=JSON.parse(order.purchase_spec_json);
+  const remake=await query(env.DB,'SELECT status,spec_json FROM custom_pack_remakes WHERE order_id = ?',orderId).first();
+  if(remake&&['queued','generating'].includes(remake.status))throw new ApiError(409,'REMAKE_IN_PROGRESS','Wait for the current game update.');
+  const actualSpec=remake?.status==='ready'&&artifact.pack_format_version===2?JSON.parse(remake.spec_json):spec.creatorVersion===3?JSON.parse(activity.story_spec_json):spec;
+  const checked=actualSpec.gamePackVersion===2&&actualSpec.packLogicVersion===1;
+  if(checked&&mode==='custom'&&!(await revisionStory(env,artifact.story_r2_key,artifact.story_sha256)).deliveryCopy)
+    throw new ApiError(422,'REVISION_UNSUPPORTED','A custom wording request is unavailable for this earlier game edition.');
+  if(checked&&mode==='preset'&&!controlledRevisionStyle(instruction))throw new ApiError(422,'REVISION_UNSUPPORTED','Choose a reading, hint or instruction change.');
+  if(!checked||mode==='custom'){
+    const prior=await query(env.DB,"SELECT COUNT(*) AS total FROM revision_previews WHERE order_id = ? AND (mode = 'custom' OR ? = 0)",orderId,checked?1:0).first();
+    if(Number(prior?.total)>=3)throw new ApiError(429,'PREVIEW_LIMIT','Three AI comparisons have been prepared for this order. Please use order help for further changes.');
+  }
+  const old=await query(env.DB,"SELECT id,status FROM revision_requests WHERE order_id = ? AND status IN ('queued','generating')",orderId).first();
+  if(old)throw new ApiError(409,'REVISION_IN_PROGRESS','Another checkpoint change is being prepared.');
+  const active=await query(env.DB,"SELECT id,status FROM revision_previews WHERE order_id = ? AND status IN ('queued','generating','ready')",orderId).first();
+  if(active)return json({previewId:active.id,status:active.status},202);
+  const id=crypto.randomUUID();
+  const inserted=await query(env.DB,"INSERT OR IGNORE INTO revision_previews (id,order_id,stage_number,mode,instruction,base_version,base_story_sha256,status) VALUES (?,?,?,?,?,?,?,'queued')",id,orderId,stageNumber,mode,instruction,artifact.version_number,artifact.story_sha256).run();
+  if(!inserted.meta?.changes){const current=await query(env.DB,"SELECT id,status FROM revision_previews WHERE order_id = ? AND status IN ('queued','generating','ready')",orderId).first();return json({previewId:current?.id,status:current?.status},202);}
+  try{await env.GENERATION_QUEUE.send({type:'revision_preview',previewId:id});}
+  catch(failure){await query(env.DB,"UPDATE revision_previews SET status = 'failed',error_code = 'QUEUE_UNAVAILABLE',completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'queued'",id).run();throw failure;}
+  return json({previewId:id,status:'queued'},202);
+}
+
+async function revisionPreviewAction(request,env,orderId,previewId,action){
+  requireSameOrigin(request,env);
+  const {entitlement,activity,artifact}=await revisionOwner(request,env,orderId);
+  const preview=await query(env.DB,'SELECT * FROM revision_previews WHERE id = ? AND order_id = ?',previewId,orderId).first();
+  if(!preview||preview.status!=='ready')throw new ApiError(409,'PREVIEW_NOT_READY','This preview is not ready.');
+  if(action==='discard'){
+    await query(env.DB,"UPDATE revision_previews SET status = 'discarded',completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'ready'",previewId).run();
+    return json({status:'discarded'});
+  }
+  if(preview.base_version!==artifact.version_number||preview.base_story_sha256!==artifact.story_sha256)
+    throw new ApiError(409,'PREVIEW_STALE','The game changed since this preview was prepared.');
+  if(entitlement.revision_success_used>=entitlement.revision_success_limit||!entitlement.revision_expires_at||
+     Date.parse(`${entitlement.revision_expires_at}Z`)<=Date.now())throw new ApiError(403,'REVISION_LIMIT','No included change remains on this order.');
+  const legacy=await query(env.DB,"SELECT id FROM revision_requests WHERE order_id = ? AND status IN ('queued','generating')",orderId).first();
+  if(legacy)throw new ApiError(409,'REVISION_IN_PROGRESS','Another checkpoint change is still being prepared.');
+  await revisionStory(env,preview.story_r2_key,preview.story_sha256);
+  await Promise.all([
+    verifiedPdf(env,{r2_key:preview.player_r2_key,sha256:preview.player_sha256}),
+    verifiedPdf(env,{r2_key:preview.guide_r2_key,sha256:preview.guide_sha256}),
+  ]);
+  const version=artifact.version_number+1;
+  await env.DB.batch([
+    query(env.DB,"INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,player_r2_key,guide_r2_key,player_sha256,guide_sha256,story_r2_key,story_sha256,pack_format_version) VALUES (?, ?, ?, 'published', ?, ?, ?, ?, ?, ?, ?)",`artifact-${orderId}-${version}`,activity.id,version,preview.player_r2_key,preview.guide_r2_key,preview.player_sha256,preview.guide_sha256,preview.story_r2_key,preview.story_sha256,artifact.pack_format_version),
+    query(env.DB,'UPDATE entitlements SET revision_success_used = revision_success_used + 1 WHERE order_id = ? AND revision_success_used < revision_success_limit',orderId),
+    query(env.DB,"UPDATE revision_previews SET status = 'published',published_version = ?,completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'ready'",version,previewId),
+  ]);
+  return json({status:'published',version});
+}
+
+async function revisionPreviewFile(request,env,orderId,previewId,role){
+  await revisionOwner(request,env,orderId);
+  const row=await query(env.DB,"SELECT * FROM revision_previews WHERE id = ? AND order_id = ? AND status = 'ready'",previewId,orderId).first();
+  if(!row)throw new ApiError(404,'PREVIEW_NOT_FOUND','The preview is not available.');
+  const bytes=await verifiedPdf(env,{r2_key:row[`${role}_r2_key`],sha256:row[`${role}_sha256`]});
+  return new Response(bytes,{headers:{'content-type':'application/pdf','content-disposition':`inline; filename="checkpoint-preview-${role}.pdf"`,'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
 }
 
 async function requestRevision(request, env, orderId) {
@@ -951,6 +1067,8 @@ async function requestRevision(request, env, orderId) {
   if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google using your purchase email first.');
   const order = await query(env.DB, "SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ? AND product_kind = 'custom' AND status = 'published'", orderId, hash).first();
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No eligible custom order was found.');
+  const activePreview=await query(env.DB,"SELECT id FROM revision_previews WHERE order_id = ? AND status IN ('queued','generating','ready')",orderId).first();
+  if(activePreview)throw new ApiError(409,'PREVIEW_IN_PROGRESS','Finish or discard the checkpoint comparison first.');
   const remake = await query(env.DB, 'SELECT status FROM custom_pack_remakes WHERE order_id = ?', orderId).first();
   if (remake && ['queued','generating'].includes(remake.status)) throw new ApiError(409, 'REMAKE_IN_PROGRESS', 'Wait for the full-pack remake before changing a checkpoint.');
   const entitlement = await query(env.DB, "SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'", orderId).first();
@@ -1095,6 +1213,14 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'POST' && remakeRecovery) return await requestPackRemakeRecovery(request, env, remakeRecovery[1]);
     const revision = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revisions$/);
     if (request.method === 'POST' && revision) return await requestRevision(request, env, revision[1]);
+    const revisionWorkspacePath=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revision-workspace$/);
+    if(request.method==='GET'&&revisionWorkspacePath)return await revisionWorkspace(request,env,revisionWorkspacePath[1]);
+    const revisionPreviewPath=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revision-previews$/);
+    if(request.method==='POST'&&revisionPreviewPath)return await requestRevisionPreview(request,env,revisionPreviewPath[1]);
+    const revisionPreviewActionPath=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revision-previews\/([A-Za-z0-9-]+)\/(accept|discard)$/);
+    if(request.method==='POST'&&revisionPreviewActionPath)return await revisionPreviewAction(request,env,revisionPreviewActionPath[1],revisionPreviewActionPath[2],revisionPreviewActionPath[3]);
+    const revisionPreviewFilePath=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revision-previews\/([A-Za-z0-9-]+)\/(player|guide)$/);
+    if(request.method==='GET'&&revisionPreviewFilePath)return await revisionPreviewFile(request,env,revisionPreviewFilePath[1],revisionPreviewFilePath[2],revisionPreviewFilePath[3]);
     const cases = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/issues$/);
     if (['GET','POST'].includes(request.method) && cases) return await supportCases(request, env, cases[1]);
     const file = path.match(/^\/api\/v1\/files\/([A-Za-z0-9-]+)\/(player|guide)$/);
@@ -1549,6 +1675,53 @@ async function publishRevision(revisionId, env) {
   }
 }
 
+async function prepareRevisionPreview(previewId,env){
+  if(!env.DB||!env.PRIVATE_FILES)return;
+  const row=await query(env.DB,"SELECT * FROM revision_previews WHERE id = ? AND status IN ('queued','generating')",previewId).first();
+  if(!row)return;
+  const claimed=await query(env.DB,"UPDATE revision_previews SET status = 'generating',attempts = attempts + 1,lease_until = ? WHERE id = ? AND status = 'queued' AND attempts = 0",nowSeconds()+300,previewId).run();
+  if(!claimed.meta?.changes)return;
+  try{
+    const order=await query(env.DB,"SELECT * FROM orders WHERE id = ? AND status = 'published'",row.order_id).first();
+    const entitlement=await query(env.DB,"SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'",row.order_id).first();
+    const activity=order&&await query(env.DB,'SELECT * FROM custom_activities WHERE order_id = ?',row.order_id).first();
+    const previous=activity&&await query(env.DB,"SELECT * FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1",activity.id).first();
+    if(!order||!entitlement||!previous||previous.version_number!==row.base_version||previous.story_sha256!==row.base_story_sha256)throw Object.assign(Error('Preview source changed'),{code:'PREVIEW_STALE'});
+    const oldStory=await revisionStory(env,previous.story_r2_key,previous.story_sha256);
+    const purchaseSpec=JSON.parse(order.purchase_spec_json);
+    const remake=previous.pack_format_version===2?await query(env.DB,"SELECT spec_json FROM custom_pack_remakes WHERE order_id = ? AND status = 'ready'",row.order_id).first():null;
+    const spec=remake?JSON.parse(remake.spec_json):purchaseSpec.creatorVersion===3?JSON.parse(activity.story_spec_json):purchaseSpec;
+    const checkedCopy=spec.gamePackVersion===2&&spec.packLogicVersion===1&&Boolean(oldStory.deliveryCopy);
+    const result=checkedCopy?{story:structuredClone(oldStory)}:await reviseStage(oldStory,spec,row.stage_number,row.instruction,env,env.FETCH||fetch);
+    if(checkedCopy){
+      const printed=applyDeliveryCopy(oldStory).stages[row.stage_number-1],style=controlledRevisionStyle(row.instruction);
+      const wording=row.mode==='custom'?await revisePrintedWording(printed,row.instruction,env,env.FETCH||fetch):style==='simple'?{clue:`Read the rule aloud. ${printed.clue}`,hint:'Check one printed piece at a time.'}:
+        style==='guided'?{clue:printed.clue,hint:'Check both conditions on the printed sheet before choosing.'}:
+        {clue:`Read the rule, compare the pieces, then record one answer. ${printed.clue}`,hint:printed.hint};
+      result.story.printRevisions={...oldStory.printRevisions,[row.stage_number]:{clue:wording.clue,hint:wording.hint}};
+      if(row.mode==='custom'){result.responseId=wording.responseId;result.usage=wording.usage;}
+    }
+    if(result.responseId||result.usage)await query(env.DB,'UPDATE revision_previews SET provider_response_id = ?,input_tokens = ?,output_tokens = ? WHERE id = ?',result.responseId||null,result.usage?.input_tokens??null,result.usage?.output_tokens??null,row.id).run();
+    await requireDeliveryReview(result.story,spec,row.order_id,env);
+    if((spec.packQualityVersion||0)>=15)validatePlayerEvidence(applyDeliveryCopy(result.story));
+    const player=buildGamePdf(result.story,spec,'player'),guide=buildGamePdf(result.story,spec,'guide');
+    const oldPlayer=buildGamePdf(oldStory,spec,'player'),oldGuide=buildGamePdf(oldStory,spec,'guide');
+    if(await sha256Bytes(player)===await sha256Bytes(oldPlayer)&&await sha256Bytes(guide)===await sha256Bytes(oldGuide))
+      throw Object.assign(Error('No visible change'),{code:'NO_VISIBLE_CHANGE'});
+    const storyJson=JSON.stringify(result.story),prefix=`custom/${row.order_id}/revision-preview/${row.id}`;
+    const [storyHash,playerHash,guideHash]=await Promise.all([sha256(storyJson),sha256Bytes(player),sha256Bytes(guide)]);
+    await Promise.all([
+      env.PRIVATE_FILES.put(`${prefix}/story.json`,storyJson,{httpMetadata:{contentType:'application/json'},customMetadata:{sha256:storyHash}}),
+      env.PRIVATE_FILES.put(`${prefix}/player.pdf`,player,{httpMetadata:{contentType:'application/pdf'},customMetadata:{sha256:playerHash}}),
+      env.PRIVATE_FILES.put(`${prefix}/guide.pdf`,guide,{httpMetadata:{contentType:'application/pdf'},customMetadata:{sha256:guideHash}}),
+    ]);
+    await query(env.DB,"UPDATE revision_previews SET status = 'ready',lease_until = NULL,story_r2_key = ?,story_sha256 = ?,player_r2_key = ?,player_sha256 = ?,guide_r2_key = ?,guide_sha256 = ?,provider_response_id = ?,input_tokens = ?,output_tokens = ? WHERE id = ? AND status = 'generating'",`${prefix}/story.json`,storyHash,`${prefix}/player.pdf`,playerHash,`${prefix}/guide.pdf`,guideHash,result.responseId||null,result.usage?.input_tokens??null,result.usage?.output_tokens??null,row.id).run();
+  }catch(failure){
+    const code=['PREVIEW_STALE','NO_VISIBLE_CHANGE'].includes(failure.code)?failure.code:'PREVIEW_FAILED';
+    await query(env.DB,"UPDATE revision_previews SET status = 'failed',error_code = ?,lease_until = NULL,completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'generating'",code,row.id).run();
+  }
+}
+
 export default {
   async fetch(request, env, context) {
     const url = new URL(request.url);
@@ -1562,7 +1735,7 @@ export default {
   },
   async queue(batch, env) {
     for (const message of batch.messages) {
-      try { if (message.body?.type === 'theme_cover') await processOrderCover(message.body.orderId,env); else if (message.body?.type === 'pack_remake') await processPackRemake(message.body.orderId, env); else if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else if (message.body?.type === 'plan') await publishPlanRequest(message.body.requestId,env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
+      try { if (message.body?.type === 'theme_cover') await processOrderCover(message.body.orderId,env); else if (message.body?.type === 'pack_remake') await processPackRemake(message.body.orderId, env); else if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else if (message.body?.type === 'revision_preview') await prepareRevisionPreview(message.body.previewId,env); else if (message.body?.type === 'plan') await publishPlanRequest(message.body.requestId,env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
       catch (failure) { console.error('Generation job failed', message.body?.type==='theme_cover'?{type:'theme_cover',code:'COVER_STORAGE'}:message.body?.type==='plan'?{type:'plan',code:planFailureCategory(failure)}:failure); message.retry(); }
     }
   },
@@ -1590,10 +1763,13 @@ export default {
       WHERE c.status IN ('queued','generating') AND COALESCE(c.lease_until,0) < ? AND o.status IN ('paid','fulfilling') AND (p.order_id IS NULL OR p.confirmed_version IS NOT NULL) LIMIT 20`, nowSeconds()).all();
     const plans = await query(env.DB,"SELECT r.id FROM custom_plan_requests r JOIN orders o ON o.id = r.order_id WHERE r.status IN ('queued','generating') AND COALESCE(r.lease_until,0) < ? AND o.status IN ('paid','published') LIMIT 20",nowSeconds()).all();
     const revisions = await query(env.DB, "SELECT id FROM revision_requests WHERE status IN ('queued','generating') AND COALESCE(lease_until,0) < ? LIMIT 20", nowSeconds()).all();
+    await query(env.DB,"UPDATE revision_previews SET status = 'failed',error_code = 'PREVIEW_INTERRUPTED',lease_until = NULL,completed_at = CURRENT_TIMESTAMP WHERE status = 'generating' AND lease_until < ?",nowSeconds()).run();
+    const previews = await query(env.DB,"SELECT id FROM revision_previews WHERE status = 'queued' AND attempts = 0 LIMIT 20").all();
     const remakes = await query(env.DB, "SELECT order_id FROM custom_pack_remakes WHERE status IN ('queued','generating') AND COALESCE(lease_until,0) < ? LIMIT 20", nowSeconds()).all();
     for (const item of jobs.results || []) await env.GENERATION_QUEUE.send({ orderId: item.order_id });
     for (const item of plans.results || []) await env.GENERATION_QUEUE.send({type:'plan',requestId:item.id});
     for (const item of revisions.results || []) await env.GENERATION_QUEUE.send({ type: 'revision', revisionId: item.id });
+    for (const item of previews.results || []) await env.GENERATION_QUEUE.send({ type: 'revision_preview', previewId: item.id });
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
 };

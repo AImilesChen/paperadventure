@@ -42,6 +42,18 @@ test('final visible records solve uniquely, keep every digit, and reject a modif
   const wrong=structuredClone(printed);wrong.stages[4].material.items[0].detail=copy.actions[0].description+' Final action code: 1111';
   assert.throws(()=>verifyDeliveryPuzzles(wrong),/matching action|adult answer/);
 });
+test('a checkpoint wording preview changes only the final printed edition',async()=>{
+  const {story,copy,spec}=await fixture();
+  const original={...story,deliveryCopy:copy};
+  const printed=applyDeliveryCopy(original);
+  const revised={...original,printRevisions:{2:{clue:`Read the rule aloud. ${printed.stages[1].clue}`,hint:'Check both printed conditions before choosing.'}}};
+  const visible=applyDeliveryCopy(revised);
+  assert.equal(visible.stages[1].clue,revised.printRevisions[2].clue);
+  assert.equal(visible.stages[1].hint,revised.printRevisions[2].hint);
+  assert.deepEqual(visible.stages[1].material,printed.stages[1].material);
+  assert.deepEqual(visible.stages.map(stage=>stage.answerIndex),printed.stages.map(stage=>stage.answerIndex));
+  assert.notDeepEqual(buildGamePdf(revised,spec,'player'),buildGamePdf(original,spec,'player'));
+});
 test('copy validation rejects noun lists and invented cited evidence',async()=>{
   const {story,copy}=await fixture();
   const bad=structuredClone(copy);bad.actions[0].description='Bags, open chest, take scroll, west gate.';
@@ -448,6 +460,9 @@ test('one correction and one independent review persist across redelivery; no th
   assert.deepEqual(await ensureDeliveryCopy(story,{...spec,packCopyVersion:1},'fixture',env,fetcher),checked);
   assert.equal(calls,2);assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,2);
   await requireDeliveryReview(checked,{...spec,packCopyVersion:1,paper:'Letter'},'fixture',env);
+  const printed=applyDeliveryCopy(checked),wording={...checked,printRevisions:{2:{clue:`Read the rule aloud. ${printed.stages[1].clue}`,hint:'Check both printed conditions before choosing.'}}};
+  await requireDeliveryReview(wording,{...spec,packCopyVersion:1,paper:'Letter'},'fixture',env);
+  assert.notDeepEqual(buildGamePdf(wording,{...spec,packCopyVersion:1},'player'),buildGamePdf(checked,{...spec,packCopyVersion:1},'player'));
   await assert.rejects(()=>requireDeliveryReview({...checked,ending:'Different ending.'},{...spec,packCopyVersion:1},'fixture',env),{code:'DELIVERY_COPY_SOURCE_CHANGED'});
   await assert.rejects(()=>ensureDeliveryCopy({...story,ending:'Changed ending.'},{...spec,packCopyVersion:1},'fixture',env,fetcher),{code:'DELIVERY_COPY_SOURCE_CHANGED'});
   assert.equal(calls,2);

@@ -190,6 +190,7 @@ export function LiveShelf({ Link }) {
 function OrderQualityActions({order,onHelp}) {
   if (order.kind!=='custom' || !order.paidAt || !order.filesReady) return null;
   const legacy=(order.gamePackVersion||1)<2;
+  if(!legacy)return null;
   const canRevise=order.revisionLimit>order.revisionUsed && order.revisionExpiresAt && Date.parse(`${order.revisionExpiresAt}Z`)>Date.now();
   return <section className="order-quality-actions" aria-labelledby="order-quality-title">
     <span className="eyebrow">AFTER YOU DOWNLOAD</span><h2 id="order-quality-title">Want to improve this game?</h2>
@@ -202,29 +203,50 @@ function OrderQualityActions({order,onHelp}) {
 }
 
 function RevisionForm({ order, refresh }) {
-  const [stageNumber, setStageNumber] = useState(1); const [instruction, setInstruction] = useState(''); const [busy, setBusy] = useState(false); const [notice, setNotice] = useState(''); const [error, setError] = useState('');
-  const remaining = order.revisionLimit - order.revisionUsed;
-  const checked = order.checkedPuzzleRevision;
-  const shortcuts = ["Make the clue easier to read aloud, keeping the task and play style.","Reduce the reasoning difficulty, keeping one clear answer and the same task.","Clarify the printed instructions and hint without changing the story."];
-  const selectedStage = order.plan?.stages?.find(stage => Number(stage.number) === stageNumber) || order.plan?.stages?.[stageNumber - 1];
-  if (order.kind !== 'custom' || !order.filesReady || ['queued','generating'].includes(order.remake?.status) || remaining <= 0 || !order.revisionExpiresAt || Date.parse(`${order.revisionExpiresAt}Z`) <= Date.now()) return null;
-  async function submit(event) {
-    event.preventDefault(); setBusy(true); setError(''); setNotice('');
-    try { await api(`/api/v1/orders/${order.id}/revisions`, { method: 'POST', body: JSON.stringify({ stageNumber, instruction }) }); setNotice('Your local change is queued. It counts only after a revised file is published.'); setInstruction(''); refresh(); }
-    catch (failure) { setError(failure.message); } finally { setBusy(false); }
-  }
-  return <form id="order-revision" className="live-revision order-revision-form" onSubmit={submit}>
-    <span className="eyebrow">AFTER DELIVERY · ONE CHECKPOINT</span>
-    <h2>Change one checkpoint</h2>
-    <p>You have {remaining} included successful {remaining === 1 ? 'change' : 'changes'} left. Choose one checkpoint and the change you need. This stays on your paid order; you do not need to buy the game again.</p>
-    <label><span>1. Choose the checkpoint to change</span><select value={stageNumber} onChange={event => setStageNumber(Number(event.target.value))}>{[1,2,3,4,5].map(number => <option key={number} value={number}>Checkpoint {number}{order.plan?.stages?.[number-1] ? " · " + order.plan.stages[number-1].title : ""}</option>)}</select></label>
-    {selectedStage && <div className="order-revision-stage" aria-live="polite"><strong>Checkpoint {stageNumber} · {selectedStage.title}</strong><p>{selectedStage.task}</p><small>This is the approved plan summary. Check the downloaded Player Pack for the exact page and clue you want to change.</small></div>}
-    <div className="order-revision-prompts"><strong>2. {checked ? 'Choose one supported change' : 'Start with a suggestion (optional)'}</strong><div className="revision-shortcuts">{shortcuts.map((text,index)=><button key={text} type="button" className="button-quiet" aria-pressed={instruction===text} onClick={()=>setInstruction(text)}>{["Simplify reading","Ease the difficulty","Clarify instructions"][index]}</button>)}</div></div>
-    {checked ? <p className="live-note">The printed puzzle, its pieces and answer stay the same. For a wrong answer, a different game mechanic or a full-pack problem, request a quality review above.</p> : <label><span>3. Describe the change in your own words</span><textarea rows="8" minLength="10" maxLength="350" required value={instruction} onChange={event => setInstruction(event.target.value)} placeholder="For example: Make the instructions in this checkpoint easier for 8-year-olds to read aloud. Keep the clock-tower story and the same answer." /><small>Tell us what is confusing and what should stay the same. {instruction.length}/350 characters.</small></label>}
-    <div className="order-revision-submit"><button className="button" disabled={busy || checked && !instruction}>{busy ? 'Submitting…' : `Request change to checkpoint ${stageNumber}`}</button><p>A successful revised PDF uses one included change. You can follow its status here. For a wrong answer or a full-pack problem, use the separate help action above.</p></div>
-    {order.revisionRequests?.length>0&&<div className="order-revision-status"><strong>Recent checkpoint requests</strong><ul>{order.revisionRequests.slice(0,3).map(item=><li key={item.id}>Checkpoint {item.stageNumber}: {item.status === 'published' ? 'Revised PDF ready' : item.status === 'failed' ? 'Stopped; ask for help below' : 'Being prepared'}</li>)}</ul></div>}
-    {notice && <p role="status">{notice}</p>}{error && <Alert>{error}</Alert>}
-  </form>;
+  const [stageNumber,setStageNumber]=useState(1),[instruction,setInstruction]=useState(''),[custom,setCustom]=useState(false),[workspace,setWorkspace]=useState(null);
+  const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[error,setError]=useState('');
+  const remaining=order.revisionLimit-order.revisionUsed,checked=order.checkedPuzzleRevision;
+  const available=order.kind==='custom'&&order.filesReady&&!['queued','generating'].includes(order.remake?.status)&&remaining>0&&
+    order.revisionExpiresAt&&Date.parse(`${order.revisionExpiresAt}Z`)>Date.now();
+  async function load(){try{setWorkspace(await api(`/api/v1/orders/${order.id}/revision-workspace`));}catch(failure){setError(failure.message);}}
+  useEffect(()=>{if(available)load();},[order.id,available]);
+  useEffect(()=>{if(!['queued','generating'].includes(workspace?.preview?.status))return;const timer=setInterval(load,4000);return()=>clearInterval(timer);},[workspace?.preview?.status,order.id]);
+  if(!available)return null;
+  const stages=workspace?.stages||[],pending=workspace?.preview,selected=pending?.status==='ready'?pending.stageNumber:stageNumber;
+  const current=stages[selected-1],candidate=pending?.candidate,locked=Boolean(pending&&['queued','generating','ready'].includes(pending.status));
+  const shortcuts=[
+    ['Make the clue easier to read aloud, keeping the task and play style.','Easier to read'],
+    ['Add a clearer hint, keeping the printed puzzle and answer unchanged.','Clearer hint'],
+    ['Clarify the printed instructions step by step, keeping the same answer.','Step-by-step instructions'],
+  ];
+  async function generate(event){event.preventDefault();setBusy(true);setError('');setNotice('');try{await api(`/api/v1/orders/${order.id}/revision-previews`,{method:'POST',body:JSON.stringify({stageNumber,instruction,mode:custom?'custom':'preset'})});setNotice('Preparing your comparison. Your current game stays available.');await load();}catch(failure){setError(failure.message);}finally{setBusy(false);}}
+  async function decide(action){setBusy(true);setError('');setNotice('');try{await api(`/api/v1/orders/${order.id}/revision-previews/${pending.id}/${action}`,{method:'POST'});setNotice(action==='accept'?'The new version is ready to download.':'Your current version is unchanged.');setInstruction('');setCustom(false);await refresh();await load();}catch(failure){setError(failure.message);}finally{setBusy(false);}}
+  const previewRole=candidate&&current?.clue===candidate.clue?'guide':'player';
+  const pdfFragment=previewRole==='player'?`#page=${selected*2}&toolbar=0&navpanes=0`:'#toolbar=0&navpanes=0';
+  const currentPdf=`/api/v1/files/${order.id}/${previewRole}?paper=${encodeURIComponent(workspace?.paper||order.paper)}&version=${workspace?.version||1}&view=1${pdfFragment}`;
+  const candidatePdf=pending?.id?`/api/v1/orders/${order.id}/revision-previews/${pending.id}/${previewRole}${pdfFragment}`:'';
+  return <section id="order-revision" className="order-revision-form" aria-labelledby="checkpoint-change-title">
+    <span className="eyebrow">OPTIONAL · ONE CHECKPOINT</span><h2 id="checkpoint-change-title">Improve one checkpoint</h2>
+    <p>Choose a checkpoint, see the change, then decide. Your current game stays downloadable.</p>
+    {!workspace?<p role="status">Loading your game pages…</p>:<>
+      <h3>1. Choose a checkpoint</h3>
+      <div className="revision-page-grid" role="group" aria-label="Choose one checkpoint">{stages.map(stage=><button key={stage.number} type="button" className="revision-page-card" aria-pressed={selected===stage.number} disabled={locked} onClick={()=>{setStageNumber(stage.number);setInstruction('');setCustom(false);}}>
+        <span className="revision-paper-thumb" aria-hidden="true"><span>CHECKPOINT {stage.number}</span><strong>{stage.title}</strong><small>{stage.clue}</small></span>
+        <strong>Checkpoint {stage.number}</strong><span>{stage.title}</span><small>Player pages {stage.number*2}–{stage.number*2+1}</small>
+      </button>)}</div>
+      {current&&<div className="revision-current-copy"><strong>Current checkpoint · {current.title}</strong><p>{current.storyContext}</p><p>{current.task}</p><p>{current.clue}</p><details><summary>See printed pieces and choices</summary><p>{current.material.instruction}</p><ul>{current.material.items.map((item,index)=><li key={index}><strong>{item.label}</strong> · {item.detail}</li>)}</ul><ol type="A">{current.options.map((option,index)=><li key={index}>{option}</li>)}</ol></details></div>}
+      {!locked&&<form onSubmit={generate}><h3>2. What should improve?</h3><div className="revision-shortcuts">{shortcuts.map(([value,label])=><button key={value} type="button" aria-pressed={!custom&&instruction===value} onClick={()=>{setInstruction(value);setCustom(false);}}>{label}</button>)}</div>
+        {(workspace.customAvailable||!checked)&&<details className="revision-custom-note"><summary>Describe a different change to AI</summary><label>What should be clearer in this checkpoint?<textarea minLength="10" maxLength="350" value={custom?instruction:''} onChange={event=>{setInstruction(event.target.value);setCustom(true);}} placeholder="For example: Make the hint easier for 8-year-olds without changing the answer." /></label><small>AI is called only when you generate this comparison. Up to three AI comparisons are available on this order.</small></details>}
+        <button className="button revision-generate" disabled={busy||!instruction}>{busy?'Preparing…':'Generate comparison'}</button></form>}
+      {['queued','generating'].includes(pending?.status)&&<div className="revision-wait" role="status">Preparing a revised checkpoint. You can leave this page and come back; the current PDFs remain ready.</div>}
+      {pending?.status==='ready'&&candidate&&<div className="revision-result"><h3>3. Compare and decide</h3><p>Only checkpoint {selected} changes. The printed puzzle and answer stay the same.</p><div className="revision-compare">
+        {[['Current version',current,currentPdf],['Suggested version',candidate,candidatePdf]].map(([label,stage,pdf])=><article key={label}><h4>{label}</h4><p><strong>Clue</strong><br/>{stage.clue}</p><p><strong>Hint for the adult</strong><br/>{stage.hint}</p><details><summary>Preview the actual {previewRole==='player'?'player page':'adult guide'}</summary><iframe title={`${label} checkpoint ${selected} PDF`} src={pdf} loading="lazy" /></details></article>)}
+      </div><div className="revision-decisions"><button type="button" className="button" disabled={busy} onClick={()=>decide('accept')}>Use suggested version</button><button type="button" className="button-quiet" disabled={busy} onClick={()=>decide('discard')}>Keep current version</button></div><p className="live-note">One included change is used only when you choose the suggested version.</p></div>}
+      {pending?.status==='failed'&&<p role="status">This comparison could not be prepared. Your current game and included changes are unchanged. You can choose another wording option.</p>}
+      <details className="revision-rules"><summary>What can I change?</summary><p>{remaining} included successful {remaining===1?'change':'changes'} left. This adjusts wording or hints in one checkpoint. For a wrong answer, different puzzle or whole-game problem, <a href="#order-help">use order help below</a>.</p></details>
+    </>}
+    {notice&&<p role="status">{notice}</p>}{error&&<Alert>{error}</Alert>}
+  </section>;
 }
 
 function IssueForm({ orderId, failedDelivery = false, initialRequest = null }) {
