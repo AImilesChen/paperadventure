@@ -4,7 +4,7 @@ import { createHmac, createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import productionWorker, { handleProductionApi } from './production-worker.mjs';
-import { sha256, signAccessToken, verifyAccessToken } from './security.mjs';
+import { sha256, sha256Bytes, signAccessToken, verifyAccessToken } from './security.mjs';
 import { validateGeneratedStory, validatePurchase, validateSupportedRange } from './domain.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import { productRights } from '../shared/catalog.mjs';
@@ -29,7 +29,7 @@ async function approvedCustomInput(env,input) {
 
 function database({includeThemeRecovery=true,includeSemanticRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0024_scoped_semantic_plan_recovery.sql'&&!includeSemanticRecovery)continue;
@@ -115,6 +115,52 @@ for(const scoped of [false,true])test(`owner can resume ${scoped?'explicit fact 
   if(scoped)assert.equal(db.prepare('SELECT extra_audit_calls FROM custom_delivery_fact_repairs WHERE order_id=?').get(orderId).extra_audit_calls,1);
   assert.equal(db.prepare('SELECT revision_success_used FROM entitlements WHERE order_id=?').get(orderId).revision_success_used,0);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_pack_remake_calls').get().n,0,'copy review uses its own ledger, with no fictitious generation call');
+});
+
+test('checkpoint comparison preserves the original and only spends a change when accepted',async()=>{
+  const {db,binding}=database(),orderId='preview-order',owner='preview-owner';
+  const spec={...sampleSpec,gamePackVersion:2,packLogicVersion:1};
+  const stages=sampleStory.stages.map((original,index)=>{
+    const puzzle=compileControlledPuzzle({number:index+1,title:original.title,material:original.material});
+    return {...original,...controlledStageText(puzzle),options:puzzle.options,answerIndex:puzzle.answerIndex,material:puzzle.material};
+  });
+  const story=validateGeneratedStory({...sampleStory,stages},spec),stored=JSON.stringify(spec),source=JSON.stringify(story);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('preview-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,'preview-price',1499,'USD','published',CURRENT_TIMESTAMP)").run(orderId,stored,await sha256(stored),owner);
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json) VALUES ('preview-activity',?,'published',?)").run(orderId,stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit,revision_expires_at,access_expires_at) VALUES ('preview-entitlement',?,'preview-activity','active',2,datetime('now','+20 days'),datetime('now','+6 months'))").run(orderId);
+  const originalPlayer=buildGamePdf(story,spec,'player'),originalGuide=buildGamePdf(story,spec,'guide');
+  db.prepare("INSERT INTO artifact_versions (id,custom_activity_id,version_number,status,story_r2_key,story_sha256,player_r2_key,player_sha256,guide_r2_key,guide_sha256,pack_format_version) VALUES ('preview-original','preview-activity',1,'published','original/story.json',?,'original/player.pdf',?,'original/guide.pdf',?,2)").run(await sha256(source),await sha256Bytes(originalPlayer),await sha256Bytes(originalGuide));
+  const files=new Map(),jobs=[];
+  for(const [key,body,hash] of [['original/story.json',source,await sha256(source)],['original/player.pdf',originalPlayer,await sha256Bytes(originalPlayer)],['original/guide.pdf',originalGuide,await sha256Bytes(originalGuide)]])files.set(key,{body,customMetadata:{sha256:hash}});
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>jobs.push(job)},FETCH:async()=>{throw Error('A checked preview must not call a model');},PRIVATE_FILES:{get:async key=>files.get(key)||null,put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata})}};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const url=`/api/v1/orders/${orderId}`;
+  const read=()=>handleProductionApi(request(`${url}/revision-workspace`,'GET',undefined,headers),env).then(response=>response.json());
+  const start=()=>handleProductionApi(request(`${url}/revision-previews`,'POST',{stageNumber:2,instruction:'Clarify the instructions and hint.'},headers),env);
+  const decide=(id,action)=>handleProductionApi(request(`${url}/revision-previews/${id}/${action}`,'POST',undefined,headers),env);
+  assert.equal((await handleProductionApi(request(`${url}/revision-workspace`),env)).status,401);
+  assert.equal((await handleProductionApi(request(`${url}/revision-previews`,'POST',{stageNumber:2,instruction:'Clarify the instructions and hint.'},{origin:env.PUBLIC_ORIGIN}),env)).status,401);
+  assert.equal((await read()).stages.length,5);
+  assert.equal((await handleProductionApi(request(`${url}/revision-previews`,'POST',{stageNumber:2,instruction:'Make this one easier to read.',mode:'custom'},headers),env)).status,422,'old checked packs without final copy do not queue an unusable AI preview');
+  const first=await start();assert.equal(first.status,202,await first.text());
+  assert.equal(db.prepare('SELECT revision_success_used FROM entitlements WHERE order_id=?').get(orderId).revision_success_used,0);
+  await productionWorker.queue({messages:[{body:jobs.shift(),ack(){},retry(){throw Error('unexpected preview retry');}}]},env);
+  const draft=await read();assert.equal(draft.preview.status,'ready');assert.notEqual(draft.preview.candidate.hint,draft.stages[1].hint);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM artifact_versions WHERE custom_activity_id='preview-activity'").get().n,1);
+  const candidate=await handleProductionApi(request(`${url}/revision-previews/${draft.preview.id}/player`,'GET',undefined,headers),env);
+  assert.equal(candidate.status,200);assert.equal(candidate.headers.get('content-disposition').startsWith('inline'),true);
+  assert.equal((await decide(draft.preview.id,'discard')).status,200);
+  assert.equal(db.prepare('SELECT revision_success_used FROM entitlements WHERE order_id=?').get(orderId).revision_success_used,0);
+  const second=await start();assert.equal(second.status,202,await second.text());
+  await productionWorker.queue({messages:[{body:jobs.shift(),ack(){},retry(){throw Error('unexpected preview retry');}}]},env);
+  const accepted=await read();assert.equal(accepted.preview.status,'ready');
+  assert.equal((await decide(accepted.preview.id,'accept')).status,200);
+  assert.equal(db.prepare('SELECT revision_success_used FROM entitlements WHERE order_id=?').get(orderId).revision_success_used,1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM artifact_versions WHERE custom_activity_id='preview-activity'").get().n,2);
+  assert.equal(db.prepare("SELECT status FROM artifact_versions WHERE id='preview-original'").get().status,'published');
+  assert.equal((await read()).version,2);
 });
 
 test('DeepSeek key enables generation capability without requiring an OpenAI key', async () => {

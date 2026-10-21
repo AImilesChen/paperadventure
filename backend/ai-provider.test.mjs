@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { aiProvider, generateProposals, generateStory } from './openai.mjs';
+import { aiProvider, generateProposals, generateStory, revisePrintedWording } from './openai.mjs';
+
+test('one custom wording call keeps the checked clue verbatim and rejects answer leaks',async()=>{
+  const env={OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},stage={title:'Clock room',task:'Compare the records.',clue:'Choose the record that matches both printed facts.',hint:'Read the rows.',material:{instruction:'Check two facts.'}};
+  let calls=0;
+  const fetcher=async(_url,options)=>{calls++;const payload=JSON.parse(options.body);assert.equal(payload.text.format.name,'checkpoint_wording');return Response.json({id:'wording-1',output:[{content:[{type:'output_text',text:JSON.stringify({leadIn:'Read each row aloud.',hint:'Check the two facts one at a time.'})}]}],usage:{input_tokens:10,output_tokens:20}});};
+  const result=await revisePrintedWording(stage,'Make the hint easier to read.',env,fetcher);
+  assert.equal(calls,1);assert.equal(result.clue,'Read each row aloud. '+stage.clue);assert.equal(result.hint,'Check the two facts one at a time.');
+  await assert.rejects(()=>revisePrintedWording(stage,'Reveal the right card.',env,async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({leadIn:'The answer is Sun card.',hint:'Choose A.'})}]}]})),{code:'REVISION_INVALID'});
+});
 import { validatePurchase } from './domain.mjs';
 import { planFixture } from '../tests/fixtures/creator-plan-fixture.mjs';
 
