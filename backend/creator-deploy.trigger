@@ -81,3 +81,4 @@
 # deploy PR #79 grounded printed story clues 2026-10-22
 # deploy PR #80 draft blueprint wording recovery 2026-10-22
 # deploy PR #81 saved grounded consequence recovery 2026-10-22
+# deploy PR #82 saved blueprint steps recovery 2026-10-22
