@@ -139,7 +139,7 @@ const reopenStructuredDiscovery=(value,index,supportsAction,kind)=>{
     `The route keeps ${subject} reachable for the final action.`,
   ][index];
 };
-const normalizeDiscovery=(value,index,action,qualityVersion=6)=>{
+const normalizeDiscovery=(value,index,action,qualityVersion=6,provisional=false)=>{
   if(!value||typeof value!=='object'||Array.isArray(value))
     throw Error(`Checkpoint ${index+1} discovery needs separate finding, consequence and action support.`);
   const supportsAction=fitted(value.supportsAction,`Checkpoint ${index+1} supported action`,40);
@@ -148,8 +148,30 @@ const normalizeDiscovery=(value,index,action,qualityVersion=6)=>{
   // the later grounding step replaces it from the actual printed material.
   const findingInput=qualityVersion>=9?reopenStructuredDiscovery(value.finding,index,supportsAction,'finding'):value.finding;
   const consequenceInput=qualityVersion>=9?reopenStructuredDiscovery(value.consequence,index,supportsAction,'consequence'):value.consequence;
-  const finding=discoveryText(findingInput,`Checkpoint ${index+1} finding`,qualityVersion>=7?140:70,qualityVersion>=7);
-  const consequence=discoveryText(consequenceInput,`Checkpoint ${index+1} consequence`,qualityVersion>=7?100:70,qualityVersion>=7);
+  const draftFinding=[
+    'The team knows a condition needed for the final action.',
+    'The team knows which item the final action needs.',
+    'The team knows the safe sequence for the final action.',
+    'The team knows a route for the final action.',
+  ][index];
+  const draftConsequence=[
+    'This condition helps the team prepare the final action.',
+    'This item remains needed when the final action begins.',
+    'This sequence keeps the final action safe to attempt.',
+    'This route lets the team reach the final action.',
+  ][index];
+  const checkedDraftText=(input,label,max,fallback)=>{
+    try{return discoveryText(input,label,max,qualityVersion>=7);}
+    catch(error){
+      // These two fields are replaced from the actual printed materials before
+      // the deliverable blueprint is validated. Do not spend a provider retry
+      // on an overlong draft sentence or a draft finding that mentions a code.
+      if(!provisional||!/complete sentence under|describe the story rather than an answer code/i.test(error.message))throw error;
+      return discoveryText(fallback,label,max);
+    }
+  };
+  const finding=checkedDraftText(findingInput,`Checkpoint ${index+1} finding`,qualityVersion>=7?140:70,draftFinding);
+  const consequence=checkedDraftText(consequenceInput,`Checkpoint ${index+1} consequence`,qualityVersion>=7?100:70,draftConsequence);
   const intended=actionTerms(action),supported=actionTerms(supportsAction);
   if(qualityVersion<7&&![...supported].some(term=>intended.has(term)))
     throw Error(`Checkpoint ${index+1} discovery must name a concrete part of the intended final action.`);
@@ -158,7 +180,7 @@ const normalizeDiscovery=(value,index,action,qualityVersion=6)=>{
   return {finding,consequence,supportsAction:qualityVersion>=7&&qualityVersion<14&&![...supported].some(term=>intended.has(term))?fitted(action,`Checkpoint ${index+1} final action`,40):supportsAction};
 };
 
-export function prepareStoryFrame(frame,qualityVersion=4){
+export function prepareStoryFrame(frame,qualityVersion=4,{provisional=false}={}){
   const hasStructured=Array.isArray(frame?.discoveries)&&frame.discoveries.length===4;
   if(!frame||!Array.isArray(frame.actions)||frame.actions.length!==3||qualityVersion>=6&&!hasStructured||qualityVersion<6&&(!Array.isArray(frame.purposes)||frame.purposes.length!==4))
     throw Error('The story frame needs one problem, three final actions and four discovery purposes.');
@@ -172,7 +194,7 @@ export function prepareStoryFrame(frame,qualityVersion=4){
   if(new Set(actions.map(value=>value.toLowerCase())).size!==3)throw Error('The story frame needs three distinct final actions.');
   if(actions.some(value=>/^(?:(?:restore|fix|solve|complete|save)\b|(?:final\s+)?action\b|option\b|choice\b)/i.test(value)))
     throw Error('Each final action must name a specific story action.');
-  const discoveries=qualityVersion>=6?frame.discoveries.map((value,index)=>normalizeDiscovery(value,index,actions[0],qualityVersion)):null;
+  const discoveries=qualityVersion>=6?frame.discoveries.map((value,index)=>normalizeDiscovery(value,index,actions[0],qualityVersion,provisional&&qualityVersion>=8)):null;
   const purposeInput=discoveries?discoveries.map(value=>`${value.finding} ${value.consequence}`):frame.purposes;
   const purposes=purposeInput.map((value,index)=>{
     let purpose;

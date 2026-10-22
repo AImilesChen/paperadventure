@@ -16,6 +16,7 @@ import {safePlanFormatIssue} from '../shared/plan-format.mjs';
 import { PLAN_REVIEW_POLICY, hasStoryScenes } from '../shared/plan-quality.mjs';
 import { startPackRemake, retryPackRemake, packRemakeView, processPackRemake, qualityUpgradeEligible } from './pack-remake.mjs';
 import { controlledRevisionStyle } from './controlled-puzzles.mjs';
+import { prepareStoryFrame } from './story-spine.mjs';
 import { applyDeliveryCopy, validatePlayerEvidence } from './delivery-copy.mjs';
 import { coverGenerationReady, reserveOrderCover, dispatchOrderCover, processOrderCover, resumeOrderCovers, coverImageType, MAX_COVER_BYTES } from './theme-covers.mjs';
 
@@ -44,9 +45,23 @@ async function recoverableStoppedMaterial(db,orderId,spec){
   // Preserve every saved call and leave room for the remaining checked steps.
   return Number(counts?.stage_calls)===2&&Number(counts?.total)+(5-stage)+3<=18;
 }
-const deliveryRetryBlocked=(failure,materialRecovery,copyRecovery=false)=>Boolean(failure?.error_code==='STORY_CHECKPOINT_MISMATCH'||
+async function recoverableStoppedFrame(db,orderId,spec){
+  if(spec?.packContractVersion!==1||spec?.packExperienceVersion<3||(spec?.packQualityVersion||0)<8)return null;
+  const latest=await query(db,"SELECT phase,stage_number,status,error_code,error_detail FROM custom_generation_calls WHERE order_id = ? ORDER BY rowid DESC LIMIT 1",orderId).first();
+  if(latest?.phase!=='blueprint_frame'||Number(latest.stage_number)!==0||latest.status!=='failed'||latest.error_code!=='BLUEPRINT_INVALID'||
+     !/complete sentence under|describe the story rather than an answer code/i.test(latest.error_detail||''))return null;
+  const rows=(await query(db,"SELECT result_json FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_frame' AND stage_number = 0 AND status = 'failed' AND error_code = 'BLUEPRINT_INVALID' AND result_json IS NOT NULL ORDER BY rowid DESC LIMIT 2",orderId).all()).results||[];
+  for(const row of rows){
+    try{
+      const candidate=JSON.parse(row.result_json)?.storyFrame;
+      if(candidate)return prepareStoryFrame(candidate,spec.packQualityVersion,{provisional:true});
+    }catch{}
+  }
+  return null;
+}
+const deliveryRetryBlocked=(failure,materialRecovery,copyRecovery=false,frameRecovery=false)=>Boolean(failure?.error_code==='STORY_CHECKPOINT_MISMATCH'||
   (failure?.phase==='story'&&nonRetryableStoryCodes.has(failure.error_code)&&
-   !(failure.error_code==='STAGED_GENERATION_STOPPED'&&(materialRecovery||copyRecovery))));
+   !(failure.error_code==='STAGED_GENERATION_STOPPED'&&(materialRecovery||copyRecovery||frameRecovery))));
 const emailHash = (env, email) => sha256(`${env.SESSION_SECRET}|${email}`);
 function accessMonths(spec) {
   const months = spec?.onlineRedownloadMonths;
@@ -560,13 +575,15 @@ async function myOrders(request, env) {
       ? await recoverableStoppedMaterial(env.DB,order.id,spec) : false;
     const copyRecovery=failedDelivery&&!failedDelivery.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
       ? await recoverableStoppedCopy(env.DB,order.id,spec) : null;
+    const frameRecovery=failedDelivery&&!failedDelivery.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
+      ? await recoverableStoppedFrame(env.DB,order.id,spec) : null;
     const cover = order.product_kind === 'custom' && order.paid_at ? await query(env.DB,'SELECT status FROM order_theme_covers WHERE order_id = ?',order.id).first() : null;
     const { purchase_spec_json, ...safe } = order;
     return { ...safe, checkoutExpired: Boolean(expired), setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
       image: order.product_kind === 'ready' ? story?.image || world?.image : cover?.status === 'ready' && order.status !== 'refunded' ? '/api/v1/orders/'+order.id+'/cover' : '/assets/custom-adventure-workshop-v1.jpg',
       coverStatus: cover?.status || null, coverAvailable: Boolean(coverGenerationReady(env) && order.product_kind === 'custom' && order.paid_at && order.status !== 'refunded'),
       paper: spec.paper, planStatus: paidPlan?.status || null,
-      deliveryRetryAvailable: Boolean(order.paid_at && paidPlan?.confirmed_version && failedDelivery?.status === 'failed' && !failedDelivery.delivery_retry_used && !deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery)),
+      deliveryRetryAvailable: Boolean(order.paid_at && paidPlan?.confirmed_version && failedDelivery?.status === 'failed' && !failedDelivery.delivery_retry_used && !deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery,frameRecovery)),
       savedCopyRecoveryAvailable:Boolean(copyRecovery),
       filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
   }));
@@ -671,7 +688,9 @@ async function orderView(request, env, orderId) {
     ? await recoverableStoppedMaterial(env.DB,order.id,spec) : false;
   const copyRecovery=order.status==='failed'&&!activity?.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
     ? await recoverableStoppedCopy(env.DB,order.id,spec) : null;
-  const retryBlocked=deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery);
+  const frameRecovery=order.status==='failed'&&!activity?.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
+    ? await recoverableStoppedFrame(env.DB,order.id,spec) : null;
+  const retryBlocked=deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery,frameRecovery);
   const revisionRows = order.product_kind === 'custom'
     ? (await query(env.DB,'SELECT id,stage_number,status,version_number,created_at,completed_at FROM revision_requests WHERE order_id = ? ORDER BY created_at DESC LIMIT 5',order.id).all()).results || []
     : [];
@@ -751,7 +770,9 @@ async function retryCustomDelivery(request, env, orderId) {
     ? await recoverableStoppedMaterial(env.DB,orderId,JSON.parse(order.purchase_spec_json)) : false;
   const copyRecovery=lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
     ? await recoverableStoppedCopy(env.DB,orderId,JSON.parse(order.purchase_spec_json)) : null;
-  if (deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery)) throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review before another model request.');
+  const frameRecovery=lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
+    ? await recoverableStoppedFrame(env.DB,orderId,JSON.parse(order.purchase_spec_json)) : null;
+  if (deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery,frameRecovery)) throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review before another model request.');
   const artifact = await query(env.DB,"SELECT id FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' LIMIT 1",activity.id).first();
   if (artifact) throw new ApiError(409,'FILES_ALREADY_CREATED','Files were already created. Refresh this order.');
   const failed = await query(env.DB,"SELECT COUNT(*) AS count FROM generation_usage WHERE order_id = ? AND status = 'failed'",orderId).first();
@@ -1390,7 +1411,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
           const frame=await call('blueprint_frame',0,async()=>{
             const result=await generateBlueprintFrameStep(spec,env,fetcher);
             return {value:result.storyFrame,usage:result.usage,responseId:result.responseId};
-          });
+          },null,true,null,()=>recoverableStoppedFrame(env.DB,order.id,spec));
           const materialSteps=[];
           for(let number=1;number<=5;number++){
             budgetPhase='blueprint_material';stageNumber=number;

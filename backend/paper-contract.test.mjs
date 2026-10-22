@@ -80,6 +80,21 @@ const structuredClockFrame=()=>({
   ],
 });
 
+test('temporary discovery wording can be repaired before material generation but final wording stays strict',()=>{
+  const raw=structuredClockFrame();
+  raw.discoveries[2].finding='The decoded code is 1234.';
+  raw.discoveries[3].consequence=`The ${'uninterrupted'.repeat(10)} bridge remains important to the final action.`;
+  assert.throws(()=>prepareStoryFrame(raw,15),/answer code/);
+  const draft=prepareStoryFrame(raw,15,{provisional:true});
+  assert.equal(draft.actions[0],'Fit signal gear');
+  assert.doesNotMatch(draft.discoveries[2].finding,/code|1234/i);
+  assert.ok(draft.discoveries[3].consequence.length<=100);
+  const onlyLong=structuredClockFrame();
+  onlyLong.discoveries[3].consequence=raw.discoveries[3].consequence;
+  assert.throws(()=>prepareStoryFrame(onlyLong,15),/complete sentence under 100 characters/);
+  assert.doesNotThrow(()=>prepareStoryFrame(draft,15));
+});
+
 test('printed support comes from the selected finding and facts, never a decoy label or later invented consequence',()=>{
   const frame={actions:['Bind pieces at Western Gate'],discoveries:Array.from({length:4},()=>({supportsAction:'pieces'}))};
   const stages=Array.from({length:4},()=>({material:{items:[{label:'A report'},{label:'B report'},{label:'C report'}]},features:['Names the owner','Mentions the depth']}));
