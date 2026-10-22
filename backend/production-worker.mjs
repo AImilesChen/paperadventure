@@ -592,7 +592,7 @@ async function myOrders(request, env) {
     const paidPlan = order.product_kind === 'custom' && spec.creatorVersion === 3 && ['paid','fulfilling','failed'].includes(order.status)
       ? await query(env.DB,'SELECT status,confirmed_version FROM custom_plan_orders WHERE order_id = ?',order.id).first() : null;
     const failedDelivery = order.product_kind === 'custom' && order.status === 'failed' && order.paid_at
-      ? await query(env.DB,'SELECT status,delivery_retry_used FROM custom_activities WHERE order_id = ?',order.id).first() : null;
+      ? await query(env.DB,'SELECT status,delivery_retry_used,story_spec_json FROM custom_activities WHERE order_id = ?',order.id).first() : null;
     const lastPdfFailure = failedDelivery
       ? await query(env.DB,"SELECT phase,error_code FROM generation_usage WHERE order_id = ? AND status = 'failed' ORDER BY attempt DESC LIMIT 1",order.id).first() : null;
     const materialRecovery=failedDelivery&&!failedDelivery.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
@@ -602,7 +602,7 @@ async function myOrders(request, env) {
     const frameRecovery=failedDelivery&&!failedDelivery.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
       ? await recoverableStoppedFrame(env.DB,order.id,spec) : null;
     const consequenceRecovery=failedDelivery&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
-      ? await recoverableStoppedConsequence(env.DB,order.id,spec) : null;
+      ? await recoverableStoppedConsequence(env.DB,order.id,JSON.parse(failedDelivery.story_spec_json||order.purchase_spec_json)) : null;
     const cover = order.product_kind === 'custom' && order.paid_at ? await query(env.DB,'SELECT status FROM order_theme_covers WHERE order_id = ?',order.id).first() : null;
     const { purchase_spec_json, ...safe } = order;
     return { ...safe, checkoutExpired: Boolean(expired), setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
@@ -717,7 +717,7 @@ async function orderView(request, env, orderId) {
   const frameRecovery=order.status==='failed'&&!activity?.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
     ? await recoverableStoppedFrame(env.DB,order.id,spec) : null;
   const consequenceRecovery=order.status==='failed'&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
-    ? await recoverableStoppedConsequence(env.DB,order.id,spec) : null;
+    ? await recoverableStoppedConsequence(env.DB,order.id,activity?.story_spec_json?JSON.parse(activity.story_spec_json):spec) : null;
   const retryBlocked=deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery,frameRecovery,consequenceRecovery);
   const revisionRows = order.product_kind === 'custom'
     ? (await query(env.DB,'SELECT id,stage_number,status,version_number,created_at,completed_at FROM revision_requests WHERE order_id = ? ORDER BY created_at DESC LIMIT 5',order.id).all()).results || []
@@ -791,7 +791,7 @@ async function retryCustomDelivery(request, env, orderId) {
   if (!order?.paid_at || JSON.parse(order.purchase_spec_json).creatorVersion !== 3) throw new ApiError(404,'ORDER_NOT_FOUND','No eligible paid order was found.');
   const plan = await query(env.DB,'SELECT confirmed_version FROM custom_plan_orders WHERE order_id = ?',orderId).first();
   if (!plan?.confirmed_version) throw new ApiError(409,'PLAN_NOT_APPROVED','Approve a personal plan before creating PDFs.');
-  const activity = await query(env.DB,'SELECT id,status,delivery_retry_used FROM custom_activities WHERE order_id = ?',orderId).first();
+  const activity = await query(env.DB,'SELECT id,status,delivery_retry_used,story_spec_json FROM custom_activities WHERE order_id = ?',orderId).first();
   if (activity?.status !== 'failed') throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review.');
   const lastPdfFailure = await query(env.DB,"SELECT phase,error_code FROM generation_usage WHERE order_id = ? AND status = 'failed' ORDER BY attempt DESC LIMIT 1",orderId).first();
   const materialRecovery=lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
@@ -801,7 +801,7 @@ async function retryCustomDelivery(request, env, orderId) {
   const frameRecovery=lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
     ? await recoverableStoppedFrame(env.DB,orderId,JSON.parse(order.purchase_spec_json)) : null;
   const consequenceRecovery=lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
-    ? await recoverableStoppedConsequence(env.DB,orderId,JSON.parse(order.purchase_spec_json)) : null;
+    ? await recoverableStoppedConsequence(env.DB,orderId,JSON.parse(activity.story_spec_json||order.purchase_spec_json)) : null;
   if ((!consequenceRecovery&&activity.delivery_retry_used)||deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery,frameRecovery,consequenceRecovery))
     throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review before another model request.');
   const artifact = await query(env.DB,"SELECT id FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' LIMIT 1",activity.id).first();

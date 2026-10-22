@@ -835,8 +835,10 @@ test('an exhausted consequence-length failure resumes either a saved candidate o
   ]};
   const candidate={...context,storyFrame:frame,celebration:'The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.'};
   const orderId='saved-consequence-order',stored=JSON.stringify(spec);
+  const purchaseSpec={...spec};delete purchaseSpec.plan;delete purchaseSpec.planConfirmed;
+  const purchased=JSON.stringify(purchaseSpec);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('consequence-price','custom_classroom','USD',1999,'exclusive',1)").run();
-  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_classroom',?,?,?,?,1999,'USD','failed',CURRENT_TIMESTAMP)").run(orderId,stored,await sha256(stored),owner,'consequence-price');
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_classroom',?,?,?,?,1999,'USD','failed',CURRENT_TIMESTAMP)").run(orderId,purchased,await sha256(purchased),owner,'consequence-price');
   db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version,delivery_retry_used) VALUES ('consequence-activity',?,'failed',?,2,1)").run(orderId,stored);
   db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit) VALUES ('consequence-entitlement',?,'consequence-activity','active',2)").run(orderId);
   db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version) VALUES (?,'confirmed',1,1)").run(orderId);
