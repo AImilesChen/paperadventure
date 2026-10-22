@@ -335,6 +335,36 @@ export function recoverSavedGroundedBlueprint(spec,candidate){
   return prepareBlueprintCandidate(raw,spec);
 }
 
+// Older failed assemblies may have dropped their oversized candidate from the
+// call log. Rebuild it from the individually saved, checked blueprint steps.
+// This path uses no provider and still passes the complete blueprint contract.
+export function recoverSavedBlueprintSteps(spec,storyFrame,stages,celebration){
+  if(spec?.packContractVersion!==1||spec?.packExperienceVersion<3||(spec?.packQualityVersion||0)<8||
+    !storyFrame||!Array.isArray(stages)||stages.length!==5||typeof celebration!=='string')return null;
+  const types=paperContractTypes(spec.plan),aligned=alignPrintedActionLinks(spec,storyFrame,stages).stages;
+  const coded=normalizeStoryCodeWords(structuredClone(aligned),spec);
+  const raw={celebration,stages:normalizeStoryOrderActions(coded,storyFrame,spec),storyFrame:structuredClone(storyFrame)};
+  const action=raw.storyFrame.actions?.[0];
+  if(!action||!Array.isArray(raw.storyFrame.discoveries)||raw.storyFrame.discoveries.length!==4)return null;
+  raw.storyFrame.discoveries=raw.storyFrame.discoveries.map((item,index)=>{
+    const stage=raw.stages[index],type=types[index],finding=selectedStoryFinding(stage,type,index+1);
+    const labels=stage.material.items.map(piece=>piece.label),features=stage.features||[];
+    if(['evidence_cards','decision_record'].includes(type)&&features.length!==2)
+      throw Error(`Checkpoint ${index+1} needs two printed record facts before story grounding.`);
+    const fixedFinding=type==='order_tiles'
+      ? `The checked order starts with ${labels[0]} and ends with ${labels.at(-1)}.`
+      :type==='symbol_key'?`The decoded word is ${finding}.`
+      :type==='route_board'?`The ${finding} is the open route.`
+      :`The ${finding} ${features[0].toLowerCase()} and ${features[1].toLowerCase()}.`;
+    return {...item,finding:fixedFinding,consequence:groundedConsequence(
+      deterministicGroundedConsequence(stage,type,index+1,action),stage,type,index+1,action)};
+  });
+  raw.storyFrame=prepareStoryFrame(raw.storyFrame,spec.packQualityVersion);
+  raw.stages[4].material.items=raw.storyFrame.actions.map(label=>({label}));
+  raw.spine=compileStorySpine(raw.storyFrame,raw.stages,types,spec.packQualityVersion);
+  return prepareBlueprintCandidate(raw,spec);
+}
+
 async function groundDiscoveriesAfterMaterials(spec,storyFrame,stages,env,fetcher){
   if((spec.packQualityVersion||0)<8)return {storyFrame,usage:null,responseId:null};
   const types=paperContractTypes(spec.plan);
