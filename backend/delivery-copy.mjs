@@ -111,6 +111,41 @@ export function normalizeDeliveryCopy(story,input){
   return copy;
 }
 
+// A final choice may use a prop that is visibly available in an earlier scene
+// without ever saying that the players take it. Bridge only that narrow gap:
+// all final choices must use the same prop, and a prior player scene must show
+// its physical source. Never create an object merely because an action names it.
+export function bridgeAvailableFinalProp(copy){
+  if(copy?.stages?.length!==5||copy.actions?.length!==3)return copy;
+  const propFromAction=value=>{
+    const match=String(value||'').match(/^(?:press|insert|place|put|fit|set|turn|slide|attach)\s+(?:(?:the|a|an)\s+)?([a-z][a-z-]*(?:\s+[a-z][a-z-]*){0,4}?)\s+(?:into|onto|in|on|to|through|against|under|over|at)\b/i);
+    return match?.[1]?.toLowerCase()||null;
+  };
+  const props=copy.actions.map(action=>propFromAction(action.description));
+  if(!props[0]||props.some(prop=>prop!==props[0]))return copy;
+  const prop=props[0],head=prop.split(' ').at(-1);
+  if(head.length<3)return copy;
+  const plural=/[^aeiou]y$/.test(head)?`${head.slice(0,-1)}ies`:head.endsWith('s')?`${head}es`:`${head}s`;
+  const noun=new RegExp(`\\b(?:${head}|${plural})\\b`,'ig');
+  const held=new RegExp(`\\b(?:take|takes|took|pick(?:s|ed)? up|carry|carries|carried|hold|holds|held|receive|receives|received)\\b.{0,60}\\b${prop}\\b`,'i');
+  const scenes=copy.stages.slice(0,4).map(stage=>String(stage.scene||''));
+  if(scenes.some(scene=>held.test(scene)))return copy;
+  const physical=/\b(?:hang|hangs|hung|rest|rests|resting|lie|lies|lying|sit|sits|sitting|stand|stands|standing|tuck|tucked|store|stored|place|placed|keep|kept)\b/i;
+  const sentence=` They take the ${prop} and keep it.`;
+  for(const [index,scene] of scenes.entries()){
+    if(scene.length+sentence.length>200)continue;
+    noun.lastIndex=0;
+    for(const match of scene.matchAll(noun)){
+      const nearby=scene.slice(Math.max(0,match.index-32),Math.min(scene.length,match.index+match[0].length+32));
+      if(!physical.test(nearby))continue;
+      const updated=structuredClone(copy);
+      updated.stages[index].scene=scene+sentence;
+      return updated;
+    }
+  }
+  return copy;
+}
+
 export const validateDeliveryCopy=(story,copy)=>validateCopy(story,copy);
 // Preparation only: check all retained fields before purchasing a fact-only
 // repair. This never supplies the full validation required by publication.
