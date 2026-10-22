@@ -253,6 +253,12 @@ const shortKeyWord=(value,spec,index,used)=>{
     const approved=[spec.plan?.goal,spec.plan?.stages?.[index]?.scene,spec.plan?.stages?.[index]?.storyContext,
       spec.plan?.opening,spec.customIdea,spec.storyLocation].filter(item=>typeof item==='string');
     const approvedWords=approved.flatMap(item=>item.toUpperCase().match(/[A-Z]+/g)||[]).filter(valid);
+    // Keep older saved quality policies stable. New paid packs use version 14.
+    if((spec.packQualityVersion||0)<14){
+      if(valid(word))return word;
+      if(approvedWords[0])return approvedWords[0];
+      throw Error(`Checkpoint ${index+1} needs a distinct four-letter story word, not a generic puzzle label.`);
+    }
     if(valid(word)&&(readableKeyWords.has(word)||approvedWords.includes(word)))return word;
     const replacement=approvedWords.find(candidate=>readableKeyWords.has(candidate))||approvedWords[0]||
       ['PATH','STAR','LAMP','GATE','LOCK','TIME','GEAR','MAPS'].find(valid);
