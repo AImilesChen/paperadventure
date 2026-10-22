@@ -4,7 +4,7 @@ import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessT
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage, revisePrintedWording } from './openai.mjs';
 import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint,
-  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, recoverSavedBlueprintMaterialStep, validateSavedBlueprintMaterialStep, recoverSavedGroundedBlueprint } from './staged-story.mjs';
+  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, recoverSavedBlueprintMaterialStep, validateSavedBlueprintMaterialStep, recoverSavedGroundedBlueprint, recoverSavedBlueprintSteps } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import {ensureDeliveryCopy,requireDeliveryReview} from './delivery-copy-service.mjs';
 import {COPY_POLICY} from './delivery-copy.mjs';
@@ -65,8 +65,22 @@ async function recoverableStoppedConsequence(db,orderId,spec){
   if(saved)return null;
   const latest=await query(db,"SELECT status,error_code,error_detail,result_json FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint' AND stage_number = 0 ORDER BY rowid DESC LIMIT 1",orderId).first();
   if(latest?.status!=='failed'||latest.error_code!=='UNEXPECTED'||
-    !/^Checkpoint [1-4] consequence must contain a complete sentence under 100 characters\.$/.test(latest.error_detail||'')||!latest.result_json)return null;
-  try{return recoverSavedGroundedBlueprint(spec,JSON.parse(latest.result_json));}
+    !/^Checkpoint [1-4] consequence must contain a complete sentence under 100 characters\.$/.test(latest.error_detail||''))return null;
+  try{
+    if(latest.result_json)return recoverSavedGroundedBlueprint(spec,JSON.parse(latest.result_json));
+    const frameRow=await query(db,"SELECT result_json FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_frame' AND stage_number = 0 AND status = 'passed' AND result_json IS NOT NULL ORDER BY rowid DESC LIMIT 1",orderId).first();
+    const closingRow=await query(db,"SELECT result_json FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_closing' AND stage_number = 0 AND status = 'passed' AND result_json IS NOT NULL ORDER BY rowid DESC LIMIT 1",orderId).first();
+    if(!frameRow||!closingRow)return null;
+    const frame=JSON.parse(frameRow.result_json),stages=[];
+    for(let number=1;number<=5;number++){
+      const row=await query(db,"SELECT result_json FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'passed' AND result_json IS NOT NULL ORDER BY rowid DESC LIMIT 1",orderId,number).first();
+      if(!row)return null;
+      const stage=JSON.parse(row.result_json);
+      validateSavedBlueprintMaterialStep(spec,frame,number,stage,stages);
+      stages.push(stage);
+    }
+    return recoverSavedBlueprintSteps(spec,frame,stages,JSON.parse(closingRow.result_json));
+  }
   catch{return null;}
 }
 const deliveryRetryBlocked=(failure,materialRecovery,copyRecovery=false,frameRecovery=false,consequenceRecovery=false)=>Boolean(failure?.error_code==='STORY_CHECKPOINT_MISMATCH'||
@@ -1422,7 +1436,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
           }
         }
         const resumable=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&(!prior||savedMaterialRepair);
-        const savedConsequence=prior?await recoverableStoppedConsequence(env.DB,order.id,spec):null;
+        const savedConsequence=await recoverableStoppedConsequence(env.DB,order.id,spec);
         if(savedConsequence){
           // Recover the checked candidate before the provider-call budget is
           // consulted. All five saved materials and the closing stay intact.

@@ -822,7 +822,8 @@ test('a stopped draft frame offers one owner-initiated continuation from its sav
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_generation_calls WHERE order_id = ?').get(orderId).n,1,'clicking continue does not call the model');
 });
 
-test('an exhausted consequence-length failure resumes its saved blueprint without another blueprint model call',async()=>{
+test('an exhausted consequence-length failure resumes either a saved candidate or saved steps without another blueprint model call',async()=>{
+  for(const missingCandidate of [false,true]){
   const {db,binding}=database(),owner=await sha256('test-session-secret|adult@example.com'),jobs=[],files=new Map();
   const context=linkedClockContext(),spec={...clockSpec,creatorVersion:3,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4,
     onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
@@ -840,9 +841,15 @@ test('an exhausted consequence-length failure resumes its saved blueprint withou
   db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit) VALUES ('consequence-entitlement',?,'consequence-activity','active',2)").run(orderId);
   db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version) VALUES (?,'confirmed',1,1)").run(orderId);
   db.prepare("INSERT INTO generation_usage (order_id,attempt,model,status,phase,error_code) VALUES (?,1,'fixture','failed','story','STAGED_GENERATION_STOPPED')").run(orderId);
+  if(missingCandidate){
+    const saved=db.prepare("INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model,result_json) VALUES (?,'saved-consequence-order',?,?,'passed','fixture',?)");
+    saved.run('saved-frame','blueprint_frame',0,JSON.stringify(frame));
+    for(let number=1;number<=5;number++)saved.run(`saved-material-${number}`,'blueprint_material',number,JSON.stringify(context.stages[number-1]));
+    saved.run('saved-closing','blueprint_closing',0,JSON.stringify(candidate.celebration));
+  }
   const failed=db.prepare("INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model,error_code,error_detail,result_json) VALUES (?,'saved-consequence-order','blueprint',0,'failed','fixture','UNEXPECTED',?,?)");
   for(let number=1;number<=5;number++)failed.run(`failed-consequence-${number}`,
-    `Checkpoint ${number%2?3:4} consequence must contain a complete sentence under 100 characters.`,JSON.stringify(candidate));
+    `Checkpoint ${number%2?3:4} consequence must contain a complete sentence under 100 characters.`,missingCandidate?null:JSON.stringify(candidate));
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>jobs.push(job)},
     PRIVATE_FILES:{put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata}),head:async key=>files.has(key)?{customMetadata:files.get(key).customMetadata}:null},
     FETCH:async()=>{throw Error('A saved consequence recovery must not call the blueprint provider.');}};
@@ -862,6 +869,7 @@ test('an exhausted consequence-length failure resumes its saved blueprint withou
   assert.equal(db.prepare("SELECT model FROM custom_generation_calls WHERE order_id=? AND phase='blueprint' AND status='passed'").get(orderId).model,'checked-rules-v1');
   assert.equal(files.size,3);
   assert.equal((await handleProductionApi(request(`/api/v1/orders/${orderId}/retry-delivery`,'POST',undefined,headers),env)).status,404);
+  }
 });
 
 test('a stopped v15 material step can resume once on the same paid order',async()=>{
