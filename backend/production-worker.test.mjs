@@ -1491,6 +1491,7 @@ test('a delivered pre-quality checked pack offers one free upgrade on its paid o
     {finding:'The upper bridge reaches the gear room.',consequence:'The upper bridge can carry the part.',supportsAction:'signal gear'},
   ]};
   const materialContext=structuredClone(context);delete materialContext.spine;
+  materialContext.stages[0].material.title='The ancient bell tower and its secret collection of detailed reports';
   materialContext.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
   let blueprintCalls=0,failedMaterialTwo=false;const blueprintProviderCalls=[];
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
@@ -2075,6 +2076,8 @@ test('quality v15 reserves every first stage call and publishes both PDFs plus t
     await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('fixture should not need a queue retry');}}]},env);
   }
   assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'published');
+  const savedMaterial=JSON.parse(db.prepare("SELECT result_json FROM custom_generation_calls WHERE order_id=? AND phase='blueprint_material' AND stage_number=1 AND status='passed'").get(orderId).result_json);
+  assert.ok(savedMaterial.material.title.length<=45,'the playable title is shortened before the saved blueprint');
   assert.equal(providerNames.filter(name=>name==='staged_story_audit').length,0,'quality v15 completes its final audit without a provider request');
   assert.equal(db.prepare("SELECT model FROM custom_generation_calls WHERE order_id=? AND phase='audit'").get(orderId).model,'checked-rules-v1');
   const artifact=db.prepare("SELECT player_r2_key,guide_r2_key FROM artifact_versions WHERE custom_activity_id='reserved-activity' AND status='published'").get();
