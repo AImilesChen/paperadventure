@@ -408,28 +408,12 @@ export async function generateBlueprintMaterialStep(spec,storyFrame,number,earli
   }catch{}
   try{validateSavedBlueprintMaterialStep(spec,storyFrame,number,result.data,earlierStages);}
   catch(cause){
-    // Order tiles carry the strictest v13+ rules (no worksheet language, no
-    // route fragments, no completed goal). A provider can repeat the same
-    // "Arrange"/"Sort"/"Record" rejection until the step budget is exhausted
-    // and the paid order deadlocks. On a retry, fall back to the theme-aware
-    // deterministic labels derived from the approved story frame, so a paid
-    // order can never exhaust its budget on this one field.
-    if(type==='order_tiles'&&(spec.packQualityVersion||0)>=13&&previousIssue&&!repairingLabels){
-      const stable=stableOrderLabels({storyFrame},spec,number-1);
-      // The fallback labels name the story subject, so the printed title must
-      // name it too. Otherwise the page heading ("Bridge Drag Order") and its
-      // pieces ("tied rope") disagree and the independent review rejects the
-      // whole edition for a heading/content mismatch.
-      const subject=stable[0].replace(/^Inspect /,'');
-      const titleSubject=subject.replace(/\b[a-z]/g,letter=>letter.toUpperCase());
-      const scene=String(spec.plan?.stages?.[number-1]?.scene||'').trim();
-      const fallbackTitle=(scene?`${scene}: ${titleSubject} Order`:`${titleSubject} Order`).slice(0,45).replace(/\s+\S*$/,'').trim();
-      const fallback={...result.data,material:{...result.data.material,
-        title:fallbackTitle||result.data.material?.title,
-        items:(result.data.material?.items||[]).map((item,index)=>({...item,label:stable[index]}))}};
-      try{validateSavedBlueprintMaterialStep(spec,storyFrame,number,fallback,earlierStages);return {...result,data:fallback};}
-      catch{}
-    }
+    // Formatting-only defects can be corrected with the approved frame before
+    // spending another provider call. The complete material gate still decides
+    // whether the locally repaired candidate is safe to save.
+    const recovered=recoverSavedBlueprintMaterialStep(spec,storyFrame,number,result.data,earlierStages,cause.message,
+      Boolean(previousIssue)&&!repairingLabels);
+    if(recovered)return {...result,data:recovered};
     const error=new ApiError(422,'BLUEPRINT_INVALID',cause.message);
     error.stageNumber=number;error.usage=result.usage;error.responseId=result.responseId;error.candidate=result.data;
     throw error;
@@ -461,6 +445,44 @@ export function recoverSavedWorksheetMaterialStep(spec,storyFrame,number,data,ea
   if(!repaired)return null;
   validateSavedBlueprintMaterialStep(spec,storyFrame,number,repaired,earlierStages);
   return repaired;
+}
+
+// Recover a failed material from its saved candidate, without calling the
+// provider or changing the approved story, answer position or factual content.
+// Record syntax and ordering labels are the only fields adjusted here.
+export function recoverSavedBlueprintMaterialStep(spec,storyFrame,number,data,earlierStages=[],issue='',legacyRetry=false){
+  try{
+    const worksheet=recoverSavedWorksheetMaterialStep(spec,storyFrame,number,data,earlierStages,issue);
+    if(worksheet)return worksheet;
+  }catch{}
+  const type=number>=1&&number<=4?paperContractTypes(spec.plan)[number-1]:null;
+  if((spec.packQualityVersion||0)>=14&&['evidence_cards','decision_record'].includes(type)&&
+    /printed (?:features|record facts)|describe the contents of every record/i.test(issue)&&
+    Array.isArray(data?.features)&&data.features.length===2){
+    const features=data.features.map(value=>typeof value==='string'
+      ?value.replace(/^(mention|mentions|name|names)\s*[:\-]\s*(?=[A-Za-z])/i,(_,verb)=>/^mention/i.test(verb)?'Mentions ':'Names ')
+        .replace(/^(mention|name)\s+(?=[A-Za-z])/i,(_,verb)=>verb.toLowerCase()==='mention'?'Mentions ':'Names ')
+      :value);
+    if(features.some((value,index)=>value!==data.features[index])){
+      const repaired={...data,features};
+      try{validateSavedBlueprintMaterialStep(spec,storyFrame,number,repaired,earlierStages);return repaired;}
+      catch{}
+    }
+  }
+  if(((spec.packQualityVersion||0)<14&&!((spec.packQualityVersion||0)===13&&legacyRetry))||number<1||number>4||
+    type!=='order_tiles'||
+    !/(?:ordering material needs|repeats a printed action|labels must name fictional story pieces|distinct story-specific labels|distinct named story pieces)/i.test(issue)||
+    !Array.isArray(data?.material?.items)||data.material.items.length!==4)return null;
+  const stable=stableOrderLabels({storyFrame},spec,number-1);
+  const subject=stable[0].replace(/^Inspect /,'');
+  if(subject==='mission')return null; // No concrete approved story subject to print.
+  const titleSubject=subject.replace(/\b[a-z]/g,letter=>letter.toUpperCase());
+  const scene=String(spec.plan?.stages?.[number-1]?.scene||'').trim();
+  const title=(scene?`${scene}: ${titleSubject} Order`:`${titleSubject} Order`).slice(0,45).replace(/\s+\S*$/,'').trim();
+  const repaired={...data,material:{...data.material,title:title||data.material.title,
+    items:data.material.items.map((item,index)=>({...item,label:stable[index]}))}};
+  try{validateSavedBlueprintMaterialStep(spec,storyFrame,number,repaired,earlierStages);return repaired;}
+  catch{return null;}
 }
 
 export async function generateBlueprintClosingStep(spec,storyFrame,env,fetcher=fetch){

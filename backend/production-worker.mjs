@@ -4,7 +4,7 @@ import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessT
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage, revisePrintedWording } from './openai.mjs';
 import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint,
-  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, recoverSavedWorksheetMaterialStep, validateSavedBlueprintMaterialStep } from './staged-story.mjs';
+  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, recoverSavedBlueprintMaterialStep, validateSavedBlueprintMaterialStep } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import {ensureDeliveryCopy,requireDeliveryReview} from './delivery-copy-service.mjs';
 import {COPY_POLICY} from './delivery-copy.mjs';
@@ -1401,7 +1401,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
             },null,true,value=>validateSavedBlueprintMaterialStep(spec,frame,number,value,materialSteps),async()=>{
               const failed=await query(env.DB,"SELECT error_detail,result_json FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint_material' AND stage_number = ? AND status = 'failed' AND result_json IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",order.id,number).first();
               if(!failed)return null;
-              try{return recoverSavedWorksheetMaterialStep(spec,frame,number,JSON.parse(failed.result_json),materialSteps,failed.error_detail);}
+              try{return recoverSavedBlueprintMaterialStep(spec,frame,number,JSON.parse(failed.result_json),materialSteps,failed.error_detail);}
               catch{return null;}
             }));
           }

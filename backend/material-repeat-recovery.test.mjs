@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {clockSpec} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
-import {generateBlueprintMaterialStep,recoverSavedWorksheetMaterialStep,validateSavedBlueprintMaterialStep} from './staged-story.mjs';
+import {generateBlueprintMaterialStep,recoverSavedBlueprintMaterialStep,recoverSavedWorksheetMaterialStep,validateSavedBlueprintMaterialStep} from './staged-story.mjs';
 import {invalidStoryOrderAction} from './contextual-puzzles.mjs';
+import {paperContractTypes} from '../shared/paper-contract.mjs';
 
 test('repeated order action is isolated to the saved material on retry',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14,
@@ -122,6 +123,61 @@ test('a repeated invalid ordering action falls back to stable story labels on re
   assert.equal(labels.length,4);
   assert.equal(new Set(labels).size,4);
   for(const label of labels) assert.equal(invalidStoryOrderAction(label,frame.actions[0],spec.plan.goal),false);
+});
+
+test('a first ordering response is repaired locally without a second provider call',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14,
+    plan:{...clockSpec.plan,stages:clockSpec.plan.stages.map((stage,index)=>index===1?{...stage,mechanic:'sequence'}:stage)}};
+  const frame={actions:['Install the spare signal gear'],discoveries:[{},
+    {finding:'The lantern path reaches the repair room.',supportsAction:'lantern path'}]};
+  const bad=structuredClone(linkedClockContext().stages[2]);
+  bad.material.items=[{label:'Arrange the tiles'},{label:'Sort the tiles'},{label:'Match the tiles'},{label:'Record the tiles'}];
+  let calls=0;
+  const result=await generateBlueprintMaterialStep(spec,frame,2,[],{AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'},
+    async()=>{calls++;return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(bad)}]}]});});
+  assert.equal(calls,1);
+  assert.doesNotThrow(()=>validateSavedBlueprintMaterialStep(spec,frame,2,result.data));
+  assert.deepEqual(result.data.features,bad.features);
+  assert.equal(result.data.word,bad.word);
+  assert.deepEqual(bad.material.items.map(item=>item.label),['Arrange the tiles','Sort the tiles','Match the tiles','Record the tiles']);
+});
+
+test('saved ordering material resumes from its failed candidate without another model call',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14,
+    plan:{...clockSpec.plan,stages:clockSpec.plan.stages.map((stage,index)=>index===1?{...stage,mechanic:'sequence'}:stage)}};
+  const frame={actions:['Install the spare signal gear'],discoveries:[{},
+    {finding:'The lantern path reaches the repair room.',supportsAction:'lantern path'}]};
+  const bad=structuredClone(linkedClockContext().stages[2]);
+  bad.material.items[0].label='Arrange the tiles';
+  const snapshot=structuredClone(bad);
+  const recovered=recoverSavedBlueprintMaterialStep(spec,frame,2,bad,[],
+    'Checkpoint 2 labels must name fictional story pieces or actions, not worksheet instructions.');
+  assert.ok(recovered);
+  assert.deepEqual(bad,snapshot,'the failed candidate remains unchanged');
+  assert.doesNotThrow(()=>validateSavedBlueprintMaterialStep(spec,frame,2,recovered));
+  assert.equal(recoverSavedBlueprintMaterialStep(spec,frame,2,{...bad,material:{...bad.material,items:bad.material.items.slice(1)}},[],
+    'Checkpoint 2 ordering material needs four natural unfinished story actions with concrete objects.'),null);
+  assert.equal(recoverSavedBlueprintMaterialStep(spec,frame,2,bad,[],
+    'Checkpoint 2 printed record facts are missing.'),null,'unrelated defects still stop');
+});
+
+test('record fact punctuation is normalized locally while concrete facts remain fixed',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14};
+  const number=paperContractTypes(spec.plan).findIndex(type=>['evidence_cards','decision_record'].includes(type))+1;
+  assert.ok(number>0);
+  const frame={actions:['Install the spare signal gear'],discoveries:[]};
+  const saved=structuredClone(linkedClockContext().stages[number-1]);
+  saved.features=['Mention: brass gear','Name - clock shaft'];
+  const snapshot=structuredClone(saved);
+  const recovered=recoverSavedBlueprintMaterialStep(spec,frame,number,saved,[],
+    `Checkpoint ${number} printed features must describe the contents of every record.`);
+  assert.ok(recovered);
+  assert.deepEqual(recovered.features,['Mentions brass gear','Names clock shaft']);
+  assert.deepEqual(saved,snapshot);
+  assert.doesNotThrow(()=>validateSavedBlueprintMaterialStep(spec,frame,number,recovered));
+  saved.features=['Mentions correct answer','Names clock shaft'];
+  assert.equal(recoverSavedBlueprintMaterialStep(spec,frame,number,saved,[],
+    `Checkpoint ${number} printed record facts are invalid.`),null,'generic answer facts still fail');
 });
 
 test('an ordering tile must not place the final object at a conflicting destination',()=>{
