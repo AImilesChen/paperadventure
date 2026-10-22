@@ -4,7 +4,7 @@ import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessT
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage, revisePrintedWording } from './openai.mjs';
 import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint,
-  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, recoverSavedBlueprintMaterialStep, validateSavedBlueprintMaterialStep } from './staged-story.mjs';
+  generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, recoverSavedBlueprintMaterialStep, validateSavedBlueprintMaterialStep, recoverSavedGroundedBlueprint } from './staged-story.mjs';
 import { buildGamePdf } from './pdf.mjs';
 import {ensureDeliveryCopy,requireDeliveryReview} from './delivery-copy-service.mjs';
 import {COPY_POLICY} from './delivery-copy.mjs';
@@ -59,9 +59,19 @@ async function recoverableStoppedFrame(db,orderId,spec){
   }
   return null;
 }
-const deliveryRetryBlocked=(failure,materialRecovery,copyRecovery=false,frameRecovery=false)=>Boolean(failure?.error_code==='STORY_CHECKPOINT_MISMATCH'||
+async function recoverableStoppedConsequence(db,orderId,spec){
+  if(spec?.packContractVersion!==1||spec?.packExperienceVersion<3||(spec?.packQualityVersion||0)<8)return null;
+  const saved=await query(db,"SELECT id FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint' AND stage_number = 0 AND status = 'passed' LIMIT 1",orderId).first();
+  if(saved)return null;
+  const latest=await query(db,"SELECT status,error_code,error_detail,result_json FROM custom_generation_calls WHERE order_id = ? AND phase = 'blueprint' AND stage_number = 0 ORDER BY rowid DESC LIMIT 1",orderId).first();
+  if(latest?.status!=='failed'||latest.error_code!=='UNEXPECTED'||
+    !/^Checkpoint [1-4] consequence must contain a complete sentence under 100 characters\.$/.test(latest.error_detail||'')||!latest.result_json)return null;
+  try{return recoverSavedGroundedBlueprint(spec,JSON.parse(latest.result_json));}
+  catch{return null;}
+}
+const deliveryRetryBlocked=(failure,materialRecovery,copyRecovery=false,frameRecovery=false,consequenceRecovery=false)=>Boolean(failure?.error_code==='STORY_CHECKPOINT_MISMATCH'||
   (failure?.phase==='story'&&nonRetryableStoryCodes.has(failure.error_code)&&
-   !(failure.error_code==='STAGED_GENERATION_STOPPED'&&(materialRecovery||copyRecovery||frameRecovery))));
+   !(failure.error_code==='STAGED_GENERATION_STOPPED'&&(materialRecovery||copyRecovery||frameRecovery||consequenceRecovery))));
 const emailHash = (env, email) => sha256(`${env.SESSION_SECRET}|${email}`);
 function accessMonths(spec) {
   const months = spec?.onlineRedownloadMonths;
@@ -577,13 +587,15 @@ async function myOrders(request, env) {
       ? await recoverableStoppedCopy(env.DB,order.id,spec) : null;
     const frameRecovery=failedDelivery&&!failedDelivery.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
       ? await recoverableStoppedFrame(env.DB,order.id,spec) : null;
+    const consequenceRecovery=failedDelivery&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
+      ? await recoverableStoppedConsequence(env.DB,order.id,spec) : null;
     const cover = order.product_kind === 'custom' && order.paid_at ? await query(env.DB,'SELECT status FROM order_theme_covers WHERE order_id = ?',order.id).first() : null;
     const { purchase_spec_json, ...safe } = order;
     return { ...safe, checkoutExpired: Boolean(expired), setting, themeId: spec.themeId, title: order.product_kind === 'ready' ? story?.title || world?.title || 'Ready-made adventure' : spec.proposalTitle || spec.customIdea || 'Custom adventure',
       image: order.product_kind === 'ready' ? story?.image || world?.image : cover?.status === 'ready' && order.status !== 'refunded' ? '/api/v1/orders/'+order.id+'/cover' : '/assets/custom-adventure-workshop-v1.jpg',
       coverStatus: cover?.status || null, coverAvailable: Boolean(coverGenerationReady(env) && order.product_kind === 'custom' && order.paid_at && order.status !== 'refunded'),
       paper: spec.paper, planStatus: paidPlan?.status || null,
-      deliveryRetryAvailable: Boolean(order.paid_at && paidPlan?.confirmed_version && failedDelivery?.status === 'failed' && !failedDelivery.delivery_retry_used && !deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery,frameRecovery)),
+      deliveryRetryAvailable: Boolean(order.paid_at && paidPlan?.confirmed_version && failedDelivery?.status === 'failed' && (!failedDelivery.delivery_retry_used||consequenceRecovery) && !deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery,frameRecovery,consequenceRecovery)),
       savedCopyRecoveryAvailable:Boolean(copyRecovery),
       filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
   }));
@@ -690,7 +702,9 @@ async function orderView(request, env, orderId) {
     ? await recoverableStoppedCopy(env.DB,order.id,spec) : null;
   const frameRecovery=order.status==='failed'&&!activity?.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
     ? await recoverableStoppedFrame(env.DB,order.id,spec) : null;
-  const retryBlocked=deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery,frameRecovery);
+  const consequenceRecovery=order.status==='failed'&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
+    ? await recoverableStoppedConsequence(env.DB,order.id,spec) : null;
+  const retryBlocked=deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery,frameRecovery,consequenceRecovery);
   const revisionRows = order.product_kind === 'custom'
     ? (await query(env.DB,'SELECT id,stage_number,status,version_number,created_at,completed_at FROM revision_requests WHERE order_id = ? ORDER BY created_at DESC LIMIT 5',order.id).all()).results || []
     : [];
@@ -733,7 +747,7 @@ async function orderView(request, env, orderId) {
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
     generationState: order.product_kind === 'custom' ? (activity?.status || (order.status === 'pending_payment' ? 'awaiting_payment' : 'pending')) : null,
     generationFailedAttempts: failedAttempts, pdfGenerationHistory, generationProgress,
-    deliveryRetryAvailable: Boolean(order.product_kind === 'custom' && order.status === 'failed' && order.paid_at && activity?.status === 'failed' && !activity.delivery_retry_used && paidPlan?.confirmed_version && !retryBlocked),
+    deliveryRetryAvailable: Boolean(order.product_kind === 'custom' && order.status === 'failed' && order.paid_at && activity?.status === 'failed' && (!activity.delivery_retry_used||consequenceRecovery) && paidPlan?.confirmed_version && !retryBlocked),
     savedCopyRecoveryAvailable:Boolean(copyRecovery),
     paper: order.product_kind === 'custom' ? spec.paper : null,
     variantId: order.product_kind === 'ready' ? spec.variantId || null : null,
@@ -764,7 +778,7 @@ async function retryCustomDelivery(request, env, orderId) {
   const plan = await query(env.DB,'SELECT confirmed_version FROM custom_plan_orders WHERE order_id = ?',orderId).first();
   if (!plan?.confirmed_version) throw new ApiError(409,'PLAN_NOT_APPROVED','Approve a personal plan before creating PDFs.');
   const activity = await query(env.DB,'SELECT id,status,delivery_retry_used FROM custom_activities WHERE order_id = ?',orderId).first();
-  if (activity?.status !== 'failed' || activity.delivery_retry_used) throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review.');
+  if (activity?.status !== 'failed') throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review.');
   const lastPdfFailure = await query(env.DB,"SELECT phase,error_code FROM generation_usage WHERE order_id = ? AND status = 'failed' ORDER BY attempt DESC LIMIT 1",orderId).first();
   const materialRecovery=lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
     ? await recoverableStoppedMaterial(env.DB,orderId,JSON.parse(order.purchase_spec_json)) : false;
@@ -772,11 +786,14 @@ async function retryCustomDelivery(request, env, orderId) {
     ? await recoverableStoppedCopy(env.DB,orderId,JSON.parse(order.purchase_spec_json)) : null;
   const frameRecovery=lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
     ? await recoverableStoppedFrame(env.DB,orderId,JSON.parse(order.purchase_spec_json)) : null;
-  if (deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery,frameRecovery)) throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review before another model request.');
+  const consequenceRecovery=lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
+    ? await recoverableStoppedConsequence(env.DB,orderId,JSON.parse(order.purchase_spec_json)) : null;
+  if ((!consequenceRecovery&&activity.delivery_retry_used)||deliveryRetryBlocked(lastPdfFailure,materialRecovery,copyRecovery,frameRecovery,consequenceRecovery))
+    throw new ApiError(409,'DELIVERY_RETRY_UNAVAILABLE','This order needs support review before another model request.');
   const artifact = await query(env.DB,"SELECT id FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' LIMIT 1",activity.id).first();
   if (artifact) throw new ApiError(409,'FILES_ALREADY_CREATED','Files were already created. Refresh this order.');
   const failed = await query(env.DB,"SELECT COUNT(*) AS count FROM generation_usage WHERE order_id = ? AND status = 'failed'",orderId).first();
-  const reserved = await query(env.DB,"UPDATE custom_activities SET status = 'queued',lease_until = NULL,delivery_retry_used = 1,delivery_retry_baseline = ? WHERE id = ? AND status = 'failed' AND delivery_retry_used = 0",failed?.count || 0,activity.id).run();
+  const reserved = await query(env.DB,"UPDATE custom_activities SET status = 'queued',lease_until = NULL,delivery_retry_used = 1,delivery_retry_baseline = ? WHERE id = ? AND status = 'failed' AND (delivery_retry_used = 0 OR ? = 1)",failed?.count || 0,activity.id,consequenceRecovery?1:0).run();
   if (!reserved.meta?.changes) throw new ApiError(409,'DELIVERY_BUSY','The order changed. Refresh and try again.');
   if(copyRecovery)await query(env.DB,'INSERT INTO custom_delivery_copy_transport_recoveries (order_id,policy,source_sha256,spec_sha256) VALUES (?,?,?,?)',orderId,COPY_POLICY,copyRecovery.source_sha256,copyRecovery.spec_sha256).run();
   await query(env.DB,"UPDATE orders SET status = 'fulfilling' WHERE id = ? AND status = 'failed'",orderId).run();
@@ -1405,7 +1422,13 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
           }
         }
         const resumable=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&(!prior||savedMaterialRepair);
-        if(resumable){
+        const savedConsequence=prior?await recoverableStoppedConsequence(env.DB,order.id,spec):null;
+        if(savedConsequence){
+          // Recover the checked candidate before the provider-call budget is
+          // consulted. All five saved materials and the closing stay intact.
+          generatedBlueprint=await call('blueprint',0,async()=>{throw new Error('Saved blueprint recovery was unavailable.');},
+            null,true,null,()=>savedConsequence);
+        }else if(resumable){
           recoveringSavedMaterial=savedMaterialRepair||recoveringSavedMaterial;
           budgetPhase='blueprint_frame';
           const frame=await call('blueprint_frame',0,async()=>{

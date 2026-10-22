@@ -822,6 +822,48 @@ test('a stopped draft frame offers one owner-initiated continuation from its sav
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_generation_calls WHERE order_id = ?').get(orderId).n,1,'clicking continue does not call the model');
 });
 
+test('an exhausted consequence-length failure resumes its saved blueprint without another blueprint model call',async()=>{
+  const {db,binding}=database(),owner=await sha256('test-session-secret|adult@example.com'),jobs=[],files=new Map();
+  const context=linkedClockContext(),spec={...clockSpec,creatorVersion:3,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4,
+    onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
+  const frame={problem:context.spine.problem,actions:context.stages[4].material.items.map(item=>item.label),discoveries:[
+    {finding:'The signal gear is missing.',consequence:'The signal gear report supports fitting the gear.',supportsAction:'signal gear'},
+    {finding:'The spare gear fits the shaft.',consequence:'The gear chamber note supports fitting the gear.',supportsAction:'signal gear'},
+    {finding:'The checked order protects the teeth.',consequence:'The step "Stop the signal" prepares the gear fitting, supporting the signal gear in the upper tower.',supportsAction:'signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The open Upper bridge gives the team a route for the gear, supporting the signal gear in the tower.',supportsAction:'signal gear'},
+  ]};
+  const candidate={...context,storyFrame:frame,celebration:'The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.'};
+  const orderId='saved-consequence-order',stored=JSON.stringify(spec);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('consequence-price','custom_classroom','USD',1999,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_classroom',?,?,?,?,1999,'USD','failed',CURRENT_TIMESTAMP)").run(orderId,stored,await sha256(stored),owner,'consequence-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version,delivery_retry_used) VALUES ('consequence-activity',?,'failed',?,2,1)").run(orderId,stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit) VALUES ('consequence-entitlement',?,'consequence-activity','active',2)").run(orderId);
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version) VALUES (?,'confirmed',1,1)").run(orderId);
+  db.prepare("INSERT INTO generation_usage (order_id,attempt,model,status,phase,error_code) VALUES (?,1,'fixture','failed','story','STAGED_GENERATION_STOPPED')").run(orderId);
+  const failed=db.prepare("INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model,error_code,error_detail,result_json) VALUES (?,'saved-consequence-order','blueprint',0,'failed','fixture','UNEXPECTED',?,?)");
+  for(let number=1;number<=5;number++)failed.run(`failed-consequence-${number}`,
+    `Checkpoint ${number%2?3:4} consequence must contain a complete sentence under 100 characters.`,JSON.stringify(candidate));
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>jobs.push(job)},
+    PRIVATE_FILES:{put:async(key,body,options)=>files.set(key,{body,customMetadata:options.customMetadata}),head:async key=>files.has(key)?{customMetadata:files.get(key).customMetadata}:null},
+    FETCH:async()=>{throw Error('A saved consequence recovery must not call the blueprint provider.');}};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const view=await handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,headers),env).then(response=>response.json());
+  assert.equal(view.deliveryRetryAvailable,true);
+  const retry=await handleProductionApi(request(`/api/v1/orders/${orderId}/retry-delivery`,'POST',undefined,headers),env);
+  assert.equal(retry.status,202);
+  assert.deepEqual(jobs,[{orderId}]);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM custom_generation_calls WHERE order_id=? AND phase='blueprint'").get(orderId).n,5);
+  for(let step=0;step<4&&db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status!=='published';step++){
+    const job=jobs.shift();assert.ok(job);
+    await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('fixture should not need a queue retry');}}]},env);
+  }
+  assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'published');
+  assert.equal(db.prepare("SELECT model FROM custom_generation_calls WHERE order_id=? AND phase='blueprint' AND status='passed'").get(orderId).model,'checked-rules-v1');
+  assert.equal(files.size,3);
+  assert.equal((await handleProductionApi(request(`/api/v1/orders/${orderId}/retry-delivery`,'POST',undefined,headers),env)).status,404);
+});
+
 test('a stopped v15 material step can resume once on the same paid order',async()=>{
   const {db,binding}=database(),owner=await sha256('test-session-secret|adult@example.com'),jobs=[];
   const spec={...validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec,packQualityVersion:15};
