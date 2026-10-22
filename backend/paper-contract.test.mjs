@@ -4,7 +4,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {buildContextPuzzle,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {alignPrintedActionLinks,missingPrintedActionLinks,assembleBlueprintSteps,generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep,generateBlueprintMaterialStep,validateSavedBlueprintMaterialStep,deliverableClosing} from './staged-story.mjs';
+import {alignPrintedActionLinks,missingPrintedActionLinks,assembleBlueprintSteps,recoverSavedGroundedBlueprint,generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep,generateBlueprintMaterialStep,validateSavedBlueprintMaterialStep,deliverableClosing} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
@@ -290,6 +290,37 @@ test('quality version 13 keeps a concrete, causally grounded five-step blueprint
       return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({pass:false,issues:[{stageNumber:1,reason:'The purchased Journey to the West theme and named character Sun Wukong disappeared from this generic clock story.'}]})}]}]});
     }),error=>error.code==='GENERATION_QA_FAILED'&&error.terminalThemeMismatch===true);
   assert.equal(reviews,2,'theme failure is independently checked before stopping');
+});
+
+test('long grounded consequences use saved printed facts without another model round',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4};
+  const raw=linkedClockContext(),frame=structuredClockFrame();
+  const consequences=[
+    'The signal gear report supports fitting the gear.',
+    'The gear chamber note identifies the spare gear for fitting.',
+    'The step "Stop the signal" prepares the gear fitting, supporting the signal gear in the upper tower.',
+    'The open Upper bridge gives the team a route for the gear, supporting the signal gear in the tower.',
+  ];
+  let calls=0;
+  const result=await assembleBlueprintSteps(spec,frame,raw.stages,
+    'The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.',
+    {OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{
+      calls++;
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({consequences})}]}]});
+    });
+  assert.equal(calls,1);
+  for(const discovery of result.blueprint.storyFrame.discoveries)assert.ok(discovery.consequence.length<=100);
+  assert.equal(validateBlueprint(result.blueprint,spec).stages.length,5);
+
+  const saved=linkedClockContext();
+  saved.storyFrame=structuredClone(result.blueprint.storyFrame);
+  saved.storyFrame.discoveries[2].consequence=consequences[2];
+  saved.storyFrame.discoveries[3].consequence=consequences[3];
+  saved.celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const recovered=recoverSavedGroundedBlueprint(spec,saved);
+  assert.equal(validateBlueprint(recovered,spec).stages.length,5);
+  assert.ok(recovered.storyFrame.discoveries[2].consequence.length<=100);
+  assert.ok(recovered.storyFrame.discoveries[3].consequence.length<=100);
 });
 
 test('quality version 15 performs the complete-game audit without a provider request',async()=>{

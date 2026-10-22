@@ -300,8 +300,40 @@ const groundedConsequence=(proposed,stage,type,number,action)=>{
   const claimed=linkWords(grounded);
   if(!concreteActionWords(action).some(word=>claimed.has(word)))
     grounded=`${String(grounded).replace(/[.!?]+$/,'')}, supporting the ${actionNoun(action)}.`;
+  // The action link above can make an otherwise valid model sentence exceed
+  // the printed 100-character contract. Rebuild that sentence from the saved
+  // printed piece instead of asking the model to regenerate the whole game.
+  if(grounded.length>100){
+    const finding=selectedStoryFinding(stage,type,number),noun=actionNoun(action);
+    const firstStep=stage?.material?.items?.[0]?.label;
+    grounded=type==='order_tiles'&&firstStep
+      ? `The step "${firstStep}" prepares the ${noun}.`
+      :type==='symbol_key'
+      ? `The decoded ${finding} supports the ${noun}.`
+      :type==='route_board'
+      ? `The open ${finding} gives a route for the ${noun}.`
+      :`The ${finding} supports the ${noun}.`;
+  }
   return grounded;
 };
+
+// A failed assembly keeps the already-grounded candidate privately in D1.
+// Recheck only its consequence sentences and the normal blueprint contract;
+// no provider call, material change or unverified text is published here.
+export function recoverSavedGroundedBlueprint(spec,candidate){
+  if(spec?.packContractVersion!==1||spec?.packExperienceVersion<3||(spec?.packQualityVersion||0)<8||
+    !candidate?.storyFrame||!Array.isArray(candidate.stages)||candidate.stages.length!==5||
+    !Array.isArray(candidate.storyFrame.discoveries)||candidate.storyFrame.discoveries.length!==4)return null;
+  const raw=structuredClone(candidate),types=paperContractTypes(spec.plan),action=raw.storyFrame.actions?.[0];
+  if(!action)return null;
+  raw.storyFrame.discoveries=raw.storyFrame.discoveries.map((item,index)=>({
+    ...item,consequence:groundedConsequence(item.consequence,raw.stages[index],types[index],index+1,action),
+  }));
+  raw.storyFrame=prepareStoryFrame(raw.storyFrame,spec.packQualityVersion);
+  raw.stages[4].material.items=raw.storyFrame.actions.map(label=>({label}));
+  raw.spine=compileStorySpine(raw.storyFrame,raw.stages,types,spec.packQualityVersion);
+  return prepareBlueprintCandidate(raw,spec);
+}
 
 async function groundDiscoveriesAfterMaterials(spec,storyFrame,stages,env,fetcher){
   if((spec.packQualityVersion||0)<8)return {storyFrame,usage:null,responseId:null};
