@@ -228,20 +228,42 @@ export function normalizeStoryOrderActions(stages,storyFrame,spec){
   }
   return normalized;
 }
+// Four distinct letters can still be gibberish (for example RSTV). Accept a
+// familiar word or an exact approved-theme word, then correct locally without
+// another model call. The key remains four distinct letters and keeps its digit.
+const readableKeyWords=new Set(('ARCH BARN BEAR BIRD BOAT BOOK BRAG CAKE CAMP CAVE CITY CLAY COAT COLD COVE '+
+  'CROW CURE DARK DAWN DECK DICE DOCK DOME DOOR DOWN DUST EAST ECHO FACE FAIR FARM FEAR FILE FIRE FISH '+
+  'FLAG FLOW FOLD FORT FROG GATE GEAR GIFT GLOW GOAL GOLD HAND HARP HEAT HELP HERO HIDE HIVE HOME HOOK '+
+  'HOPE HORN HOUR HUNT IDEA IRON ISLE ITEM JUMP KIND KING KITE LAKE LAMP LAND LANE LAST LEAF LIFT '+
+  'LIME LINE LINK LION LIST LIVE LOAD LOCK LOST LUCK MAIL MAKE MARK MASK MAST MAZE MEAL MICE MILE MIND '+
+  'MINT MIST MOAT MOLE MORE MOVE MUSE NAME NEAR NEST NEWS NEXT OARS OATH OPEN OVEN PAGE PAIR PALM PARK '+
+  'PART PAST PATH PEAR PIER PILE PINE PIPE PLAN PLOT POEM POLE POND POST RAIL RAIN RAKE RAMP READ REEF '+
+  'RICE RIDE RING RISE RISK ROAD ROAM ROCK ROLE ROOF ROPE ROSE RUSH RUST SAFE SAIL SALT SAND SAVE '+
+  'SEAL SEAT SEEK SHIP SHOE SHOP SHOW SHUT SIDE SIGN SILK SING SINK SITE SKIP SLIP SLOT SLOW SNOW '+
+  'SOFT SOIL SONG SORT SPAN SPIN SPOT STAR STEM STEP STOP STOW SUIT SURE SWAP SWIM TAIL TALE TANK '+
+  'TAPE TASK TEAM TEAR TENT TEST TIDE TILE TIME TINY TIRE TOAD TONE TOOL TOUR TOWN TRAP TRAY TREK '+
+  'TRIM TRIO TRIP TRUE TUBE TUNE TURN TWIN UNIT VANE VAST VEIL VENT VEST VIEW VINE VOTE WADE WAIT '+
+  'WAKE WALK WAND WARM WASH WAVE WEAR WEST WHIP WIDE WILD WIND WING WIRE WISE WISH WOLF WORD WORK '+
+  'WORM WRAP YARD YARN YEAR ZONE').split(' '));
 const shortKeyWord=(value,spec,index,used)=>{
   if((spec.packQualityVersion||0)>=8){
     const word=String(value||'').trim().toUpperCase();
     const generic=new Set(['CODE','CLUE','NOTE','GAME','PLAY','FIND']);
     const valid=candidate=>/^[A-Z]{4}$/.test(candidate)&&new Set(candidate).size===4&&!used.has(candidate)&&!generic.has(candidate);
-    if(valid(word))return word;
-    // A generic model label is not a reason to discard the entire paid pack.
-    // Prefer an exact four-letter word already present in the approved story.
     const approved=[spec.plan?.goal,spec.plan?.stages?.[index]?.scene,spec.plan?.stages?.[index]?.storyContext,
       spec.plan?.opening,spec.customIdea,spec.storyLocation].filter(item=>typeof item==='string');
-    const tokens=approved.flatMap(item=>item.toUpperCase().match(/[A-Z]+/g)||[]);
-    const replacement=tokens.find(valid);
+    const approvedWords=approved.flatMap(item=>item.toUpperCase().match(/[A-Z]+/g)||[]).filter(valid);
+    // Keep older saved quality policies stable. New paid packs use version 14.
+    if((spec.packQualityVersion||0)<14){
+      if(valid(word))return word;
+      if(approvedWords[0])return approvedWords[0];
+      throw Error(`Checkpoint ${index+1} needs a distinct four-letter story word, not a generic puzzle label.`);
+    }
+    if(valid(word)&&(readableKeyWords.has(word)||approvedWords.includes(word)))return word;
+    const replacement=approvedWords.find(candidate=>readableKeyWords.has(candidate))||approvedWords[0]||
+      ['PATH','STAR','LAMP','GATE','LOCK','TIME','GEAR','MAPS'].find(valid);
     if(replacement)return replacement;
-    throw Error(`Checkpoint ${index+1} needs a distinct four-letter story word, not a generic puzzle label.`);
+    throw Error(`Checkpoint ${index+1} needs a distinct four-letter story word.`);
   }
   const tokens=[value,spec.plan?.title,spec.customIdea].filter(item=>typeof item==='string').flatMap(item=>item.toUpperCase().match(/[A-Z]+/g)||[]);
   for(const token of tokens)for(let start=0;start<=token.length-4;start++){
