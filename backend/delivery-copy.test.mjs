@@ -5,7 +5,7 @@ import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {clockSpec} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory} from './staged-story.mjs';
-import {validateDeliveryCopy,normalizeDeliveryCopy,applyDeliveryCopy,verifyDeliveryPuzzles,validatePlayerEvidence,groundedDeliveryClosing} from './delivery-copy.mjs';
+import {validateDeliveryCopy,normalizeDeliveryCopy,applyDeliveryCopy,verifyDeliveryPuzzles,validatePlayerEvidence,groundedDeliveryClosing,bridgeAvailableFinalProp} from './delivery-copy.mjs';
 import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,deliveryCopySchemaFor,grantSavedFactRepair,playerOnlyReviewInput,reviewVisibleFor,resolveGroundedClosingAudit} from './delivery-copy-service.mjs';
 import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import {buildGamePdf} from './pdf.mjs';
@@ -112,6 +112,26 @@ test('playable review receives guide and ending claims without treating them as 
   assert.equal(review.playerPages.ending,undefined);
   assert.ok(review.playerPages.checkpoints.every(stage=>stage.material.items.length>0));
   assert.ok(causalEvidenceUnits(printed).every(unit=>!review.storyClaims.includes(unit.text)));
+});
+
+test('an accessible shared final prop is acquired before review without inventing a source',()=>{
+  const base={stages:Array.from({length:5},(_,index)=>({scene:index===1?'The keys hang above the bell desk. The keeper checks the clock.':'The explorers check the next clue.'})),actions:[
+    {description:'Press moon key into lobby floor plate.'},
+    {description:'Press moon key into hall plate.'},
+    {description:'Press moon key into desk plate.'},
+  ]};
+  const revised=bridgeAvailableFinalProp(base);
+  assert.match(revised.stages[1].scene,/They take the moon key and keep it\./);
+  assert.equal(base.stages[1].scene,'The keys hang above the bell desk. The keeper checks the clock.');
+  assert.equal(bridgeAvailableFinalProp(revised),revised,'the bridge is idempotent');
+  const missing=structuredClone(base);missing.stages[1].scene='The bell desk is empty.';
+  assert.equal(bridgeAvailableFinalProp(missing),missing,'a prop named only in the actions must not be conjured');
+  const disputed=structuredClone(base);disputed.actions[2].description='Press the brass key into the desk plate.';
+  assert.equal(bridgeAvailableFinalProp(disputed),disputed,'different props are not silently merged');
+  const alreadyHeld=structuredClone(base);alreadyHeld.stages[0].scene='They take the moon key from the keeper.';
+  assert.equal(bridgeAvailableFinalProp(alreadyHeld),alreadyHeld);
+  const noSpace=structuredClone(base);noSpace.stages[1].scene='The keys hang above the bell desk. '+ 'The keeper checks the clock. '.repeat(6);
+  assert.equal(bridgeAvailableFinalProp(noSpace),noSpace,'a bridge must fit the existing printed field');
 });
 
 test('location check distinguishes a concrete place from an infinitive instruction',()=>{
@@ -228,6 +248,32 @@ test('playable review accepts minor wording warnings but still requires three re
   assert.ok(saved.deliveryCopy);
   await requireDeliveryReview(saved,edition,'fixture',{DB});
   assert.deepEqual(JSON.parse(db.prepare('SELECT audit_json FROM custom_delivery_copy').get().audit_json).warnings,audit.warnings);
+});
+
+test('the generation pipeline prints an available prop bridge before its one independent review',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database();
+  const edition={...spec,packQualityVersion:14,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1};
+  copy.stages[1].scene='The signal gears rest beside the bell desk. The keeper checks the clock.';
+  copy.actions[0].description='Press signal gear into the clock plate.';
+  copy.actions[1].description='Press signal gear into the hall plate.';
+  copy.actions[2].description='Press signal gear into the desk plate.';
+  const sourceScene=copy.stages[1].scene;
+  let calls=0;
+  const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,{body})=>{
+    const request=JSON.parse(body);calls++;
+    if(calls===1)return Response.json({output_text:JSON.stringify(copy)});
+    const input=JSON.parse(request.input);
+    assert.match(input.printed.playerPages.checkpoints[1].storyContext,/They take the signal gear and keep it\./);
+    const evidence=[1,2,3].map(stageNumber=>{
+      const unit=input.evidenceUnits.find(item=>item.stageNumber===stageNumber&&item.kind!=='scene');
+      return {stageNumber,evidenceId:unit.id,quote:unit.text.slice(0,30),supportsAction:'Supports the selected final action'};
+    });
+    return Response.json({output_text:JSON.stringify({pass:true,issues:[],warnings:[],evidence})});
+  });
+  assert.equal(calls,2);
+  assert.equal(copy.stages[1].scene,sourceScene,'provider output remains untouched');
+  assert.match(saved.deliveryCopy.stages[1].scene,/They take the signal gear and keep it\./);
+  assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,2);
 });
 
 test('playable review still stops missing evidence and a concrete unsupported final action',async()=>{
