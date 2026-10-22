@@ -794,6 +794,34 @@ test('a stopped printed-copy transport request offers one owner-initiated contin
   assert.equal((await handleProductionApi(request('/api/v1/orders/copy-order/retry-delivery','POST',undefined,headers),env)).status,404);
 });
 
+test('a stopped draft frame offers one owner-initiated continuation from its saved candidate',async()=>{
+  const {db,binding}=database(),owner=await sha256('test-session-secret|adult@example.com'),jobs=[];
+  const spec=validatePurchase({sku:'custom_classroom',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,groups:1,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
+  const stored=JSON.stringify(spec),orderId='draft-frame-order';
+  const frame={problem:'The clock tower remains silent while the town waits.',actions:['Fit signal gear','Reset tower hands','Replace bell rope'],discoveries:[
+    {finding:'The signal gear is missing.',consequence:'The drive path becomes usable.',supportsAction:'signal gear'},
+    {finding:'The spare gear fits the shaft.',consequence:'The gear can turn without binding.',supportsAction:'signal gear'},
+    {finding:'The decoded code is 1234.',consequence:'The parts stay aligned during repair.',supportsAction:'signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The replacement can reach the tower.',supportsAction:'signal gear'},
+  ]};
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('frame-price','custom_classroom','USD',1999,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_classroom',?,?,?,?,1999,'USD','failed',CURRENT_TIMESTAMP)").run(orderId,stored,await sha256(stored),owner,'frame-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version) VALUES ('frame-activity',?,'failed',?,2)").run(orderId,JSON.stringify({...spec,plan:planFixture(spec),planConfirmed:true}));
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,active_version,confirmed_version) VALUES (?,'confirmed',1,1)").run(orderId);
+  db.prepare("INSERT INTO generation_usage (order_id,attempt,model,status,phase,error_code) VALUES (?,1,'fixture','failed','story','STAGED_GENERATION_STOPPED')").run(orderId);
+  db.prepare("INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model,error_code,error_detail,result_json) VALUES ('bad-frame',?,'blueprint_frame',0,'failed','fixture','BLUEPRINT_INVALID','Checkpoint 3 finding must describe the story rather than an answer code.',?)").run(orderId,JSON.stringify({storyFrame:frame}));
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>jobs.push(job)}};
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const get=path=>handleProductionApi(request(path,'GET',undefined,headers),env).then(response=>response.json());
+  assert.equal((await get(`/api/v1/orders/${orderId}`)).deliveryRetryAvailable,true);
+  assert.equal((await get('/api/v1/my-orders')).orders.find(order=>order.id===orderId).deliveryRetryAvailable,true);
+  const retry=await handleProductionApi(request(`/api/v1/orders/${orderId}/retry-delivery`,'POST',undefined,headers),env);
+  assert.equal(retry.status,202);
+  assert.deepEqual(jobs,[{orderId}]);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_generation_calls WHERE order_id = ?').get(orderId).n,1,'clicking continue does not call the model');
+});
+
 test('a stopped v15 material step can resume once on the same paid order',async()=>{
   const {db,binding}=database(),owner=await sha256('test-session-secret|adult@example.com'),jobs=[];
   const spec={...validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec,packQualityVersion:15};
