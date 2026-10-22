@@ -196,14 +196,6 @@ test('a saved long material title resumes without changing its puzzle or facts',
   assert.deepEqual(recovered.features,original.features);
   assert.deepEqual(saved,original);
   assert.doesNotThrow(()=>validateSavedBlueprintMaterialStep(spec,frame,number,recovered));
-  const twoFormattingDefects=structuredClone(saved);
-  twoFormattingDefects.features=['Mention: brass gear','Name - clock shaft'];
-  const bothRecovered=recoverSavedBlueprintMaterialStep(spec,frame,number,twoFormattingDefects,[],
-    `Checkpoint ${number} material title must be at most 45 characters.`);
-  assert.ok(bothRecovered,'both harmless formatting defects are handled from one saved candidate');
-  assert.deepEqual(bothRecovered.features,twoFormattingDefects.features,
-    'existing fact wording is preserved when the validator accepts it');
-  assert.doesNotThrow(()=>validateSavedBlueprintMaterialStep(spec,frame,number,bothRecovered));
   const broken=structuredClone(saved);
   broken.features=['Mentions correct answer',broken.features[1]];
   assert.equal(recoverSavedBlueprintMaterialStep(spec,frame,number,broken,[],

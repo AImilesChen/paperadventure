@@ -455,28 +455,27 @@ export function recoverSavedWorksheetMaterialStep(spec,storyFrame,number,data,ea
 // provider or changing the approved story, answer position or factual content.
 // Record syntax and ordering labels are the only fields adjusted here.
 export function recoverSavedBlueprintMaterialStep(spec,storyFrame,number,data,earlierStages=[],issue='',legacyRetry=false){
-  let candidate=data,currentIssue=issue;
   if(/material title/i.test(issue)){
     const repaired=fitBlueprintMaterialTitle(data);
     if(repaired!==data){
       try{validateSavedBlueprintMaterialStep(spec,storyFrame,number,repaired,earlierStages);return repaired;}
-      catch(cause){candidate=repaired;currentIssue=cause.message;}
+      catch{}
     }
   }
   try{
-    const worksheet=recoverSavedWorksheetMaterialStep(spec,storyFrame,number,candidate,earlierStages,currentIssue);
+    const worksheet=recoverSavedWorksheetMaterialStep(spec,storyFrame,number,data,earlierStages,issue);
     if(worksheet)return worksheet;
   }catch{}
   const type=number>=1&&number<=4?paperContractTypes(spec.plan)[number-1]:null;
   if((spec.packQualityVersion||0)>=14&&['evidence_cards','decision_record'].includes(type)&&
-    /printed (?:features|record facts)|describe the contents of every record/i.test(currentIssue)&&
-    Array.isArray(candidate?.features)&&candidate.features.length===2){
-    const features=candidate.features.map(value=>typeof value==='string'
+    /printed (?:features|record facts)|describe the contents of every record/i.test(issue)&&
+    Array.isArray(data?.features)&&data.features.length===2){
+    const features=data.features.map(value=>typeof value==='string'
       ?value.replace(/^(mention|mentions|name|names)\s*[:\-]\s*(?=[A-Za-z])/i,(_,verb)=>/^mention/i.test(verb)?'Mentions ':'Names ')
         .replace(/^(mention|name)\s+(?=[A-Za-z])/i,(_,verb)=>verb.toLowerCase()==='mention'?'Mentions ':'Names ')
       :value);
-    if(features.some((value,index)=>value!==candidate.features[index])){
-      const repaired={...candidate,features};
+    if(features.some((value,index)=>value!==data.features[index])){
+      const repaired={...data,features};
       try{validateSavedBlueprintMaterialStep(spec,storyFrame,number,repaired,earlierStages);return repaired;}
       catch{}
     }
