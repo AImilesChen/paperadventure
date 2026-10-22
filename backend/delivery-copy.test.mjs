@@ -6,7 +6,7 @@ import {clockSpec} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {prepareBlueprintCandidate,generateStagedCheckpoint,assembleStagedStory} from './staged-story.mjs';
 import {validateDeliveryCopy,normalizeDeliveryCopy,applyDeliveryCopy,verifyDeliveryPuzzles,validatePlayerEvidence,groundedDeliveryClosing} from './delivery-copy.mjs';
-import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,deliveryCopySchemaFor,grantSavedFactRepair,playerOnlyReviewInput,resolveGroundedClosingAudit} from './delivery-copy-service.mjs';
+import {ensureDeliveryCopy,requireDeliveryReview,deliveryCopyStatus,deliveryCopySchemaFor,grantSavedFactRepair,playerOnlyReviewInput,reviewVisibleFor,resolveGroundedClosingAudit} from './delivery-copy-service.mjs';
 import {clockDeliveryCopy} from '../tests/fixtures/delivery-copy-fixture.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {validateGeneratedStory} from './domain.mjs';
@@ -101,6 +101,17 @@ test('player evidence gate uses the complete player pack without accepting adult
   assert.equal(player.checkpoints[0].explanation,undefined);
   assert.equal(player.checkpoints[0].answerIndex,undefined);
   assert.ok(player.checkpoints[0].material.items.length>0);
+});
+
+test('playable review receives guide and ending claims without treating them as player clues',async()=>{
+  const {story,copy,spec}=await fixture();
+  const printed=applyDeliveryCopy(story,copy);
+  const review=reviewVisibleFor({...spec,packPlayableReviewVersion:1},printed,copy);
+  assert.deepEqual(review.storyClaims,printed.spine.links.map(link=>link.reason));
+  assert.equal(review.playerPages.spine,undefined);
+  assert.equal(review.playerPages.ending,undefined);
+  assert.ok(review.playerPages.checkpoints.every(stage=>stage.material.items.length>0));
+  assert.ok(causalEvidenceUnits(printed).every(unit=>!review.storyClaims.includes(unit.text)));
 });
 
 test('location check distinguishes a concrete place from an infinitive instruction',()=>{

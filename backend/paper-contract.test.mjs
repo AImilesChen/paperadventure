@@ -1005,6 +1005,21 @@ test('a long model key becomes a four-letter printed word without losing its sto
   assert.match(blueprint.spine.links[codeIndex].reason,/LOCK message/);
 });
 
+test('unreadable code strings become distinct approved-theme words without another provider call',()=>{
+  const plan=alignPaperPlan({...clockSpec.plan,stages:clockSpec.plan.stages.map((stage,index)=>({...stage,mechanic:index<3?'code':stage.mechanic}))});
+  const spec={...clockSpec,plan,packQualityVersion:14};
+  const types=paperContractTypes(plan);
+  const words=['RSTV','LMNP','KQWB'];
+  const stages=types.map((type,index)=>type==='symbol_key'?{word:words[index]}:{word:'NOTE'});
+  const coded=normalizeStoryCodeWords(stages,spec);
+  const selected=coded.filter((_,index)=>types[index]==='symbol_key').map(stage=>stage.word);
+  assert.equal(selected.length,3);
+  assert.equal(selected[0],'GEAR');
+  assert.equal(new Set(selected).size,3);
+  assert.ok(selected.every(word=>/^[A-Z]{4}$/.test(word)&&new Set(word).size===4));
+  assert.ok(selected.every(word=>!words.includes(word)));
+});
+
 test('linked records print comparable report labels and content facts',()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:3};
   const raw=linkedClockContext();
