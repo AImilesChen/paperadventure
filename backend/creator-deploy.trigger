@@ -79,3 +79,4 @@
 # deploy PR #77 blueprint local material recovery 2026-10-22
 # deploy PR #78 overlong blueprint material title recovery 2026-10-22
 # deploy PR #79 grounded printed story clues 2026-10-22
+# deploy PR #80 draft blueprint wording recovery 2026-10-22
