@@ -82,3 +82,4 @@
 # deploy PR #80 draft blueprint wording recovery 2026-10-22
 # deploy PR #81 saved grounded consequence recovery 2026-10-22
 # deploy PR #82 saved blueprint steps recovery 2026-10-22
+# deploy PR #83 approved story spec recovery 2026-10-22
