@@ -77,3 +77,4 @@
 # deploy PR #76 v14 repeated-action repair and scoped order recovery 2026-10-21
 # deploy D1-compatible order recovery migration 2026-10-21
 # deploy PR #77 blueprint local material recovery 2026-10-22
+# deploy PR #78 overlong blueprint material title recovery 2026-10-22
