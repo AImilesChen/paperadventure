@@ -180,6 +180,55 @@ test('record fact punctuation is normalized locally while concrete facts remain 
     `Checkpoint ${number} printed record facts are invalid.`),null,'generic answer facts still fail');
 });
 
+test('a saved long material title resumes without changing its puzzle or facts',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14};
+  const number=paperContractTypes(spec.plan).findIndex(type=>['evidence_cards','decision_record'].includes(type))+1;
+  const frame={actions:['Install the spare signal gear'],discoveries:[]};
+  const saved=structuredClone(linkedClockContext().stages[number-1]);
+  saved.material.title='The ancient bell tower and its secret collection of detailed reports';
+  const original=structuredClone(saved);
+  assert.throws(()=>validateSavedBlueprintMaterialStep(spec,frame,number,saved),/material title/);
+  const recovered=recoverSavedBlueprintMaterialStep(spec,frame,number,saved,[],
+    `Checkpoint ${number} material title must be at most 45 characters.`);
+  assert.ok(recovered);
+  assert.ok(recovered.material.title.length<=45);
+  assert.deepEqual(recovered.material.items,original.material.items);
+  assert.deepEqual(recovered.features,original.features);
+  assert.deepEqual(saved,original);
+  assert.doesNotThrow(()=>validateSavedBlueprintMaterialStep(spec,frame,number,recovered));
+  const twoFormattingDefects=structuredClone(saved);
+  twoFormattingDefects.features=['Mention: brass gear','Name - clock shaft'];
+  const bothRecovered=recoverSavedBlueprintMaterialStep(spec,frame,number,twoFormattingDefects,[],
+    `Checkpoint ${number} material title must be at most 45 characters.`);
+  assert.ok(bothRecovered,'both harmless formatting defects are handled from one saved candidate');
+  assert.deepEqual(bothRecovered.features,twoFormattingDefects.features,
+    'existing fact wording is preserved when the validator accepts it');
+  assert.doesNotThrow(()=>validateSavedBlueprintMaterialStep(spec,frame,number,bothRecovered));
+  const broken=structuredClone(saved);
+  broken.features=['Mentions correct answer',broken.features[1]];
+  assert.equal(recoverSavedBlueprintMaterialStep(spec,frame,number,broken,[],
+    `Checkpoint ${number} material title must be at most 45 characters.`),null,
+    'a title fix must not admit an invalid puzzle');
+});
+
+test('a new material can accept and shorten a harmless long title before saving',async()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14};
+  const number=paperContractTypes(spec.plan).findIndex(type=>['evidence_cards','decision_record'].includes(type))+1;
+  const frame={actions:['Install the spare signal gear'],discoveries:[]};
+  const material=structuredClone(linkedClockContext().stages[number-1]);
+  material.material.title='The ancient bell tower and its secret collection of detailed reports';
+  let requestedLimit;
+  const result=await generateBlueprintMaterialStep(spec,frame,number,[],
+    {AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'},async(_url,init)=>{
+      requestedLimit=JSON.parse(init.body).text.format.schema.properties.material.properties.title.maxLength;
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(material)}]}]});
+    });
+  assert.equal(requestedLimit,90);
+  assert.ok(result.data.material.title.length<=45);
+  assert.deepEqual(result.data.material.items,material.material.items);
+  assert.doesNotThrow(()=>validateSavedBlueprintMaterialStep(spec,frame,number,result.data));
+});
+
 test('an ordering tile must not place the final object at a conflicting destination',()=>{
   const finalAction='Put Twinkle in booth chest before glow';
   const goal='Find Twinkle the star puppet and bring it back to the puppet booth before the lanterns are lit for the show.';
