@@ -4,7 +4,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {buildContextPuzzle,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
-import {alignPrintedActionLinks,missingPrintedActionLinks,assembleBlueprintSteps,recoverSavedGroundedBlueprint,generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep,generateBlueprintMaterialStep,validateSavedBlueprintMaterialStep,deliverableClosing} from './staged-story.mjs';
+import {alignPrintedActionLinks,missingPrintedActionLinks,assembleBlueprintSteps,recoverSavedGroundedBlueprint,recoverSavedBlueprintSteps,generateBlueprint,repairBlueprint,repairBlueprintTogether,prepareBlueprintCandidate,validateBlueprint,generateStagedCheckpoint,assembleStagedStory,auditStagedStory,auditCheckpointSemantics,generateBlueprintClosingStep,generateBlueprintMaterialStep,validateSavedBlueprintMaterialStep,deliverableClosing} from './staged-story.mjs';
 import {validateGeneratedStory} from './domain.mjs';
 import {buildGamePdf} from './pdf.mjs';
 import {reviseStage} from './openai.mjs';
@@ -321,6 +321,15 @@ test('long grounded consequences use saved printed facts without another model r
   assert.equal(validateBlueprint(recovered,spec).stages.length,5);
   assert.ok(recovered.storyFrame.discoveries[2].consequence.length<=100);
   assert.ok(recovered.storyFrame.discoveries[3].consequence.length<=100);
+});
+
+test('a missing oversized blueprint candidate can be rebuilt from saved steps',()=>{
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4};
+  const raw=linkedClockContext(),frame=structuredClockFrame();
+  const closing='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  const recovered=recoverSavedBlueprintSteps(spec,frame,raw.stages,closing);
+  assert.equal(validateBlueprint(recovered,spec).stages.length,5);
+  assert.ok(recovered.storyFrame.discoveries.every(item=>item.consequence.length<=100));
 });
 
 test('quality version 15 performs the complete-game audit without a provider request',async()=>{
