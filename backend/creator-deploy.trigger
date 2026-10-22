@@ -83,3 +83,4 @@
 # deploy PR #81 saved grounded consequence recovery 2026-10-22
 # deploy PR #82 saved blueprint steps recovery 2026-10-22
 # deploy PR #83 approved story spec recovery 2026-10-22
+# deploy PR #84 shared final prop bridge 2026-10-22
