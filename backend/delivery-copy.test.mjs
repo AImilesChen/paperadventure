@@ -290,6 +290,40 @@ test('playable review still stops missing evidence and a concrete unsupported fi
   assert.equal(reviewed,2);
 });
 
+test('minimum playable delivery uses one copy call and local puzzle and PDF checks instead of a blocking model audit',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database();
+  const edition={...spec,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:1};
+  let calls=0;
+  const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{
+    calls++;return Response.json({output_text:JSON.stringify(copy)});
+  });
+  assert.equal(calls,1);
+  assert.ok(saved.deliveryCopy);
+  assert.equal(db.prepare('SELECT phase,audit_json,calls FROM custom_delivery_copy').get().phase,'mechanical_ready');
+  assert.equal(db.prepare('SELECT audit_json FROM custom_delivery_copy').get().audit_json,null,'no fictional independent audit is stored');
+  await requireDeliveryReview(saved,edition,'fixture',{DB});
+  assert.deepEqual((await deliveryCopyStatus('fixture',{DB},story,edition)).deliveryMode,'checked_copy');
+  const altered=structuredClone(saved);altered.deliveryCopy.actions[0].description='Open the wrong gate.';
+  await assert.rejects(()=>requireDeliveryReview(altered,edition,'fixture',{DB}),{code:'DELIVERY_COPY_REVIEW_STALE'});
+  await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{throw Error('unexpected extra request');});
+  assert.equal(calls,1);
+});
+
+test('minimum playable delivery keeps the checked baseline if optional copy is unusable',async()=>{
+  const {story,spec}=await fixture(),{DB,db}=database();
+  const edition={...spec,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:1};
+  let calls=0;
+  const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{
+    calls++;return Response.json({output_text:JSON.stringify({version:1})});
+  });
+  assert.equal(calls,1);
+  assert.equal(saved.deliveryCopy,undefined);
+  assert.equal(db.prepare('SELECT phase,error_code,calls FROM custom_delivery_copy').get().phase,'baseline_ready');
+  await requireDeliveryReview(saved,edition,'fixture',{DB});
+  assert.deepEqual((await deliveryCopyStatus('fixture',{DB},story,edition)).deliveryMode,'checked_baseline');
+  await assert.rejects(()=>requireDeliveryReview({...saved,ending:'Changed ending.'},edition,'fixture',{DB}),{code:'DELIVERY_COPY_SOURCE_CHANGED'});
+});
+
 test('complete consequences above the writing target stay intact when the combined block and both PDFs fit',async()=>{
   const {story,spec,copy}=await fixture();
   const reason='The damaged signal gear must be replaced before noon can sound. The broken tooth identifies which clock part needs the repair.';

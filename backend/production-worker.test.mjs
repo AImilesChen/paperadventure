@@ -2123,6 +2123,36 @@ test('contract delivery repairs one rejected context, then retries PDF storage w
   const count=calls.length;await process();assert.equal(calls.length,count);
 });
 
+test('a new paid order publishes the saved playable baseline when optional wording fails',async()=>{
+  const {db,binding}=database(),orderId='playable-baseline-order';
+  const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:4,packLayoutVersion:4,
+    packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:1,
+    onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
+  const stored=JSON.stringify(spec),specHash=await sha256(stored);
+  const blueprint=prepareBlueprintCandidate(linkedClockContext(),spec),blueprintJson=JSON.stringify(blueprint),blueprintHash=await sha256(blueprintJson);
+  const stages=[];
+  for(let number=1;number<=5;number++)stages.push((await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('No checkpoint model call');})).stage);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('baseline-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,?,1499,'USD','paid',CURRENT_TIMESTAMP)").run(orderId,stored,specHash,'baseline-owner','baseline-price');
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version) VALUES ('baseline-activity',?,'queued',?,2)").run(orderId,stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status,revision_success_limit) VALUES ('baseline-entitlement',?,'baseline-activity','active',2)").run(orderId);
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,confirmed_version) VALUES (?,'confirmed',1)").run(orderId);
+  db.prepare('INSERT INTO custom_game_blueprints (order_id,spec_sha256,blueprint_sha256,blueprint_json) VALUES (?,?,?,?)').run(orderId,specHash,blueprintHash,blueprintJson);
+  for(const stage of stages)db.prepare('INSERT INTO custom_game_stages (order_id,stage_number,blueprint_sha256,stage_json) VALUES (?,?,?,?)').run(orderId,stage.number,blueprintHash,JSON.stringify(stage));
+  const queue=[{orderId}],files=new Map();let copyCalls=0;
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
+    PRIVATE_FILES:{put:async(key,bytes,options)=>files.set(key,{bytes,options}),head:async key=>files.has(key)?{customMetadata:files.get(key).options.customMetadata}:null},
+    FETCH:async(_url,{body})=>{assert.equal(JSON.parse(body).text.format.name,'printed_copy_repair');copyCalls++;return Response.json({output_text:'{"version":1}'});}};
+  for(let step=0;step<3&&db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status!=='published';step++){
+    const job=queue.shift();assert.ok(job);
+    await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('The saved baseline should publish');}}]},env);
+  }
+  assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'published');
+  assert.equal(db.prepare('SELECT phase,calls FROM custom_delivery_copy WHERE order_id=?').get(orderId).phase,'baseline_ready');
+  assert.equal(copyCalls,1,'no audit or extra wording call is made');
+  assert.equal(files.size,3);
+});
+
 test('quality v15 reserves every first stage call and publishes both PDFs plus the complete ZIP after old retries',async()=>{
   const {db,binding}=database(),orderId='reserved-stage-order';
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:15,packLayoutVersion:4,onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};

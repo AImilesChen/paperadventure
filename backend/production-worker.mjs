@@ -769,7 +769,9 @@ async function orderView(request, env, orderId) {
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
     revisionExpiresAt: entitlement?.revision_expires_at || null,
     gamePackVersion: order.product_kind === 'custom' ? Math.max(latestArtifact?.pack_format_version || 1, spec.gamePackVersion || 1) : null,
+    deliveryCheckKind:order.product_kind==='custom'&&spec.packDeliveryPolicyVersion===1?'puzzle_and_pdf':null,
     contentReviewPassed: Boolean(order.product_kind === 'custom' && order.status === 'published' &&
+      spec.packDeliveryPolicyVersion!==1&&
       (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packQualityVersion >= 8 : spec.packContractVersion === 1 && spec.packQualityVersion >= 8 && generationProgress?.auditPassed)),
     packContractVersion: spec.packContractVersion || (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packContractVersion || 0 : 0),
     checkedPuzzleRevision: Boolean(latestArtifact && (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packLogicVersion === 1 : spec.packLogicVersion === 1)),
