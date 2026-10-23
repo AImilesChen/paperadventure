@@ -2334,12 +2334,12 @@ test('a same-order remake resumes past a failed assembly by replacing its one st
 });
 
 
-async function stepDeliveryFixture({failPhase=null,dropSend=false,failStorage=false,gameplay=null}={}){
+async function stepDeliveryFixture({failPhase=null,dropSend=false,failStorage=false,gameplay=null,variants=false}={}){
   const {db,binding}=database(),orderId='step-delivery-order',owner='step-delivery-owner';
   const spec={...clockSpec,sku:'custom_home',kind:'custom',packExperienceVersion:3,packQualityVersion:14,packLayoutVersion:4,
     packCopyVersion:1,packDeliveryPolicyVersion:2,packResilientDeliveryVersion:1,packStepDeliveryVersion:1,
     onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
-  if(gameplay){spec.gameplay=gameplay;spec.packPlayAllocationVersion=1;spec.plan=completePaperPlan(clockSpec.plan,gameplay,14,1);}
+  if(gameplay){spec.gameplay=gameplay;spec.packPlayAllocationVersion=1;if(variants)spec.packPuzzleVariantVersion=1;spec.plan=completePaperPlan(clockSpec.plan,gameplay,14,1,spec);}
   const stored=JSON.stringify(spec),hash=await sha256(stored);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('step-price','custom_home','USD',1499,'exclusive',1)").run();
   db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,'step-price',1499,'USD','paid',CURRENT_TIMESTAMP)").run(orderId,stored,hash,owner);
@@ -2481,5 +2481,21 @@ test('selected main and both supporting styles survive stepped enhancement and p
     assert.equal(f.files.size,3);
     assert.ok(f.perMessage.every(count=>count<=1));
     assert.ok(!f.calls.some(call=>/audit/.test(call.name)));
+  }
+});
+
+
+test('finite puzzle variants keep the same approved formats through enhancement, fallback and PDF storage retry',async()=>{
+  for(const failPhase of [null,'all']){
+    const f=await stepDeliveryFixture({gameplay:{primary:'discussion',secondary:['sequence','code']},variants:true,failPhase,failStorage:true});
+    await f.process();await f.drain();
+    const story=JSON.parse(f.db.prepare('SELECT story_json FROM custom_story_checkpoints').get().story_json);
+    assert.deepEqual(story.stages.map(stage=>stage.material.logic.context.variant),f.spec.plan.puzzleVariants);
+    assert.equal(new Set(story.stages.filter(stage=>stage.mechanic==='discussion').map(stage=>stage.material.logic.variant.used)).size,2);
+    assert.equal(verifyPrintedPuzzles(story).length,5);
+    assert.equal(f.files.size,3);assert.equal(f.retries,1);
+    assert.equal(f.db.prepare('SELECT delivery_mode FROM custom_generation_baselines').get().delivery_mode,failPhase?'baseline':'enhanced');
+    assert.ok(f.perMessage.every(count=>count<=1));
+    const calls=f.calls.length;await f.process();assert.equal(f.calls.length,calls);
   }
 });

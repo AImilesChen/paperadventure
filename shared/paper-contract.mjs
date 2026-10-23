@@ -1,4 +1,5 @@
 import {sentenceEnds} from './plan-format.mjs';
+import {puzzlePolicy,selectPuzzleVariants,witnessTeamwork} from './puzzle-variants.mjs';
 // Shared by plan review and generation: the action a purchaser approves is the
 // action that the material renderer will actually print.
 export const paperActions={
@@ -69,12 +70,13 @@ export function paperPlanMechanics(gameplay={},qualityVersion=14,allocationVersi
   return [primary,primary,primary,support[0]||'reasoning',support[1]||'reasoning'];
 }
 
-export function completePaperPlan(candidate,gameplay,qualityVersion=14,allocationVersion=0){
+export function completePaperPlan(candidate,gameplay,qualityVersion=14,allocationVersion=0,variantSpec=null){
   if(candidate?.stages?.length!==5)throw Error('Five planned checkpoints are required.');
   for(let index=0;index<4;index++)assertGoalStillOpen([candidate.stages[index]?.scene||'',candidate.stages[index]?.storyBeat||''],candidate.goal,index+1);
   const mechanics=paperPlanMechanics(gameplay,qualityVersion,allocationVersion);
-  const types=paperContractTypes({...(allocationVersion===1?{playAllocationVersion:1}:{}),stages:mechanics.map(mechanic=>({mechanic}))});
-  return alignPaperPlan({...candidate,...(allocationVersion===1?{playAllocationVersion:1}:{}),...(candidate.premise?{opening:paperOpening(candidate.premise)}:{}),id:['mystery','mission'].includes(candidate.id)?candidate.id:'mission',stages:candidate.stages.map((stage,index)=>({...stage,
+  const policy=puzzlePolicy(variantSpec);
+  const types=paperContractTypes({...(allocationVersion===1?{playAllocationVersion:1}:{}),...policy,stages:mechanics.map(mechanic=>({mechanic}))});
+  return alignPaperPlan({...candidate,...(allocationVersion===1?{playAllocationVersion:1}:{}),...(policy?{...policy,puzzleVariants:selectPuzzleVariants(types,policy.puzzleSeed)}:{}),...(candidate.premise?{opening:paperOpening(candidate.premise)}:{}),id:['mystery','mission'].includes(candidate.id)?candidate.id:'mission',stages:candidate.stages.map((stage,index)=>({...stage,
     number:index+1,mechanic:mechanics[index],scene:stage.scene||`At printed checkpoint ${index+1}`,storyContext:stage.storyBeat?`${stage.scene.trim().replace(/[.!?]+$/,'')}. ${stage.storyBeat.trim()}`:paperStoryMoment(stage.scene||`At printed checkpoint ${index+1}`,types[index],index+1)}))});
 }
 
@@ -93,6 +95,7 @@ export function paperStoryMoment(scene,type,number){
 export function paperContractTypes(plan){
   if(plan?.stages?.length!==5)throw Error('Five planned checkpoints are required.');
   const allowed={reasoning:['evidence_cards','order_tiles','route_board','decision_record'],discussion:['decision_record','evidence_cards'],sequence:['order_tiles'],code:['symbol_key']};
+  if(plan.puzzleVariantVersion===1)allowed.discussion=['decision_record'];
   let best,bestScore=-Infinity;
   function visit(types){
     if(types.length===4){
@@ -116,7 +119,7 @@ export function alignPaperPlan(plan){
   const stages=plan.stages.map((stage,index)=>{
     const action=paperAction(types[index],index+1);
     return {...stage,storyContext:stage.storyContext||stage.title,title:action.title,task:action.task,
-      teamwork:index===4?'Each explorer checks one earlier result. Compare all four before agreeing on the final action.':'One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.',
+      teamwork:index===4?'Each explorer checks one earlier result. Compare all four before agreeing on the final action.':plan.puzzleVariantVersion===1&&stage.mechanic==='discussion'?witnessTeamwork:'One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.',
       connection:index===4?'The four recorded discoveries identify the final action.':`Save this result digit for checkpoint 5, then continue to checkpoint ${index+2}.`};
   });
   return {...plan,roles:'Reader, Paper Handler, Checker and Recorder rotate after each checkpoint. For two players, combine jobs in pairs.',

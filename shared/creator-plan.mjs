@@ -1,5 +1,6 @@
 import {paperContractTypes,paperPlayMechanics} from './paper-contract.mjs';
 import {sentenceEnds} from './plan-format.mjs';
+import {puzzlePolicy,selectPuzzleVariants} from './puzzle-variants.mjs';
 export const CREATOR_VERSION = 2;
 export const mechanics = [
   {id:'reasoning', title:'Clue detective', description:'Compare printed facts and find the one answer that fits.', action:'Compare the clues', sample:{clue:'The parcel has a round seal and two stripes. Which label fits?',options:['Round seal, two stripes','Square seal, two stripes','Round seal, three stripes'],answer:0,explanation:'Both printed features must match.'}},
@@ -65,12 +66,14 @@ export function validatePlan(value, spec) {
   if (!value || typeof value !== 'object') throw new Error('An adventure plan is required.');
   const requested = [spec.gameplay?.primary || 'reasoning',...(spec.gameplay?.secondary || [])];
   const allocated=spec.packPlayAllocationVersion===1;
+  const variantPolicy=puzzlePolicy(spec);
   const expected=allocated?paperPlayMechanics(spec.gameplay):null;
   const selected = allocated?[...new Set(expected)]:spec.gamePackVersion===2 && spec.packLogicVersion===1 ? [...new Set([...requested,'reasoning'])] : requested;
   if (!Array.isArray(value.stages) || value.stages.length !== 5) throw new Error('The preview must have five checkpoints.');
   const plan = {
     id:value.id,title:text(value.title,'Title',100),summary:text(value.summary,'Summary',600),
     ...(allocated?{playAllocationVersion:1}:{}),
+    ...(variantPolicy?{...variantPolicy,puzzleVariants:value.puzzleVariants}:{}),
     ...(value.storySceneVersion===1?{storySceneVersion:1}:{}),
     opening:text(value.opening,'Opening',900),roles:text(value.roles,'Roles',300),goal:text(value.goal,'Goal',260),
     preparation:text(value.preparation,'Preparation',500),...(spec.packContractVersion===1&&value.premise?{premise:text(value.premise,'Premise',200)}:{}),
@@ -105,6 +108,8 @@ export function validatePlan(value, spec) {
     throw new Error('The checked paper game needs both evidence and an ordering or route-compatible checkpoint.');
   if(spec.packContractVersion===1){
     const types=paperContractTypes(plan);
+    if(variantPolicy&&(value.puzzleVariantVersion!==1||value.puzzleSeed!==variantPolicy.puzzleSeed||JSON.stringify(value.puzzleVariants)!==JSON.stringify(selectPuzzleVariants(types,variantPolicy.puzzleSeed))))
+      throw new Error('The plan must keep its saved puzzle variants.');
     if((spec.packQualityVersion||0)>=15){
       const first=types.slice(0,4),counts=first.map(type=>first.filter(other=>other===type).length);
       if(new Set(first).size<3||Math.max(...counts)>2)
