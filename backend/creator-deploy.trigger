@@ -89,3 +89,4 @@
 # deploy PR #87 checked-baseline delivery for future custom orders 2026-10-23
 # deploy PR #88 resilient checked-step delivery 2026-10-23
 # deploy PR #89 stepwise generation and verified baseline delivery 2026-10-23
+# deploy PR #90 selected play allocation before independent finale 2026-10-23
