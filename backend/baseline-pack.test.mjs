@@ -8,7 +8,7 @@ import {verifyPrintedPuzzles} from './paper-proof.mjs';
 import {buildGamePdf} from './pdf.mjs';
 
 test('baseline packs preserve approved themes and mechanics across ages, settings and paper sizes',async()=>{
-  for(const theme of ['clock tower','hotel','garden','museum','space port','forest','puppet show','night market'])
+  for(const theme of ['clock tower','hotel','garden','museum','space port','forest','puppet show','night market','clue room','code guild','team','rule house'])
   for(const primary of ['reasoning','discussion','sequence','code'])for(const setting of ['home','classroom']){
     const mechanics=paperPlanMechanics({primary,secondary:['reasoning']});
     const spec={...clockSpec,setting,gameplay:{primary,secondary:primary==='reasoning'?[]:['reasoning']},players:setting==='home'?4:24,groups:setting==='home'?null:6,

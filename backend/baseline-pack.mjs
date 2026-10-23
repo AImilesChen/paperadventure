@@ -8,10 +8,13 @@ import {buildGamePdf} from './pdf.mjs';
 // children never need an unprinted prop or an invented physical repair.
 export async function buildBaselinePack(spec){
   if(spec.packStepDeliveryVersion!==1||!spec.planConfirmed)throw Error('A confirmed step-delivery plan is required.');
-  const theme=(spec.plan.themeAnchors||[]).find(value=>/^[a-zA-Z ]{3,14}$/.test(value)&&! /\b(?:restored|repaired|rescued|saved|delivered|returned|completed|finished|won|recovered|solved)\b/i.test(value))||'mission';
-  const action=`Hand ${theme.toLowerCase()} plan to host`;
+  const theme=(spec.plan.themeAnchors||[]).find(value=>/^[a-zA-Z ]{3,14}$/.test(value))||'mission';
+  // Arbitrary theme words must not become puzzle rules or proof predicates.
+  // Keep the fail-safe paper action stable; the approved story stays in the
+  // opening, scenes, mission and ending, and theme headings are display only.
+  const action='Hand mission plan to host';
   const frame={problem:'The team needs four checked discoveries before presenting its mission plan.',
-    actions:[action,`Hold ${theme.toLowerCase()} plan`,`Store ${theme.toLowerCase()} plan`],
+    actions:[action,'Hold mission plan','Store mission plan'],
     discoveries:Array.from({length:4},()=>({finding:'The mission plan is available for the team.',
       consequence:'The mission plan guides the team before the final action.',supportsAction:action}))};
   const types=paperContractTypes(spec.plan);
@@ -19,7 +22,7 @@ export async function buildBaselinePack(spec){
     ['Open keeper ledger','Lay out mission letter','Gather keeper notes','Prepare team briefing'],
     ['Open explorer log','Lay out explorer map','Gather explorer notes','Prepare story briefing'],
     ['Open courier journal','Lay out courier map','Gather courier notes','Prepare courier briefing']];
-  const materials=types.map((type,index)=>({material:{title:index===4?`${theme} plan`:`${theme} briefing ${index+1}`,items:(index===4?frame.actions:
+  const materials=types.map((type,index)=>({material:{title:index===4?'Mission plan':`${theme} briefing ${index+1}`,items:(index===4?frame.actions:
     type==='order_tiles'?orders[index]:type==='symbol_key'?['1','2','3','4']:
     type==='route_board'?['Garden path','Courtyard path','Orchard path']:
     ['Keeper journal','Courier letter','Explorer report']).map(label=>({label}))},
