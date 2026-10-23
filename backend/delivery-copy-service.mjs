@@ -434,7 +434,10 @@ For each links.checkpoint_N return factIndex (ZERO-BASED) and a complete reason 
   }catch(error){
     const code=/^DELIVERY_COPY_/.test(error.code||'')?error.code:'DELIVERY_COPY_INVALID';
     await query(env.DB,'UPDATE custom_delivery_copy SET error_code = ?,error_detail = ?,phase = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?',code,String(error.message||'Copy check failed').slice(0,500),phase,orderId,COPY_POLICY).run();
-    if(spec.packDeliveryPolicyVersion===1){
+    // A concrete failed review can identify a missing clue or contradictory
+    // final action. Do not publish the unreviewed baseline as a workaround for
+    // that finding: the original game might share the same defect.
+    if(spec.packDeliveryPolicyVersion===1&&code!=='DELIVERY_COPY_REVIEW'){
       // The approved plan and five saved checkpoints already contain the
       // complete paper game. A failed rewrite or editorial review must not
       // discard them or turn an unreviewed rewrite into published content.
