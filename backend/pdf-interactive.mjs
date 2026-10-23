@@ -1,4 +1,5 @@
 import {shapeSymbols} from '../shared/puzzle-variants.mjs';
+import {renderPresentedPair} from './story-presentation.mjs';
 // Worker-compatible vector PDF renderer for the second custom pack format.
 // All shapes are generated from checked data; model output is never PDF syntax.
 const encoder=new TextEncoder();
@@ -238,7 +239,7 @@ function guideStart(story,spec){
     const compact=spec.paper==='Letter';
     const sections=[
       ['THE MISSION',spec.plan.goal],
-      ...(story.deliveryEdition==='baseline'?[['PAPER MISSION BRIEFING','Play the story scenes with the five paper checks. After the final plan is handed to you, read the printed ending aloud. The mission happens in the story; no physical repair or extra prop is required.']]:story.spine?[['THE PROBLEM TO SOLVE',story.spine.problem]]:[]),
+      ...(story.deliveryEdition==='baseline'?[['PAPER MISSION BRIEFING',story.paperHostBriefing||'Play the story scenes with the five paper checks. After the final plan is handed to you, read the printed ending aloud. The mission happens in the story; no physical repair or extra prop is required.']]:story.spine?[['THE PROBLEM TO SOLVE',story.spine.problem]]:[]),
       ['PRINT AND PREPARE',`${spec.setting==='classroom'?`Print ${spec.groups} complete Player ${Number(spec.groups)===1?'set':'sets'}, one per crew.`:`Print one complete Player Pack for ${spec.players} players.`} Use ${spec.paper} paper and pencils. Keep this guide and the ending page private. Cutting cards or tiles is optional; pointing and writing always work.`],
       ['RELEASE THE PAGES','Start with Player pages 2-3. After each correct result, release only the next challenge and material pair: 4-5, 6-7, 8-9, then 10-11. Give out Player page 12 only after the final answer is checked.'],
       ['FOUR JOBS','Reader reads the clue aloud. Paper Handler points to or arranges pieces. Checker tests the printed rule and explains why another choice fails. Recorder writes the choice and its result digit. Rotate jobs after each checkpoint.'],
@@ -332,7 +333,7 @@ function guideStage(stage,spec,story){
       ...(stage.material.logic?.resultDigit?[['RECORD BEFORE CONTINUING',`The team must save result digit ${stage.material.logic.resultDigit} on its material sheet. Keep that sheet for checkpoint 5.`]]:[]),
       ...(story.spine&&stage.number<5?[['WHY THIS FINDING MATTERS',`After checking the answer, share this story link: ${story.spine.links[stage.number-1].reason}`]]:[]),
       ['IF THEY CHOSE DIFFERENTLY',wrongChoiceNotes(stage)],
-      ...(story.spine&&stage.number===5?[['CONNECT THE FOUR DISCOVERIES','Review each checked discovery aloud before the team names the final action.'],...story.spine.links.map((link,index)=>[`DISCOVERY ${index+1}`,link.reason]),['WHY THIS ACTION',`These discoveries support ${story.spine.resolution.replace(/[.!?]+$/,'')}. The four recorded digits identify its printed code; read the ending only after the team checks both the story reason and the code.`]]:[]),
+      ...(story.spine&&stage.number===5?[['CONNECT THE FOUR DISCOVERIES','Review each checked discovery aloud before the team names the final action.'],...story.spine.links.map((link,index)=>[`DISCOVERY ${index+1}`,link.reason]),['WHY THIS ACTION',story.paperFinaleReason||`These discoveries support ${story.spine.resolution.replace(/[.!?]+$/,'')}. The four recorded digits identify its printed code; read the ending only after the team checks both the story reason and the code.`]]:[]),
       ['STORY AND NEXT PAGE',stage.number===5?'The four earlier results identify the final action. After the team explains the code, release Player page 12 and read the ending.':`This check gives the next discovery, but the mission is not finished yet. Release checkpoint ${stage.number+1}, Player pages ${stage.number*2+2}-${stage.number*2+3}.`],
     ];
     // Keep checkpoint sections together on both paper sizes without reducing text size.
@@ -499,6 +500,12 @@ function serialize(pages){
 }
 
 export function buildInteractiveGamePdf(story,spec,role){
+  if(!['player','guide'].includes(role))throw new Error('Unknown PDF role');
+  const pair=renderPresentedPair(story,spec,renderInteractiveGamePdf);
+  return pair?pair[role]:renderInteractiveGamePdf(story,spec,role);
+}
+
+function renderInteractiveGamePdf(story,spec,role){
   if(!['player','guide'].includes(role))throw new Error('Unknown PDF role');
   if(!story.stages?.every(stage=>stage.material))throw new Error('The paper materials are incomplete');
   const pages=role==='player'
