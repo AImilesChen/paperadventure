@@ -293,12 +293,16 @@ test('playable review still stops missing evidence and a concrete unsupported fi
 
 test('minimum playable delivery retains an independently approved copy without extra calls',async()=>{
   const {story,spec,copy}=await fixture(),{DB,db}=database();
-  const edition={...spec,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:1};
+  const edition={...spec,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:1,packEvidenceContractVersion:1};
   let calls=0;
   const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,{body})=>{
-    calls++;
-    if(calls===1)return Response.json({output_text:JSON.stringify(copy)});
-    const units=JSON.parse(JSON.parse(body).input).evidenceUnits;
+    const request=JSON.parse(body);calls++;
+    if(calls===1){
+      assert.match(request.instructions,/evidence checklist for the FIRST action/);
+      return Response.json({output_text:JSON.stringify(copy)});
+    }
+    assert.match(request.instructions,/minimum playable result/);
+    const units=JSON.parse(request.input).evidenceUnits;
     const evidence=[1,2,3].map(stageNumber=>{const unit=units.find(item=>item.stageNumber===stageNumber&&item.kind!=='scene');
       return {stageNumber,evidenceId:unit.id,quote:unit.text.slice(0,30),supportsAction:'Supports the final action'};});
     return Response.json({output_text:JSON.stringify({pass:true,issues:[],warnings:[],evidence})});
@@ -312,6 +316,15 @@ test('minimum playable delivery retains an independently approved copy without e
   await assert.rejects(()=>requireDeliveryReview(altered,edition,'fixture',{DB}),{code:'DELIVERY_COPY_REVIEW_STALE'});
   await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{throw Error('unexpected extra request');});
   assert.equal(calls,2);
+});
+
+test('new-order baseline is checked before either copy model call',async()=>{
+  const {story,spec}=await fixture(),{DB}=database();
+  story.stages[0].options=[];
+  let calls=0;
+  await assert.rejects(()=>ensureDeliveryCopy(story,{...spec,packCopyVersion:1,packEvidenceContractVersion:1},'fixture',
+    {DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{calls++;throw Error('unexpected provider call');}));
+  assert.equal(calls,0);
 });
 
 test('minimum playable delivery keeps the checked baseline if optional copy is unusable',async()=>{

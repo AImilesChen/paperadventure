@@ -729,6 +729,22 @@ test('quality 14 material generation permits related in-world wording without li
   assert.deepEqual(result.data.material,raw.stages[0].material);
 });
 
+test('new-order material receives the final-action evidence plan without another model call',async()=>{
+  const spec={...clockSpec,packQualityVersion:14,packEvidenceContractVersion:1};
+  const frame=structuredClockFrame(),raw=linkedClockContext(),env={AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:'fixture'};
+  let calls=0;
+  await generateBlueprintMaterialStep(spec,frame,1,[],env,async(_url,init)=>{
+    calls++;
+    const request=JSON.parse(init.body),input=JSON.parse(request.input);
+    assert.match(request.instructions,/selected printed piece explicitly state/);
+    assert.equal(input.evidencePlan.length,4);
+    assert.equal(input.evidencePlan[0].mustSupport,'signal gear');
+    assert.deepEqual(input.earlierPlayerMaterials,[]);
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(raw.stages[0])}]}]});
+  });
+  assert.equal(calls,1);
+});
+
 test('quality 14 rejects generic printed facts at the material step before saving them',async()=>{
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:14};
   const frame=structuredClockFrame(),raw=linkedClockContext().stages[0];
