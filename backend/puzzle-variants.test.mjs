@@ -108,7 +108,10 @@ test('every play selection delivers the same approved variants through a complet
     assert.equal(validateGeneratedStory(story,spec).deliveryEdition,'baseline');assert.equal(verifyPrintedPuzzles(story).length,5);
     assert.deepEqual(story.stages.map(stage=>stage.material.logic.context.variant),spec.plan.puzzleVariants);
     for(const stage of story.stages){used.add(stage.material.logic.variant.used);assert.notEqual(stage.material.logic.variant.used,'classic');}
-    for(const paper of ['A4','Letter'])for(const role of ['player','guide'])assert.ok(buildGamePdf(story,{...spec,paper},role).length>1000);
+    for(const paper of ['A4','Letter'])for(const role of ['player','guide']){
+      const pdf=buildGamePdf(story,{...spec,paper},role);assert.ok(pdf.length>1000);
+      if(role==='guide')assert.ok(new TextDecoder().decode(pdf).includes('Do all four saved digits match this action in order?'),'the finale retains its four-result hint');
+    }
   }
   assert.equal(used.size,11,'ten activities plus the fixed finale are exercised');
 });
