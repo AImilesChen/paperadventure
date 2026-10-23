@@ -1,4 +1,4 @@
-import {paperContractTypes} from './paper-contract.mjs';
+import {paperContractTypes,paperPlayMechanics} from './paper-contract.mjs';
 import {sentenceEnds} from './plan-format.mjs';
 export const CREATOR_VERSION = 2;
 export const mechanics = [
@@ -64,10 +64,13 @@ function text(value, label, limit) {
 export function validatePlan(value, spec) {
   if (!value || typeof value !== 'object') throw new Error('An adventure plan is required.');
   const requested = [spec.gameplay?.primary || 'reasoning',...(spec.gameplay?.secondary || [])];
-  const selected = spec.gamePackVersion===2 && spec.packLogicVersion===1 ? [...new Set([...requested,'reasoning'])] : requested;
+  const allocated=spec.packPlayAllocationVersion===1;
+  const expected=allocated?paperPlayMechanics(spec.gameplay):null;
+  const selected = allocated?[...new Set(expected)]:spec.gamePackVersion===2 && spec.packLogicVersion===1 ? [...new Set([...requested,'reasoning'])] : requested;
   if (!Array.isArray(value.stages) || value.stages.length !== 5) throw new Error('The preview must have five checkpoints.');
   const plan = {
     id:value.id,title:text(value.title,'Title',100),summary:text(value.summary,'Summary',600),
+    ...(allocated?{playAllocationVersion:1}:{}),
     ...(value.storySceneVersion===1?{storySceneVersion:1}:{}),
     opening:text(value.opening,'Opening',900),roles:text(value.roles,'Roles',300),goal:text(value.goal,'Goal',260),
     preparation:text(value.preparation,'Preparation',500),...(spec.packContractVersion===1&&value.premise?{premise:text(value.premise,'Premise',200)}:{}),
@@ -93,7 +96,10 @@ export function validatePlan(value, spec) {
     // Presence/shape are deterministic. Translation, aliases and narrative
     // fidelity belong to the semantic review, never a substring-count gate.
   }
-  if (plan.stages.filter(item=>item.mechanic===requested[0]).length < 3 || requested.some(id=>!plan.stages.some(item=>item.mechanic===id))) throw new Error('The plan must use the main style at least three times and every selected supporting style.');
+  if(allocated){
+    if(value.playAllocationVersion!==1||plan.stages.some((stage,index)=>stage.mechanic!==expected[index]))
+      throw new Error('The first four checkpoints must match the selected play allocation; checkpoint five is the combined finale.');
+  }else if (plan.stages.filter(item=>item.mechanic===requested[0]).length < 3 || requested.some(id=>!plan.stages.some(item=>item.mechanic===id))) throw new Error('The plan must use the main style at least three times and every selected supporting style.');
   if (!spec.packContractVersion && spec.gamePackVersion===2 && spec.packLogicVersion===1 &&
       (!plan.stages.some(item=>['reasoning','discussion'].includes(item.mechanic)) || !plan.stages.some(item=>['reasoning','sequence'].includes(item.mechanic))))
     throw new Error('The checked paper game needs both evidence and an ordering or route-compatible checkpoint.');

@@ -48,7 +48,17 @@ function paperOpening(premise){
   return `${premise.trim()} Complete four printed checks to collect four result digits. Their combined code identifies the final action that completes this mission.`;
 }
 
-export function paperPlanMechanics(gameplay={},qualityVersion=14){
+// New-order allocation is independent of story quality and delivery policies.
+export function paperPlayMechanics(gameplay={}){
+  const primary=gameplay.primary||'reasoning';
+  const support=[...new Set((gameplay.secondary||[]).filter(value=>value!==primary))].sort();
+  for(const value of ['reasoning','sequence','code','discussion'])
+    if(support.length<2&&value!==primary&&!support.includes(value))support.push(value);
+  return [primary,support[0],primary,support[1],'finale'];
+}
+
+export function paperPlanMechanics(gameplay={},qualityVersion=14,allocationVersion=0){
+  if(allocationVersion===1)return paperPlayMechanics(gameplay);
   const primary=gameplay.primary||'reasoning';
   const support=gameplay.secondary||[];
   if(qualityVersion>=15){
@@ -59,12 +69,12 @@ export function paperPlanMechanics(gameplay={},qualityVersion=14){
   return [primary,primary,primary,support[0]||'reasoning',support[1]||'reasoning'];
 }
 
-export function completePaperPlan(candidate,gameplay,qualityVersion=14){
+export function completePaperPlan(candidate,gameplay,qualityVersion=14,allocationVersion=0){
   if(candidate?.stages?.length!==5)throw Error('Five planned checkpoints are required.');
   for(let index=0;index<4;index++)assertGoalStillOpen([candidate.stages[index]?.scene||'',candidate.stages[index]?.storyBeat||''],candidate.goal,index+1);
-  const mechanics=paperPlanMechanics(gameplay,qualityVersion);
-  const types=paperContractTypes({stages:mechanics.map(mechanic=>({mechanic}))});
-  return alignPaperPlan({...candidate,...(candidate.premise?{opening:paperOpening(candidate.premise)}:{}),id:['mystery','mission'].includes(candidate.id)?candidate.id:'mission',stages:candidate.stages.map((stage,index)=>({...stage,
+  const mechanics=paperPlanMechanics(gameplay,qualityVersion,allocationVersion);
+  const types=paperContractTypes({...(allocationVersion===1?{playAllocationVersion:1}:{}),stages:mechanics.map(mechanic=>({mechanic}))});
+  return alignPaperPlan({...candidate,...(allocationVersion===1?{playAllocationVersion:1}:{}),...(candidate.premise?{opening:paperOpening(candidate.premise)}:{}),id:['mystery','mission'].includes(candidate.id)?candidate.id:'mission',stages:candidate.stages.map((stage,index)=>({...stage,
     number:index+1,mechanic:mechanics[index],scene:stage.scene||`At printed checkpoint ${index+1}`,storyContext:stage.storyBeat?`${stage.scene.trim().replace(/[.!?]+$/,'')}. ${stage.storyBeat.trim()}`:paperStoryMoment(stage.scene||`At printed checkpoint ${index+1}`,types[index],index+1)}))});
 }
 
@@ -88,6 +98,7 @@ export function paperContractTypes(plan){
     if(types.length===4){
       const all=[...types,'decision_record'],kinds=new Set(all);
       if(kinds.size<3)return;
+      if(plan.playAllocationVersion===1&&(new Set(types).size<3||types.some(type=>types.filter(value=>value===type).length>2)))return;
       const score=kinds.size*20-types.filter((type,i)=>i&&types[i-1]===type).length*3;
       if(score>bestScore){bestScore=score;best=all;}return;
     }
