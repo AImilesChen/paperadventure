@@ -2123,10 +2123,10 @@ test('contract delivery repairs one rejected context, then retries PDF storage w
   const count=calls.length;await process();assert.equal(calls.length,count);
 });
 
-test('a new paid order publishes the saved playable baseline when optional wording fails',async()=>{
+test('a new paid order publishes the checked baseline without a final copy model call',async()=>{
   const {db,binding}=database(),orderId='playable-baseline-order';
   const spec={...clockSpec,packExperienceVersion:3,packQualityVersion:4,packLayoutVersion:4,
-    packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:1,
+    packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:2,
     onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
   const stored=JSON.stringify(spec),specHash=await sha256(stored);
   const blueprint=prepareBlueprintCandidate(linkedClockContext(),spec),blueprintJson=JSON.stringify(blueprint),blueprintHash=await sha256(blueprintJson);
@@ -2142,15 +2142,19 @@ test('a new paid order publishes the saved playable baseline when optional wordi
   const queue=[{orderId}],files=new Map();let copyCalls=0;
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:async job=>queue.push(job)},
     PRIVATE_FILES:{put:async(key,bytes,options)=>files.set(key,{bytes,options}),head:async key=>files.has(key)?{customMetadata:files.get(key).options.customMetadata}:null},
-    FETCH:async(_url,{body})=>{assert.equal(JSON.parse(body).text.format.name,'printed_copy_repair');copyCalls++;return Response.json({output_text:'{"version":1}'});}};
+    FETCH:async()=>{copyCalls++;throw Error('No final copy model call is allowed');}};
   for(let step=0;step<3&&db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status!=='published';step++){
     const job=queue.shift();assert.ok(job);
     await productionWorker.queue({messages:[{body:job,ack(){},retry(){throw Error('The saved baseline should publish');}}]},env);
   }
   assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'published');
   assert.equal(db.prepare('SELECT phase,calls FROM custom_delivery_copy WHERE order_id=?').get(orderId).phase,'baseline_ready');
-  assert.equal(copyCalls,1,'no audit or extra wording call is made');
+  assert.equal(copyCalls,0,'the five checked checkpoints publish without another model call');
   assert.equal(files.size,3);
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:'baseline-owner',exp:Math.floor(Date.now()/1000)+3600});
+  const view=await handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,{cookie:`paw_session=${token}`}),env).then(response=>response.json());
+  assert.equal(view.deliveryCheckKind,'puzzle_and_pdf');
+  assert.equal(view.contentReviewPassed,false,'the page must not claim an independent content review');
 });
 
 test('quality v15 reserves every first stage call and publishes both PDFs plus the complete ZIP after old retries',async()=>{

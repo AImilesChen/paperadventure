@@ -56,7 +56,7 @@ function documentLines(story, spec, role) {
 
 export function buildGamePdf(story, spec, role) {
   if (!['player', 'guide'].includes(role)) throw new Error('Unknown PDF role');
-  if (spec.packCopyVersion && !story.deliveryCopy && spec.packDeliveryPolicyVersion!==1) throw new Error('The final printed content has not passed delivery review.');
+  if (spec.packCopyVersion && !story.deliveryCopy && ![1,2].includes(spec.packDeliveryPolicyVersion)) throw new Error('The final printed content has not passed delivery review.');
   if (spec.gamePackVersion === 2) return buildInteractiveGamePdf(applyDeliveryCopy(story),spec,role);
   const width = spec.paper === 'A4' ? 595 : 612;
   const height = spec.paper === 'A4' ? 842 : 792;

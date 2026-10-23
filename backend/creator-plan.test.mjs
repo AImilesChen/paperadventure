@@ -18,6 +18,7 @@ function storyFixture(plan) {return {title:plan.title,introduction:plan.opening,
 
 test('saved provider story events fit the real 220-character printed story moment without truncation',()=>{
   const spec=validatePurchase({...input,creatorVersion:3,gameplay:{primary:'discussion',secondary:['reasoning']}}).spec;
+  assert.equal(spec.packDeliveryPolicyVersion,2,'new purchases use the checked baseline delivery policy');
   const inspected=inspectSavedPlan(journeyProviderPlan,spec);
   assert.ok(inspected.plan);assert.deepEqual(inspected.issues,[]);
   inspected.plan.stages.forEach((stage,index)=>{assert.ok(stage.storyContext.length<=220);assert.equal(stage.storyBeat,journeyProviderPlan.stages[index].storyBeat);});

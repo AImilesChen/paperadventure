@@ -318,6 +318,26 @@ test('minimum playable delivery retains an independently approved copy without e
   assert.equal(calls,2);
 });
 
+test('baseline delivery policy publishes a verified five-checkpoint game without copy model calls',async()=>{
+  const {story,spec}=await fixture(),{DB,db}=database();
+  const edition={...spec,packCopyVersion:1,packDeliveryPolicyVersion:2,packEvidenceContractVersion:1};
+  let calls=0;
+  const fetcher=async()=>{calls++;throw Error('copy model must not be called');};
+  const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB},fetcher);
+  assert.equal(calls,0);
+  assert.equal(saved.deliveryCopy,undefined);
+  const checkpoint=db.prepare('SELECT phase,calls FROM custom_delivery_copy').get();
+  assert.equal(checkpoint.phase,'baseline_ready');
+  assert.equal(checkpoint.calls,0);
+  await requireDeliveryReview(saved,edition,'fixture',{DB});
+  for(const role of ['player','guide'])assert.ok(buildGamePdf(saved,edition,role).length>10000);
+  await ensureDeliveryCopy(story,edition,'fixture',{DB},fetcher);
+  assert.equal(calls,0,'a resumed job must not reserve a copy call');
+  const broken=structuredClone(story);broken.stages[0].options=[];
+  await assert.rejects(()=>ensureDeliveryCopy(broken,edition,'broken',{DB},fetcher));
+  assert.equal(calls,0,'invalid puzzles must stop before publication');
+});
+
 test('new-order baseline is checked before either copy model call',async()=>{
   const {story,spec}=await fixture(),{DB}=database();
   story.stages[0].options=[];
