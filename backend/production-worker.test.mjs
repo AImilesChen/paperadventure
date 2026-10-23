@@ -2437,3 +2437,21 @@ test('an invalid baseline stops once before reserving any model work',async()=>{
   assert.equal(f.db.prepare('SELECT status FROM orders').get().status,'failed');
   assert.equal(f.db.prepare('SELECT error_code FROM custom_delivery_incidents').get().error_code,'BASELINE_INVALID');
 });
+
+test('a final preflight failure after all five checkpoints delivers the proven baseline without AI review',async()=>{
+  const f=await stepDeliveryFixture();await f.process();
+  for(let i=0;i<35&&f.db.prepare('SELECT COUNT(*) AS n FROM custom_game_stages').get().n<5;i++){
+    assert.ok(f.pending.length);await f.process(f.pending.shift());
+  }
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM custom_game_stages').get().n,5);
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM custom_story_checkpoints').get().n,0);
+  const row=f.db.prepare('SELECT stage_json FROM custom_game_stages WHERE stage_number=1').get();
+  const stage=JSON.parse(row.stage_json);stage.material.items[0].detail='A malformed enhancement that cannot prove a unique answer.';
+  f.db.prepare('UPDATE custom_game_stages SET stage_json=? WHERE stage_number=1').run(JSON.stringify(stage));
+  const count=f.calls.length;await f.process(f.pending.shift());
+  assert.equal(f.calls.length,count,'the final check and fallback make no model call');
+  assert.equal(f.db.prepare('SELECT error_code FROM custom_generation_baselines').get().error_code,'PACK_PREFLIGHT_INVALID');
+  await f.drain();assert.equal(f.files.size,3);
+  const story=JSON.parse(f.db.prepare('SELECT story_json FROM custom_story_checkpoints').get().story_json);
+  assert.equal(verifyPrintedPuzzles(story).length,5);assert.equal(story.deliveryEdition,'baseline');
+});

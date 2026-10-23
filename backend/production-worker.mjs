@@ -2,6 +2,7 @@ import { publicCatalog, offers, productRights, themes } from '../shared/catalog.
 import { ApiError, validateGeneratedStage, validateGeneratedStory, validatePurchase, validateSupportedRange } from './domain.mjs';
 import {STEP_SAVED,ensureBaseline,enqueueNextStep,activateBaseline} from './step-delivery.mjs';
 import {savedGenerationProgress} from './generation-progress.mjs';
+import {verifyPrintedPuzzles} from './paper-proof.mjs';
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage, revisePrintedWording } from './openai.mjs';
@@ -1542,8 +1543,21 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
         continue;
       }
       phase='audit';budgetPhase='audit';stageNumber=0;
-      let story=assembleStagedStory(spec,blueprint,stages.map(row=>JSON.parse(row.stage_json)));
-      if(spec.packCopyVersion)story=await ensureDeliveryCopy(story,spec,order.id,env,fetcher);
+      let story;
+      try{
+        story=assembleStagedStory(spec,blueprint,stages.map(row=>JSON.parse(row.stage_json)));
+        if(stepDelivery){
+          verifyPrintedPuzzles(story);
+          buildGamePdf(story,spec,'player');buildGamePdf(story,spec,'guide');
+        }
+      }catch(cause){
+        if(!stepDelivery)throw cause;
+        throw new ApiError(422,'PACK_PREFLIGHT_INVALID','The enhanced pack did not pass local puzzle and PDF preflight.',{cause});
+      }
+      if(spec.packCopyVersion){
+        try{story=await ensureDeliveryCopy(story,spec,order.id,env,fetcher);}
+        catch(error){if(stepDelivery&&!error.code)error.persistence=true;throw error;}
+      }
       const storyJson=JSON.stringify(story),storyHash=await sha256(storyJson);
       const audited=await query(env.DB,'SELECT story_sha256 FROM custom_game_audits WHERE order_id = ?',order.id).first();
       if (audited && audited.story_sha256!==storyHash) throw new ApiError(422,'STORY_CHECKPOINT_MISMATCH','The checked story changed after approval.');
@@ -1595,6 +1609,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
     let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && phaseCalls<stepLimit(budgetPhase,stageNumber) && (deterministicPhase||phaseCalls===0||retries<retryLimit());
     if(code==='BASELINE_INVALID')canRetry=false;
+    if(stepDelivery&&phase==='audit')canRetry=false;
     if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
     if(String(code).startsWith('DELIVERY_COPY_'))canRetry=false;
     if(stepDelivery&&code==='BLUEPRINT_INVALID'&&budgetPhase==='blueprint')canRetry=false;
@@ -1618,7 +1633,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
       catch (queueFailure) { console.error('Staged retry queue send failed; scheduled recovery will continue',{orderId:order.id,message:queueFailure?.message}); }
       return;
     }
-    if(stepDelivery&&!caught.persistence&&['BLUEPRINT_INVALID','STAGED_BUDGET_EXHAUSTED','GENERATION_UPSTREAM_FAILED','GENERATION_NOT_CONFIGURED','STAGE_INVALID','GENERATION_INVALID','PRINTED_PROOF_INVALID','GENERATION_QA_FAILED'].includes(code)){
+    if(stepDelivery&&!caught.persistence&&['BLUEPRINT_INVALID','STAGED_BUDGET_EXHAUSTED','GENERATION_UPSTREAM_FAILED','GENERATION_NOT_CONFIGURED','STAGE_INVALID','GENERATION_INVALID','PRINTED_PROOF_INVALID','PACK_PREFLIGHT_INVALID','GENERATION_QA_FAILED'].includes(code)){
       if(await activateBaseline(order.id,activity.id,spec,specHash,code,env))return;
     }
     const attempt=(await query(env.DB,'SELECT COALESCE(MAX(attempt),0)+1 AS next FROM generation_usage WHERE order_id = ?',order.id).first()).next;
