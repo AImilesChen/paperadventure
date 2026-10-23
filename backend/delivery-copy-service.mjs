@@ -144,7 +144,7 @@ async function reviewedHash(row){
 }
 export async function requireDeliveryReview(story,spec,orderId,env){
   if(!spec.packCopyVersion)return;
-  if(spec.packDeliveryPolicyVersion===1&&!story.deliveryCopy){
+  if([1,2].includes(spec.packDeliveryPolicyVersion)&&!story.deliveryCopy){
     const source=sourceStory(story),row=await read(env.DB,orderId);
     if(!matches(row,await boundHashes(source,spec)))throw failure('DELIVERY_COPY_SOURCE_CHANGED');
     if(row.phase!=='baseline_ready')throw failure('DELIVERY_COPY_MISSING');
@@ -228,9 +228,9 @@ const diagnosticMessages={
 export async function deliveryCopyStatus(orderId,env,story,spec){
   const row=await read(env.DB,orderId);
   if(!row)return null;
-  if(spec?.packDeliveryPolicyVersion===1&&row.phase==='baseline_ready'&&
+  if([1,2].includes(spec?.packDeliveryPolicyVersion)&&row.phase==='baseline_ready'&&
     story&&matches(row,await boundHashes(sourceStory(story),spec)))
-    return {phase:'ready',code:null,message:null,calls:Number(row.calls)||0,limit:1,
+    return {phase:'ready',code:null,message:null,calls:Number(row.calls)||0,limit:spec.packDeliveryPolicyVersion===2?0:1,
       candidateSaved:Boolean(row.candidate_json),formatValid:false,
       reviewPassed:false,deliveryReady:true,deliveryMode:'checked_baseline',
       issues:[],resumeAvailable:false};
@@ -335,6 +335,19 @@ async function ensureRevisedCopy(source,spec,orderId,env,prior,revision,fetcher)
 export async function ensureDeliveryCopy(story,spec,orderId,env,fetcher=env.FETCH||fetch){
   if(!spec.packCopyVersion)return story;
   const source=sourceStory(story),binding=await boundHashes(source,spec);
+  // The five saved checkpoints are the deliverable game for policy v2.
+  // Model-written polish must not turn a mechanically complete paid pack into
+  // a terminal failure. Prove both PDFs before recording the bound baseline.
+  if(spec.packDeliveryPolicyVersion===2){
+    verifyPrintedPuzzles(source);
+    buildInteractiveGamePdf(source,spec,'player');
+    buildInteractiveGamePdf(source,spec,'guide');
+    await query(env.DB,'INSERT OR IGNORE INTO custom_delivery_copy (order_id,policy,source_sha256,spec_sha256) VALUES (?,?,?,?)',orderId,COPY_POLICY,binding.sourceHash,binding.specHash).run();
+    const saved=await read(env.DB,orderId);
+    if(!matches(saved,binding))throw failure('DELIVERY_COPY_SOURCE_CHANGED');
+    await query(env.DB,"UPDATE custom_delivery_copy SET phase = 'baseline_ready',error_code = NULL,error_detail = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?",orderId,COPY_POLICY).run();
+    return source;
+  }
   // New orders prove that the saved five-checkpoint game solves and renders
   // before reserving either of the existing copy/review model calls. This is
   // a mechanical baseline check, not permission to bypass a content rejection.
