@@ -710,6 +710,8 @@ async function orderView(request, env, orderId) {
   const failedAttempts = pdfGenerationHistory.filter(item => item.status === 'failed').length;
   const lastPdfFailure = pdfRows.filter(item => item.status === 'failed').at(-1);
   const spec = JSON.parse(order.purchase_spec_json);
+  const deliveryCopyReview=order.product_kind==='custom'&&spec.packDeliveryPolicyVersion===1
+    ? await query(env.DB,'SELECT phase,audit_passed FROM custom_delivery_copy WHERE order_id = ? AND policy = ?',order.id,COPY_POLICY).first():null;
   const materialRecovery=order.status==='failed'&&!activity?.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
     ? await recoverableStoppedMaterial(env.DB,order.id,spec) : false;
   const copyRecovery=order.status==='failed'&&!activity?.delivery_retry_used&&lastPdfFailure?.error_code==='STAGED_GENERATION_STOPPED'
@@ -769,8 +771,11 @@ async function orderView(request, env, orderId) {
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
     revisionExpiresAt: entitlement?.revision_expires_at || null,
     gamePackVersion: order.product_kind === 'custom' ? Math.max(latestArtifact?.pack_format_version || 1, spec.gamePackVersion || 1) : null,
+    deliveryCheckKind:order.product_kind==='custom'&&spec.packDeliveryPolicyVersion===1
+      ? deliveryCopyReview?.audit_passed?'independent_content':'puzzle_and_pdf':null,
     contentReviewPassed: Boolean(order.product_kind === 'custom' && order.status === 'published' &&
-      (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packQualityVersion >= 8 : spec.packContractVersion === 1 && spec.packQualityVersion >= 8 && generationProgress?.auditPassed)),
+      (spec.packDeliveryPolicyVersion===1?deliveryCopyReview?.audit_passed:
+        readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packQualityVersion >= 8 : spec.packContractVersion === 1 && spec.packQualityVersion >= 8 && generationProgress?.auditPassed)),
     packContractVersion: spec.packContractVersion || (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packContractVersion || 0 : 0),
     checkedPuzzleRevision: Boolean(latestArtifact && (readyRemakeSpec ? JSON.parse(readyRemakeSpec.spec_json).packLogicVersion === 1 : spec.packLogicVersion === 1)),
     qualityUpgradeAvailable: Boolean(order.product_kind === 'custom' && order.status === 'published' && activity?.status === 'published' && order.paid_at && accessActive(entitlement) && !replacementPlanBlocked && (!remake || remake.status === 'ready') &&

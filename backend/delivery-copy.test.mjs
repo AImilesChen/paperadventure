@@ -274,6 +274,7 @@ test('the generation pipeline prints an available prop bridge before its one ind
   assert.equal(copy.stages[1].scene,sourceScene,'provider output remains untouched');
   assert.match(saved.deliveryCopy.stages[1].scene,/They take the signal gear and keep it\./);
   assert.equal(db.prepare('SELECT calls FROM custom_delivery_copy').get().calls,2);
+  await requireDeliveryReview(saved,edition,'fixture',{DB});
 });
 
 test('playable review still stops missing evidence and a concrete unsupported final action',async()=>{
@@ -288,6 +289,55 @@ test('playable review still stops missing evidence and a concrete unsupported fi
   const rejection=async()=>{reviewed++;return Response.json({output_text:JSON.stringify(reviewed===1?copy:{pass:false,issues:[{stageNumber:5,code:'UNSUPPORTED_CAUSE',quote:copy.actions[0].description.slice(0,25),reason:'The final action needs an object not established by the printed clues.'}],warnings:[],evidence:[]})});};
   await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',{DB:reviewDB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},rejection),{code:'DELIVERY_COPY_REVIEW'});
   assert.equal(reviewed,2);
+});
+
+test('minimum playable delivery retains an independently approved copy without extra calls',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database();
+  const edition={...spec,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:1};
+  let calls=0;
+  const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async(_url,{body})=>{
+    calls++;
+    if(calls===1)return Response.json({output_text:JSON.stringify(copy)});
+    const units=JSON.parse(JSON.parse(body).input).evidenceUnits;
+    const evidence=[1,2,3].map(stageNumber=>{const unit=units.find(item=>item.stageNumber===stageNumber&&item.kind!=='scene');
+      return {stageNumber,evidenceId:unit.id,quote:unit.text.slice(0,30),supportsAction:'Supports the final action'};});
+    return Response.json({output_text:JSON.stringify({pass:true,issues:[],warnings:[],evidence})});
+  });
+  assert.equal(calls,2);
+  assert.ok(saved.deliveryCopy);
+  assert.equal(db.prepare('SELECT phase,audit_json,calls FROM custom_delivery_copy').get().phase,'ready');
+  assert.equal(JSON.parse(db.prepare('SELECT audit_json FROM custom_delivery_copy').get().audit_json).pass,true);
+  await requireDeliveryReview(saved,edition,'fixture',{DB});
+  const altered=structuredClone(saved);altered.deliveryCopy.actions[0].description='Open the wrong gate.';
+  await assert.rejects(()=>requireDeliveryReview(altered,edition,'fixture',{DB}),{code:'DELIVERY_COPY_REVIEW_STALE'});
+  await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{throw Error('unexpected extra request');});
+  assert.equal(calls,2);
+});
+
+test('minimum playable delivery keeps the checked baseline if optional copy is unusable',async()=>{
+  const {story,spec}=await fixture(),{DB,db}=database();
+  const edition={...spec,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:1};
+  let calls=0;
+  const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{
+    calls++;return Response.json({output_text:JSON.stringify({version:1})});
+  });
+  assert.equal(calls,1);
+  assert.equal(saved.deliveryCopy,undefined);
+  assert.equal(db.prepare('SELECT phase,error_code,calls FROM custom_delivery_copy').get().phase,'baseline_ready');
+  await requireDeliveryReview(saved,edition,'fixture',{DB});
+  assert.deepEqual((await deliveryCopyStatus('fixture',{DB},story,edition)).deliveryMode,'checked_baseline');
+  await assert.rejects(()=>requireDeliveryReview({...saved,ending:'Changed ending.'},edition,'fixture',{DB}),{code:'DELIVERY_COPY_SOURCE_CHANGED'});
+});
+
+test('minimum playable delivery does not bypass a concrete content rejection',async()=>{
+  const {story,spec,copy}=await fixture(),{DB,db}=database();
+  const edition={...spec,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:1};
+  let calls=0;
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{
+    calls++;return Response.json({output_text:JSON.stringify(calls===1?copy:{pass:false,issues:[{stageNumber:5,code:'UNSUPPORTED_CAUSE',quote:copy.actions[0].description.slice(0,25),reason:'A final action prerequisite is absent from the printed clues.'}],warnings:[],evidence:[]})});
+  }),{code:'DELIVERY_COPY_REVIEW'});
+  assert.equal(calls,2);
+  assert.equal(db.prepare('SELECT phase,calls FROM custom_delivery_copy').get().phase,'audit');
 });
 
 test('complete consequences above the writing target stay intact when the combined block and both PDFs fit',async()=>{
