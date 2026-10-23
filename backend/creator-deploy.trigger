@@ -86,3 +86,4 @@
 # deploy PR #84 shared final prop bridge 2026-10-22
 # deploy PR #85 minimum playable delivery fallback 2026-10-22
 # deploy PR #86 evidence-first playable review 2026-10-22
+# deploy PR #87 checked-baseline delivery for future custom orders 2026-10-23
