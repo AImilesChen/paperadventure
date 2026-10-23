@@ -432,8 +432,12 @@ export function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
   const paper = order.kind === 'ready' ? selectedPaper : order.paper;
   const progress = order.generationProgress;
   const originalProgress = ready && (correctingTheme || order.remake && order.remake.status !== 'ready');
-  const progressLabel = progress?.phase === 'delivered' ? originalProgress ? 'Original version complete' : 'Complete' : progress?.phase === 'pdf' ? 'Building and checking PDFs' : progress?.phase === 'audit' ? 'Checking the complete game' : progress?.phase === 'checkpoint' ? `Creating checkpoint ${progress.currentStage} of 5` : 'Creating the game blueprint';
-  const progressValue = progress?.phase === 'delivered' ? 8 : progress?.phase === 'pdf' ? 7 : (progress?.blueprintReady ? 1 : 0) + (progress?.completedStages.length || 0);
+  const detailed=Boolean(progress?.blueprintStepTotal);
+  const progressTotal=detailed?progress.blueprintStepTotal+7:8;
+  const progressLabel = progress?.phase === 'delivered' ? originalProgress ? 'Original version complete' : 'Complete' : progress?.phase === 'pdf' ? 'Building and checking PDFs' : progress?.phase === 'audit' ? 'Checking the printed puzzles' : progress?.phase === 'checkpoint' ? `Creating checkpoint ${progress.currentStage} of 5` : detailed?`Preparing story materials (${progress.blueprintStepsCompleted} of ${progress.blueprintStepTotal} parts saved)`:'Creating the game blueprint';
+  const progressValue = progress?.phase === 'delivered' ? progressTotal : progress?.phase === 'pdf' ? progressTotal-1 : (detailed?progress.blueprintStepsCompleted:progress?.blueprintReady?1:0) + (progress?.completedStages.length || 0) + (detailed&&progress?.auditPassed?1:0);
+  const currentStep={blueprint_frame:'Writing the story framework',blueprint_material:`Preparing material ${progress?.activeStage||1} of 5`,blueprint_closing:'Writing the ending',blueprint:'Assembling the saved materials',checkpoint:`Building checkpoint ${progress?.activeStage||1} of 5`,audit:'Checking the printed puzzles'}[progress?.activeStep];
+  const stepState={queued:'The next step is queued.',running:'This step is being prepared.',retrying:'Retrying this step; completed work is saved.',waiting_for_update:'Waiting for a new update. Saved work will be checked for recovery.',stopped:'Generation has stopped.',complete:'All files are ready.'}[progress?.stepState];
   return <section className={'order-package' + (order.status === 'failed' ? ' order-package-failed' : '')} aria-labelledby="order-package-title">
     <span className="eyebrow">YOUR GAME PACKAGE</span>
     <h2 id="order-package-title">{state}</h2>
@@ -441,10 +445,12 @@ export function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
     {ready && order.kind === 'custom' && <p className="live-note">{originalProgress ? 'These checks apply to the original version. The replacement has not been delivered.' : order.deliveryCheckKind==='puzzle_and_pdf' ? 'All five printed puzzles and both PDF files checked and ready.' : order.contentReviewPassed ? 'Game content check passed · Both PDF files checked and ready.' : 'Both PDF files are ready. This edition predates the current full-game content check.'}</p>}
     {progress && approved && (!ready || originalProgress) && <div className="order-game-progress" aria-label={originalProgress?'Original version progress':'Game creation progress'}>
       <strong>{order.status === 'failed' ? 'Stopped while ' + progressLabel.toLowerCase() : progressLabel}</strong>
-      <div className="order-game-progress-track" role="progressbar" aria-valuenow={progressValue} aria-valuemin="0" aria-valuemax="8" aria-label={originalProgress?'Original version steps completed':'Game creation steps completed'}><span style={{width:`${Math.round(progressValue / 8 * 100)}%`}}/></div>
+      <div className="order-game-progress-track" role="progressbar" aria-valuenow={progressValue} aria-valuemin="0" aria-valuemax={progressTotal} aria-label={originalProgress?'Original version steps completed':'Game creation steps completed'}><span style={{width:`${Math.round(progressValue / progressTotal * 100)}%`}}/></div>
       <p>{progress.blueprintReady ? 'Blueprint saved' : 'Blueprint pending'} · {progress.completedStages.length} of 5 checkpoints saved · {progress.auditPassed ? (order.deliveryCheckKind==='puzzle_and_pdf'?'Puzzles checked':'Game check passed') : 'Game check pending'} · {ready ? 'PDFs ready' : 'PDFs pending'}</p>
+      {detailed&&<p role="status">{stepState} {progress.stepState!=='complete'&&currentStep?`${currentStep}. `:''}{progress.lastSavedAt?`Last saved: ${new Date(progress.lastSavedAt.replace(' ','T')+'Z').toLocaleString()}.`:'No step has been saved yet.'}</p>}
       {order.status === 'failed' && <p>Completed steps are saved on this paid order. The history below shows what stopped; support can review this order without another purchase.</p>}
     </div>}
+    {progress?.deliveryEdition==='baseline'&&<p className="live-note">{ready?'Your paper mission briefing is ready.':'Preparing your paper mission briefing.'} It keeps your approved story and uses the five checked paper puzzles. The adult guide explains how to narrate the outcome.</p>}
     {!ready && <div className="order-package-files" aria-label="Files in your package">
       <div><strong>Player Pack</strong><span>Children’s activities · PDF</span><small>{ready ? 'Ready' : 'Not ready'}</small></div>
       <div><strong>{guide}</strong><span>Adult instructions and answers · PDF</span><small>{ready ? 'Ready' : 'Not ready'}</small></div>

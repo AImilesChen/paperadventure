@@ -20,6 +20,7 @@ import {ensureDeliveryCopy} from './delivery-copy-service.mjs';
 import {COPY_POLICY} from './delivery-copy.mjs';
 import { packRemakeView, qualityUpgradeEligible, retryPackRemake, processPackRemake } from './pack-remake.mjs';
 import { createDownloadZip } from '../src/downloadZip.mjs';
+import {verifyPrintedPuzzles} from './paper-proof.mjs';
 async function approvedCustomInput(env,input) {
   const spec=validatePurchase({...input,creatorVersion:2,gameplay:{primary:'reasoning',secondary:[]}}).spec;
   spec.plan=planFixture(spec,spec.direction);spec.planConfirmed=true;
@@ -29,7 +30,7 @@ async function approvedCustomInput(env,input) {
 
 function database({includeThemeRecovery=true,includeSemanticRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql','0037_order_8f5d_material_recovery.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql','0037_order_8f5d_material_recovery.sql','0038_step_delivery.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0024_scoped_semantic_plan_recovery.sql'&&!includeSemanticRecovery)continue;
@@ -1426,6 +1427,7 @@ test('staged paid generation resumes at a failed checkpoint without regenerating
   const {db,binding}=database();
   const purchase=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec;
   purchase.gamePackVersion=1; // Resume an order approved before interactive paper materials existed.
+  delete purchase.packStepDeliveryVersion;
   delete purchase.packContractVersion;delete purchase.packCopyVersion;
   const plan=planFixture(purchase);
   const spec={...purchase,plan,planConfirmed:true,onlineRedownloadMonths:12};
@@ -2329,3 +2331,109 @@ test('a same-order remake resumes past a failed assembly by replacing its one st
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);
 });
 
+
+async function stepDeliveryFixture({failPhase=null,dropSend=false,failStorage=false}={}){
+  const {db,binding}=database(),orderId='step-delivery-order',owner='step-delivery-owner';
+  const spec={...clockSpec,sku:'custom_home',kind:'custom',packExperienceVersion:3,packQualityVersion:14,packLayoutVersion:4,
+    packCopyVersion:1,packDeliveryPolicyVersion:2,packResilientDeliveryVersion:1,packStepDeliveryVersion:1,
+    onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
+  const stored=JSON.stringify(spec),hash=await sha256(stored);
+  db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('step-price','custom_home','USD',1499,'exclusive',1)").run();
+  db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,'step-price',1499,'USD','paid',CURRENT_TIMESTAMP)").run(orderId,stored,hash,owner);
+  db.prepare("INSERT INTO custom_activities (id,order_id,status,story_spec_json,generation_version) VALUES ('step-activity',?,'queued',?,2)").run(orderId,stored);
+  db.prepare("INSERT INTO entitlements (id,order_id,custom_activity_id,status) VALUES ('step-entitlement',?,'step-activity','active')").run(orderId);
+  db.prepare("INSERT INTO custom_plan_orders (order_id,status,confirmed_version) VALUES (?,'confirmed',1)").run(orderId);
+  const context=linkedClockContext(),frame={problem:context.spine.problem,actions:context.stages[4].material.items.map(item=>item.label),discoveries:[
+    {finding:'The signal gear is missing.',consequence:'The missing noon mark points to the gear.',supportsAction:'signal gear'},
+    {finding:'The spare gear fits the shaft.',consequence:'The gear can turn without binding.',supportsAction:'signal gear'},
+    {finding:'The checked order protects the teeth.',consequence:'The wheel stays aligned during repair.',supportsAction:'Fit signal gear'},
+    {finding:'The upper bridge reaches the gear room.',consequence:'The upper bridge can carry the part.',supportsAction:'signal gear'},
+  ]};
+  const pending=[],files=new Map(),calls=[],perMessage=[];let retries=0;
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',
+    GENERATION_QUEUE:{send:async job=>{if(dropSend){dropSend=false;throw Error('simulated dispatch interruption');}pending.push(job);}},
+    PRIVATE_FILES:{put:async(key,bytes,options)=>{if(failStorage&&key.endsWith('player.pdf')){failStorage=false;throw Error('simulated storage interruption');}files.set(key,{bytes,customMetadata:options.customMetadata});},head:async key=>files.get(key),get:async key=>files.get(key)?{body:files.get(key).bytes}:null},
+    FETCH:async(_url,init)=>{
+      assert.equal(db.prepare('SELECT COUNT(*) AS n FROM custom_generation_baselines').get().n,1,'a proven baseline exists before the first model call');
+      const body=JSON.parse(init.body),name=body.text.format.name,input=JSON.parse(body.input);calls.push({name,checkpoint:input.checkpoint});
+      if(failPhase==='all'||failPhase===name&&input.checkpoint===2)throw new DOMException('simulated provider timeout','TimeoutError');
+      if(failPhase==='invalid_material'&&name==='blueprint_material_stage'&&input.checkpoint===2)return Response.json({output_text:JSON.stringify({material:{title:'Invalid sheet',items:[]}})});
+      const value=name==='story_frame'?frame:name==='blueprint_material_stage'?context.stages[input.checkpoint-1]:name==='blueprint_celebration'?{celebration:'The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.'}:null;
+      assert.ok(value,`no final AI audit or whole-pack assembly should run: ${name}`);
+      return Response.json({output_text:JSON.stringify(value),usage:{input_tokens:1,output_tokens:1}});
+    }};
+  const process=async(job={orderId})=>{
+    const before=calls.length;
+    await productionWorker.queue({messages:[{body:job,ack(){},retry(){retries++;pending.push(job);}}]},env);
+    perMessage.push(calls.length-before);assert.ok(calls.length-before<=1,'one model request per queue message');
+  };
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:owner,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`};
+  const view=()=>handleProductionApi(request(`/api/v1/orders/${orderId}`,'GET',undefined,headers),env).then(r=>r.json());
+  const drain=async()=>{for(let i=0;i<45&&db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status!=='published';i++){
+    if(!pending.length)await productionWorker.scheduled({},env);
+    assert.ok(pending.length,'a saved step has a continuation or scheduled recovery');await process(pending.shift());
+  }assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'published');};
+  return {db,spec,orderId,env,pending,files,calls,perMessage,process,view,drain,headers,get retries(){return retries;}};
+}
+
+test('new-order steps survive a lost dispatch, publish both PDFs, and ignore duplicate messages',async()=>{
+  const f=await stepDeliveryFixture({dropSend:true,failStorage:true});
+  await f.process();
+  assert.equal(f.calls.length,1);assert.equal(f.pending.length,0);
+  const partial=await f.view();
+  assert.equal(partial.generationProgress.blueprintStepsCompleted,1);
+  assert.equal(partial.generationProgress.stepState,'queued');
+  assert.ok(!JSON.stringify(partial.generationProgress).includes('signal gear'),'progress never contains story candidates');
+  await f.drain();
+  assert.equal(f.retries,1,'storage failure retries only PDF delivery');
+  assert.equal(f.files.size,3);assert.equal(f.calls.filter(x=>x.name==='story_frame').length,1);
+  assert.equal((await f.view()).generationProgress.phase,'delivered');
+  assert.equal(f.db.prepare('SELECT delivery_mode FROM custom_generation_baselines').get().delivery_mode,'enhanced');
+  const count=f.calls.length;await f.process();assert.equal(f.calls.length,count);
+  for(const role of ['player','guide']){
+    const r=await handleProductionApi(request(`/api/v1/files/${f.orderId}/${role}?paper=A4`,'GET',undefined,f.headers),f.env);
+    assert.equal(r.status,200);assert.ok((await r.text()).startsWith('%PDF-'));
+  }
+});
+
+test('provider timeouts exhaust only the failing step and deliver the approved-theme baseline',async()=>{
+  for(const failPhase of ['all','blueprint_material_stage','invalid_material']){
+    const f=await stepDeliveryFixture({failPhase});await f.process();await f.drain();
+    assert.equal(f.db.prepare('SELECT delivery_mode FROM custom_generation_baselines').get().delivery_mode,'baseline');
+    const story=JSON.parse(f.db.prepare('SELECT story_json FROM custom_story_checkpoints').get().story_json);
+    assert.equal(story.deliveryEdition,'baseline');assert.equal(story.title,f.spec.plan.title);
+    assert.equal(story.introduction,f.spec.plan.opening);assert.equal(verifyPrintedPuzzles(story).length,5);
+    assert.ok(f.files.size===3);assert.ok(f.calls.length<=5,'fallback does not reset or expand the call budget');
+    assert.equal(f.calls.filter(x=>x.name==='story_frame').length,failPhase==='all'?2:1);
+    if(failPhase!=='all')assert.equal(f.calls.filter(x=>x.name==='blueprint_material_stage'&&x.checkpoint===1).length,1);
+    assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM custom_generation_calls WHERE status='failed'").get().n,2,'original failures remain recorded');
+    const ready=await f.view();assert.equal(ready.filesReady,true);assert.equal(ready.generationProgress.deliveryEdition,'baseline');
+  }
+});
+
+test('an interrupted reserved call consumes the existing attempt budget and can resume',async()=>{
+  const f=await stepDeliveryFixture();
+  f.db.prepare("INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model) VALUES ('interrupted',?,'blueprint_frame',0,'started','fixture')").run(f.orderId);
+  await f.process();
+  assert.equal(f.db.prepare("SELECT error_code FROM custom_generation_calls WHERE id='interrupted'").get().error_code,'STEP_INTERRUPTED');
+  await f.drain();assert.equal(f.calls.filter(x=>x.name==='story_frame').length,1);
+});
+
+test('an approved-spec mismatch cannot activate a fallback or call the provider',async()=>{
+  const f=await stepDeliveryFixture();await f.process();
+  f.db.prepare("UPDATE custom_generation_baselines SET spec_sha256='another-approved-plan'").run();
+  await f.process();assert.equal(f.calls.length,1);
+  assert.equal(f.db.prepare('SELECT status FROM orders').get().status,'failed');
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM custom_story_checkpoints').get().n,0);
+});
+
+test('an invalid baseline stops once before reserving any model work',async()=>{
+  const f=await stepDeliveryFixture();
+  const invalid={...f.spec,plan:{...f.spec.plan,stages:[]}};
+  f.db.prepare('UPDATE custom_activities SET story_spec_json=?').run(JSON.stringify(invalid));
+  await f.process();
+  assert.equal(f.calls.length,0);assert.equal(f.pending.length,0);
+  assert.equal(f.db.prepare('SELECT status FROM orders').get().status,'failed');
+  assert.equal(f.db.prepare('SELECT error_code FROM custom_delivery_incidents').get().error_code,'BASELINE_INVALID');
+});

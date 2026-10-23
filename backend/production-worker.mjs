@@ -1,5 +1,7 @@
 import { publicCatalog, offers, productRights, themes } from '../shared/catalog.mjs';
 import { ApiError, validateGeneratedStage, validateGeneratedStory, validatePurchase, validateSupportedRange } from './domain.mjs';
+import {STEP_SAVED,ensureBaseline,enqueueNextStep,activateBaseline} from './step-delivery.mjs';
+import {savedGenerationProgress} from './generation-progress.mjs';
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
 import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage, revisePrintedWording } from './openai.mjs';
@@ -758,6 +760,12 @@ async function orderView(request, env, orderId) {
     const nextStage=[1,2,3,4,5].find(number=>!completedStages.includes(number))||null;
     generationProgress={phase:order.status==='published'?'delivered':story?'pdf':!blueprint?'blueprint':nextStage?'checkpoint':'audit',
       blueprintReady:Boolean(blueprint),completedStages,currentStage:blueprint?nextStage:null,auditPassed:Boolean(audit),storyReady:Boolean(story)};
+    if(spec.packStepDeliveryVersion===1){
+      generationProgress=await savedGenerationProgress(env.DB,order,activity,generationProgress);
+      const edition=await query(env.DB,'SELECT delivery_mode,updated_at FROM custom_generation_baselines WHERE order_id = ?',order.id).first();
+      generationProgress.deliveryEdition=edition?.delivery_mode||'enhanced';
+      if(edition?.delivery_mode==='baseline')generationProgress.lastSavedAt=edition.updated_at;
+    }
   }
   return json({ id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
@@ -1349,6 +1357,7 @@ const STAGED_AI_CALL_LIMIT = 14;
 const STAGED_STEP_CALL_LIMIT = 2;
 
 async function publishStagedStory(order,activity,spec,specHash,env) {
+  const stepDelivery=spec.packStepDeliveryVersion===1;
   const lease=await query(env.DB,"UPDATE custom_activities SET status = 'generating',lease_until = ? WHERE id = ? AND (status = 'queued' OR (status = 'generating' AND COALESCE(lease_until,0) < ?))",nowSeconds()+900,activity.id,nowSeconds()).run();
   if (!lease.meta?.changes) return;
   await query(env.DB,"UPDATE orders SET status = 'fulfilling' WHERE id = ? AND status = 'paid'",order.id).run();
@@ -1392,10 +1401,12 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
         validateCached?.(recovered);
         const id=crypto.randomUUID();
         await query(env.DB,"INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model,result_json,completed_at) VALUES (?,?,?,?,'passed','checked-rules-v1',?,CURRENT_TIMESTAMP)",id,order.id,kind,number,JSON.stringify(recovered)).run();
+        if(stepDelivery)throw STEP_SAVED;
         return recovered;
       }
     }
     const deterministic=isDeterministic(kind);
+    if(stepDelivery)await query(env.DB,"UPDATE custom_generation_calls SET status='failed',error_code='STEP_INTERRUPTED',completed_at=CURRENT_TIMESTAMP WHERE order_id=? AND phase=? AND stage_number=? AND status='started'",order.id,kind,number).run();
     const used=await countCalls(kind,number);
     if (used>=stepLimit(kind,number) || (!deterministic&&used>0&&await retryCalls()>=retryLimit()))
       throw new ApiError(422,'STAGED_BUDGET_EXHAUSTED','The safe generation limit was reached.');
@@ -1403,11 +1414,12 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
     if (!deterministic&&!provider) throw new ApiError(503,'GENERATION_NOT_CONFIGURED','Story generation is not configured.');
     const id=crypto.randomUUID();
     await query(env.DB,"INSERT INTO custom_generation_calls (id,order_id,phase,stage_number,status,model) VALUES (?,?,?,?,'started',?)",id,order.id,kind,number,deterministic?'checked-rules-v1':provider.model).run();
+    let savedValue;
     try {
       const result=await produce();
       try { await query(env.DB,"UPDATE custom_generation_calls SET status = 'passed',result_json = ?,response_id = ?,input_tokens = ?,output_tokens = ?,completed_at = CURRENT_TIMESTAMP WHERE id = ?",JSON.stringify(result.value),result.responseId,result.usage?.input_tokens??null,result.usage?.output_tokens??null,id).run(); }
       catch (caught) { caught.persistence=true; caught.persistenceUncertain=true; throw caught; }
-      return result.value;
+      savedValue=result.value;
     } catch (caught) {
       const code=typeof caught?.code==='string' && /^[A-Z0-9_]{1,60}$/.test(caught.code)?caught.code:'UNEXPECTED';
       const detail=[caught?.message||'Unknown failure',...(Array.isArray(caught?.issues)?caught.issues.slice(0,5):[])].join(' | ').slice(0,1000);
@@ -1415,8 +1427,18 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
       await query(env.DB,"UPDATE custom_generation_calls SET status = 'failed',response_id = ?,input_tokens = ?,output_tokens = ?,error_code = ?,error_detail = ?,result_json = ?,completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'started'",caught?.responseId||null,caught?.usage?.input_tokens??null,caught?.usage?.output_tokens??null,code,detail,candidate?.length<=40000?candidate:null,id).run();
       throw caught;
     }
+    if(stepDelivery)throw STEP_SAVED;
+    return savedValue;
   };
   try {
+    if(stepDelivery){
+      try{await ensureBaseline(order.id,spec,specHash,env);}
+      catch(error){if(!['BASELINE_INVALID','STORY_CHECKPOINT_MISMATCH'].includes(error.code))error.persistence=true;throw error;}
+      const baseState=await query(env.DB,'SELECT delivery_mode,error_code FROM custom_generation_baselines WHERE order_id = ?',order.id).first();
+      if(baseState?.delivery_mode==='baseline'){
+        await activateBaseline(order.id,activity.id,spec,specHash,baseState.error_code,env);return;
+      }
+    }
     for (;;) {
       await query(env.DB,"UPDATE custom_activities SET lease_until = ? WHERE id = ? AND status = 'generating'",nowSeconds()+900,activity.id).run();
       const blueprintRow=await query(env.DB,'SELECT spec_sha256,blueprint_sha256,blueprint_json FROM custom_game_blueprints WHERE order_id = ?',order.id).first();
@@ -1476,6 +1498,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
           });
           budgetPhase='blueprint';
           generatedBlueprint=await call('blueprint',0,async()=>{
+            if(stepDelivery)throw new ApiError(422,'BLUEPRINT_INVALID','Saved materials could not form the enhanced pack.');
             const result=await assembleBlueprintSteps(spec,frame,materialSteps,closing,env,fetcher);
             return {value:result.blueprint,usage:result.usage,responseId:result.responseId};
           },null,true,null,async()=>{
@@ -1495,6 +1518,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
         try { await query(env.DB,'INSERT OR IGNORE INTO custom_game_blueprints (order_id,spec_sha256,blueprint_sha256,blueprint_json) VALUES (?,?,?,?)',order.id,specHash,blueprintHash,blueprintJson).run(); }
         catch (caught) { caught.persistence=true; throw caught; }
         await query(env.DB,'UPDATE custom_activities SET pipeline_failures = 0 WHERE id = ?',activity.id).run();
+        if(stepDelivery){await enqueueNextStep(order.id,activity.id,env);return;}
         continue;
       }
       if (blueprintRow.spec_sha256!==specHash) throw new ApiError(422,'STORY_CHECKPOINT_MISMATCH','The approved plan changed after its blueprint was saved.');
@@ -1514,6 +1538,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
         try { await query(env.DB,'INSERT OR IGNORE INTO custom_game_stages (order_id,stage_number,blueprint_sha256,stage_json) VALUES (?,?,?,?)',order.id,next,blueprintRow.blueprint_sha256,JSON.stringify(stage)).run(); }
         catch (caught) { caught.persistence=true; throw caught; }
         await query(env.DB,'UPDATE custom_activities SET pipeline_failures = 0 WHERE id = ?',activity.id).run();
+        if(stepDelivery){await enqueueNextStep(order.id,activity.id,env);return;}
         continue;
       }
       phase='audit';budgetPhase='audit';stageNumber=0;
@@ -1564,12 +1589,15 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
       return;
     }
   } catch (caught) {
+    if(caught===STEP_SAVED){await enqueueNextStep(order.id,activity.id,env);return;}
     const code=typeof caught?.code==='string' && /^[A-Z0-9_]{1,60}$/.test(caught.code)?caught.code:'UNEXPECTED';
     const phaseCalls=await countCalls(budgetPhase,stageNumber),retries=await retryCalls(),deterministicPhase=isDeterministic(budgetPhase);
     const persistenceFailures=(activity.pipeline_failures||0)+(caught.persistence?1:0);
     let canRetry=code!=='STORY_CHECKPOINT_MISMATCH' && code!=='PRINTED_PROOF_INVALID' && code!=='GENERATION_NOT_CONFIGURED' && phaseCalls<stepLimit(budgetPhase,stageNumber) && (deterministicPhase||phaseCalls===0||retries<retryLimit());
+    if(code==='BASELINE_INVALID')canRetry=false;
     if (caught.persistence) canRetry=persistenceFailures<3 && !caught.persistenceUncertain;
     if(String(code).startsWith('DELIVERY_COPY_'))canRetry=false;
+    if(stepDelivery&&code==='BLUEPRINT_INVALID'&&budgetPhase==='blueprint')canRetry=false;
     if(code==='GENERATION_QA_FAILED'&&spec.packContractVersion===1&&(spec.packQualityVersion||0)<8&&canRetry&&await countCalls('blueprint',0)<stepLimit('blueprint')){
       await env.DB.batch([
         query(env.DB,"UPDATE custom_generation_calls SET status = 'failed',error_code = 'AUDIT_REJECTED',error_detail = ? WHERE order_id = ? AND phase = 'blueprint' AND status = 'passed'",String(caught.message).slice(0,1000),order.id),
@@ -1589,6 +1617,9 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
       try { await env.GENERATION_QUEUE.send({orderId:order.id}); }
       catch (queueFailure) { console.error('Staged retry queue send failed; scheduled recovery will continue',{orderId:order.id,message:queueFailure?.message}); }
       return;
+    }
+    if(stepDelivery&&!caught.persistence&&['BLUEPRINT_INVALID','STAGED_BUDGET_EXHAUSTED','GENERATION_UPSTREAM_FAILED','GENERATION_NOT_CONFIGURED','STAGE_INVALID','GENERATION_INVALID','PRINTED_PROOF_INVALID','GENERATION_QA_FAILED'].includes(code)){
+      if(await activateBaseline(order.id,activity.id,spec,specHash,code,env))return;
     }
     const attempt=(await query(env.DB,'SELECT COALESCE(MAX(attempt),0)+1 AS next FROM generation_usage WHERE order_id = ?',order.id).first()).next;
     await env.DB.batch([

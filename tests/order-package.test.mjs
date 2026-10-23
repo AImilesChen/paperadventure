@@ -132,3 +132,19 @@ test('a delivered order renders its original download card during theme correcti
     await vite.close();
   }
 });
+
+test('initial generation shows saved blueprint parts and distinguishes waiting from active work',async()=>{
+  const vite=await createServer({server:{middlewareMode:true},appType:'custom',logLevel:'silent'});
+  try{
+    const {OrderPackage}=await vite.ssrLoadModule('/src/livePages.jsx');
+    const order={id:'step-order',kind:'custom',sku:'custom_home',status:'fulfilling',filesReady:false,paper:'A4',planReview:{confirmedVersion:1},
+      generationProgress:{phase:'blueprint',blueprintReady:false,completedStages:[],auditPassed:false,storyReady:false,
+        blueprintStepsCompleted:3,blueprintStepTotal:8,activeStep:'blueprint_material',activeStage:2,stepState:'waiting_for_update',lastSavedAt:'2026-10-23 11:00:00'}};
+    const html=renderToStaticMarkup(createElement(OrderPackage,{order,orderId:order.id,selectedPaper:'A4'}));
+    assert.match(html,/3 of 8 parts saved/);assert.match(html,/aria-valuenow="3"/);assert.match(html,/aria-valuemax="15"/);
+    assert.match(html,/Waiting for a new update/);assert.match(html,/Preparing material 2 of 5/);assert.match(html,/Last saved:/);
+    const ready={...order,status:'published',filesReady:true,generationProgress:{...order.generationProgress,phase:'delivered',stepState:'complete',deliveryEdition:'baseline',completedStages:[1,2,3,4,5]}};
+    const final=renderToStaticMarkup(createElement(OrderPackage,{order:ready,orderId:order.id,selectedPaper:'A4'}));
+    assert.match(final,/paper mission briefing is ready/);assert.match(final,/Download complete game/);
+  }finally{await vite.close();}
+});

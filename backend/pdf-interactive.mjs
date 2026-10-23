@@ -221,7 +221,7 @@ function guideStart(story,spec){
     const compact=spec.paper==='Letter';
     const sections=[
       ['THE MISSION',spec.plan.goal],
-      ...(story.spine?[['THE PROBLEM TO SOLVE',story.spine.problem]]:[]),
+      ...(story.deliveryEdition==='baseline'?[['PAPER MISSION BRIEFING','Play the story scenes with the five paper checks. After the final plan is handed to you, read the printed ending aloud. The mission happens in the story; no physical repair or extra prop is required.']]:story.spine?[['THE PROBLEM TO SOLVE',story.spine.problem]]:[]),
       ['PRINT AND PREPARE',`${spec.setting==='classroom'?`Print ${spec.groups} complete Player ${Number(spec.groups)===1?'set':'sets'}, one per crew.`:`Print one complete Player Pack for ${spec.players} players.`} Use ${spec.paper} paper and pencils. Keep this guide and the ending page private. Cutting cards or tiles is optional; pointing and writing always work.`],
       ['RELEASE THE PAGES','Start with Player pages 2-3. After each correct result, release only the next challenge and material pair: 4-5, 6-7, 8-9, then 10-11. Give out Player page 12 only after the final answer is checked.'],
       ['FOUR JOBS','Reader reads the clue aloud. Paper Handler points to or arranges pieces. Checker tests the printed rule and explains why another choice fails. Recorder writes the choice and its result digit. Rotate jobs after each checkpoint.'],
