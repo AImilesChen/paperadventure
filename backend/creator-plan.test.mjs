@@ -92,7 +92,7 @@ test('theme-plan repair asks for the returned premise and scenes across two them
   assert.equal(planFailureCategory({code:'PLAN_QA_FAILED',auditIssueCode:'SCENE_SEQUENCE'}),'PLAN_QA_SCENE_SEQUENCE');
   assert.equal(planFailureCategory({code:'PLAN_INVALID',cause:new Error('Private story text')}),'PLAN_INVALID');
 });
-test('paid plan parser accepts fenced provider JSON and audits the result',async()=>{
+test('new paid plan reaches adult review after deterministic validation without a second AI call',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const plan=planFixture(spec);let calls=0;
   const result=await generateSinglePlan(spec,env,async()=>{
@@ -101,7 +101,7 @@ test('paid plan parser accepts fenced provider JSON and audits the result',async
     const fence=String.fromCharCode(96).repeat(3);
     return Response.json({output:[{content:[{type:'output_text',text:fence+'json\n'+JSON.stringify(value)+'\n'+fence}]}]});
   });
-  assert.equal(calls,2);assert.equal(result.plan.title,plan.title);
+  assert.equal(calls,1);assert.equal(result.plan.title,plan.title);
 });
 
 test('location-only plans cannot reach approval even when a scripted auditor would pass them',async()=>{
@@ -206,12 +206,12 @@ test('new paid plans generate narrative only; setup and selected main-style allo
     }
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(calls++?{pass:true,issues:[]}:candidate)}]}]});
   });
-  assert.equal(calls,2);
+  assert.equal(calls,1);
   assert.deepEqual(result.plan.stages.map(stage=>stage.mechanic),['sequence','sequence','reasoning','reasoning','sequence']);
   assert.match(result.plan.roles,/Reader, Paper Handler, Checker and Recorder/);
   assert.match(result.plan.preparation,/Keep the adult guide and ending private/);
 });
-test('an overlong paid plan is repaired before audit and usage includes the repair',async()=>{
+test('an overlong paid plan is repaired before adult review and usage includes the repair',async()=>{
   const spec=validatePurchase({...input,creatorVersion:3}).spec;
   const valid=planFixture(spec),overlong={...valid,premise:'R'.repeat(400)};
   let calls=0;
@@ -219,8 +219,8 @@ test('an overlong paid plan is repaired before audit and usage includes the repa
     const value=[overlong,valid,{pass:true,issues:[]}][calls++];
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
   });
-  assert.equal(calls,3);assert.match(result.plan.roles,/Reader, Paper Handler, Checker and Recorder/);
-  assert.equal(result.usage.input_tokens,30);assert.equal(result.usage.output_tokens,60);
+  assert.equal(calls,2);assert.match(result.plan.roles,/Reader, Paper Handler, Checker and Recorder/);
+  assert.equal(result.usage.input_tokens,20);assert.equal(result.usage.output_tokens,40);
 });
 
 test('failed initial validation repairs the saved candidate without regenerating it',async()=>{
@@ -244,12 +244,12 @@ test('a transient invalid initial plan recovers without using a customer change'
     const value=[invalid,invalid,valid,{pass:true,issues:[]}][calls++];
     return Response.json({id:`plan-${calls}`,output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}],usage:{input_tokens:10,output_tokens:20}});
   });
-  assert.equal(calls,4);
+  assert.equal(calls,3);
   assert.equal(result.plan.title,valid.title);
-  assert.deepEqual(result.usage,{input_tokens:40,output_tokens:80});
+  assert.deepEqual(result.usage,{input_tokens:30,output_tokens:60});
 });
 test('a paid plan rejected by audit is corrected and independently rechecked once',async()=>{
-  const spec=validatePurchase({...input,creatorVersion:3}).spec;
+  const spec={...validatePurchase({...input,creatorVersion:3}).spec,packResilientDeliveryVersion:undefined};
   const first=planFixture(spec),corrected=planFixture(spec);
   corrected.stages[1].task+=' Compare the printed clock hands.';
   corrected.stages[1].scene='Beside the Journey to the West clock face';
