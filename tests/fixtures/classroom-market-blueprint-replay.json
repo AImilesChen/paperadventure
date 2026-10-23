@@ -1,0 +1,265 @@
+{
+  "spec": {
+    "sku": "custom_classroom",
+    "kind": "custom",
+    "setting": "classroom",
+    "themeId": null,
+    "customIdea": "A night market courier needs to find the correct delivery and bring it to a friendly shopkeeper.",
+    "players": 24,
+    "groups": 6,
+    "age": "6-8",
+    "paper": "A4",
+    "direction": "mystery",
+    "proposalTitle": null,
+    "proposalSummary": null,
+    "gamePackVersion": 2,
+    "packLogicVersion": 1,
+    "packContractVersion": 1,
+    "packExperienceVersion": 3,
+    "packQualityVersion": 14,
+    "packLayoutVersion": 4,
+    "packCopyVersion": 1,
+    "packCausalVersion": 1,
+    "packPlayableReviewVersion": 1,
+    "packDeliveryPolicyVersion": 2,
+    "packEvidenceContractVersion": 1,
+    "packResilientDeliveryVersion": 1,
+    "preferences": {
+      "characters": "",
+      "goal": "",
+      "include": "",
+      "avoid": ""
+    },
+    "place": "",
+    "reading": "",
+    "materials": "",
+    "creatorVersion": 3,
+    "language": "en",
+    "storyLocation": "",
+    "mood": "",
+    "gameplay": {
+      "primary": "discussion",
+      "secondary": [
+        "reasoning"
+      ],
+      "request": ""
+    },
+    "plan": {
+      "id": "mystery",
+      "title": "The Night Market Courier",
+      "summary": "In a vibrant night market, a young courier named Mira must deliver a special package to a friendly shopkeeper. With market stalls bustling and lanterns glowing, Mira and her friends follow four printed clues to identify the right basket and shop. Each solved check reveals one result digit. Together, the digits point to one final action that completes the delivery to the correct shopkeeper before the market closes.",
+      "storySceneVersion": 1,
+      "opening": "Mira the courier carries a special package through the colorful night market. She must find the right shopkeeper before the lanterns go out. Complete four printed checks to collect four result digits. Their combined code identifies the final action that completes this mission.",
+      "roles": "Reader, Paper Handler, Checker and Recorder rotate after each checkpoint. For two players, combine jobs in pairs.",
+      "goal": "Mira identifies the correct basket and shopkeeper, then completes the special delivery before the night market closes.",
+      "preparation": "Print the Player Pack. Keep the adult guide and ending private. Hand out one challenge and its material at a time. Use pencils; cutting is optional.",
+      "premise": "Mira the courier carries a special package through the colorful night market. She must find the right shopkeeper before the lanterns go out.",
+      "themeAnchors": [
+        "Night market",
+        "Courier Mira",
+        "Friendly shopkeeper"
+      ],
+      "stages": [
+        {
+          "number": 1,
+          "title": "Check the witness statements",
+          "mechanic": "discussion",
+          "task": "Use the witness statements to eliminate two candidates. Record the remaining candidate and its result digit.",
+          "teamwork": "One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.",
+          "connection": "Save this result digit for checkpoint 5, then continue to checkpoint 2.",
+          "storyContext": "Lantern-lit entrance gate. Mira checks the witness notes from two market helpers to narrow down which shopkeeper sent for the package.",
+          "scene": "Lantern-lit entrance gate",
+          "storyBeat": "Mira checks the witness notes from two market helpers to narrow down which shopkeeper sent for the package."
+        },
+        {
+          "number": 2,
+          "title": "Compare the printed evidence",
+          "mechanic": "discussion",
+          "task": "Compare the printed facts and rule. Choose one matching piece and record its result digit.",
+          "teamwork": "One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.",
+          "connection": "Save this result digit for checkpoint 5, then continue to checkpoint 3.",
+          "storyContext": "Fruit stall row. Mira compares printed facts about the baskets to learn which delivery matches the friendly shopkeeper's order.",
+          "scene": "Fruit stall row",
+          "storyBeat": "Mira compares printed facts about the baskets to learn which delivery matches the friendly shopkeeper's order."
+        },
+        {
+          "number": 3,
+          "title": "Check the witness statements",
+          "mechanic": "discussion",
+          "task": "Use the witness statements to eliminate two candidates. Record the remaining candidate and its result digit.",
+          "teamwork": "One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.",
+          "connection": "Save this result digit for checkpoint 5, then continue to checkpoint 4.",
+          "storyContext": "Riverside tea stall. Mira listens to two more stall owners and crosses out the wrong shopkeepers from her list.",
+          "scene": "Riverside tea stall",
+          "storyBeat": "Mira listens to two more stall owners and crosses out the wrong shopkeepers from her list."
+        },
+        {
+          "number": 4,
+          "title": "Arrange first, last and neighbours",
+          "mechanic": "reasoning",
+          "task": "Arrange the four printed steps using the first, last and neighbouring-step rules. Record the matching order and result digit.",
+          "teamwork": "One explorer reads, one handles the pieces, one checks the rule, and one records. Rotate these jobs after this checkpoint.",
+          "connection": "Save this result digit for checkpoint 5, then continue to checkpoint 5.",
+          "storyContext": "Winding paper-lantern alley. Mira arranges the four delivery steps in the correct order to find the safe path to the shop.",
+          "scene": "Winding paper-lantern alley",
+          "storyBeat": "Mira arranges the four delivery steps in the correct order to find the safe path to the shop."
+        },
+        {
+          "number": 5,
+          "title": "Combine the four discoveries",
+          "mechanic": "reasoning",
+          "task": "Copy your result digits from checkpoints 1-4 in order. Compare this code with the three final actions and choose the matching action.",
+          "teamwork": "Each explorer checks one earlier result. Compare all four before agreeing on the final action.",
+          "connection": "The four recorded discoveries identify the final action.",
+          "storyContext": "Friendly shopkeeper's painted door. Mira matches her collected digits to choose the final action that hands the package to the right shopkeeper.",
+          "scene": "Friendly shopkeeper's painted door",
+          "storyBeat": "Mira matches her collected digits to choose the final action that hands the package to the right shopkeeper."
+        }
+      ]
+    },
+    "planConfirmed": true
+  },
+  "candidate": {
+    "stages": [
+      {
+        "material": {
+          "title": "Witness Statements at the Night Market Gate",
+          "items": [
+            {
+              "label": "helper Bai note"
+            },
+            {
+              "label": "helper An report"
+            },
+            {
+              "label": "helper Mei message"
+            }
+          ]
+        },
+        "features": [
+          "Mentions lotus basket",
+          "Names shopkeeper"
+        ],
+        "word": "NOTE"
+      },
+      {
+        "material": {
+          "title": "Fruit Stall Row Printed Evidence",
+          "items": [
+            {
+              "label": "blue stall sign record"
+            },
+            {
+              "label": "green awning note"
+            },
+            {
+              "label": "red cart label report"
+            }
+          ]
+        },
+        "features": [
+          "Mentions Old Lin's Teas",
+          "Names fruit basket"
+        ],
+        "word": "NOTE"
+      },
+      {
+        "material": {
+          "title": "Witness Statements Board",
+          "items": [
+            {
+              "label": "tea stall report"
+            },
+            {
+              "label": "lantern stall note"
+            },
+            {
+              "label": "spice stall record"
+            }
+          ]
+        },
+        "features": [
+          "Mentions lotus basket",
+          "Names shopkeeper"
+        ],
+        "word": "NOTE"
+      },
+      {
+        "material": {
+          "title": "Paper-Lantern Alley Delivery Steps",
+          "items": [
+            {
+              "label": "Fold the market map"
+            },
+            {
+              "label": "Count the blue lanterns"
+            },
+            {
+              "label": "Inspect paper lantern"
+            },
+            {
+              "label": "Find Old Lin's blue door"
+            }
+          ]
+        },
+        "features": [
+          "Checked fact",
+          "Matching fact"
+        ],
+        "word": "NOTE"
+      },
+      {
+        "material": {
+          "title": "Choose the final action",
+          "items": [
+            {
+              "label": "Mira hands the lotus basket to Old Lin"
+            },
+            {
+              "label": "Mira hands the lychee basket to Bo"
+            },
+            {
+              "label": "Mira hands the mango basket to Uncle Jai"
+            }
+          ]
+        },
+        "features": [
+          "Checked fact",
+          "Matching fact"
+        ],
+        "word": "NOTE"
+      }
+    ],
+    "spine": {
+      "problem": "Mira has one last package to deliver before the night market lanterns go out.",
+      "resolution": "Mira hands the lotus basket to Old Lin",
+      "links": [
+        {
+          "finding": "helper Mei message",
+          "reason": "helper Mei message contains both lotus basket and shopkeeper. The helper Mei message links lotus basket with a shopkeeper, supporting the mira. This supports \"the lotus basket\".",
+          "consequence": "The helper Mei message links lotus basket with a shopkeeper, supporting the mira.",
+          "supportsAction": "the lotus basket"
+        },
+        {
+          "finding": "blue stall sign record",
+          "reason": "\"blue stall sign record\" confirms the printed record facts. The blue stall sign record links Old Lin's Teas with a fruit basket, supporting the mira. This supports \"Old Lin\".",
+          "consequence": "The blue stall sign record links Old Lin's Teas with a fruit basket, supporting the mira.",
+          "supportsAction": "Old Lin"
+        },
+        {
+          "finding": "lantern stall note",
+          "reason": "lantern stall note contains both lotus basket and shopkeeper. The lantern stall note links the lotus basket with a shopkeeper, supporting the mira. This supports \"Mira hands\".",
+          "consequence": "The lantern stall note links the lotus basket with a shopkeeper, supporting the mira.",
+          "supportsAction": "Mira hands"
+        },
+        {
+          "finding": "Fold the market map > Count the blue lanterns > Inspect paper lantern > Find Old Lin's blue door",
+          "reason": "\"Fold the market map\" comes before \"Find Old Lin's blue door\". The step \"Fold the market map\" prepares \"Find Old Lin's blue door\" for the mira. This supports \"to Old Lin\".",
+          "consequence": "The step \"Fold the market map\" prepares \"Find Old Lin's blue door\" for the mira.",
+          "supportsAction": "to Old Lin"
+        }
+      ]
+    },
+    "celebration": "The package sits in Old Lin's hands, delivered before the market closes. Old Lin smiles and gives Mira a warm nod of thanks."
+  }
+}
