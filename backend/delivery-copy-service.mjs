@@ -144,17 +144,11 @@ async function reviewedHash(row){
 }
 export async function requireDeliveryReview(story,spec,orderId,env){
   if(!spec.packCopyVersion)return;
-  if(spec.packDeliveryPolicyVersion===1){
+  if(spec.packDeliveryPolicyVersion===1&&!story.deliveryCopy){
     const source=sourceStory(story),row=await read(env.DB,orderId);
     if(!matches(row,await boundHashes(source,spec)))throw failure('DELIVERY_COPY_SOURCE_CHANGED');
-    if(story.deliveryCopy){
-      if(row.phase!=='mechanical_ready'||!row.normalized_json)throw failure('DELIVERY_COPY_REVIEW_STALE');
-      const copy=validateDeliveryCopy(source,JSON.parse(row.normalized_json));
-      if(JSON.stringify(copy)!==JSON.stringify(story.deliveryCopy)||row.normalized_sha256!==await sha256(JSON.stringify(copy)))throw failure('DELIVERY_COPY_REVIEW_STALE');
-    }else{
-      if(row.phase!=='baseline_ready')throw failure('DELIVERY_COPY_MISSING');
-      verifyPrintedPuzzles(source);
-    }
+    if(row.phase!=='baseline_ready')throw failure('DELIVERY_COPY_MISSING');
+    verifyPrintedPuzzles(source);
     buildInteractiveGamePdf(story,spec,'player');
     buildInteractiveGamePdf(story,spec,'guide');
     return;
@@ -175,8 +169,15 @@ export async function requireDeliveryReview(story,spec,orderId,env){
   const transport=await readTransportRecovery(env.DB,orderId);
   if(repair&&!await factRepairBinding(row,repair,source,spec))throw failure('DELIVERY_COPY_SOURCE_CHANGED');
   if(transport&&!matches(transport,await boundHashes(source,spec)))throw failure('DELIVERY_COPY_SOURCE_CHANGED');
-  const copy=checkedCopy(source,candidateWithFacts(source,savedCandidate(row),repair));
-  if(JSON.stringify(copy)!==JSON.stringify(story.deliveryCopy)||await reviewedHash(row)!==await sha256(JSON.stringify(copy)))throw failure('DELIVERY_COPY_REVIEW_STALE');
+  // The reviewed edition can contain a deterministic player-visible bridge
+  // added after the provider draft. Recheck that exact saved edition, rather
+  // than reconstructing the older raw candidate and rejecting publication.
+  const copy=row.normalized_json?validateDeliveryCopy(source,JSON.parse(row.normalized_json)):
+    checkedCopy(source,candidateWithFacts(source,savedCandidate(row),repair));
+  const copyHash=await sha256(JSON.stringify(copy));
+  if(JSON.stringify(copy)!==JSON.stringify(story.deliveryCopy)||
+    row.normalized_sha256&&row.normalized_sha256!==copyHash||await reviewedHash(row)!==copyHash)
+    throw failure('DELIVERY_COPY_REVIEW_STALE');
   if(spec.packPlayableReviewVersion===1)validatePlayableReview(JSON.parse(row.audit_json||'null'),applyDeliveryCopy(source,copy));
   else if(spec.packCausalVersion===1)validateCausalReview(JSON.parse(row.audit_json||'null'),applyDeliveryCopy(source,copy));
 }
@@ -227,11 +228,11 @@ const diagnosticMessages={
 export async function deliveryCopyStatus(orderId,env,story,spec){
   const row=await read(env.DB,orderId);
   if(!row)return null;
-  if(spec?.packDeliveryPolicyVersion===1&&['mechanical_ready','baseline_ready'].includes(row.phase)&&
+  if(spec?.packDeliveryPolicyVersion===1&&row.phase==='baseline_ready'&&
     story&&matches(row,await boundHashes(sourceStory(story),spec)))
     return {phase:'ready',code:null,message:null,calls:Number(row.calls)||0,limit:1,
-      candidateSaved:Boolean(row.candidate_json),formatValid:row.phase==='mechanical_ready',
-      reviewPassed:false,deliveryReady:true,deliveryMode:row.phase==='mechanical_ready'?'checked_copy':'checked_baseline',
+      candidateSaved:Boolean(row.candidate_json),formatValid:false,
+      reviewPassed:false,deliveryReady:true,deliveryMode:'checked_baseline',
       issues:[],resumeAvailable:false};
   const repair=await readFactRepair(env.DB,orderId);
   const transport=await readTransportRecovery(env.DB,orderId);
@@ -410,13 +411,6 @@ For each links.checkpoint_N return factIndex (ZERO-BASED) and a complete reason 
     if((spec.packQualityVersion||0)>=15)validatePlayerEvidence(printed);
     await mark('render');
     try{buildInteractiveGamePdf(printed,spec,'player');buildInteractiveGamePdf(printed,spec,'guide');}catch(error){throw failure('DELIVERY_COPY_PRINT_FIT',String(error.message||'PDF fit failed'));}
-    if(spec.packDeliveryPolicyVersion===1){
-      // An independent editorial verdict must not veto a mechanically solved,
-      // printable game. The provider's draft is kept only after local proof;
-      // this path spends no second model call and never fabricates an audit.
-      await query(env.DB,"UPDATE custom_delivery_copy SET phase = 'mechanical_ready',error_code = NULL,error_detail = NULL,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ? AND normalized_sha256 = ?",orderId,COPY_POLICY,copyHash).run();
-      return {...source,deliveryCopy:copy};
-    }
     await mark('audit');
     let audit;
     if(row.audit_json){
@@ -442,7 +436,8 @@ For each links.checkpoint_N return factIndex (ZERO-BASED) and a complete reason 
     await query(env.DB,'UPDATE custom_delivery_copy SET error_code = ?,error_detail = ?,phase = ?,updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND policy = ?',code,String(error.message||'Copy check failed').slice(0,500),phase,orderId,COPY_POLICY).run();
     if(spec.packDeliveryPolicyVersion===1){
       // The approved plan and five saved checkpoints already contain the
-      // complete paper game. A failed optional rewrite must not discard them.
+      // complete paper game. A failed rewrite or editorial review must not
+      // discard them or turn an unreviewed rewrite into published content.
       // Publish that baseline only when its puzzles solve and both PDFs render.
       verifyPrintedPuzzles(source);
       buildInteractiveGamePdf(source,spec,'player');
