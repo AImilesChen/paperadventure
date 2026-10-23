@@ -87,3 +87,4 @@
 # deploy PR #85 minimum playable delivery fallback 2026-10-22
 # deploy PR #86 evidence-first playable review 2026-10-22
 # deploy PR #87 checked-baseline delivery for future custom orders 2026-10-23
+# deploy PR #88 resilient checked-step delivery 2026-10-23
