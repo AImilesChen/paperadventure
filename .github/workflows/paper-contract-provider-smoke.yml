@@ -34,3 +34,4 @@ jobs:
           name: synthetic-paper-contract-packs
           path: tmp/provider-contract/
           retention-days: 1
+# Isolated capped provider check on 2026-10-23.
