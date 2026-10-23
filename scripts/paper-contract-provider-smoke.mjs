@@ -7,7 +7,7 @@ import {buildGamePdf} from '../backend/pdf.mjs';
 import {verifyPrintedPuzzles} from '../backend/paper-proof.mjs';
 import {clockSpec as checkedClockSpec} from '../content/paper-contract-qa.mjs';
 
-const env={AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:process.env.DEEPSEEK_API_KEY,DEEPSEEK_MODEL:'deepseek-flash'};
+const env={AI_PROVIDER:'deepseek',DEEPSEEK_API_KEY:process.env.DEEPSEEK_API_KEY,DEEPSEEK_MODEL:process.env.DEEPSEEK_MODEL||'deepseek-flash'};
 if(!env.DEEPSEEK_API_KEY)throw Error('Private provider credential missing.');
 const directory=process.env.SMOKE_OUTPUT||'tmp/provider-contract';
 await mkdir(directory,{recursive:true});
