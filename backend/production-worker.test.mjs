@@ -21,6 +21,8 @@ import {COPY_POLICY} from './delivery-copy.mjs';
 import { packRemakeView, qualityUpgradeEligible, retryPackRemake, processPackRemake } from './pack-remake.mjs';
 import { createDownloadZip } from '../src/downloadZip.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
+import {buildBaselinePack} from './baseline-pack.mjs';
+import {completePaperPlan,paperContractTypes} from '../shared/paper-contract.mjs';
 async function approvedCustomInput(env,input) {
   const spec=validatePurchase({...input,creatorVersion:2,gameplay:{primary:'reasoning',secondary:[]}}).spec;
   spec.plan=planFixture(spec,spec.direction);spec.planConfirmed=true;
@@ -877,7 +879,7 @@ test('an exhausted consequence-length failure resumes either a saved candidate o
 
 test('a stopped v15 material step can resume once on the same paid order',async()=>{
   const {db,binding}=database(),owner=await sha256('test-session-secret|adult@example.com'),jobs=[];
-  const spec={...validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec,packQualityVersion:15};
+  const spec={...validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower that stopped at noon',players:4,age:'8-10',paper:'A4',gameplay:{primary:'reasoning',secondary:[]}}).spec,packPlayAllocationVersion:0,packQualityVersion:15};
   assert.equal(spec.packQualityVersion,15);
   const stored=JSON.stringify(spec);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('material-price','custom_home','USD',1499,'exclusive',1)").run();
@@ -2332,11 +2334,12 @@ test('a same-order remake resumes past a failed assembly by replacing its one st
 });
 
 
-async function stepDeliveryFixture({failPhase=null,dropSend=false,failStorage=false}={}){
+async function stepDeliveryFixture({failPhase=null,dropSend=false,failStorage=false,gameplay=null}={}){
   const {db,binding}=database(),orderId='step-delivery-order',owner='step-delivery-owner';
   const spec={...clockSpec,sku:'custom_home',kind:'custom',packExperienceVersion:3,packQualityVersion:14,packLayoutVersion:4,
     packCopyVersion:1,packDeliveryPolicyVersion:2,packResilientDeliveryVersion:1,packStepDeliveryVersion:1,
     onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
+  if(gameplay){spec.gameplay=gameplay;spec.packPlayAllocationVersion=1;spec.plan=completePaperPlan(clockSpec.plan,gameplay,14,1);}
   const stored=JSON.stringify(spec),hash=await sha256(stored);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('step-price','custom_home','USD',1499,'exclusive',1)").run();
   db.prepare("INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) VALUES (?,'custom','custom_home',?,?,?,'step-price',1499,'USD','paid',CURRENT_TIMESTAMP)").run(orderId,stored,hash,owner);
@@ -2349,6 +2352,15 @@ async function stepDeliveryFixture({failPhase=null,dropSend=false,failStorage=fa
     {finding:'The checked order protects the teeth.',consequence:'The wheel stays aligned during repair.',supportsAction:'Fit signal gear'},
     {finding:'The upper bridge reaches the gear room.',consequence:'The upper bridge can carry the part.',supportsAction:'signal gear'},
   ]};
+  let celebration='The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.';
+  if(gameplay){
+    const {blueprint}=await buildBaselinePack(spec);
+    Object.assign(frame,blueprint.storyFrame);celebration=blueprint.celebration;
+    context.stages=blueprint.stages.map(stage=>{
+      const c=stage.material.logic.context;
+      return {material:{title:c.title,items:c.labels.map(label=>({label}))},features:c.features,word:c.word};
+    });
+  }
   const pending=[],files=new Map(),calls=[],perMessage=[];let retries=0;
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',
     GENERATION_QUEUE:{send:async job=>{if(dropSend){dropSend=false;throw Error('simulated dispatch interruption');}pending.push(job);}},
@@ -2358,7 +2370,7 @@ async function stepDeliveryFixture({failPhase=null,dropSend=false,failStorage=fa
       const body=JSON.parse(init.body),name=body.text.format.name,input=JSON.parse(body.input);calls.push({name,checkpoint:input.checkpoint});
       if(failPhase==='all'||failPhase===name&&input.checkpoint===2)throw new DOMException('simulated provider timeout','TimeoutError');
       if(failPhase==='invalid_material'&&name==='blueprint_material_stage'&&input.checkpoint===2)return Response.json({output_text:JSON.stringify({material:{title:'Invalid sheet',items:[]}})});
-      const value=name==='story_frame'?frame:name==='blueprint_material_stage'?context.stages[input.checkpoint-1]:name==='blueprint_celebration'?{celebration:'The fitted gear turns and the noon bell rings across the town. Pip smiles, thanks the team, and begins the journey home.'}:null;
+      const value=name==='story_frame'?frame:name==='blueprint_material_stage'?context.stages[input.checkpoint-1]:name==='blueprint_celebration'?{celebration}:null;
       assert.ok(value,`no final AI audit or whole-pack assembly should run: ${name}`);
       return Response.json({output_text:JSON.stringify(value),usage:{input_tokens:1,output_tokens:1}});
     }};
@@ -2454,4 +2466,20 @@ test('a final preflight failure after all five checkpoints delivers the proven b
   await f.drain();assert.equal(f.files.size,3);
   const story=JSON.parse(f.db.prepare('SELECT story_json FROM custom_story_checkpoints').get().story_json);
   assert.equal(verifyPrintedPuzzles(story).length,5);assert.equal(story.deliveryEdition,'baseline');
+});
+
+
+test('selected main and both supporting styles survive stepped enhancement and provider-failure baseline delivery',async()=>{
+  for(const failPhase of [null,'all']){
+    const f=await stepDeliveryFixture({gameplay:{primary:'code',secondary:['discussion','sequence']},failPhase});
+    await f.process();await f.drain();
+    const story=JSON.parse(f.db.prepare('SELECT story_json FROM custom_story_checkpoints').get().story_json);
+    assert.deepEqual(story.stages.map(stage=>stage.material.type),paperContractTypes(f.spec.plan));
+    assert.deepEqual(story.stages.map(stage=>stage.mechanic),['code','discussion','code','sequence','finale']);
+    assert.equal(verifyPrintedPuzzles(story).length,5);
+    assert.equal(f.db.prepare('SELECT delivery_mode FROM custom_generation_baselines').get().delivery_mode,failPhase?'baseline':'enhanced');
+    assert.equal(f.files.size,3);
+    assert.ok(f.perMessage.every(count=>count<=1));
+    assert.ok(!f.calls.some(call=>/audit/.test(call.name)));
+  }
 });

@@ -148,3 +148,21 @@ test('initial generation shows saved blueprint parts and distinguishes waiting f
     assert.match(final,/paper mission briefing is ready/);assert.match(final,/Download complete game/);
   }finally{await vite.close();}
 });
+
+
+test('the paid plan preview shows both supporting activities and labels the independent finale',async()=>{
+  const vite=await createServer({server:{middlewareMode:true},appType:'custom',logLevel:'silent'});
+  try{
+    const {PlanPreview}=await vite.ssrLoadModule('/src/creatorPlanPreview.jsx');
+    const {validatePurchase}=await import('../backend/domain.mjs');
+    const {planFixture}=await import('./fixtures/creator-plan-fixture.mjs');
+    const spec=validatePurchase({sku:'custom_home',creatorVersion:3,customIdea:'A clock tower mystery',players:4,age:'8-10',paper:'A4',gameplay:{primary:'code',secondary:['discussion','sequence']}}).spec;
+    const plan=planFixture(spec),html=renderToStaticMarkup(createElement(PlanPreview,{plan}));
+    assert.equal((html.match(/Crack a simple code/g)||[]).length,2);
+    assert.match(html,/Solve together/);assert.match(html,/Put things in order/);
+    assert.match(html,/Finale · combine your results/);
+    for(const stage of plan.stages)assert.ok(html.includes(stage.title));
+    const legacy={...plan};delete legacy.playAllocationVersion;legacy.stages=plan.stages.map(stage=>stage.number===5?{...stage,mechanic:'discussion'}:stage);
+    assert.ok(!renderToStaticMarkup(createElement(PlanPreview,{plan:legacy})).includes('Finale · combine your results'));
+  }finally{await vite.close();}
+});
