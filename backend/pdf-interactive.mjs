@@ -1,3 +1,4 @@
+import {shapeSymbols} from '../shared/puzzle-variants.mjs';
 // Worker-compatible vector PDF renderer for the second custom pack format.
 // All shapes are generated from checked data; model output is never PDF syntax.
 const encoder=new TextEncoder();
@@ -39,7 +40,13 @@ function makePage(width,height,label){
   text('PAPER ADVENTURE / CUSTOM PAPER GAME',48,height-25,9,true);
   rule(48,45,width-48,45);
   text(label,48,30,8);
-  return {commands,text,block,box,rule,circle,star,width,height};
+  const symbol=(name,x,y,size=10)=>{
+    if(name==='CIRCLE')circle(x,y,size);
+    else if(name==='SQUARE')box(x-size,y-size,size*2,size*2,'1 1 1','0.08 0.19 0.31');
+    else if(name==='STAR')star(x,y,size);
+    else if(name==='TRIANGLE')commands.push(`0.08 0.19 0.31 RG 1.4 w ${x} ${y+size} m ${x-size} ${y-size} l ${x+size} ${y-size} l h S`);
+  };
+  return {commands,text,block,box,rule,circle,star,symbol,width,height};
 }
 
 function heading(page,kicker,title){
@@ -122,7 +129,14 @@ function materialSheet(stage,spec){
   }
   page.text('PRINTED PIECES',48,y,11,true);y-=20;
   const items=material.items;
-  if(material.type==='route_board'&&material.logic?.experienceVersion>=2){
+  if(material.type==='symbol_key'&&material.items.every(item=>shapeSymbols.includes(item.label))){
+    const message=stage.clue.match(/message is ([A-Z]+(?:-[A-Z]+){3})/i)?.[1]?.split('-');
+    if(!message)throw new Error('The shape message is missing.');
+    page.text('MESSAGE TO DECODE',48,y,10,true);
+    message.forEach((name,index)=>{page.symbol(name,74+index*115,y-27,11);page.text(name,56+index*115,y-50,8,true);});
+    y-=76;
+  }
+  if(material.type==='route_board'&&material.logic?.experienceVersion>=2&&!material.items[3]?.detail.startsWith('Choose a route with YES for both ')){
     const top=y,graphBottom=top-330;
     if(graphBottom<180)throw new Error(`Checkpoint ${stage.number} route map does not fit.`);
     page.box(48,graphBottom,page.width-96,330,'0.97 0.99 1');
@@ -166,8 +180,8 @@ function materialSheet(stage,spec){
     // A candidate has two facts plus its digit; a witness has one fact.
     // Allocate their actual wrapped heights instead of forcing every row into
     // the same height. This keeps complete sentences inside their own boxes.
-    const record=material.type==='decision_record',detailTop=record?36:39,leading=15;
-    const needed=items.map(item=>Math.max(record?62:65,detailTop+(wrap(item.detail,63).length-1)*leading+11));
+    const record=material.type==='decision_record',compactRecord=record&&stage.number<5&&material.logic?.variant,detailTop=compactRecord?33:record?36:39,leading=compactRecord?14:15;
+    const needed=items.map(item=>Math.max(compactRecord?58:record?62:65,detailTop+(wrap(item.detail,63).length-1)*leading+11));
     const available=y-178-items.length*7,total=needed.reduce((sum,h)=>sum+h,0);
     if(total>available||needed.some(h=>h>110))throw new Error(`Checkpoint ${stage.number} record rows do not fit.`);
     const extra=Math.floor((available-total)/items.length);
@@ -175,14 +189,16 @@ function materialSheet(stage,spec){
       const h=Math.min(110,needed[index]+extra);
       page.box(48,y-h,page.width-96,h,'0.97 0.99 1');
       if(material.type==='decision_record'&&(!material.logic?.contractVersion||index<3))page.box(60,y-28,13,13);
-      page.text(item.label,record?83:61,y-(record?22:24),11,true);
-      const bottom=page.block(item.detail,record?83:61,y-detailTop,63,11,leading);
+      const shaped=material.type==='symbol_key'&&shapeSymbols.includes(item.label);
+      if(shaped)page.symbol(item.label,77,y-34,11);
+      page.text(item.label,shaped?106:record?83:61,y-(record?22:24),11,true);
+      const bottom=page.block(item.detail,shaped?106:record?83:61,y-detailTop,63,compactRecord?10:11,leading);
       if(bottom+leading<y-h+11)throw new Error(`Checkpoint ${stage.number} record text does not fit its box.`);
       y-=h+7;
     }
   } else {
     const gap=10,col=(page.width-96-gap)/2;
-    const rows=Math.ceil(items.length/2),h=Math.min(170,Math.floor((y-165-(rows-1)*gap)/rows));
+    const rows=Math.ceil(items.length/2),bottomMargin=material.logic?.variant?178:165,h=Math.min(170,Math.floor((y-bottomMargin-(rows-1)*gap)/rows));
     items.forEach((item,index)=>{
       const x=48+(index%2)*(col+gap),top=y-Math.floor(index/2)*(h+gap);
       page.box(x,top-h,col,h,'0.97 0.99 1');
@@ -197,7 +213,8 @@ function materialSheet(stage,spec){
       } else if(material.type==='order_tiles'&&material.logic?.version===1){
         page.circle(x+25,top-94,15);
         page.text('?',x+21,top-99,13,true);
-        page.block(item.detail,x+52,top-82,24,11,16);
+        const bottom=page.block(item.detail,x+52,top-82,24,11,16);
+        if(material.logic?.variant&&bottom+16<top-h+11)throw new Error(`Checkpoint ${stage.number} ordering rule does not fit its box.`);
       } else {
         const bottom=page.block(item.detail,x+12,labelBottom-9,29,11,16);
         if(bottom+16<top-h+11)throw new Error(`Checkpoint ${stage.number} printed piece text does not fit its box.`);
@@ -267,6 +284,7 @@ function wrongChoiceNotes(stage){
       const item=items.find(piece=>piece.label===option);
       const closed=item?.detail.match(/(First|Second) link: CLOSED/);
       if(closed)reason=`The ${closed[1].toLowerCase()} link is CLOSED, so the path cannot reach END.`;
+      else if(stage.material.logic?.variant){const missing=item?.detail.match(/([A-Za-z][A-Za-z ]+): NO\./);if(missing)reason=`The printed ${missing[1].trim()} condition is NO.`;}
     }else if(type==='evidence_cards'||type==='decision_record'){
       const item=items.find(piece=>piece.label===option);
       if(stage.material.logic?.copyFacts){
@@ -275,10 +293,17 @@ function wrongChoiceNotes(stage){
       }
       const missing=item?.detail.match(/([A-Za-z][A-Za-z ]+): NO\./);
       if(missing)reason=`The printed ${missing[1].trim()} property is NO, but the rule requires YES.`;
+      if(stage.material.logic?.variant&&item?.detail.startsWith('Record ')){
+        const id=item.detail.match(/^Record ([1-3])/)[1],register=items.find(piece=>piece.label==='Cross-check register');
+        if(register?.detail.includes(`Record ${id}: NO.`))reason=`The matching register entry for record ${id} is NO.`;
+      }
     }else if(type==='symbol_key'){
       const expected=correct.replace(/ \/ digit [1-3]$/,''),found=option.replace(/ \/ digit [1-3]$/,'');
       const at=[...expected].findIndex((letter,i)=>letter!==found[i]);
-      if(at>=0)reason=`Letter ${at+1} disagrees with key row ${at+1}.`;
+      if(at>=0){
+        const message=stage.clue.match(/message is ([A-Z0-9]+(?:-[A-Z0-9]+){3})/i)?.[1]?.split('-');
+        reason=stage.material.logic?.variant?`Letter ${at+1} disagrees with key entry ${message?.[at]||at+1}.`:`Letter ${at+1} disagrees with key row ${at+1}.`;
+      }
     }else if(type==='order_tiles'){
       const expected=correct.replace(/ \/ digit [1-3]$/,'').split(' > '),found=option.replace(/ \/ digit [1-3]$/,'').split(' > ');
       const at=expected.findIndex((label,i)=>label!==found[i]);
@@ -296,11 +321,12 @@ function guideStage(stage,spec,story){
   if(spec.packExperienceVersion>=2){
     const option=stage.options[stage.answerIndex];
     const prompt=stage.number===5?'Do all four saved digits match this action in order?':stage.material.type==='order_tiles'?'Which printed before/after rule fixes the first and last step?':stage.material.type==='symbol_key'?'What letter does each row of the key give?':stage.material.type==='route_board'?'Can you trace both links without crossing a CLOSED mark?':stage.material.type==='decision_record'?'Which candidate satisfies both witness properties?':'Which piece satisfies both parts of the printed rule?';
+    const variantPrompt=stage.number<5&&stage.material.logic?.variant?stage.material.items.some(item=>item.label==='Cross-check register')?'Did you match the same record number on both pieces?':stage.material.type==='decision_record'?'What does each reader know? Share both clues before choosing.':stage.material.type==='route_board'&&stage.material.items[3]?.detail.startsWith('Choose a route')?'Does this route meet both printed conditions?':prompt:prompt;
     const sections=[
       ['STORY BEFORE THIS CHECK',stage.storyContext||`The team reaches checkpoint ${stage.number}. The mission is still open.`],
       ['HAND OUT',`Player pages ${stage.number*2}-${stage.number*2+1}: the challenge and ${kindLabel[stage.material.type].toLowerCase()} sheet. Keep all later pages and this answer private.`],
       ['RUN THE PAPER ACTION',`${stage.material.instruction} Ask each player to explain one printed fact before the team records a choice.`],
-      ['HINT 1 - REDIRECT',prompt],
+      ['HINT 1 - REDIRECT',variantPrompt],
       ['HINT 2 - NARROW THE CHECK',stage.hint],
       ['CHECK THE ANSWER',`Correct choice: ${String.fromCharCode(65+stage.answerIndex)}. ${option}. ${stage.explanation}`],
       ...(stage.material.logic?.resultDigit?[['RECORD BEFORE CONTINUING',`The team must save result digit ${stage.material.logic.resultDigit} on its material sheet. Keep that sheet for checkpoint 5.`]]:[]),
@@ -482,3 +508,11 @@ export function buildInteractiveGamePdf(story,spec,role){
   return serialize(pages);
 }
 
+
+
+// Pure local format preflight used before selecting a richer puzzle variant.
+// Full-story proof, source binding and final PDF checks still run at delivery.
+export function preflightPuzzlePages(stage,profile){
+  const spec={paper:profile.paper,packExperienceVersion:profile.packExperienceVersion,packLayoutVersion:profile.packLayoutVersion};
+  challenge(stage,spec);materialSheet(stage,spec);guideStage(stage,spec,{stages:[]});
+}

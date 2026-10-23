@@ -1,3 +1,6 @@
+import {selectCheckedVariant,varyPuzzleResults} from './puzzle-variants.mjs';
+import {verifyPrintedPuzzle} from './paper-proof.mjs';
+import {preflightPuzzlePages} from './pdf-interactive.mjs';
 import {paperContractTypes,paperActions,paperAction,validatePaperPlan,assertGoalStillOpen} from '../shared/paper-contract.mjs';
 import {validateStorySpine} from './story-spine.mjs';
 
@@ -283,6 +286,27 @@ export const normalizeStoryCodeWords=(stages,spec)=>{
   });
 };
 export function buildContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1,qualityVersion=2){
+  const classic=buildClassicContextPuzzle(number,type,context,previousDigits,experienceVersion,qualityVersion);
+  if(context.variantVersion!==1)return classic;
+  const profile=context.printProfile;
+  const prepare=(candidate,used)=>{
+    const stage=varyPuzzleResults(candidate,context.seed);
+    stage.material.logic.variant={version:1,requested:context.variant,used};
+    stage.task=profile.task;stage.question=profile.task;stage.teamwork=profile.teamwork;
+    if(number<5&&type==='decision_record'){
+      stage.material.items[3].label='Reader clue 1';stage.material.items[4].label='Checker clue 2';
+      stage.material.instruction='Give clue 1 to Reader and clue 2 to Checker. Each shares only their own clue. Combine both before choosing. Without cutting, the adult reads each clue to its reader.';
+    }
+    verifyPrintedPuzzle(stage,previousDigits);
+    preflightPuzzlePages({...stage,title:profile.title,storyContext:profile.storyContext},profile);
+    return stage;
+  };
+  // Prove the mature fallback before trying a richer local format. No provider
+  // request, storage write or global audit occurs at this boundary.
+  return selectCheckedVariant(classic,context,prepare);
+}
+
+export function buildClassicContextPuzzle(number,type,context,previousDigits=[],experienceVersion=1,qualityVersion=2){
   const labels=context.labels;
   const shift=qualityVersion>=3?(number*2+1)%3:number%3;
   let items,options,answer,clue,hint,explanation,instruction,signature;
@@ -445,7 +469,8 @@ export function prepareContextualBlueprint(candidate,spec){
       throw Error(`Checkpoint ${i+1} needs two concrete story properties, not answer or puzzle-state labels.`);
     const word=type==='symbol_key'?spec.packExperienceVersion>=3?shortKeyWord(raw.word,spec,i,new Set(stages.filter(stage=>stage.material.type==='symbol_key').map(stage=>stage.material.logic.context.word))):text(raw.word,`Checkpoint ${i+1} printed key word`,4).toUpperCase():'NOTE';
     if(!/^[A-Z]{4}$/.test(word))throw Error(`Checkpoint ${i+1} printed word must contain four ASCII letters.`);
-    const context={labels,features,word,title:text(raw.material.title,`Checkpoint ${i+1} material title`,45)};
+    const context={labels,features,word,title:text(raw.material.title,`Checkpoint ${i+1} material title`,45),
+      ...(spec.plan.puzzleVariantVersion===1?{variantVersion:1,variant:spec.plan.puzzleVariants[i],seed:spec.plan.puzzleSeed,printProfile:{paper:spec.paper,packExperienceVersion:spec.packExperienceVersion,packLayoutVersion:spec.packLayoutVersion,task:spec.plan.stages[i].task,teamwork:spec.plan.stages[i].teamwork,title:spec.plan.stages[i].title,storyContext:spec.plan.stages[i].storyContext}}:{})};
     const compiled=buildContextPuzzle(i+1,type,context,digits.slice(),spec.packExperienceVersion||1,spec.packQualityVersion||2);
     const stage={...compiled,title:spec.plan.stages[i].title,mechanic:spec.plan.stages[i].mechanic};
     stages.push(stage);if(i<4)digits.push(compiled.material.logic.resultDigit);
