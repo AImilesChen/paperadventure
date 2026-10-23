@@ -85,3 +85,4 @@
 # deploy PR #83 approved story spec recovery 2026-10-22
 # deploy PR #84 shared final prop bridge 2026-10-22
 # deploy PR #85 minimum playable delivery fallback 2026-10-22
+# deploy PR #86 evidence-first playable review 2026-10-22
