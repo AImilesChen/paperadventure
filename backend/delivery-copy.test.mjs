@@ -329,17 +329,15 @@ test('minimum playable delivery keeps the checked baseline if optional copy is u
   await assert.rejects(()=>requireDeliveryReview({...saved,ending:'Changed ending.'},edition,'fixture',{DB}),{code:'DELIVERY_COPY_SOURCE_CHANGED'});
 });
 
-test('minimum playable delivery keeps the checked baseline after an independent content rejection',async()=>{
+test('minimum playable delivery does not bypass a concrete content rejection',async()=>{
   const {story,spec,copy}=await fixture(),{DB,db}=database();
   const edition={...spec,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:1};
   let calls=0;
-  const saved=await ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{
+  await assert.rejects(()=>ensureDeliveryCopy(story,edition,'fixture',{DB,OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture'},async()=>{
     calls++;return Response.json({output_text:JSON.stringify(calls===1?copy:{pass:false,issues:[{stageNumber:5,code:'UNSUPPORTED_CAUSE',quote:copy.actions[0].description.slice(0,25),reason:'A final action prerequisite is absent from the printed clues.'}],warnings:[],evidence:[]})});
-  });
+  }),{code:'DELIVERY_COPY_REVIEW'});
   assert.equal(calls,2);
-  assert.equal(saved.deliveryCopy,undefined,'the rejected rewrite is not published');
-  assert.equal(db.prepare('SELECT phase,calls FROM custom_delivery_copy').get().phase,'baseline_ready');
-  await requireDeliveryReview(saved,edition,'fixture',{DB});
+  assert.equal(db.prepare('SELECT phase,calls FROM custom_delivery_copy').get().phase,'audit');
 });
 
 test('complete consequences above the writing target stay intact when the combined block and both PDFs fit',async()=>{
