@@ -460,7 +460,10 @@ export function prepareContextualBlueprint(candidate,spec){
       }
     }
   }
-  if(new Set(stages.slice(0,4).map(stage=>stage.material.logic.signature)).size!==4)throw Error('The first four activities repeat the same puzzle; distinct variations are required.');
+  // Repeated mechanics are an editorial flaw, not a broken paper game. The
+  // printed-proof gate still requires one verifiable answer at every stage.
+  if(!spec.packResilientDeliveryVersion&&new Set(stages.slice(0,4).map(stage=>stage.material.logic.signature)).size!==4)
+    throw Error('The first four activities repeat the same puzzle; distinct variations are required.');
   const spine=spec.packExperienceVersion>=3?validateStorySpine(candidate.spine&&{
     ...candidate.spine,problem:fitNarrative(candidate.spine.problem,180),
     links:Array.isArray(candidate.spine.links)?candidate.spine.links.map((link,index)=>{
