@@ -49,7 +49,7 @@ export function validatePurchase(input) {
   if (Boolean(proposalTitle) !== Boolean(proposalSummary)) throw new ApiError(400, 'INVALID_SPEC', 'The selected proposal is incomplete.');
   if (input.creatorVersion === 3 && (input.plan || input.previewToken || input.planConfirmed || proposalTitle || proposalSummary)) throw new ApiError(400,'INVALID_SPEC','The personal plan is created after payment.');
   return { offer, spec: { sku: offer.sku, kind: 'custom', setting: offer.setting, themeId, customIdea: idea, players, groups, age, paper, direction, proposalTitle, proposalSummary,
-    ...(input.creatorVersion === 3 ? {gamePackVersion:2,packLogicVersion:1,packContractVersion:1,packExperienceVersion:3,packQualityVersion:14,packLayoutVersion:4,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:2,packEvidenceContractVersion:1,packResilientDeliveryVersion:1} : {}),
+    ...(input.creatorVersion === 3 ? {gamePackVersion:2,packLogicVersion:1,packContractVersion:1,packExperienceVersion:3,packQualityVersion:14,packLayoutVersion:4,packCopyVersion:1,packCausalVersion:1,packPlayableReviewVersion:1,packDeliveryPolicyVersion:2,packEvidenceContractVersion:1,packResilientDeliveryVersion:1,packStepDeliveryVersion:1} : {}),
     preferences: Object.fromEntries(['characters','goal','include','avoid'].map(key => [key, input.preferences?.[key] ? requireText(input.preferences[key], `Preference ${key}`, 180) : ''])),
     place: String(input.place || '').trim().slice(0, 180), reading: String(input.reading || '').trim().slice(0, 40), materials: String(input.materials || '').trim().slice(0, 180), ...creatorFields(input) } };
 }
@@ -132,7 +132,8 @@ export function validateGeneratedStory(story, spec) {
   const spine=spec.packContractVersion===1&&spec.packExperienceVersion>=3
     ? validateStorySpine(story.spine,stages,stages.map(stage=>stage.material.type),spec.plan.goal,spec.packQualityVersion||4):null;
   const result={ title, introduction, ending, stages, ...(spine?{spine}:{}),groupInstructions: story.groupInstructions ? requireText(story.groupInstructions, 'Group instructions', 700) : null };
-  if(story.deliveryCopy)result.deliveryCopy=validateDeliveryCopy(result,story.deliveryCopy);
+    if(story.deliveryEdition==='baseline'&&spec.packStepDeliveryVersion===1)result.deliveryEdition='baseline';
+    if(story.deliveryCopy)result.deliveryCopy=validateDeliveryCopy(result,story.deliveryCopy);
   return result;
 }
 
