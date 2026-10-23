@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdir,writeFile} from 'node:fs/promises';
+import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {clockSpec,clockBlueprintContext} from '../content/paper-contract-qa.mjs';
 import {linkedClockContext} from '../content/linked-contract-qa.mjs';
 import {buildContextPuzzle,normalizeStoryCodeWords,normalizeStoryOrderActions,prepareContextualBlueprint} from './contextual-puzzles.mjs';
@@ -11,6 +11,20 @@ import {reviseStage} from './openai.mjs';
 import {alignPaperPlan,paperContractTypes,completePaperPlan,assertGoalStillOpen} from '../shared/paper-contract.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
 import {compileStorySpine,prepareStoryFrame,selectedStoryFinding,validateStorySpine} from './story-spine.mjs';
+
+test('a saved market theme with repeated puzzle shape still yields a checked playable pack offline',async()=>{
+  const {spec,candidate}=JSON.parse(await readFile(new URL('../tests/fixtures/classroom-market-blueprint-replay.json',import.meta.url),'utf8'));
+  assert.throws(()=>prepareBlueprintCandidate(candidate,{...spec,packResilientDeliveryVersion:undefined}),/repeat the same puzzle/);
+  const blueprint=prepareBlueprintCandidate(candidate,spec),stages=[];
+  for(let number=1;number<=5;number++){
+    const {stage}=await generateStagedCheckpoint(spec,blueprint,number,stages.at(-1),{},()=>{throw Error('Offline fixture must not call a provider.');});
+    stages.push(stage);
+  }
+  const story=assembleStagedStory(spec,blueprint,stages);
+  assert.equal(verifyPrintedPuzzles(story).length,5);
+  for(const role of ['player','guide'])assert.ok(new TextDecoder().decode(buildGamePdf(story,spec,role)).startsWith('%PDF-'));
+  assert.throws(()=>assembleStagedStory(spec,blueprint,stages.map((stage,index)=>index?stage:{...stage,answerIndex:(stage.answerIndex+1)%3})),/checked rules|answer/);
+});
 
 test('long provider story-frame text is fitted before printable validation',()=>{
   const frame=prepareStoryFrame({

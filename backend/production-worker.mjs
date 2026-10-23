@@ -1440,7 +1440,7 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
             }
           }
         }
-        const resumable=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&(!prior||savedMaterialRepair);
+        const resumable=spec.packContractVersion===1&&spec.packExperienceVersion>=3&&(spec.packQualityVersion||0)>=8&&(!prior||savedMaterialRepair||spec.packResilientDeliveryVersion===1);
         const savedConsequence=await recoverableStoppedConsequence(env.DB,order.id,spec);
         if(savedConsequence){
           // Recover the checked candidate before the provider-call budget is
@@ -1478,6 +1478,10 @@ async function publishStagedStory(order,activity,spec,specHash,env) {
           generatedBlueprint=await call('blueprint',0,async()=>{
             const result=await assembleBlueprintSteps(spec,frame,materialSteps,closing,env,fetcher);
             return {value:result.blueprint,usage:result.usage,responseId:result.responseId};
+          },null,true,null,async()=>{
+            if(spec.packResilientDeliveryVersion!==1)return null;
+            try{return recoverSavedBlueprintSteps(spec,frame,materialSteps,closing);}
+            catch{return null;}
           });
         }else{
           budgetPhase='blueprint';
