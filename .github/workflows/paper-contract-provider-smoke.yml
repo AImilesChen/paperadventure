@@ -1,7 +1,7 @@
 name: Verify unified paper contract with real provider
 on:
   push:
-    branches: [codex-linked-pack-20261015]
+    branches: [test-policy-v2-market-20261023]
   workflow_dispatch:
 permissions:
   contents: read
@@ -10,6 +10,10 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'Run provider smoke'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      DEEPSEEK_MODEL: deepseek-v4-pro
+      SMOKE_CASE_IDS: classroom-market
+      SMOKE_MAX_PROVIDER_CALLS: '12'
     steps:
       - uses: actions/checkout@v7
         with:
