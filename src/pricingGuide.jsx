@@ -10,8 +10,8 @@ const answers = [
   ['Can I change a ready-made theme after buying it?', 'A ready-made pack is a fixed story and does not include AI rewrites. For a story built around your idea, choose AI custom instead.'],
   ['What changes are included with custom?', `${includedChanges.beforeApproval} You may select a saved plan version again for free. ${includedChanges.afterDelivery} ${includedChanges.preparation}`],
   ['How long can I access paid files?', 'You can re-download online for 12 months: from confirmed payment for a ready-made pack, or from first qualified delivery for a custom game. Files already downloaded remain usable within the Home or Classroom licence.'],
-  ['Will Stripe charge me now?', 'If the page says Stripe test mode, only test-card payments are accepted and no real money moves. Live checkout, when enabled, must show any applicable tax and the final total before payment.'],
-  ['Where can I check tax and refund terms?', 'Stripe test checkout does not calculate tax or take real payment. Before live payments are enabled, the applicable tax display and published refund terms must be available for review before purchase.'],
+  ['Will Stripe charge me now?', 'If the page says Stripe test mode, only test-card payments are accepted and no real money moves. Live checkout, when enabled, charges the listed price once.'],
+  ['Where can I check refund terms?', 'Read the refund policy before purchasing. Stripe test checkout takes no real payment.'],
 ];
 
 const comparison = [
@@ -26,9 +26,9 @@ export function PricingGuide({ Link, catalog, checkoutMode, checkoutReady }) {
   const currentOffers = catalog?.offers?.length ? catalog.offers : offers;
   const price = sku => formatUsd(currentOffers.find(offer => offer.sku === sku)?.unitAmount ?? offers.find(offer => offer.sku === sku).unitAmount);
   const checkoutNotice = checkoutMode === 'test'
-    ? <><strong>Stripe test mode is active.</strong> These are US-dollar test prices. Test-card checkout does not move real money or calculate tax.</>
+    ? <><strong>Stripe test mode is active.</strong> These are US-dollar test prices. Test-card checkout does not move real money.</>
     : checkoutMode === 'live'
-      ? <><strong>Live checkout is active.</strong> Stripe shows applicable tax and the final total before you pay.</>
+      ? <><strong>Live checkout is active.</strong> Pay the listed price once.</>
       : checkoutReady === false
         ? <><strong>Checkout is currently unavailable.</strong> You can still explore the free Celebration games and compare the listed options.</>
         : <><strong>Check current availability.</strong> Each theme page shows its purchase status; you will see the final amount before any live payment.</>;

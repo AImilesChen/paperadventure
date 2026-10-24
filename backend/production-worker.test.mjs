@@ -380,9 +380,11 @@ test('real API health and the live release gate agree on keys, flags and publish
 
 for(const keyType of ['sk','rk'])for(const mode of ['test','live'])test(`${keyType} ${mode} checkout keeps the purchase mode, verified fulfillment and full-refund revocation`,async()=>{
   const {db,binding}=database();seedReady(db);
+  if(mode==='live')db.exec("UPDATE price_versions SET tax_behavior='inclusive'");
   let form,calls=0;
   const sessionId=`cs_${mode}_fixture`,key=`${keyType}_${mode}_fixture`;
   const env={...config(binding),STRIPE_SECRET_KEY:key,LIVE_PAYMENTS_ENABLED:mode==='live'?'true':'false',FETCH:async(url,init)=>{
+    if(url==='https://api.stripe.com/v1/prices/price_test_1')return Response.json({id:'price_test_1',livemode:true,active:true,type:'one_time',currency:'usd',unit_amount:999,tax_behavior:'inclusive'});
     assert.equal(url,'https://api.stripe.com/v1/checkout/sessions');assert.equal(init.headers.authorization,`Bearer ${key}`);calls++;
     form=new URLSearchParams(init.body);
     return Response.json({id:sessionId,url:'https://checkout.stripe.com/fixture',client_reference_id:form.get('client_reference_id')});
@@ -391,8 +393,8 @@ for(const keyType of ['sk','rk'])for(const mode of ['test','live'])test(`${keyTy
   assert.equal(response.status,201);
   const {orderId}=await response.json(),order=db.prepare('SELECT * FROM orders WHERE id=?').get(orderId);
   assert.equal(JSON.parse(order.purchase_spec_json).paymentMode,mode);assert.equal(calls,1);
-  assert.equal(form.get('line_items[0][price]'),'price_test_1');assert.equal(form.get('automatic_tax[enabled]'),'true');
-  const session={id:sessionId,livemode:mode==='live',client_reference_id:orderId,metadata:{order_id:orderId,spec_hash:order.purchase_spec_sha256},payment_status:'paid',currency:'usd',amount_subtotal:999,amount_total:1089,payment_intent:'pi_fixture'};
+  assert.equal(form.get('line_items[0][price]'),'price_test_1');assert.equal(form.get('automatic_tax[enabled]'),'false');
+  const session={id:sessionId,livemode:mode==='live',client_reference_id:orderId,metadata:{order_id:orderId,spec_hash:order.purchase_spec_sha256},payment_status:'paid',currency:'usd',amount_subtotal:999,amount_total:999,payment_intent:'pi_fixture'};
   const send=async(event,badSignature=false)=>{
     const raw=JSON.stringify(event),timestamp=Math.floor(Date.now()/1000);
     const signature=createHmac('sha256',badSignature?'wrong-fixture':env.STRIPE_WEBHOOK_SECRET).update(`${timestamp}.${raw}`).digest('hex');
@@ -402,7 +404,7 @@ for(const keyType of ['sk','rk'])for(const mode of ['test','live'])test(`${keyTy
   assert.equal((await send(paid,true)).status,400);assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'pending_payment');
   assert.equal((await send(paid)).status,200);assert.equal((await send(paid).then(r=>r.json())).duplicate,true);
   assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'published');assert.equal(db.prepare('SELECT COUNT(*) n FROM entitlements').get().n,1);
-  const refund={id:'evt_refund_fixture',type:'charge.refunded',livemode:mode==='live',data:{object:{livemode:mode==='live',payment_intent:'pi_fixture',currency:'usd',amount:1089,amount_refunded:1089,refunded:true,refunds:{has_more:false,data:[{id:'re_fixture',amount:1089,currency:'usd',status:'succeeded',payment_intent:'pi_fixture'}]}}}};
+  const refund={id:'evt_refund_fixture',type:'charge.refunded',livemode:mode==='live',data:{object:{livemode:mode==='live',payment_intent:'pi_fixture',currency:'usd',amount:session.amount_total,amount_refunded:session.amount_total,refunded:true,refunds:{has_more:false,data:[{id:'re_fixture',amount:session.amount_total,currency:'usd',status:'succeeded',payment_intent:'pi_fixture'}]}}}};
   assert.equal((await send(refund)).status,200);assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'refunded');
   assert.equal(db.prepare('SELECT status FROM entitlements WHERE order_id=?').get(orderId).status,'revoked');assert.equal(calls,1);
 });
@@ -453,10 +455,10 @@ test('verified Stripe payment grants only the matching ready pack and private fi
   assert.equal(checkout.status, 201);
   const { orderId } = await checkout.json();
   assert.equal(checkoutInput.get('line_items[0][price]'), 'price_test_1');
-  assert.equal(checkoutInput.get('automatic_tax[enabled]'), 'true');
+  assert.equal(checkoutInput.get('automatic_tax[enabled]'), 'false');
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
   assert.equal(JSON.parse(order.purchase_spec_json).onlineRedownloadMonths, 12);
-  const session = { id: 'cs_test_001', client_reference_id: orderId, metadata: { order_id: orderId, spec_hash: order.purchase_spec_sha256 }, payment_status: 'paid', currency: 'usd', amount_subtotal: 999, amount_total: 1089, payment_intent: 'pi_test_001' };
+  const session = { id: 'cs_test_001', client_reference_id: orderId, metadata: { order_id: orderId, spec_hash: order.purchase_spec_sha256 }, payment_status: 'paid', currency: 'usd', amount_subtotal: 999, amount_total: 999, payment_intent: 'pi_test_001' };
   async function sendEvent(event) {
     const raw = JSON.stringify(event);
     const timestamp = Math.floor(Date.now()/1000);
@@ -491,7 +493,7 @@ test('verified Stripe payment grants only the matching ready pack and private fi
   assert.equal((await expiredFile.json()).error.code, 'ACCESS_EXPIRED');
   const expiredView = await handleProductionApi(request(`/api/v1/orders/${orderId}`, 'GET', undefined, { cookie: `paw_session=${token}` }), env);
   assert.equal((await expiredView.json()).filesReady, false);
-  const refund = await sendEvent({ id: 'evt_refund', type: 'charge.refunded', livemode:false, data: { object: { livemode:false, payment_intent: 'pi_test_001', currency: 'usd', amount:1089, refunded: true, amount_refunded: 1089, refunds:{has_more:false,data:[{id:'re_fixture',amount:1089,currency:'usd',status:'succeeded',payment_intent:'pi_test_001'}]} } } });
+  const refund = await sendEvent({ id: 'evt_refund', type: 'charge.refunded', livemode:false, data: { object: { livemode:false, payment_intent: 'pi_test_001', currency: 'usd', amount:999, refunded: true, amount_refunded: 999, refunds:{has_more:false,data:[{id:'re_fixture',amount:999,currency:'usd',status:'succeeded',payment_intent:'pi_test_001'}]} } } });
   assert.equal(refund.status, 200);
   assert.equal(db.prepare('SELECT status FROM entitlements WHERE order_id = ?').get(orderId).status, 'revoked');
   assert.equal((await handleProductionApi(request(`/api/v1/files/${orderId}/player`, 'GET', undefined, { cookie: `paw_session=${token}` }), env)).status, 404);
