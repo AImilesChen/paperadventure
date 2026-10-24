@@ -3,14 +3,14 @@
 export const legalProfile = Object.freeze({
   brand: 'Paper Adventure',
   operatorType: 'individual',
-  operatorName: 'mielschen',
+  operatorName: 'mileschen',
   contactAddress: 'No. 46 Jinqing Avenue, Luqiao District, Taizhou, Zhejiang, China',
   operatorCountry: 'Mainland China',
   supportEmail: 'support@paperadventure.app',
   audience: 'worldwide',
-  version: '2026-10-24-v3',
-  effectiveAt: '',
-  ownerApproved: false,
+  version: '2026-10-24-v4',
+  effectiveAt: '2026-10-24',
+  ownerApproved: true,
 });
 
 export function policyReleaseProblems(profile = legalProfile) {
