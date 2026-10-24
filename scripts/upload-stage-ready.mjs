@@ -2,8 +2,12 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { assertPaymentRuntime } from './payment-runtime.mjs';
 
 const root = resolve(process.cwd());
+const healthResponse = await fetch('https://paperadventure.app/api/v1/health');
+if (!healthResponse.ok) throw new Error('Cannot verify sandbox target before staging files.');
+assertPaymentRuntime(await healthResponse.json(), { expectedMode: process.env.PAYMENTS_EXPECTED_MODE || 'test', sandboxMaintenance: true });
 const plan = JSON.parse(readFileSync(resolve(root, 'output/stage-ready-plan.json'), 'utf8'));
 if (!plan.privateOnly || plan.packs.length !== 17 || plan.variants?.length !== 2 || plan.previews?.length !== 30 || plan.uploads.length !== 76 ||
     !process.env.CLOUDFLARE_API_TOKEN || !process.env.CLOUDFLARE_ACCOUNT_ID) {

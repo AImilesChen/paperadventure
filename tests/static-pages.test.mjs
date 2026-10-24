@@ -139,7 +139,32 @@ test('pricing explains all three choices and confirmed Home and Classroom rights
   assert.match(pricing, /from first qualified delivery/);
   assert.match(checkout, /Online re-download/);
   assert.match(checkout, /Checkout unavailable/);
-  assert.match(terms, /Final consumer wording and technical enforcement still need review/);
+  assert.match(terms, /POLICY PREVIEW/);
+  assert.match(terms, /Three successful checkpoint changes and two successful whole-game remakes/);
+  assert.match(terms, /Prepared for review before real payments open/);
+  assert.doesNotMatch(terms, /Final reviewed wording goes here/);
+});
+
+test('all four policy pages contain readable complete drafts and consistent purchase allowances', async () => {
+  for (const kind of ['terms', 'privacy', 'cookies', 'refunds']) {
+    const html = await read(`en/${kind}/index.html`);
+    assert.match(html, /POLICY PREVIEW/);
+    assert.match(html, /Prepared for review before real payments open/);
+    assert.match(html, /aria-label="Policy sections"/);
+    assert.match(html, /mailto:support@paperadventure.app/);
+    assert.doesNotMatch(html, /Final reviewed wording goes here|LEGAL PAGE LAYOUT/);
+    const ids = [...html.matchAll(/id="(policy-section-\d+)"/g)].map(match => match[1]);
+    assert.ok(ids.length >= 5, kind);
+    for (const id of ids) assert.ok(html.includes(`href="#${id}"`), `${kind} ${id}`);
+  }
+  const pricing = await read('en/pricing/index.html');
+  const table = pricing.match(/<table>[\s\S]*?<\/table>/)?.[0] || '';
+  assert.match(table, /Three successful checkpoint changes and two successful whole-game remakes/);
+  assert.match(table, /30 days of first qualified delivery/);
+  assert.doesNotMatch(pricing, /2 checkpoint revisions after delivery/);
+  const privacy = await read('en/privacy/index.html');
+  assert.match(privacy, /modification feedback/);
+  assert.match(privacy, /fal.ai/);
 });
 
 

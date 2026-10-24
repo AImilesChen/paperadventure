@@ -1,4 +1,5 @@
 import PostDeliveryEditor from './postDeliveryEditor.jsx';
+import { PolicyDocument } from './policyDocument.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, ArrowClockwise, DownloadSimple, WarningCircle, Books, Sparkle, Receipt } from '@phosphor-icons/react';
 import { formatUsd, productRights } from '../shared/catalog.mjs';
@@ -641,8 +642,9 @@ export function LiveSamples(props) { return <FreeDownload {...props} />; }
 
 export function LiveLegal({ kind }) {
   const [document, setDocument] = useState(null); const [error, setError] = useState('');
-  useEffect(() => { api(`/api/v1/legal/${kind}`).then(setDocument).catch(failure => setError(failure.message)); }, [kind]);
-  return <main className="extended-page live-page"><Intro eyebrow="LEGAL INFORMATION" title={document?.title || 'Policy'}><p>{document ? `Effective ${document.effectiveAt} · version ${document.version}` : 'Loading the current policy…'}</p></Intro><section className="live-shell">{error ? <Alert>{error}</Alert> : document && <div className="live-panel legal-document">{document.sections.map((section, index) => <section key={index}><h2>{section.heading}</h2><p>{section.body}</p></section>)}</div>}</section></main>;
+  useEffect(() => { let active = true; setDocument(null); setError(''); api(`/api/v1/legal/${kind}`).then(value => { if (active) setDocument(value); }).catch(failure => { if (active) setError(failure.message); }); return () => { active = false; }; }, [kind]);
+  if (document) return <PolicyDocument kind={kind} document={document} />;
+  return <main className="extended-page live-page"><Intro eyebrow="LEGAL INFORMATION" title="Policy"><p role="status">Loading the current policy…</p></Intro><section className="live-shell">{error && <Alert>{error}</Alert>}</section></main>;
 }
 
 export function LivePricing({ Link, catalog, checkoutMode }) {

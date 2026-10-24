@@ -11,7 +11,9 @@
     "test:delivery": "node --test --test-name-pattern=\"baseline|new-order steps|provider timeouts|interrupted reserved call|approved-spec mismatch\" backend/baseline-pack.test.mjs backend/production-worker.test.mjs",
     "test:sites": "node --test tests/sites-worker.test.mjs",
     "test:static": "node --test tests/static-pages.test.mjs tests/analytics-route.test.mjs tests/route-links.test.mjs tests/order-package.test.mjs tests/printed-comparison.test.mjs",
-    "package:preview": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-preview.ps1"
+    "package:preview": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-preview.ps1",
+    "test:release": "node --test tests/payment-readiness.test.mjs",
+    "prepare:legal": "node scripts/prepare-legal-release.mjs"
   },
   "dependencies": {
     "@fontsource/bree-serif": "^5.3.0",

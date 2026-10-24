@@ -1,5 +1,6 @@
 import { ArrowRight, Check, DownloadSimple, MagicWand, Package, Question, ShieldCheck } from '@phosphor-icons/react';
 import { formatUsd, offers, productRights } from '../shared/catalog.mjs';
+import { includedChanges } from '../shared/legal-documents.mjs';
 import './pricingGuide.css';
 
 const answers = [
@@ -7,7 +8,7 @@ const answers = [
   ['Do I need a subscription or points?', 'No. A ready-made theme is a one-time purchase of that fixed edition. A custom adventure is a separate one-time order for a new game.'],
   ['Why does the Classroom pack cost more than Home?', 'The Classroom collection has different teacher-led worlds for 2–35 students, group clues, a Teacher Guide and a licence for the purchasing teacher’s classes. Home games are separate household stories for 2–12 players with a Host Guide. Celebration is the free example in both collections.'],
   ['Can I change a ready-made theme after buying it?', 'A ready-made pack is a fixed story and does not include AI rewrites. For a story built around your idea, choose AI custom instead.'],
-  ['What changes are included with custom?', 'Before PDF approval: two successful whole-plan reworks and three targeted edits. You may select a saved plan version again for free. After first qualified delivery: three successful checkpoint changes and two successful whole-game remakes (up to six checkpoint and four whole-game preparation attempts) within 30 days of first delivery. Failed generation does not use a change.'],
+  ['What changes are included with custom?', `${includedChanges.beforeApproval} You may select a saved plan version again for free. ${includedChanges.afterDelivery} ${includedChanges.preparation}`],
   ['How long can I access paid files?', 'You can re-download online for 12 months: from confirmed payment for a ready-made pack, or from first qualified delivery for a custom game. Files already downloaded remain usable within the Home or Classroom licence.'],
   ['Will Stripe charge me now?', 'If the page says Stripe test mode, only test-card payments are accepted and no real money moves. Live checkout, when enabled, must show any applicable tax and the final total before payment.'],
   ['Where can I check tax and refund terms?', 'Stripe test checkout does not calculate tax or take real payment. Before live payments are enabled, the applicable tax display and published refund terms must be available for review before purchase.'],
@@ -17,7 +18,7 @@ const comparison = [
   ['The story', 'An existing, fixed theme', 'A new story from your choices'],
   ['What arrives', 'Player Pack + adult guide in A4 and US Letter', 'Player Pack + adult guide in your chosen paper size'],
   ['When files are ready', 'After confirmed checkout', 'After payment, plan review and approval, then generation and file checks'],
-  ['Changes included', 'No AI edits', '2 plan reworks + 3 targeted edits before approval; 2 checkpoint revisions after delivery'],
+  ['Changes included', 'No AI edits', `${includedChanges.beforeApproval} ${includedChanges.afterDelivery}`],
   ['Online re-download', '12 months from confirmed payment', '12 months from first qualified delivery'],
 ];
 
