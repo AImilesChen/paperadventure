@@ -501,8 +501,34 @@ function serialize(pages){
 
 export function buildInteractiveGamePdf(story,spec,role){
   if(!['player','guide'].includes(role))throw new Error('Unknown PDF role');
+  if(story.postDeliveryWording)return buildInteractiveGameView(story,spec)[role];
   const pair=renderPresentedPair(story,spec,renderInteractiveGamePdf);
   return pair?pair[role]:renderInteractiveGamePdf(story,spec,role);
+}
+
+// The comparison and the saved files use the very same paired presentation
+// selection (including its original-edition fallback). No plan paraphrases.
+export function buildInteractiveGameView(story,spec){
+  const source=structuredClone(story),wording=source.postDeliveryWording;
+  delete source.postDeliveryWording;
+  const pair=renderPresentedPair(source,spec,renderInteractiveGamePdf,true)||{
+    player:renderInteractiveGamePdf(source,spec,'player'),guide:renderInteractiveGamePdf(source,spec,'guide'),printedStory:source};
+  if(!wording)return {...pair,checkpointPages:checkpointPages(pair.printedStory,spec)};
+  const printed=structuredClone(pair.printedStory);
+  for(const [number,value] of Object.entries(wording)){
+    const stage=printed.stages[Number(number)-1];
+    if(!stage||typeof value.leadIn!=='string'||typeof value.hint!=='string'||value.leadIn.length>90||value.hint.length>120)throw Error('Invalid checkpoint presentation');
+    stage.clue=`${value.leadIn} ${stage.clue}`.trim();stage.hint=value.hint;
+  }
+  // Optional changes must fit BOTH PDFs. A failed suggestion never silently
+  // becomes an unchanged accepted edition or affects the published files.
+  return {player:renderInteractiveGamePdf(printed,spec,'player'),guide:renderInteractiveGamePdf(printed,spec,'guide'),printedStory:printed,checkpointPages:checkpointPages(printed,spec)};
+}
+
+function checkpointPages(story,spec){
+  let guide=2;const pages={};
+  for(const stage of story.stages){pages[stage.number]={player:stage.number*2,guide};guide+=guideStage(stage,spec,story).length;}
+  return pages;
 }
 
 function renderInteractiveGamePdf(story,spec,role){

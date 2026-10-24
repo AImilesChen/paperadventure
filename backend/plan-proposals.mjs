@@ -44,7 +44,7 @@ export async function generatePlanProposals(spec,env,fetcher) {
 }
 
 // Paid creator v3: one plan per request. Feedback is untrusted user data.
-async function prepareSinglePlan(spec, env, fetcher, { kind = 'initial', scope = null, feedback = '', previousPlan = null, resume = null, onCheckpoint = async()=>{}, onPhase = async()=>{} } = {}) {
+async function prepareSinglePlan(spec, env, fetcher, { kind = 'initial', adultReview = false, scope = null, feedback = '', previousPlan = null, resume = null, onCheckpoint = async()=>{}, onPhase = async()=>{} } = {}) {
   const provider = aiProvider(env);
   if (!provider) throw new ApiError(503, 'PLAN_NOT_CONFIGURED', 'Paid plan generation is not configured.');
   const scopes = ['title','summary','opening','roles','goal','preparation','stage1','stage2','stage3','stage4','stage5'];
@@ -82,7 +82,7 @@ async function prepareSinglePlan(spec, env, fetcher, { kind = 'initial', scope =
     const plan = spec.packContractVersion===1?validatePlan(alignPaperPlan(initial),spec):initial;
     if(spec.packContractVersion===1)validatePaperPlan(plan);
     if (previousPlan && JSON.stringify(plan) === JSON.stringify(previousPlan)) throw new Error('Unchanged plan');
-    if (kind === 'full' && previousPlan && plan.stages.filter((stage,index)=>spec.packContractVersion===1?stage.storyBeat!==previousPlan.stages[index].storyBeat:stage.task!==previousPlan.stages[index].task).length < 2) throw new Error('Whole-plan rework was not meaningful');
+    if (kind === 'full' && previousPlan && !(adultReview&&spec.packStepDeliveryVersion===1) && plan.stages.filter((stage,index)=>spec.packContractVersion===1?stage.storyBeat!==previousPlan.stages[index].storyBeat:stage.task!==previousPlan.stages[index].task).length < 2) throw new Error('Whole-plan rework was not meaningful');
     if (kind === 'targeted') {
       const allowed = scope.startsWith('stage') ? 'stages' : scope;
       for (const key of ['id','title','summary','opening','roles','goal','preparation','themeAnchors','stages']) {
@@ -132,7 +132,7 @@ async function prepareSinglePlan(spec, env, fetcher, { kind = 'initial', scope =
     catch (cause) { await save({valid:false,errorCode:planFailureCategory({code:'PLAN_INVALID',cause}),formatIssue:spec.packContractVersion===1?planFormatIssue(saved.candidate):null});const failure=new ApiError(422,'PLAN_INVALID','The plan did not pass quality checks. This attempt does not use a plan change.');failure.cause=cause;throw failure; }
   }
   await save({valid:true,errorCode:null,formatIssue:null});
-  if(spec.packResilientDeliveryVersion===1&&kind==='initial'){
+  if(spec.packResilientDeliveryVersion===1&&(kind==='initial'||adultReview&&spec.packStepDeliveryVersion===1)){
     // The paying adult reviews and approves the printable plan. A second AI
     // opinion about narrative style must not prevent a structurally valid
     // plan from reaching that review or consume more provider calls.

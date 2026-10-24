@@ -4,6 +4,21 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
+test('accepted edition download links stay on one version and plan editing is reachable before the long outline',async()=>{
+ const vite=await createServer({server:{middlewareMode:true},appType:'custom',logLevel:'silent'});
+ try{
+  const {OrderPackage,PaidPlanReview}=await vite.ssrLoadModule('/src/livePages.jsx');
+  const order={id:'edition-order',kind:'custom',sku:'custom_home',status:'published',filesReady:true,paper:'A4',downloadVersion:2,plan:{title:'The saved game'}};
+  const files=renderToStaticMarkup(createElement(OrderPackage,{order,orderId:order.id,selectedPaper:'A4'}));
+  assert.match(files,/player\?paper=A4&amp;version=2/);assert.match(files,/guide\?paper=A4&amp;version=2/);
+  const plan={title:'The story direction',summary:'A saved outline.',stages:[]};
+  const html=renderToStaticMarkup(createElement(PaidPlanReview,{order:{...order,status:'paid',planReview:{status:'review',activeVersion:1,confirmedVersion:null,targetedLimit:3,targetedUsed:0,fullLimit:2,fullUsed:0,versions:[{version:1,plan}]}},refresh:async()=>{}}));
+  assert.match(html,/<a href="#paid-plan-next"><strong>Change one part/);assert.match(html,/<a href="#paid-plan-next"><strong>Rethink this plan/);
+  assert.ok(html.indexOf('Change one part')<html.indexOf('Your saved plans'));
+  assert.doesNotMatch(html,/<details open=""><summary>Read this five-checkpoint plan/);
+ }finally{await vite.close();}
+});
+
 test('a delivered order renders its original download card during theme correction', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
   try {
