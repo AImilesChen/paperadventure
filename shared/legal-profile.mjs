@@ -1,10 +1,10 @@
 // Public policy configuration only. Never add keys, IDs, banking or ID documents.
-// Owner-confirmed public name/location on 2026-10-24; no correspondence address supplied.
+// Owner-confirmed public name/location on 2026-10-24; public correspondence address supplied by the owner.
 export const legalProfile = Object.freeze({
   brand: 'Paper Adventure',
   operatorType: 'individual',
   operatorName: 'mielschen',
-  contactAddress: '',
+  contactAddress: 'No. 46 Jinqing Avenue, Luqiao District, Taizhou, Zhejiang, China',
   operatorCountry: 'Mainland China',
   supportEmail: 'support@paperadventure.app',
   audience: 'worldwide',
