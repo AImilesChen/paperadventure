@@ -9,7 +9,7 @@ import {STEP_SAVED,ensureBaseline,enqueueNextStep,activateBaseline} from './step
 import {savedGenerationProgress} from './generation-progress.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
-import { stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
+import { stripeKeyMode, stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage, revisePrintedWording } from './openai.mjs';
 import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint,
   generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, recoverSavedBlueprintMaterialStep, validateSavedBlueprintMaterialStep, recoverSavedGroundedBlueprint, recoverSavedBlueprintSteps } from './staged-story.mjs';
@@ -124,7 +124,7 @@ const accountReady = env => Boolean(env.ACCOUNT_ENABLED === 'true' && env.DB && 
 function paymentReady(env) {
   return Boolean(env.DB && env.PRIVATE_FILES && emailReady(env) && env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET && env.SESSION_SECRET && env.PUBLIC_ORIGIN &&
     env.CHECKOUT_ENABLED === 'true' && env.LEGAL_RELEASED === 'true' && env.TAX_CONFIGURED === 'true' &&
-    (env.STRIPE_SECRET_KEY.startsWith('sk_test_') || (env.LIVE_PAYMENTS_ENABLED === 'true' && env.STRIPE_SECRET_KEY.startsWith('sk_live_'))));
+    (stripeKeyMode(env.STRIPE_SECRET_KEY) === 'test' || (env.LIVE_PAYMENTS_ENABLED === 'true' && stripeKeyMode(env.STRIPE_SECRET_KEY) === 'live')));
 }
 const rangeReady = env => [env.SUPPORTED_AGE_MIN,env.SUPPORTED_AGE_MAX,env.HOME_PLAYER_MAX,env.CLASSROOM_STUDENT_MAX].every(value => Number.isInteger(Number(value)) && Number(value) > 0) && Number(env.SUPPORTED_AGE_MAX) >= Number(env.SUPPORTED_AGE_MIN) && Number(env.HOME_PLAYER_MAX) >= 2 && Number(env.CLASSROOM_STUDENT_MAX) >= 2;
 const generationReady = env => Boolean(aiProvider(env) && env.GENERATION_QUEUE && env.PRIVATE_FILES && rangeReady(env));
@@ -144,7 +144,7 @@ async function publishedLegal(env) {
 }
 const testCheckoutReady = env => Boolean(env.TEST_CHECKOUT_ENABLED === 'true' && env.STAGE_PREVIEW === 'true' &&
   env.DB && env.PRIVATE_FILES && emailReady(env) && accountReady(env) &&
-  env.STRIPE_SECRET_KEY?.startsWith('sk_test_') && env.STRIPE_WEBHOOK_SECRET?.startsWith('whsec_') &&
+  stripeKeyMode(env.STRIPE_SECRET_KEY) === 'test' && env.STRIPE_WEBHOOK_SECRET?.startsWith('whsec_') &&
   generationReady(env));
 async function checkoutReady(env) { return testCheckoutReady(env) || (paymentReady(env) && (await publishedLegal(env))?.size === 4); }
 
@@ -281,7 +281,7 @@ async function checkout(request, env) {
   }
   const buyerHash = accountRequired ? accountHash : await emailHash(env, email);
   const legal = testOnly ? null : await publishedLegal(env);
-  const paymentMode = testOnly || env.STRIPE_SECRET_KEY.startsWith('sk_test_') ? 'test' : 'live';
+  const paymentMode = stripeKeyMode(env.STRIPE_SECRET_KEY);
   const legalVersions = testOnly ? { testMode: 'stripe-sandbox-2026-10-09' } : Object.fromEntries([...legal].map(([kind, item]) => [kind, item.version]));
   const specJson = JSON.stringify({ ...spec, readyPackId: readyPack?.id || null, priceVersionId: price.id, licenceVersion: readyPack?.licence_version || env.CUSTOM_LICENCE_VERSION,
     accessPolicyVersion: productRights.version, onlineRedownloadMonths: productRights.onlineRedownloadMonths,
@@ -1264,7 +1264,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       const checkout = await checkoutReady(env);
       // A usable sandbox outside STAGE_PREVIEW still uses test keys. Report the
       // actual enabled mode, never infer live solely from generic readiness.
-      const checkoutMode = !checkout ? 'closed' : env.STRIPE_SECRET_KEY.startsWith('sk_test_') ? 'test' : 'live';
+      const checkoutMode = !checkout ? 'closed' : stripeKeyMode(env.STRIPE_SECRET_KEY);
       return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
