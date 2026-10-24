@@ -1,0 +1,13 @@
+.privacy-document { max-width: 960px; }
+.privacy-document .live-panel { min-width: 0; }
+.privacy-document .live-alert { display: block; padding: 16px; border: 1px solid #a8cbd8; border-radius: 8px; background: #edf8fc; font-weight: 400; }
+.privacy-document .live-alert p { margin-bottom: 0; }
+.privacy-document p { line-height: 1.75; overflow-wrap: anywhere; }
+.privacy-document section { scroll-margin-top: 110px; }
+.privacy-document nav ul { padding-left: 24px; }
+.privacy-document nav li { margin: 8px 0; }
+.privacy-document nav a { text-underline-offset: 3px; }
+.privacy-document .live-actions a { padding: 8px 0; }
+@media (max-width: 600px) {
+  .privacy-document .live-actions { display: grid; }
+}
