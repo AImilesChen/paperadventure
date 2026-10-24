@@ -1,4 +1,4 @@
-import PrintedPdfPreview from './printedPdfPreview.jsx';
+import PrintedComparison from './printedComparison.jsx';
 import {useEffect,useRef,useState} from 'react';
 import {PlanPreview} from './creatorPlanPreview.jsx';
 import './postDeliveryEditor.css';
@@ -12,7 +12,7 @@ const failureText={EDITION_SCOPE:'This idea changes the story, puzzle or rules. 
 
 export default function PostDeliveryEditor({order,refresh,api,legacy}){
  const [workspace,setWorkspace]=useState(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
- const [kind,setKind]=useState('checkpoint'),[stage,setStage]=useState(1),[feedback,setFeedback]=useState(''),[style,setStyle]=useState(null),[role,setRole]=useState('player');
+ const [kind,setKind]=useState('checkpoint'),[stage,setStage]=useState(1),[feedback,setFeedback]=useState(''),[style,setStyle]=useState(null);
  const [gameplay,setGameplay]=useState(null);const requestKey=useRef(null);
  const eligible=order.kind==='custom'&&order.filesReady;
  async function load(){try{const data=await api(`/api/v1/orders/${order.id}/editions`);setWorkspace(data);setGameplay(value=>value||data.gameplay);return data;}catch(failure){setError(failure.message);}}
@@ -27,11 +27,6 @@ export default function PostDeliveryEditor({order,refresh,api,legacy}){
  const selected=locked&&pending.kind==='checkpoint'?pending.stageNumber:stage;
  const left=kind==='whole'?rights.wholeLeft:rights.checkpointLeft,attempts=kind==='whole'?rights.wholeAttemptsLeft:rights.checkpointAttemptsLeft;
  const file=(version,which)=>`/api/v1/files/${order.id}/${which}?paper=${workspace.paper}&version=${version}&view=1`;
- const page=role==='player'&&(pending?.kind==='checkpoint'||!locked&&kind==='checkpoint')?`#page=${selected*2}`:'';
- const base=file(pending?.status==='ready'?pending.baseVersion:workspace.version,role)+page;
- const compareCheckpoint=pending?.kind==='checkpoint'||!locked&&kind==='checkpoint';
- const currentPage=compareCheckpoint?workspace.checkpointPages?.[selected]?.[role]||1:1;
- const candidatePage=compareCheckpoint?pending?.checkpointPages?.[selected]?.[role]||1:1;
  async function generate(event){
   event.preventDefault();setBusy(true);setError('');setNotice('');requestKey.current||=crypto.randomUUID();
   try{await api(`/api/v1/orders/${order.id}/editions`,{method:'POST',headers:{'Idempotency-Key':requestKey.current},body:JSON.stringify({kind,stageNumber:stage,feedback,style,gameplay:kind==='whole'?gameplay:undefined})});requestKey.current=null;await load();setNotice('Your current download stays available while the suggestion is prepared.');}
@@ -66,11 +61,8 @@ export default function PostDeliveryEditor({order,refresh,api,legacy}){
   {pending?.status==='plan_review'&&<div className="delivery-proposed-plan"><h3>Review the proposed whole-game change</h3><p><strong>Your request:</strong> {pending.feedback}</p><PlanPreview plan={pending.plan}/><div className="delivery-decisions"><button className="button" disabled={busy||expired} onClick={()=>decide('confirm')}>Approve plan and prepare comparison PDFs</button><button className="button-quiet" disabled={busy} onClick={()=>decide('discard')}>Keep current game</button></div><p className="live-note">This approval creates a candidate. It does not replace your downloads or use a successful remake yet.</p></div>}
   {pending?.status==='failed'&&<div role="status"><p>{failureText[pending.errorCode]||'The candidate could not be completed. Your published game is unchanged; no successful change was used.'}</p><div className="delivery-decisions">{pending.pdfRetryAvailable&&<button type="button" className="button" disabled={busy||expired} onClick={()=>decide('retry')}>Finish saved PDFs · no extra AI call</button>}<button type="button" className="button-quiet" disabled={busy} onClick={()=>decide('discard')}>Dismiss this attempt</button></div></div>}
   {pending?.status!=='plan_review'&&!busyStatuses.includes(pending?.status)&&<div className="delivery-preview">
-   <h3>{pending?.status==='ready'?'Compare the actual PDFs':'Review your current printed game'}</h3>
-   <div className="delivery-shortcuts" role="group" aria-label="Document to preview">{[['player','Player Pack'],['guide',order.sku.includes('classroom')?'Teacher Guide':'Host Guide']].map(([value,label])=><button type="button" className="button-quiet" key={value} aria-pressed={role===value} onClick={()=>setRole(value)}>{label}</button>)}</div>
-   <div className={'delivery-pdf-grid'+(pending?.status==='ready'?' has-candidate':'')}><div><h4>Current · version {pending?.status==='ready'?pending.baseVersion:workspace.version}</h4><a href={base} target="_blank" rel="noreferrer">Open current PDF in a new tab</a><PrintedPdfPreview label={`Current ${role} PDF`} url={base.split('#')[0]} initialPage={currentPage}/></div>
-    {pending?.status==='ready'&&<div><h4>Proposed version · {pending.kind==='checkpoint'?`checkpoint ${pending.stageNumber}`:'whole game'}</h4><a href={`/api/v1/orders/${order.id}/editions/${pending.id}/${role}${page}`} target="_blank" rel="noreferrer">Open proposed PDF in a new tab</a><PrintedPdfPreview label={`Proposed ${role} PDF`} url={`/api/v1/orders/${order.id}/editions/${pending.id}/${role}`} initialPage={candidatePage}/></div>}</div>
-   {pending?.status==='ready'&&<><p><strong>Your request:</strong> {pending.feedback}</p>{pending.edition==='baseline'&&<p>This candidate uses the checked paper-briefing edition: simpler narration with the approved story goal and supported puzzles.</p>}<div className="delivery-decisions"><button type="button" className="button" disabled={busy||expired} onClick={()=>decide('accept')}>Use this version · uses 1 {pending.kind==='whole'?'remake':'checkpoint change'}</button><button type="button" className="button-quiet" disabled={busy} onClick={()=>decide('discard')}>Keep current version · no change used</button></div><p className="live-note">Both new PDFs become your downloads together. The earlier version stays in history.</p></>}
+   <PrintedComparison key={pending?.status==='ready'?pending.id:`current-${workspace.version}`} workspace={workspace} candidate={pending?.status==='ready'?pending:null} orderId={order.id} guideLabel={order.sku.includes('classroom')?'Teacher Guide':'Host Guide'} stageNumber={kind==='checkpoint'?selected:0}/>
+   {pending?.status==='ready'&&<><p><strong>Your request:</strong> {pending.feedback}</p>{pending.edition==='baseline'&&<p>This candidate uses the checked paper-briefing edition: simpler narration with the approved story goal and supported puzzles.</p>}<div className="delivery-decisions"><button type="button" className="button" aria-describedby="printed-comparison-effect" disabled={busy||expired} onClick={()=>decide('accept')}>Use this version · uses 1 {pending.kind==='whole'?'remake':'checkpoint change'}</button><button type="button" className="button-quiet" disabled={busy} onClick={()=>decide('discard')}>Keep current version · no change used</button></div><p className="live-note">Both new PDFs become your downloads together. The earlier version stays in history.</p></>}
   </div>}
   {workspace.currentPlan&&<details><summary>Current game plan · version {workspace.version}</summary><PlanPreview plan={workspace.currentPlan}/></details>}
   <details className="delivery-version-history"><summary>Saved download versions ({workspace.versions.length})</summary>{workspace.versions.map(item=><div key={item.version_number}><strong>Version {item.version_number}{item.version_number===workspace.version?' · current':''}</strong><a href={file(item.version_number,'player').replace('&view=1','')}>Player Pack</a><a href={file(item.version_number,'guide').replace('&view=1','')}>Adult guide</a></div>)}</details>
