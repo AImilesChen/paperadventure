@@ -40,6 +40,32 @@ async function fixture({setting='home',paper='A4',fetcher=null,failPut=null}={})
 const qa=(name,data)=>{mkdirSync('tmp/post-delivery-qa',{recursive:true});writeFileSync(`tmp/post-delivery-qa/${name}.json`,JSON.stringify(data));};
 const local={kind:'checkpoint',stageNumber:2,feedback:'Help younger readers follow the instructions one step at a time.'};
 
+test('only candidate previews are marked; acceptance publishes the original clean pair and logs service',async()=>{
+ const f=await fixture();const id=(await (await f.start(local)).json()).id;await f.drain();
+ const row=f.db.prepare('SELECT * FROM delivery_editions WHERE id=?').get(id),clean=f.files.get(row.player_r2_key).body;
+ const response=await f.call(`/editions/${id}/player`);
+ assert.equal(response.status,200);assert.match(await response.text(),/PREVIEW - not accepted/);
+ assert.doesNotMatch(new TextDecoder().decode(clean),/PREVIEW - not accepted/);
+ assert.equal(f.db.prepare("SELECT COUNT(*) n FROM order_evidence WHERE event='candidate_preview_served'").get().n,1);
+ assert.equal((await f.call(`/editions/${id}/accept`,'POST')).status,200);
+ assert.deepEqual(new Uint8Array(await (await f.download('player')).arrayBuffer()),clean);
+ assert.doesNotMatch(await (await f.call(`/editions/${id}/player`)).text(),/PREVIEW - not accepted/);
+});
+
+for(const stage of ['queued','ready','during-provider'])test(`full refund at ${stage} stops candidate work, replacement and all online PDFs without restoring attempts`,async()=>{
+ let f;f=await fixture({fetcher:async()=>{if(stage==='during-provider')f.db.exec("UPDATE orders SET status='refunded'");return Response.json({output_text:JSON.stringify({style:'reading'})});}});
+ const id=(await (await f.start(local)).json()).id;
+ if(stage==='ready')await f.drain();
+ if(stage!=='during-provider')f.db.exec("UPDATE orders SET status='refunded'");
+ await f.drain();const used=f.db.prepare('SELECT revision_success_used,remake_success_used FROM entitlements').get();
+ assert.equal(f.modelCalls(),stage==='queued'?0:1);assert.equal(f.db.prepare('SELECT status FROM delivery_editions WHERE id=?').get(id).status,'failed');
+ assert.equal((await f.call(`/editions/${id}/accept`,'POST')).status,404);
+ assert.equal((await f.call(`/editions/${id}/player`)).status,404);assert.equal((await f.download('player')).status,404);
+ assert.equal((await f.start(local)).status,404);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM delivery_editions').get().n,1);
+ assert.deepEqual({...used},{revision_success_used:0,remake_success_used:0});
+ assert.deepEqual(f.files.get('original/player.pdf').body,f.player);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM artifact_versions').get().n,1);
+});
+
 test('post-delivery checkpoint feedback creates exact PDFs and atomic idempotent replacement, keeping all earlier versions',async()=>{
  const f=await fixture(),before=await f.view();assert.equal(before.available,true);assert.equal(before.rights.checkpointLeft,3);assert.equal(before.rights.wholeLeft,2);
  qa('current',before);

@@ -98,6 +98,20 @@ test('policy SQL preserves versions, escapes operator text and requires explicit
   assert.notEqual(liveSql, policyReleaseSql({ ...approved, supportEmail: 'different@example.invalid' }, { publish: true }));
 });
 
+test('revised voluntary refund terms preserve mandatory rights and do not promise free unlimited generation',()=>{
+  const docs=createPolicyDocuments(),refunds=JSON.stringify(docs.refunds);
+  assert.match(refunds,/before custom generation has begun/);
+  assert.match(refunds,/A generated personal plan is part of the custom service/);
+  assert.match(refunds,/do not offer an unconditional voluntary full refund/);
+  assert.match(refunds,/not a limit on mandatory rights/);
+  assert.match(refunds,/two business days/);assert.match(refunds,/five business days/);
+  assert.match(refunds,/partial refund does not automatically revoke/);
+  assert.match(refunds,/does not reset them/);assert.match(refunds,/not copy protection/);
+  assert.doesNotMatch(refunds,/all sales are final|14 days.*full refund|we charge an automatic deduction/i);
+  assert.match(JSON.stringify(docs.privacy),/not that a person read or used/);
+  assert.equal(docs.refunds.publicationStatus,'draft');
+});
+
 test('sandbox upload and activation workflows check mode before any remote write', () => {
   for (const [file, writeStep] of [
     ['stage-ready-packs.yml', 'node scripts/upload-stage-ready.mjs'],
@@ -115,4 +129,12 @@ test('sandbox upload and activation workflows check mode before any remote write
     assert.ok(text.includes('node scripts/payment-runtime.mjs <'));
     assert.doesNotMatch(text, /checkoutMode!==['"]test/);
   }
+});
+
+test('the new checkout page waits for its matching API before any public deployment',()=>{
+ const workflow=readFileSync('.github/workflows/deploy-preview.yml','utf8');
+ const guard=workflow.indexOf('Wait for the matching checkout API');
+ assert.ok(guard>0&&guard<workflow.indexOf('Deploy verified public site'));
+ assert.match(workflow,/v.purchaseConfirmationVersion!==purchaseConsentVersion/);
+ assert.match(workflow,/current public page was retained/);
 });

@@ -1,3 +1,7 @@
+import {succeededRefundAmount} from './refund-status.mjs';
+import {purchaseConsentSnapshot,validPurchaseConsent,purchaseConsentVersion} from '../shared/purchase-consent.mjs';
+import {recordOrderEvidence,recordAccessEvidence,assertOrderNotRefunded,refundedWork,generationJobOrder,orderWorkEnvironment} from './order-evidence.mjs';
+import {watermarkCandidatePdf} from './preview-watermark.mjs';
 import {editionWorkspace,requestEdition,editionAction,editionFile,processEdition,resumeEditions,blockActiveEdition} from './delivery-editions.mjs';
 import { publicCatalog, offers, productRights, themes } from '../shared/catalog.mjs';
 import { ApiError, validateGeneratedStage, validateGeneratedStory, validatePurchase, validateSupportedRange } from './domain.mjs';
@@ -243,6 +247,7 @@ async function checkout(request, env) {
   const email = normalizeEmail(input.email);
   const testOnly = testCheckoutReady(env);
   const { offer, spec } = validatePurchase(input);
+  if (!validPurchaseConsent(input.serviceRequest)) throw new ApiError(400,'PURCHASE_CONFIRMATION_REQUIRED','Review the immediate-supply and refund notice, then confirm before checkout.');
   const accountHash = await authenticatedEmailHash(request, env);
   const accountRequired = testOnly || offer.kind === 'custom';
   if (accountRequired && !accountHash) throw new ApiError(403, 'ACCOUNT_REQUIRED', 'Sign in with your adult account before checkout.');
@@ -276,10 +281,11 @@ async function checkout(request, env) {
   }
   const buyerHash = accountRequired ? accountHash : await emailHash(env, email);
   const legal = testOnly ? null : await publishedLegal(env);
+  const paymentMode = testOnly || env.STRIPE_SECRET_KEY.startsWith('sk_test_') ? 'test' : 'live';
   const legalVersions = testOnly ? { testMode: 'stripe-sandbox-2026-10-09' } : Object.fromEntries([...legal].map(([kind, item]) => [kind, item.version]));
   const specJson = JSON.stringify({ ...spec, readyPackId: readyPack?.id || null, priceVersionId: price.id, licenceVersion: readyPack?.licence_version || env.CUSTOM_LICENCE_VERSION,
     accessPolicyVersion: productRights.version, onlineRedownloadMonths: productRights.onlineRedownloadMonths,
-    accessStarts: offer.kind === 'ready' ? productRights.readyAccessStarts : productRights.customAccessStarts, legalVersions });
+    accessStarts: offer.kind === 'ready' ? productRights.readyAccessStarts : productRights.customAccessStarts, legalVersions, paymentMode, serviceRequest: purchaseConsentSnapshot(offer.kind) });
   const specHash = await sha256(specJson);
   let order = await query(env.DB, 'SELECT * FROM orders WHERE idempotency_key = ?', key).first();
   if (order && (order.purchase_spec_sha256 !== specHash || order.purchaser_email_hash !== buyerHash)) throw new ApiError(409, 'IDEMPOTENCY_CONFLICT', 'This request key was used for another purchase.');
@@ -295,8 +301,11 @@ async function checkout(request, env) {
   }
   if (!order) {
     const id = crypto.randomUUID();
-    await query(env.DB, `INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,idempotency_key)
-      VALUES (?,?,?,?,?,?,?,?,?,'pending_payment',?)`, id, offer.kind, offer.sku, specJson, specHash, buyerHash, price.id, price.unit_amount, 'USD', key).run();
+    await env.DB.batch([
+      query(env.DB, `INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,idempotency_key)
+        VALUES (?,?,?,?,?,?,?,?,?,'pending_payment',?)`, id, offer.kind, offer.sku, specJson, specHash, buyerHash, price.id, price.unit_amount, 'USD', key),
+      query(env.DB,'INSERT INTO order_evidence(order_id,event,reference,details_json) VALUES(?,?,?,?)',id,'supply_requested','checkout',JSON.stringify({specHash,legalVersions,serviceRequest:purchaseConsentSnapshot(offer.kind),mode:paymentMode})),
+    ]);
     order = await query(env.DB, 'SELECT * FROM orders WHERE id = ?', id).first();
   }
   if (order.checkout_url && order.stripe_checkout_session_id) return json({ orderId: order.id, checkoutUrl: order.checkout_url, mode: 'stripe' });
@@ -318,15 +327,27 @@ async function webhook(request, env, context = {}) {
   let event;
   try { event = JSON.parse(raw); } catch { throw new ApiError(400, 'INVALID_JSON', 'Invalid webhook body.'); }
   if (!event.id || !event.type) throw new ApiError(400, 'INVALID_EVENT', 'Missing event identity.');
-  if (event.type === 'charge.refunded') {
-    const charge = event.data?.object;
+  if (['charge.refunded','refund.created','refund.updated','refund.failed'].includes(event.type)) {
+    const refundEvent = event.type !== 'charge.refunded';
+    const refund = event.data?.object;
+    if(refundEvent && !/^ch_[A-Za-z0-9]+$/.test(refund?.charge||'')) throw new ApiError(409,'REFUND_MISMATCH','Refund has no valid charge.');
+    const charge = refundEvent ? await stripeRequest(env,'charges/'+refund.charge,{},env.FETCH||fetch) : refund;
     const order = charge?.payment_intent && await query(env.DB, 'SELECT * FROM orders WHERE stripe_payment_intent_id = ?', charge.payment_intent).first();
     if (!order) throw new ApiError(409, 'UNKNOWN_ORDER', 'Refund event has no matching order.');
     const prior = await query(env.DB, 'SELECT stripe_event_id FROM webhook_events WHERE stripe_event_id = ?', event.id).first();
     if (prior) return json({ received: true, duplicate: true });
-    if (charge.currency?.toLowerCase() !== 'usd' || !Number.isInteger(charge.amount_refunded)) throw new ApiError(409, 'REFUND_MISMATCH', 'Refund event does not match the order.');
-    const full = charge.refunded === true && charge.amount_refunded >= order.amount_total;
-    const statements = [query(env.DB, 'INSERT INTO webhook_events (stripe_event_id,event_type,order_id) VALUES (?,?,?)', event.id, event.type, order.id)];
+    const purchase = JSON.parse(order.purchase_spec_json);
+    const testOrder = Boolean(purchase.paymentMode === 'test' || purchase.legalVersions?.testMode === 'stripe-sandbox-2026-10-09' || order.stripe_checkout_session_id?.startsWith('cs_test_'));
+    if (typeof event.livemode!=='boolean' || charge.livemode!==event.livemode || event.livemode===testOrder) throw new ApiError(409,'PAYMENT_MODE_MISMATCH','Refund mode does not match the purchase.');
+    if (!order.paid_at || charge.currency?.toLowerCase() !== 'usd' || charge.amount!==order.amount_total || !Number.isInteger(charge.amount_refunded) || charge.amount_refunded<0 || charge.amount_refunded>charge.amount || typeof charge.refunded!=='boolean' || charge.refunded!==(charge.amount_refunded===charge.amount)) throw new ApiError(409, 'REFUND_MISMATCH', 'Refund event does not match the order.');
+    let succeededAmount = null;
+    if(charge.refunded===true || refundEvent) {
+      const refunds = charge.refunds?.has_more===false ? charge.refunds : await stripeRequest(env,'refunds?payment_intent='+encodeURIComponent(charge.payment_intent)+'&limit=100',{},env.FETCH||fetch);
+      succeededAmount = succeededRefundAmount(refunds,charge);
+    }
+    const full = charge.refunded===true && succeededAmount === order.amount_total;
+    const statements = [query(env.DB, 'INSERT INTO webhook_events (stripe_event_id,event_type,order_id) VALUES (?,?,?)', event.id, event.type, order.id),
+      query(env.DB,'INSERT OR IGNORE INTO order_evidence(order_id,event,reference,details_json) VALUES(?,?,?,?)',order.id,'refund_webhook',event.id,JSON.stringify({full,amountRefunded:charge.amount_refunded,succeededAmount,mode:event.livemode?'live':'test',refundFailed:event.type==='refund.failed'}))];
     if (full) statements.push(query(env.DB, "UPDATE orders SET status = 'refunded' WHERE id = ?", order.id), query(env.DB, "UPDATE entitlements SET status = 'revoked' WHERE order_id = ?", order.id));
     await env.DB.batch(statements);
     return json({ received: true, fullRefund: full });
@@ -348,6 +369,7 @@ async function webhook(request, env, context = {}) {
   if (!order) throw new ApiError(409, 'UNKNOWN_ORDER', 'Payment event has no matching order.');
   const testOrder = JSON.parse(order.purchase_spec_json).legalVersions?.testMode === 'stripe-sandbox-2026-10-09';
   if (testOrder && (event.livemode !== false || session.livemode !== false)) throw new ApiError(409, 'PAYMENT_MODE_MISMATCH', 'A test order requires a Stripe test event.');
+  if (order.status==='refunded') return json({received:true,ignored:true});
   const price = await query(env.DB, 'SELECT * FROM price_versions WHERE id = ?', order.price_version_id).first();
   if (!price || !validatePaidSession(session, order, price)) throw new ApiError(409, 'PAYMENT_MISMATCH', 'Payment event does not match the order snapshot.');
   const existing = await query(env.DB, 'SELECT stripe_event_id FROM webhook_events WHERE stripe_event_id = ?', event.id).first();
@@ -1010,6 +1032,8 @@ async function fileDownload(request, env, orderId, role) {
   }
   if (!file?.r2_key) throw new ApiError(404, 'FILE_NOT_FOUND', 'The file is not ready.');
   const bytes = await verifiedPdf(env, file);
+  await assertOrderNotRefunded(env,orderId);
+  await recordAccessEvidence(env,orderId,'file_served',`${role}:${paper}:${file.sha256}`,{role,paper,sha256:file.sha256});
   const disposition = new URL(request.url).searchParams.get('view') === '1' ? 'inline' : 'attachment';
   return new Response(bytes, { headers: { 'content-type': 'application/pdf', 'content-disposition': `${disposition}; filename="adventure-${role}-${paper}.pdf"`, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
 }
@@ -1129,7 +1153,9 @@ async function revisionPreviewFile(request,env,orderId,previewId,role){
   const row=await query(env.DB,"SELECT * FROM revision_previews WHERE id = ? AND order_id = ? AND status = 'ready'",previewId,orderId).first();
   if(!row)throw new ApiError(404,'PREVIEW_NOT_FOUND','The preview is not available.');
   const bytes=await verifiedPdf(env,{r2_key:row[`${role}_r2_key`],sha256:row[`${role}_sha256`]});
-  return new Response(bytes,{headers:{'content-type':'application/pdf','content-disposition':`inline; filename="checkpoint-preview-${role}.pdf"`,'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
+  await assertOrderNotRefunded(env,orderId);
+  await recordAccessEvidence(env,orderId,'candidate_preview_served',`${previewId}:${role}`,{candidateId:previewId,role,watermarked:true});
+  return new Response(watermarkCandidatePdf(bytes),{headers:{'content-type':'application/pdf','content-disposition':`inline; filename="checkpoint-preview-${role}.pdf"`,'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
 }
 
 async function requestRevision(request, env, orderId) {
@@ -1221,7 +1247,10 @@ async function supportCases(request, env, orderId) {
   const recent = await query(env.DB, "SELECT COUNT(*) AS count FROM support_cases WHERE order_id = ? AND created_at >= datetime('now','-1 day')", orderId).first();
   if (recent.count >= 5) throw new ApiError(429, 'ISSUE_LIMIT', 'Please wait before sending another report.');
   const id = crypto.randomUUID();
-  await query(env.DB, "INSERT INTO support_cases (id,order_id,email_hash,issue_type,description,status) VALUES (?,?,?,?,?,'open')", id, orderId, hash, body.issueType, description).run();
+  await env.DB.batch([
+    query(env.DB, "INSERT INTO support_cases (id,order_id,email_hash,issue_type,description,status) VALUES (?,?,?,?,?,'open')", id, orderId, hash, body.issueType, description),
+    query(env.DB,'INSERT INTO order_evidence(order_id,event,reference,details_json) VALUES(?,?,?,?)',orderId,body.issueType==='refund'?'refund_requested':'support_requested',id,JSON.stringify({issueType:body.issueType,manualReview:true})),
+  ]);
   return json({ caseId: id, status: 'open' }, 201);
 }
 
@@ -1232,7 +1261,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);
       const catalog = await liveCatalog(env);
-      return json({ status: 'configured_runtime', paperContractVersion: 1, themeCovers: coverGenerationReady(env), checkout: await checkoutReady(env), checkoutMode: testCheckoutReady(env) ? 'test' : paymentReady(env) ? 'live' : 'closed', generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), checkout: await checkoutReady(env), checkoutMode: testCheckoutReady(env) ? 'test' : paymentReady(env) ? 'live' : 'closed', generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
@@ -1866,8 +1895,23 @@ export default {
   },
   async queue(batch, env) {
     for (const message of batch.messages) {
-      try { if(message.body?.type==='delivery_edition')await processEdition(message.body.editionId,env,editionDeps()); else if (message.body?.type === 'theme_cover') await processOrderCover(message.body.orderId,env); else if (message.body?.type === 'pack_remake') await processPackRemake(message.body.orderId, env); else if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else if (message.body?.type === 'revision_preview') await prepareRevisionPreview(message.body.previewId,env); else if (message.body?.type === 'plan') await publishPlanRequest(message.body.requestId,env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
-      catch (failure) { console.error('Generation job failed', message.body?.type==='theme_cover'?{type:'theme_cover',code:'COVER_STORAGE'}:message.body?.type==='plan'?{type:'plan',code:planFailureCategory(failure)}:failure); message.retry(); }
+      try {
+        const orderId=await generationJobOrder(env,message.body);
+        if(orderId)await assertOrderNotRefunded(env,orderId);
+        const envForJob=orderId?orderWorkEnvironment(env,orderId):env;
+        if(message.body?.type==='delivery_edition')await processEdition(message.body.editionId,envForJob,editionDeps());
+        else if(message.body?.type==='theme_cover')await processOrderCover(message.body.orderId,envForJob);
+        else if(message.body?.type==='pack_remake')await processPackRemake(message.body.orderId,envForJob);
+        else if(message.body?.type==='revision')await publishRevision(message.body.revisionId,envForJob);
+        else if(message.body?.type==='revision_preview')await prepareRevisionPreview(message.body.previewId,envForJob);
+        else if(message.body?.type==='plan')await publishPlanRequest(message.body.requestId,envForJob);
+        else await publishCustomOrder(message.body?.orderId,envForJob);
+        message.ack();
+      } catch(failure) {
+        if(refundedWork(failure)){message.ack();continue;}
+        console.error('Generation job failed',message.body?.type==='theme_cover'?{type:'theme_cover',code:'COVER_STORAGE'}:message.body?.type==='plan'?{type:'plan',code:planFailureCategory(failure)}:failure);
+        message.retry();
+      }
     }
   },
   async scheduled(_controller, env) {

@@ -53,6 +53,16 @@ jobs:
             curl --http2 --silent --show-error --location --max-time 20 \
               --output /dev/null --write-out 'HTTP/2 result: code=%{http_code} remote=%{remote_ip} time=%{time_total}s\\n' "$url" || true
           done
+      - name: Wait for the matching checkout API before publishing its page
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then exit 0; fi
+          for attempt in {1..60}; do
+            if curl --fail --silent --show-error --max-time 10 https://paperadventure.app/api/v1/health > "$RUNNER_TEMP/paw-checkout-health.json" &&
+              node --input-type=module -e "import fs from 'node:fs';import {purchaseConsentVersion} from './shared/purchase-consent.mjs';const v=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-checkout-health.json','utf8'));if(v.purchaseConfirmationVersion!==purchaseConsentVersion)process.exit(1);console.log('Matching checkout API is ready')"; then exit 0; fi
+            sleep 5
+          done
+          echo "::error::Matching checkout API is not ready; the current public page was retained."
+          exit 1
       - name: Deploy verified public site when Cloudflare token is configured
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
