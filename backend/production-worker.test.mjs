@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {purchaseConsentVersion} from '../shared/purchase-consent.mjs';
 import assert from 'node:assert/strict';
 import { createHmac, createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
@@ -32,7 +33,7 @@ async function approvedCustomInput(env,input) {
 
 function database({includeThemeRecovery=true,includeSemanticRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql','0037_order_8f5d_material_recovery.sql','0038_step_delivery.sql','0039_post_delivery_editions.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql','0037_order_8f5d_material_recovery.sql','0038_step_delivery.sql','0039_post_delivery_editions.sql','0040_refund_evidence_guards.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0024_scoped_semantic_plan_recovery.sql'&&!includeSemanticRecovery)continue;
@@ -72,7 +73,7 @@ function seedReady(db) {
   for (const kind of ['privacy','terms','cookies','refunds']) db.prepare("INSERT INTO legal_documents (kind,version,title,effective_at,sections_json,status) VALUES (?,?,?,'2026-10-07',?,'published')").run(kind,'reviewed-test-1',kind,JSON.stringify([{ heading: 'Test only', body: 'Mock test policy.' }]));
 }
 
-const request = (path, method = 'GET', data, headers = {}) => new Request(`https://adventure.example${path}`, { method, headers: { ...(data ? { 'content-type': 'application/json' } : {}), ...headers }, body: data ? JSON.stringify(data) : undefined });
+const request = (path, method = 'GET', data, headers = {}) => new Request(`https://adventure.example${path}`, { method, headers: { ...(data ? { 'content-type': 'application/json' } : {}), ...headers }, body: data ? JSON.stringify(path==='/api/v1/checkout-intents'?{serviceRequest:{version:purchaseConsentVersion,requested:true},...data}:data) : undefined });
 const purchase = { sku: 'ready_home', themeId: 'dinosaur', packVersion: 'v1', email: 'Adult@example.com' };
 const config = binding => ({ DB: binding, PRIVATE_FILES: { get: async () => null }, RESEND_API_KEY: 're_test', EMAIL_FROM: 'hello@adventure.example', ACCOUNT_ENABLED: 'true', EMAIL_LOGIN_ENABLED: 'true', GOOGLE_CLIENT_ID: 'test-google-client.apps.googleusercontent.com', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', SESSION_SECRET: 'test-session-secret', PUBLIC_ORIGIN: 'https://adventure.example', CHECKOUT_ENABLED: 'true', LEGAL_RELEASED: 'true', TAX_CONFIGURED: 'true', CUSTOM_LICENCE_VERSION: 'custom-v1', SUPPORTED_AGE_MIN: '6', SUPPORTED_AGE_MAX: '12', HOME_PLAYER_MAX: '8', CLASSROOM_STUDENT_MAX: '40' });
 
@@ -329,6 +330,23 @@ test('isolated backend stage serves noindex pages and blocks robots', async () =
   assert.equal(await robots.text(), 'User-agent: *\nDisallow: /\n');
 });
 
+test('checkout requires an explicit current supply confirmation and binds its exact notice once', async () => {
+  const {db,binding}=database();seedReady(db);let calls=0;
+  const env={...config(binding),FETCH:async(_url,init)=>{calls++;const form=new URLSearchParams(init.body);return Response.json({id:'cs_confirmation',url:'https://checkout.stripe.com/fixture',client_reference_id:form.get('client_reference_id')});}};
+  for(const serviceRequest of [null,{version:purchaseConsentVersion,requested:false},{version:'stale',requested:true}]){
+    const response=await handleProductionApi(request('/api/v1/checkout-intents','POST',{...purchase,serviceRequest},{origin:env.PUBLIC_ORIGIN,'Idempotency-Key':'confirmation-test-request'}),env);
+    assert.equal(response.status,400);assert.equal((await response.json()).error.code,'PURCHASE_CONFIRMATION_REQUIRED');
+  }
+  assert.equal(calls,0);assert.equal(db.prepare('SELECT COUNT(*) n FROM orders').get().n,0);
+  const headers={origin:env.PUBLIC_ORIGIN,'Idempotency-Key':'confirmation-test-request'};
+  const result=await handleProductionApi(request('/api/v1/checkout-intents','POST',purchase,headers),env);assert.equal(result.status,201);
+  assert.equal((await handleProductionApi(request('/api/v1/checkout-intents','POST',purchase,headers),env)).status,200);
+  const order=db.prepare('SELECT * FROM orders').get(),spec=JSON.parse(order.purchase_spec_json),evidence=db.prepare("SELECT * FROM order_evidence WHERE event='supply_requested'").get();
+  assert.equal(spec.serviceRequest.version,purchaseConsentVersion);assert.equal(spec.serviceRequest.statutoryRightsWaived,false);
+  assert.equal(JSON.parse(evidence.details_json).specHash,order.purchase_spec_sha256);assert.equal(calls,1);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM order_evidence WHERE event='supply_requested'").get().n,1);
+});
+
 test('closed checkout fails before touching Stripe', async () => {
   const { binding } = database();
   const response = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', purchase, { 'Idempotency-Key': 'purchase-attempt-001' }), { ...config(binding), LEGAL_RELEASED: 'false' });
@@ -413,7 +431,7 @@ test('verified Stripe payment grants only the matching ready pack and private fi
   assert.equal((await expiredFile.json()).error.code, 'ACCESS_EXPIRED');
   const expiredView = await handleProductionApi(request(`/api/v1/orders/${orderId}`, 'GET', undefined, { cookie: `paw_session=${token}` }), env);
   assert.equal((await expiredView.json()).filesReady, false);
-  const refund = await sendEvent({ id: 'evt_refund', type: 'charge.refunded', data: { object: { payment_intent: 'pi_test_001', currency: 'usd', refunded: true, amount_refunded: 1089 } } });
+  const refund = await sendEvent({ id: 'evt_refund', type: 'charge.refunded', livemode:false, data: { object: { livemode:false, payment_intent: 'pi_test_001', currency: 'usd', amount:1089, refunded: true, amount_refunded: 1089, refunds:{has_more:false,data:[{id:'re_fixture',amount:1089,currency:'usd',status:'succeeded',payment_intent:'pi_test_001'}]} } } });
   assert.equal(refund.status, 200);
   assert.equal(db.prepare('SELECT status FROM entitlements WHERE order_id = ?').get(orderId).status, 'revoked');
   assert.equal((await handleProductionApi(request(`/api/v1/files/${orderId}/player`, 'GET', undefined, { cookie: `paw_session=${token}` }), env)).status, 404);

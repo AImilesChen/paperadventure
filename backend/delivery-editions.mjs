@@ -1,3 +1,5 @@
+import {recordAccessEvidence,assertOrderNotRefunded} from './order-evidence.mjs';
+import {watermarkCandidatePdf} from './preview-watermark.mjs';
 import {ApiError} from './domain.mjs';
 import {sha256,sha256Bytes} from './security.mjs';
 import {aiProvider} from './openai.mjs';
@@ -147,7 +149,9 @@ export async function editionFile(request,env,orderId,id,role,deps){
  await deps.owner(request,env,orderId);const row=await q(env,"SELECT * FROM delivery_editions WHERE id=? AND order_id=? AND status IN ('ready','published')",id,orderId).first();
  if(!row)fail('EDITION_NOT_READY','The comparison file is not ready.',404);
  const bytes=await deps.pdf(env,{r2_key:row[`${role}_r2_key`],sha256:row[`${role}_sha256`]});
- return new Response(bytes,{headers:{'content-type':'application/pdf','content-disposition':`inline; filename="candidate-${role}.pdf"`,'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
+  await assertOrderNotRefunded(env,orderId);
+  await recordAccessEvidence(env,orderId,'candidate_preview_served',`${id}:${role}`,{candidateId:id,role,watermarked:row.status==='ready'});
+  return new Response(row.status==='ready'?watermarkCandidatePdf(bytes):bytes,{headers:{'content-type':'application/pdf','content-disposition':`inline; filename="candidate-${role}.pdf"`,'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
 }
 
 // Request-scoped state only: no writes to the original activity, plan,
