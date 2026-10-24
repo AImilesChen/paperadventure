@@ -361,16 +361,50 @@ test('real API health and the live release gate agree on keys, flags and publish
   {name:'live legal release off',patch:{STRIPE_SECRET_KEY:'sk_live_fixture',LIVE_PAYMENTS_ENABLED:'true',LEGAL_RELEASED:'false'},mode:'closed'},
   {name:'live missing policy',patch:{STRIPE_SECRET_KEY:'sk_live_fixture',LIVE_PAYMENTS_ENABLED:'true'},missingPolicy:true,mode:'closed'},
   {name:'non-stage test missing policy',patch:{},missingPolicy:true,mode:'closed'},
+  {name:'live key cannot use sandbox bypass',patch:{STRIPE_SECRET_KEY:'sk_live_fixture',STAGE_PREVIEW:'true',TEST_CHECKOUT_ENABLED:'true',LEGAL_RELEASED:'false',TAX_CONFIGURED:'false'},mode:'closed'},
+  {name:'client key cannot enable checkout',patch:{STRIPE_SECRET_KEY:'pk_live_fixture',LIVE_PAYMENTS_ENABLED:'true'},mode:'closed'},
+  {name:'unknown key cannot enable checkout',patch:{STRIPE_SECRET_KEY:'unknown_fixture',LIVE_PAYMENTS_ENABLED:'true'},mode:'closed'},
+  {name:'non-string key cannot enable checkout',patch:{STRIPE_SECRET_KEY:123,LIVE_PAYMENTS_ENABLED:'true'},mode:'closed'},
  ];
- for(const item of cases){
+ for(const keyType of ['sk','rk'])for(const item of cases){
   const {db,binding}=database();seedReady(db);if(item.missingPolicy)db.exec("DELETE FROM legal_documents WHERE kind='refunds'");
   const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:()=>assert.fail('Health must not enqueue')},...item.patch,FETCH:()=>assert.fail('Health must not call a provider')};
+  if(keyType==='rk' && typeof env.STRIPE_SECRET_KEY==='string')env.STRIPE_SECRET_KEY=env.STRIPE_SECRET_KEY.replace(/^sk_/,'rk_');
   const response=await handleProductionApi(request('/api/v1/health'),env),health=await response.json();
   assert.equal(response.status,200,item.name);assert.equal(health.checkoutMode,item.mode,item.name);assert.equal(health.checkout,item.mode!=='closed',item.name);
   if(item.mode==='live')assert.doesNotThrow(()=>assertPaymentRuntime(health,{expectedMode:'live'}),item.name);
   else assert.throws(()=>assertPaymentRuntime(health,{expectedMode:'live'}),/declared live/,item.name);
   assert.equal(db.prepare('SELECT COUNT(*) n FROM orders').get().n,0,item.name);
  }
+});
+
+for(const keyType of ['sk','rk'])for(const mode of ['test','live'])test(`${keyType} ${mode} checkout keeps the purchase mode, verified fulfillment and full-refund revocation`,async()=>{
+  const {db,binding}=database();seedReady(db);
+  let form,calls=0;
+  const sessionId=`cs_${mode}_fixture`,key=`${keyType}_${mode}_fixture`;
+  const env={...config(binding),STRIPE_SECRET_KEY:key,LIVE_PAYMENTS_ENABLED:mode==='live'?'true':'false',FETCH:async(url,init)=>{
+    assert.equal(url,'https://api.stripe.com/v1/checkout/sessions');assert.equal(init.headers.authorization,`Bearer ${key}`);calls++;
+    form=new URLSearchParams(init.body);
+    return Response.json({id:sessionId,url:'https://checkout.stripe.com/fixture',client_reference_id:form.get('client_reference_id')});
+  }};
+  const response=await handleProductionApi(request('/api/v1/checkout-intents','POST',purchase,{origin:env.PUBLIC_ORIGIN,'Idempotency-Key':`key-mode-${keyType}-${mode}`}),env);
+  assert.equal(response.status,201);
+  const {orderId}=await response.json(),order=db.prepare('SELECT * FROM orders WHERE id=?').get(orderId);
+  assert.equal(JSON.parse(order.purchase_spec_json).paymentMode,mode);assert.equal(calls,1);
+  assert.equal(form.get('line_items[0][price]'),'price_test_1');assert.equal(form.get('automatic_tax[enabled]'),'true');
+  const session={id:sessionId,livemode:mode==='live',client_reference_id:orderId,metadata:{order_id:orderId,spec_hash:order.purchase_spec_sha256},payment_status:'paid',currency:'usd',amount_subtotal:999,amount_total:1089,payment_intent:'pi_fixture'};
+  const send=async(event,badSignature=false)=>{
+    const raw=JSON.stringify(event),timestamp=Math.floor(Date.now()/1000);
+    const signature=createHmac('sha256',badSignature?'wrong-fixture':env.STRIPE_WEBHOOK_SECRET).update(`${timestamp}.${raw}`).digest('hex');
+    return handleProductionApi(new Request('https://adventure.example/api/v1/stripe/webhook',{method:'POST',headers:{'Stripe-Signature':`t=${timestamp},v1=${signature}`},body:raw}),env);
+  };
+  const paid={id:'evt_paid_fixture',type:'checkout.session.completed',livemode:mode==='live',data:{object:session}};
+  assert.equal((await send(paid,true)).status,400);assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'pending_payment');
+  assert.equal((await send(paid)).status,200);assert.equal((await send(paid).then(r=>r.json())).duplicate,true);
+  assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'published');assert.equal(db.prepare('SELECT COUNT(*) n FROM entitlements').get().n,1);
+  const refund={id:'evt_refund_fixture',type:'charge.refunded',livemode:mode==='live',data:{object:{livemode:mode==='live',payment_intent:'pi_fixture',currency:'usd',amount:1089,amount_refunded:1089,refunded:true,refunds:{has_more:false,data:[{id:'re_fixture',amount:1089,currency:'usd',status:'succeeded',payment_intent:'pi_fixture'}]}}}};
+  assert.equal((await send(refund)).status,200);assert.equal(db.prepare('SELECT status FROM orders WHERE id=?').get(orderId).status,'refunded');
+  assert.equal(db.prepare('SELECT status FROM entitlements WHERE order_id=?').get(orderId).status,'revoked');assert.equal(calls,1);
 });
 
 test('closed checkout fails before touching Stripe', async () => {
@@ -986,14 +1020,15 @@ test('free proposal endpoint returns two short directions and enforces an IP bud
   assert.equal((await limited.json()).error.code, 'PROPOSAL_LIMIT');
 });
 
-test('Stripe sandbox checkout accepts any matching Google account and uses inline test prices without legal release', async () => {
+for(const keyType of ['sk','rk'])test(`Stripe ${keyType} sandbox checkout accepts any matching Google account and uses inline test prices without legal release`, async () => {
   const { db, binding } = database();
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('sandbox-home','custom_home','USD',1499,NULL,'exclusive',1)").run();
   let form; let sessionCount = 0;
   const env = { ...config(binding), STAGE_PREVIEW: 'true', TEST_CHECKOUT_ENABLED: 'true', CHECKOUT_ENABLED: 'false',
     LEGAL_RELEASED: 'false', TAX_CONFIGURED: 'false',
+    STRIPE_SECRET_KEY: `${keyType}_test_fixture`,
     OPENAI_API_KEY: 'test', OPENAI_MODEL: 'test-model', GENERATION_QUEUE: { send: async () => {} },
-    FETCH: async (_url, init) => { form = new URLSearchParams(init.body); return Response.json({ id: 'cs_test_sandbox_' + (++sessionCount), url: 'https://checkout.stripe.com/test', client_reference_id: form.get('client_reference_id') }); } };
+    FETCH: async (_url, init) => { assert.equal(init.headers.authorization,`Bearer ${keyType}_test_fixture`);form = new URLSearchParams(init.body); return Response.json({ id: 'cs_test_sandbox_' + (++sessionCount), url: 'https://checkout.stripe.com/test', client_reference_id: form.get('client_reference_id') }); } };
   const health = await handleProductionApi(request('/api/v1/health'), env);
   assert.equal((await health.json()).checkoutMode, 'test');
   const input = await approvedCustomInput(env,{ sku: 'custom_home', customIdea: 'A moon library', players: 4, age: '8-10', paper: 'A4', direction: 'mission', email: 'adult@example.com' });
@@ -1004,6 +1039,7 @@ test('Stripe sandbox checkout accepts any matching Google account and uses inlin
   const checkout = await handleProductionApi(request('/api/v1/checkout-intents', 'POST', input, { ...headers, cookie: `paw_session=${token}` }), env);
   assert.equal(checkout.status, 201);
   assert.equal((await checkout.json()).mode, 'stripe_test');
+  assert.equal(JSON.parse(db.prepare('SELECT purchase_spec_json FROM orders LIMIT 1').get().purchase_spec_json).paymentMode,'test');
   assert.equal(form.get('line_items[0][price_data][unit_amount]'), '1499');
   assert.equal(form.get('line_items[0][price]'), null);
   assert.equal(form.get('automatic_tax[enabled]'), 'false');

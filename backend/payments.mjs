@@ -1,5 +1,14 @@
 import { ApiError } from './domain.mjs';
 
+// Restricted keys authenticate like standard keys; their permissions are
+// enforced by Stripe. Unknown and client-side keys never enable checkout.
+export function stripeKeyMode(key) {
+  if (typeof key !== 'string') return null;
+  if (key.startsWith('sk_test_') || key.startsWith('rk_test_')) return 'test';
+  if (key.startsWith('sk_live_') || key.startsWith('rk_live_')) return 'live';
+  return null;
+}
+
 export async function stripeRequest(env, path, options = {}, fetcher = fetch) {
   if (!env.STRIPE_SECRET_KEY) throw new ApiError(503, 'PAYMENT_NOT_CONFIGURED', 'Payment is not configured.');
   const response = await fetcher(`https://api.stripe.com/v1/${path}`, { ...options, headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, ...(options.headers || {}) } });

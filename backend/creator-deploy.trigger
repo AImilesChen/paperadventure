@@ -96,3 +96,5 @@
 # deploy PR #95 optional material-bound narration with retained original PDF pair 2026-10-24
 # Deploy refund evidence, immediate-supply confirmation and preview marking 2026-10-24.
 # Deploy accurate checkout health mode from QA 2026-10-24; retain Stripe test mode.
+
+# deploy restricted Stripe key compatibility 2026-10-24
