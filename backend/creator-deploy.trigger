@@ -93,3 +93,4 @@
 # deploy PR #91 finite checked puzzle variants with same-type fallback 2026-10-23
 # deploy PR #92 themed paper records and paired story presentation fallback 2026-10-23
 # deploy PR #93 approved post-delivery candidate editions and migration 0039 2026-10-24
+# deploy PR #95 optional material-bound narration with retained original PDF pair 2026-10-24
