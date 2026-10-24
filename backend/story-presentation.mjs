@@ -105,15 +105,15 @@ export function presentPaperStory(story,spec){
   return result;
 }
 
-export function renderPresentedPair(story,spec,render){
+export function renderPresentedPair(story,spec,render,includeStory=false){
   if(!hasStoryPresentation(spec)||story.deliveryCopy)return null;
   // A broken source is never eligible for presentation fallback.
   verifyPrintedPuzzles(story);
   try{
     const presented=presentPaperStory(story,spec);
-    return {player:render(presented,spec,'player'),guide:render(presented,spec,'guide')};
+    return {player:render(presented,spec,'player'),guide:render(presented,spec,'guide'),...(includeStory?{printedStory:presented}:{})};
   }catch{
     // One selection for both roles prevents mismatched Player/Guide editions.
-    return {player:render(story,spec,'player'),guide:render(story,spec,'guide')};
+    return {player:render(story,spec,'player'),guide:render(story,spec,'guide'),...(includeStory?{printedStory:story}:{})};
   }
 }

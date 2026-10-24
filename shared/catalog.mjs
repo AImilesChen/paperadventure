@@ -19,8 +19,8 @@ export const productRights = Object.freeze({
 export const offers = Object.freeze([
   { sku: 'ready_home', kind: 'ready', setting: 'home', currency: 'USD', unitAmount: 999, revisionLimit: 0, saleEnabled: false },
   { sku: 'ready_classroom', kind: 'ready', setting: 'classroom', currency: 'USD', unitAmount: 1499, revisionLimit: 0, saleEnabled: false },
-  { sku: 'custom_home', kind: 'custom', setting: 'home', currency: 'USD', unitAmount: 1499, revisionLimit: 2, revisionDays: 30, saleEnabled: false },
-  { sku: 'custom_classroom', kind: 'custom', setting: 'classroom', currency: 'USD', unitAmount: 1999, revisionLimit: 2, revisionDays: 30, saleEnabled: false },
+  { sku: 'custom_home', kind: 'custom', setting: 'home', currency: 'USD', unitAmount: 1499, revisionLimit: 3, revisionDays: 30, remakeLimit: 2, saleEnabled: false },
+  { sku: 'custom_classroom', kind: 'custom', setting: 'classroom', currency: 'USD', unitAmount: 1999, revisionLimit: 3, revisionDays: 30, remakeLimit: 2, saleEnabled: false },
 ]);
 
 // Planned stories explain what each setting would contain. They are not

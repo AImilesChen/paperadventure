@@ -1,3 +1,4 @@
+import {editionWorkspace,requestEdition,editionAction,editionFile,processEdition,resumeEditions,blockActiveEdition} from './delivery-editions.mjs';
 import { publicCatalog, offers, productRights, themes } from '../shared/catalog.mjs';
 import { ApiError, validateGeneratedStage, validateGeneratedStory, validatePurchase, validateSupportedRange } from './domain.mjs';
 import {STEP_SAVED,ensureBaseline,enqueueNextStep,activateBaseline} from './step-delivery.mjs';
@@ -682,7 +683,7 @@ async function orderView(request, env, orderId) {
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified order was found.');
   const entitlement = await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first();
   const activity = order.product_kind === 'custom' ? await query(env.DB, 'SELECT status,story_spec_json,delivery_retry_used,delivery_retry_baseline,generation_version FROM custom_activities WHERE order_id = ?', order.id).first() : null;
-  const latestArtifact = activity && entitlement?.custom_activity_id ? await query(env.DB, "SELECT pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", entitlement.custom_activity_id).first() : null;
+  const latestArtifact = activity && entitlement?.custom_activity_id ? await query(env.DB, "SELECT pack_format_version,version_number,edition_spec_json,edition_spec_sha256 FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", entitlement.custom_activity_id).first() : null;
   const remake = order.product_kind === 'custom' && order.paid_at ? await packRemakeView(env.DB, order.id) : null;
   const readyRemakeSpec = latestArtifact?.pack_format_version === 2 && remake?.status === 'ready'
     ? await query(env.DB, "SELECT spec_json FROM custom_pack_remakes WHERE order_id = ? AND status = 'ready'", order.id).first() : null;
@@ -777,6 +778,7 @@ async function orderView(request, env, orderId) {
     paper: order.product_kind === 'custom' ? spec.paper : null,
     variantId: order.product_kind === 'ready' ? spec.variantId || null : null,
     accessExpiresAt: entitlement?.access_expires_at || null,
+    downloadVersion:latestArtifact?.version_number||null,
     revisionLimit: entitlement?.revision_success_limit || 0, revisionUsed: entitlement?.revision_success_used || 0,
     revisionExpiresAt: entitlement?.revision_expires_at || null,
     gamePackVersion: order.product_kind === 'custom' ? Math.max(latestArtifact?.pack_format_version || 1, spec.gamePackVersion || 1) : null,
@@ -792,7 +794,7 @@ async function orderView(request, env, orderId) {
         latestArtifact?.pack_format_version, Boolean(entitlement?.revision_success_used || revisionRows.some(item => ['queued','generating','published'].includes(item.status))), readyRemakeSpec?.spec_json ? JSON.parse(readyRemakeSpec.spec_json) : null)),
     remake,themePlanRepairAvailable,themePlanRecoveryAvailable:Boolean(themePlanRepairAvailable&&paidPlan?.semantic_recovery_remaining===1&&themeReplanAttempts>=2+(paidPlan?.quality_replan_recovery_grant||0)+(paidPlan?.quality_replan_qa_grant||0)),
     revisionRequests: revisionRows.map(item=>({id:item.id,stageNumber:item.stage_number,status:item.status,version:item.version_number||null,createdAt:item.created_at,completedAt:item.completed_at||null})),
-    plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
+    plan:latestArtifact?.edition_spec_json&&await sha256(latestArtifact.edition_spec_json)===latestArtifact.edition_spec_sha256?JSON.parse(latestArtifact.edition_spec_json).plan:activePlan ? JSON.parse(activePlan.plan_json) : spec.plan || null,
     ...(spec.creatorVersion===3 ? {planReview:{status:paidPlan?.status || (order.status==='pending_payment'?'awaiting_payment':'pending'),activeVersion:paidPlan?.active_version||0,confirmedVersion:paidPlan?.confirmed_version||null,qualityReplanUsed:Boolean(paidPlan?.quality_replan_used),formatResumeAvailable,formatResumeCalls:formatResumeAvailable?stoppedFormat.calls:0,storyScenesRequired,storySceneRepairAvailable,progress:planWork?{phase:planWork.phase,candidateSaved:Boolean(planWork.candidate_saved),formatChecked:Boolean(planWork.plan_valid),reviewPassed:Boolean(planWork.audit_passed),providerCalls:planWork.provider_calls,updatedAt:planWork.updated_at,failureCode:planWork.error_code,formatIssue:safePlanFormatIssue(stoppedFormat.inspected?.issue||stoppedFormat.saved?.formatIssue)}:null,themeReplanAttempts,themeReplanFailed,themeReplanFailureCode:themeReplanFailure?.error_code||null,fullUsed:paidPlan?.full_used||0,fullLimit:2,targetedUsed:paidPlan?.targeted_used||0,targetedLimit:3,pending:pendingPlan?.kind||null,retryAvailable:paidPlan?.status==='needs_help' && !paidPlan.active_version && initialRequests?.count===1,versions:planVersions.map(item=>({version:item.version_number,kind:item.request_kind,createdAt:item.created_at,plan:JSON.parse(item.plan_json)}))}} : {}) });
 }
 
@@ -1026,6 +1028,8 @@ async function revisionOwner(request,env,orderId){
   return {order,entitlement,activity,artifact};
 }
 
+function editionDeps(){return {owner:revisionOwner,story:revisionStory,pdf:verifiedPdf,json,body:requestBody,sameOrigin:requireSameOrigin};}
+
 async function revisionStory(env,key,expected){
   const object=key&&await env.PRIVATE_FILES.get(key);
   if(!object||object.customMetadata?.sha256!==expected)throw new ApiError(503,'STORY_INTEGRITY_FAILED','The game text is temporarily unavailable.');
@@ -1060,6 +1064,8 @@ async function requestRevisionPreview(request,env,orderId){
   requireSameOrigin(request,env);
   if(!env.GENERATION_QUEUE||!aiProvider(env))throw new ApiError(503,'REVISION_NOT_READY','Checkpoint previews are unavailable.');
   const {order,entitlement,activity,artifact}=await revisionOwner(request,env,orderId);
+  await blockActiveEdition(env,orderId);
+  if(artifact.edition_spec_json)throw new ApiError(409,'USE_EDITION_EDITOR','Use the delivered-game comparison editor for this version.');
   if(entitlement.revision_success_used>=entitlement.revision_success_limit||!entitlement.revision_expires_at||
      Date.parse(`${entitlement.revision_expires_at}Z`)<=Date.now())throw new ApiError(403,'REVISION_LIMIT','No included change remains on this order.');
   const body=await requestBody(request),stageNumber=Number(body.stageNumber),instruction=String(body.instruction||'').trim(),mode=body.mode==='custom'?'custom':'preset';
@@ -1133,6 +1139,7 @@ async function requestRevision(request, env, orderId) {
   if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google using your purchase email first.');
   const order = await query(env.DB, "SELECT * FROM orders WHERE id = ? AND purchaser_email_hash = ? AND product_kind = 'custom' AND status = 'published'", orderId, hash).first();
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No eligible custom order was found.');
+  await blockActiveEdition(env,orderId);
   const activePreview=await query(env.DB,"SELECT id FROM revision_previews WHERE order_id = ? AND status IN ('queued','generating','ready')",orderId).first();
   if(activePreview)throw new ApiError(409,'PREVIEW_IN_PROGRESS','Finish or discard the checkpoint comparison first.');
   const remake = await query(env.DB, 'SELECT status FROM custom_pack_remakes WHERE order_id = ?', orderId).first();
@@ -1146,7 +1153,8 @@ async function requestRevision(request, env, orderId) {
   if (instruction.length < 10 || instruction.length > 350) throw new ApiError(400, 'INVALID_REVISION', 'Describe one local change in 10–350 characters.');
   const purchaseSpec = JSON.parse(order.purchase_spec_json);
   const activity = await query(env.DB, 'SELECT id,story_spec_json FROM custom_activities WHERE order_id = ?', orderId).first();
-  const latestArtifact = activity && await query(env.DB, "SELECT pack_format_version FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", activity.id).first();
+  const latestArtifact = activity && await query(env.DB, "SELECT pack_format_version,edition_spec_json FROM artifact_versions WHERE custom_activity_id = ? AND status = 'published' ORDER BY version_number DESC LIMIT 1", activity.id).first();
+  if(latestArtifact?.edition_spec_json)throw new ApiError(409,'USE_EDITION_EDITOR','Use the delivered-game comparison editor for this version.');
   const readyRemake = latestArtifact?.pack_format_version === 2
     ? await query(env.DB, "SELECT spec_json FROM custom_pack_remakes WHERE order_id = ? AND status = 'ready'", orderId).first() : null;
   const revisionSpec = readyRemake ? JSON.parse(readyRemake.spec_json) : purchaseSpec.creatorVersion === 3 ? JSON.parse(activity.story_spec_json) : purchaseSpec;
@@ -1172,6 +1180,7 @@ async function requestPackRemake(request, env, orderId) {
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified custom order was found.');
   const entitlement = await query(env.DB, "SELECT * FROM entitlements WHERE order_id = ? AND status = 'active'", orderId).first();
   if (!accessActive(entitlement)) throw new ApiError(403, 'ORDER_ACCESS_EXPIRED', 'Online order access has expired. Contact support about a quality remake.');
+  await blockActiveEdition(env,orderId);
   const activity = await query(env.DB, 'SELECT id,status,story_spec_json FROM custom_activities WHERE order_id = ?', orderId).first();
   const result = await startPackRemake(order, activity, env);
   return json(result, result.queued ? 202 : 200);
@@ -1189,6 +1198,7 @@ async function requestPackRemakeRecovery(request, env, orderId) {
   // The site proxy can forward a bodyless POST as an empty readable stream.
   // Ordinary saved reviews need no payload; only an explicit fact-repair
   // grant requires consent fields. Malformed nonempty JSON still fails.
+  await blockActiveEdition(env,orderId);
   const options=await requestBody(request,true);
   return json(await retryPackRemake(order, env, options), 202);
 }
@@ -1277,6 +1287,14 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'POST' && remake) return await requestPackRemake(request, env, remake[1]);
     const remakeRecovery = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/pack-remake\/retry$/);
     if (request.method === 'POST' && remakeRecovery) return await requestPackRemakeRecovery(request, env, remakeRecovery[1]);
+    const editions=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/editions(?:\/([A-Za-z0-9-]+)\/(confirm|accept|discard|retry|player|guide))?$/);
+    if(editions){
+      const [,orderId,id,action]=editions;
+      if(request.method==='GET'&&!id)return await editionWorkspace(request,env,orderId,editionDeps());
+      if(request.method==='POST'&&!id)return await requestEdition(request,env,orderId,editionDeps());
+      if(request.method==='GET'&&['player','guide'].includes(action))return await editionFile(request,env,orderId,id,action,editionDeps());
+      if(request.method==='POST'&&['confirm','accept','discard','retry'].includes(action))return await editionAction(request,env,orderId,id,action,editionDeps());
+    }
     const revision = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revisions$/);
     if (request.method === 'POST' && revision) return await requestRevision(request, env, revision[1]);
     const revisionWorkspacePath=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revision-workspace$/);
@@ -1848,7 +1866,7 @@ export default {
   },
   async queue(batch, env) {
     for (const message of batch.messages) {
-      try { if (message.body?.type === 'theme_cover') await processOrderCover(message.body.orderId,env); else if (message.body?.type === 'pack_remake') await processPackRemake(message.body.orderId, env); else if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else if (message.body?.type === 'revision_preview') await prepareRevisionPreview(message.body.previewId,env); else if (message.body?.type === 'plan') await publishPlanRequest(message.body.requestId,env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
+      try { if(message.body?.type==='delivery_edition')await processEdition(message.body.editionId,env,editionDeps()); else if (message.body?.type === 'theme_cover') await processOrderCover(message.body.orderId,env); else if (message.body?.type === 'pack_remake') await processPackRemake(message.body.orderId, env); else if (message.body?.type === 'revision') await publishRevision(message.body.revisionId, env); else if (message.body?.type === 'revision_preview') await prepareRevisionPreview(message.body.previewId,env); else if (message.body?.type === 'plan') await publishPlanRequest(message.body.requestId,env); else await publishCustomOrder(message.body?.orderId, env); message.ack(); }
       catch (failure) { console.error('Generation job failed', message.body?.type==='theme_cover'?{type:'theme_cover',code:'COVER_STORAGE'}:message.body?.type==='plan'?{type:'plan',code:planFailureCategory(failure)}:failure); message.retry(); }
     }
   },
@@ -1869,6 +1887,7 @@ export default {
       catch (caught) { console.error('Operator delivery alert failed',caught); }
     }
     if (!env.GENERATION_QUEUE) return;
+    await resumeEditions(env).catch(()=>console.error('Edition recovery deferred',{code:'EDITION_SCHEDULE'}));
     await resumeOrderCovers(env).catch(()=>console.error('Theme cover deferred',{code:'COVER_SCHEDULE'}));
     await query(env.DB,"UPDATE custom_pack_remakes SET status = 'queued',phase = 'pdf',failure_count = 0,lease_until = NULL,error_code = NULL,error_detail = NULL,completed_at = NULL,updated_at = CURRENT_TIMESTAMP WHERE status = 'failed' AND error_code = 'BLUEPRINT_INVALID' AND published_version IS NOT NULL AND blueprint_json IS NOT NULL AND story_json IS NOT NULL AND json_array_length(stages_json) = 5").run();
     const jobs = await query(env.DB, `SELECT c.order_id FROM custom_activities c JOIN orders o ON o.id = c.order_id
