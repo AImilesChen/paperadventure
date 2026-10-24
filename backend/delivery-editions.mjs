@@ -71,7 +71,7 @@ export async function editionWorkspace(request,env,orderId,deps){
  }
  const versions=await q(env,"SELECT version_number,created_at FROM artifact_versions WHERE custom_activity_id=? AND status='published' ORDER BY version_number DESC",owner.activity.id).all();
  const counts=await q(env,"SELECT kind,COUNT(*) AS n FROM delivery_editions WHERE order_id=? GROUP BY kind",orderId).all();
- return deps.json({version:owner.artifact.version_number,paper:spec.paper,gameplay:spec.gameplay,available:Boolean(pair&&spec.packStepDeliveryVersion===1),
+ return deps.json({version:owner.artifact.version_number,currentPlan:spec.plan,paper:spec.paper,gameplay:spec.gameplay,available:Boolean(pair&&spec.packStepDeliveryVersion===1),
   previewExact:Boolean(pair),checkpointPages:pair?.checkpointPages,stages:pair?.printedStory.stages.map(stageView)||[],candidate,versions:versions.results||[],
   rights:{checkpointLeft:Math.max(0,owner.entitlement.revision_success_limit-owner.entitlement.revision_success_used),wholeLeft:Math.max(0,owner.entitlement.remake_success_limit-owner.entitlement.remake_success_used),
    expiresAt:owner.entitlement.revision_expires_at,checkpointAttemptsLeft:Math.max(0,editionLimits.checkpointAttempts-Number(counts.results?.find(x=>x.kind==='checkpoint')?.n||0)),wholeAttemptsLeft:Math.max(0,editionLimits.wholeAttempts-Number(counts.results?.find(x=>x.kind==='whole')?.n||0))}});
@@ -111,6 +111,7 @@ export async function requestEdition(request,env,orderId,deps){
 export async function editionAction(request,env,orderId,id,action,deps){
  deps.sameOrigin(request,env);const owner=await deps.owner(request,env,orderId),row=await q(env,'SELECT * FROM delivery_editions WHERE id=? AND order_id=?',id,orderId).first();
  if(!row)fail('EDITION_NOT_FOUND','This change was not found.',404);
+ if(await sha256(row.spec_json)!==row.spec_sha256)fail('EDITION_SOURCE_INVALID','The candidate settings no longer match their saved version.',503);
  if(action==='accept'&&row.status==='published')return deps.json({status:'published',version:row.published_version});
  if(action==='discard'){
   if(!['ready','plan_review','failed','discarded'].includes(row.status))fail('EDITION_BUSY','Wait for this preparation step to finish.');

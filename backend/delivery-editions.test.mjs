@@ -69,10 +69,12 @@ test('post-delivery checkpoint feedback creates exact PDFs and atomic idempotent
  assert.equal((await f.call(`/editions/${secondId}/accept`,'POST')).status,409);
 });
 
-for(const failure of ['provider','scope','storage','integrity'])test(`${failure} cannot consume a successful change or replace either published PDF`,async()=>{
+for(const failure of ['provider','scope','storage','integrity','spec'])test(`${failure} cannot consume a successful change or replace either published PDF`,async()=>{
  const f=await fixture({fetcher:async()=>failure==='provider'?new Response('',{status:503}):Response.json({output_text:JSON.stringify({style:failure==='scope'?'unsupported':'steps'})}),failPut:key=>failure==='storage'&&key.endsWith('guide.pdf')});
  const response=await f.start(local);assert.equal(response.status,202);const id=(await response.json()).id;await f.drain();
- if(failure==='integrity'){
+ if(failure==='spec'){
+  f.db.prepare("UPDATE delivery_editions SET spec_json=spec_json||' ' WHERE id=?").run(id);assert.equal((await f.call(`/editions/${id}/accept`,'POST')).status,503);
+ }else if(failure==='integrity'){
   const row=f.db.prepare('SELECT * FROM delivery_editions WHERE id=?').get(id);f.files.get(row.guide_r2_key).body=new Uint8Array([37,80,68,70]);assert.equal((await f.call(`/editions/${id}/accept`,'POST')).status,503);
  }else assert.equal((await f.view()).candidate.status,'failed');
  assert.equal(f.db.prepare('SELECT revision_success_used FROM entitlements').get().revision_success_used,0);
