@@ -9,7 +9,7 @@ import {STEP_SAVED,ensureBaseline,enqueueNextStep,activateBaseline} from './step
 import {savedGenerationProgress} from './generation-progress.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
-import { stripeKeyMode, stripeRequest, checkoutForm, validatePaidSession } from './payments.mjs';
+import { stripeKeyMode, stripeRequest, checkoutForm, validatePaidSession, verifyFixedPrice } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage, revisePrintedWording } from './openai.mjs';
 import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint,
   generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, recoverSavedBlueprintMaterialStep, validateSavedBlueprintMaterialStep, recoverSavedGroundedBlueprint, recoverSavedBlueprintSteps } from './staged-story.mjs';
@@ -267,7 +267,8 @@ async function checkout(request, env) {
   const key = request.headers.get('Idempotency-Key');
   if (!key || !/^[A-Za-z0-9_-]{16,100}$/.test(key)) throw new ApiError(400, 'IDEMPOTENCY_REQUIRED', 'A valid idempotency key is required.');
   const price = await query(env.DB, 'SELECT * FROM price_versions WHERE sku = ? AND sale_enabled = 1 ORDER BY created_at DESC LIMIT 1', offer.sku).first();
-  if (!price || price.currency !== 'USD' || price.unit_amount !== offer.unitAmount || (!testOnly && !price.stripe_price_id) || price.tax_behavior === 'unknown') throw new ApiError(503, 'OFFER_NOT_READY', 'This product is not available for checkout.');
+  if (!price || price.currency !== 'USD' || price.unit_amount !== offer.unitAmount || (!testOnly && !price.stripe_price_id)) throw new ApiError(503, 'OFFER_NOT_READY', 'This product is not available for checkout.');
+  if (!testOnly && stripeKeyMode(env.STRIPE_SECRET_KEY) === 'live') await verifyFixedPrice(env, price, env.FETCH || fetch);
   let readyPack = null;
   if (offer.kind === 'ready') {
     readyPack = await query(env.DB, "SELECT p.* FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id WHERE p.theme_world_id = ? AND p.setting = ? AND p.version = ? AND p.status = ? AND w.status = 'published'", spec.themeId, spec.setting, spec.packVersion, testOnly ? 'internal_test' : 'published').first();
@@ -285,7 +286,7 @@ async function checkout(request, env) {
   const legalVersions = testOnly ? { testMode: 'stripe-sandbox-2026-10-09' } : Object.fromEntries([...legal].map(([kind, item]) => [kind, item.version]));
   const specJson = JSON.stringify({ ...spec, readyPackId: readyPack?.id || null, priceVersionId: price.id, licenceVersion: readyPack?.licence_version || env.CUSTOM_LICENCE_VERSION,
     accessPolicyVersion: productRights.version, onlineRedownloadMonths: productRights.onlineRedownloadMonths,
-    accessStarts: offer.kind === 'ready' ? productRights.readyAccessStarts : productRights.customAccessStarts, legalVersions, paymentMode, serviceRequest: purchaseConsentSnapshot(offer.kind) });
+    accessStarts: offer.kind === 'ready' ? productRights.readyAccessStarts : productRights.customAccessStarts, legalVersions, paymentMode, checkoutPricing: 'fixed_total_v1', serviceRequest: purchaseConsentSnapshot(offer.kind) });
   const specHash = await sha256(specJson);
   let order = await query(env.DB, 'SELECT * FROM orders WHERE idempotency_key = ?', key).first();
   if (order && (order.purchase_spec_sha256 !== specHash || order.purchaser_email_hash !== buyerHash)) throw new ApiError(409, 'IDEMPOTENCY_CONFLICT', 'This request key was used for another purchase.');
@@ -312,7 +313,7 @@ async function checkout(request, env) {
   const origin = new URL(env.PUBLIC_ORIGIN).origin;
   const form = checkoutForm({ orderId: order.id, email, priceId: testOnly ? null : price.stripe_price_id,
     inlinePrice: testOnly ? { name: `Paper Adventure ${spec.themeId || 'original'} ${offer.setting} ${offer.kind} test`, unitAmount: offer.unitAmount } : null, specHash,
-    successUrl: `${origin}/en/orders/${order.id}/?checkout=returned`, cancelUrl: `${origin}/en/checkout/?cancelled=1`, automaticTax: !testOnly });
+    successUrl: `${origin}/en/orders/${order.id}/?checkout=returned`, cancelUrl: `${origin}/en/checkout/?cancelled=1` });
   const session = await stripeRequest(env, 'checkout/sessions', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'Idempotency-Key': `paw-${order.id}` }, body: form.toString() }, env.FETCH || fetch);
   if (!session.id || !session.url || session.client_reference_id !== order.id) throw new ApiError(502, 'PAYMENT_PROVIDER_ERROR', 'Payment session could not be verified.');
   await query(env.DB, 'UPDATE orders SET stripe_checkout_session_id = ?, checkout_url = ? WHERE id = ? AND status = ?', session.id, session.url, order.id, 'pending_payment').run();

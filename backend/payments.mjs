@@ -16,7 +16,7 @@ export async function stripeRequest(env, path, options = {}, fetcher = fetch) {
   return response.json();
 }
 
-export function checkoutForm({ orderId, email, priceId, inlinePrice, specHash, successUrl, cancelUrl, automaticTax }) {
+export function checkoutForm({ orderId, email, priceId, inlinePrice, specHash, successUrl, cancelUrl }) {
   const form = new URLSearchParams();
   const fields = {
     mode: 'payment', client_reference_id: orderId,
@@ -24,7 +24,8 @@ export function checkoutForm({ orderId, email, priceId, inlinePrice, specHash, s
     'metadata[order_id]': orderId, 'metadata[spec_hash]': specHash,
     success_url: successUrl, cancel_url: cancelUrl,
     'billing_address_collection': 'auto',
-    'automatic_tax[enabled]': automaticTax ? 'true' : 'false',
+    'automatic_tax[enabled]': 'false',
+    'allow_promotion_codes': 'false',
   };
   if (inlinePrice) {
     form.set('line_items[0][price_data][currency]', 'usd');
@@ -36,9 +37,19 @@ export function checkoutForm({ orderId, email, priceId, inlinePrice, specHash, s
   return form;
 }
 
+// Verify catalog identity and amount without requiring Stripe Tax enrollment.
+export async function verifyFixedPrice(env, price, fetcher = fetch) {
+  const actual = await stripeRequest(env, `prices/${encodeURIComponent(price.stripe_price_id)}`, {}, fetcher);
+  if (actual.id !== price.stripe_price_id || actual.livemode !== true || actual.active !== true || actual.type !== 'one_time' || actual.currency !== 'usd' || actual.unit_amount !== price.unit_amount)
+    throw new ApiError(503, 'OFFER_NOT_READY', 'This product is not available for checkout.');
+}
+
 export function validatePaidSession(session, order, price) {
   if (!session || session.id !== order.stripe_checkout_session_id || session.client_reference_id !== order.id || session.metadata?.order_id !== order.id || session.metadata?.spec_hash !== order.purchase_spec_sha256) return false;
   if (session.payment_status !== 'paid' || session.currency?.toLowerCase() !== 'usd') return false;
   if (session.amount_subtotal !== price.unit_amount || !Number.isInteger(session.amount_total) || session.amount_total < session.amount_subtotal) return false;
+  let fixedTotal = false;
+  try { fixedTotal = JSON.parse(order.purchase_spec_json || '{}').checkoutPricing === 'fixed_total_v1'; } catch { return false; }
+  if ((fixedTotal || price.tax_behavior === 'inclusive') && session.amount_total !== price.unit_amount) return false;
   return true;
 }

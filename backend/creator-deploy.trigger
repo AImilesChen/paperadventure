@@ -98,3 +98,5 @@
 # Deploy accurate checkout health mode from QA 2026-10-24; retain Stripe test mode.
 
 # deploy restricted Stripe key compatibility 2026-10-24
+
+# Deploy fixed listed-price checkout and remove customer-facing tax explanations 2026-10-24.

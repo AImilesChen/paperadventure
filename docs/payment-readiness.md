@@ -44,3 +44,12 @@ Repository variable `PAYMENTS_EXPECTED_MODE` declares `test` or `live`; unset me
 `npm run test:release` covers mode mismatch/closed/live/invalid cases, sandbox refusal before writes, CLI failure redaction, individual/global profile, policy approval refusal, complete draft content, immutable/escaped SQL and workflow ordering. Build/static checks verify all four real generated page documents and the consistent pricing table. Existing backend and packaging suites remain required.
 
 UI screenshots, if obtained, are evidence only for the stated local views. Unit/CI tests do not prove a real charge, webhook delivery, refund, cross-account access or new-theme generation. No such provider/customer operation is part of this change.
+
+
+## Fixed listed-price checkout (owner decision 2026-10-24)
+
+This supersedes the earlier Stripe Tax enrollment/inclusive-default requirement. The customer pays the exact listed USD price once. Checkout always disables automatic_tax and promotion codes, supplies one item with quantity one, and attaches no manual tax rates, shipping charges or optional paid items. New live checkout verifies the actual Price ID, active/live status, one-time type, USD and exact catalog amount without requiring tax_behavior or Tax Settings API access. Existing unspecified Prices need no tax-setting change for this mode.
+
+Every new purchase snapshots checkoutPricing=fixed_total_v1. Payment confirmation must equal the saved price exactly, rejecting both surcharges and discounts before fulfillment. Old order snapshots retain their original validation. Page copy presents the price and purchase terms without tax explanations or promises about tax compliance.
+
+The existing TAX_CONFIGURED readiness flag remains an operator release-review gate, not proof of Stripe Tax activation; it must not be flipped automatically. Other policy/key/webhook/release requirements remain. Actual live Price objects, restricted Prices read permission, policy correspondence details/date/approval and live event verification are still pending. No live activation or real payment occurs in local checks. No claim is made that business tax obligations begin only at a future revenue level.
