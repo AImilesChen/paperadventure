@@ -55,8 +55,8 @@ test('an individual operator and global audience do not create a company or mark
   assert.deepEqual(policyReleaseProblems(approved), []);
   assert.equal(legalProfile.operatorName, 'mielschen');
   assert.equal(legalProfile.operatorCountry, 'Mainland China');
-  assert.equal(legalProfile.contactAddress, '');
-  assert.ok(policyReleaseProblems().includes('contactAddress'));
+  assert.equal(legalProfile.contactAddress, 'No. 46 Jinqing Avenue, Luqiao District, Taizhou, Zhejiang, China');
+  assert.ok(!policyReleaseProblems().includes('contactAddress'));
   assert.ok(!policyReleaseProblems().includes('operatorName'));
   assert.ok(policyReleaseProblems().includes('ownerApproved'));
   assert.ok(policyReleaseProblems({ ...approved, effectiveAt: '2026-02-30' }).includes('effectiveAt'));
@@ -74,7 +74,7 @@ test('complete policy drafts cover actual delivery and feedback without publishi
   }
   const terms = JSON.stringify(documents.terms);
   assert.match(terms, /public name mielschen, based in Mainland China/);
-  assert.doesNotMatch(terms, /Business correspondence address:/);
+  assert.match(terms, /Business correspondence address: No\. 46 Jinqing Avenue/);
   assert.ok(terms.includes(includedChanges.afterDelivery));
   assert.match(terms, /simpler paper-briefing edition/);
   assert.match(terms, /Earlier versions remain available/);
