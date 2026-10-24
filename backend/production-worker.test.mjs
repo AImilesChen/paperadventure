@@ -2334,12 +2334,13 @@ test('a same-order remake resumes past a failed assembly by replacing its one st
 });
 
 
-async function stepDeliveryFixture({failPhase=null,dropSend=false,failStorage=false,gameplay=null,variants=false,narrative=false}={}){
+async function stepDeliveryFixture({failPhase=null,dropSend=false,failStorage=false,gameplay=null,variants=false,narrative=false,materialNarrative=false}={}){
   const {db,binding}=database(),orderId='step-delivery-order',owner='step-delivery-owner';
   const spec={...clockSpec,sku:'custom_home',kind:'custom',packExperienceVersion:3,packQualityVersion:14,packLayoutVersion:4,
     packCopyVersion:1,packDeliveryPolicyVersion:2,packResilientDeliveryVersion:1,packStepDeliveryVersion:1,
     onlineRedownloadMonths:12,accessPolicyVersion:productRights.version};
   if(narrative)spec.packNarrativeBindingVersion=1;
+  if(materialNarrative)spec.packMaterialNarrativeVersion=1;
   if(gameplay){spec.gameplay=gameplay;spec.packPlayAllocationVersion=1;if(variants)spec.packPuzzleVariantVersion=1;spec.plan=completePaperPlan(clockSpec.plan,gameplay,14,1,spec);}
   const stored=JSON.stringify(spec),hash=await sha256(stored);
   db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,tax_behavior,sale_enabled) VALUES ('step-price','custom_home','USD',1499,'exclusive',1)").run();
@@ -2514,6 +2515,28 @@ test('theme-bound papers publish through enhancement, provider timeouts and stor
       if(key.endsWith('player.pdf'))assert.ok(pdf.includes('decoded label'),'the new narrative presentation reaches stored PDFs');
     }
     assert.ok(f.perMessage.every(count=>count<=1));assert.ok(!f.calls.some(call=>/audit|review/.test(call.name)));
+    const calls=f.calls.length;await f.process();assert.equal(f.calls.length,calls);
+  }
+});
+
+test('material-bound narration reaches stored enhanced and baseline PDFs without changing queue budgets or storage recovery',async()=>{
+  for(const failPhase of [null,'all']){
+    const f=await stepDeliveryFixture({gameplay:{primary:'code',secondary:['sequence','reasoning']},variants:true,narrative:true,materialNarrative:true,failPhase,failStorage:true});
+    await f.process();await f.drain();
+    const story=JSON.parse(f.db.prepare('SELECT story_json FROM custom_story_checkpoints').get().story_json);
+    assert.equal(verifyPrintedPuzzles(story).length,5);assert.equal(f.files.size,3);assert.equal(f.retries,1);
+    assert.equal(f.db.prepare('SELECT delivery_mode FROM custom_generation_baselines').get().delivery_mode,failPhase?'baseline':'enhanced');
+    for(const role of ['player','guide']){
+      const stored=[...f.files].find(([key])=>key.endsWith(`${role}.pdf`))[1].bytes;
+      assert.deepEqual(stored,buildGamePdf(story,f.spec,role),'stored bytes match the shared printable view');
+      const pdf=[...new TextDecoder().decode(stored).matchAll(/\(((?:\\.|[^\\)])*)\) Tj/g)].map(match=>match[1].replace(/\\([\\()])/g,'$1')).join(' ');
+      assert.ok(pdf.includes('The team decodes a label using the printed key'));
+      assert.ok(pdf.includes('The four checked paper records supply the saved digits')||role==='player');
+      const response=await handleProductionApi(request(`/api/v1/files/${f.orderId}/${role}?paper=A4`,'GET',undefined,f.headers),f.env);
+      assert.equal(response.status,200);assert.deepEqual(new Uint8Array(await response.arrayBuffer()),stored);
+    }
+    assert.ok(f.perMessage.every(count=>count<=1));assert.ok(!f.calls.some(call=>/audit|review/.test(call.name)));
+    assert.ok(f.calls.length<=(failPhase?2:6),'same six enhancement steps or two failed-frame attempts');
     const calls=f.calls.length;await f.process();assert.equal(f.calls.length,calls);
   }
 });

@@ -1,4 +1,6 @@
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
+import {verifyDeliveryPuzzles} from './delivery-copy.mjs';
+import {hasMaterialNarrative,renderMaterialNarrativePair} from './material-narrative.mjs';
 
 // These are fictional paper props, not new observations or puzzle predicates.
 // Select a vocabulary only from the adult-approved English plan, never from
@@ -105,7 +107,7 @@ export function presentPaperStory(story,spec){
   return result;
 }
 
-export function renderPresentedPair(story,spec,render,includeStory=false){
+function renderLegacyPresentedPair(story,spec,render,includeStory=false){
   if(!hasStoryPresentation(spec)||story.deliveryCopy)return null;
   // A broken source is never eligible for presentation fallback.
   verifyPrintedPuzzles(story);
@@ -116,4 +118,17 @@ export function renderPresentedPair(story,spec,render,includeStory=false){
     // One selection for both roles prevents mismatched Player/Guide editions.
     return {player:render(story,spec,'player'),guide:render(story,spec,'guide'),...(includeStory?{printedStory:story}:{})};
   }
+}
+
+export function renderPresentedPair(story,spec,render,includeStory=false){
+  if(!hasMaterialNarrative(spec))return renderLegacyPresentedPair(story,spec,render,includeStory);
+  // Keep puzzle proof outside optional narration recovery. A broken puzzle is
+  // never turned into a deliverable merely because its PDF can be drawn.
+  const rewritten=story.stages.some(stage=>stage.material.logic.copyFacts);
+  (rewritten?verifyDeliveryPuzzles:verifyPrintedPuzzles)(story);
+  const original=(!rewritten&&renderLegacyPresentedPair(story,spec,render,true))||{
+    player:render(story,spec,'player'),guide:render(story,spec,'guide'),printedStory:story};
+  let pair=original;
+  try{pair=renderMaterialNarrativePair(original,spec,render,storyProfile(spec));}catch{/* Keep the already rendered pair even if optional profile selection fails. */}
+  return includeStory?pair:{player:pair.player,guide:pair.guide};
 }
