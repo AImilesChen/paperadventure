@@ -10,7 +10,7 @@ export const includedChanges = Object.freeze({
 export function createPolicyDocuments(profile = legalProfile) {
   const ready = policyReleaseProblems(profile).length === 0;
   const operator = profile.operatorName
-    ? `${profile.brand} is operated by ${profile.operatorName}, an individual trader${profile.operatorCountry ? ` based in ${profile.operatorCountry}` : ''}.`
+    ? `${profile.brand} is operated by an individual using the public name ${profile.operatorName}${profile.operatorCountry ? `, based in ${profile.operatorCountry}` : ''}.`
     : `${profile.brand} is operated by an individual trader. The operator's public identity and contact address will be confirmed before real payments open.`;
   const contact = `Contact ${profile.supportEmail}${profile.contactAddress ? `. Business correspondence address: ${profile.contactAddress}` : ''}.`;
   const identity = { heading: 'Operator and contact', body: `${operator} ${contact}` };

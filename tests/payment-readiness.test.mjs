@@ -53,7 +53,11 @@ test('an individual operator and global audience do not create a company or mark
   assert.equal(legalProfile.operatorType, 'individual');
   assert.equal(legalProfile.audience, 'worldwide');
   assert.deepEqual(policyReleaseProblems(approved), []);
-  assert.ok(policyReleaseProblems().includes('operatorName'));
+  assert.equal(legalProfile.operatorName, 'mielschen');
+  assert.equal(legalProfile.operatorCountry, 'Mainland China');
+  assert.equal(legalProfile.contactAddress, '');
+  assert.ok(policyReleaseProblems().includes('contactAddress'));
+  assert.ok(!policyReleaseProblems().includes('operatorName'));
   assert.ok(policyReleaseProblems().includes('ownerApproved'));
   assert.ok(policyReleaseProblems({ ...approved, effectiveAt: '2026-02-30' }).includes('effectiveAt'));
   assert.throws(() => policyReleaseSql(legalProfile, { publish: true }), /owner approval/);
@@ -69,6 +73,8 @@ test('complete policy drafts cover actual delivery and feedback without publishi
     assert.doesNotMatch(JSON.stringify(doc), /Final reviewed wording goes here|Two successful local custom revisions|no-refunds policy/i);
   }
   const terms = JSON.stringify(documents.terms);
+  assert.match(terms, /public name mielschen, based in Mainland China/);
+  assert.doesNotMatch(terms, /Business correspondence address:/);
   assert.ok(terms.includes(includedChanges.afterDelivery));
   assert.match(terms, /simpler paper-briefing edition/);
   assert.match(terms, /Earlier versions remain available/);

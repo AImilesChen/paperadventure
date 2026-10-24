@@ -1,14 +1,14 @@
 // Public policy configuration only. Never add keys, IDs, banking or ID documents.
-// The owner confirmed individual operation and worldwide customers on 2026-10-24.
+// Owner-confirmed public name/location on 2026-10-24; no correspondence address supplied.
 export const legalProfile = Object.freeze({
   brand: 'Paper Adventure',
   operatorType: 'individual',
-  operatorName: '',
+  operatorName: 'mielschen',
   contactAddress: '',
-  operatorCountry: '',
+  operatorCountry: 'Mainland China',
   supportEmail: 'support@paperadventure.app',
   audience: 'worldwide',
-  version: '2026-10-24-v1',
+  version: '2026-10-24-v2',
   effectiveAt: '',
   ownerApproved: false,
 });
