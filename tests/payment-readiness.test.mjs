@@ -8,6 +8,7 @@ import { createPolicyDocuments, includedChanges } from '../shared/legal-document
 import { legalProfile, policyReleaseProblems } from '../shared/legal-profile.mjs';
 
 const health = (checkoutMode, extra = {}) => ({ status: 'configured_runtime', checkout: checkoutMode !== 'closed', checkoutMode, legal: checkoutMode === 'live', ...extra });
+const draftProfile = { ...legalProfile, ownerApproved: false, effectiveAt: '' };
 const approved = { ...legalProfile, operatorName: "Example O'Neil", contactAddress: '1 Example Road, Example City', operatorCountry: 'Example jurisdiction', effectiveAt: '2026-10-24', ownerApproved: true };
 
 test('declared payment release mode accepts the current sandbox and reviewed live runtime', () => {
@@ -53,18 +54,18 @@ test('an individual operator and global audience do not create a company or mark
   assert.equal(legalProfile.operatorType, 'individual');
   assert.equal(legalProfile.audience, 'worldwide');
   assert.deepEqual(policyReleaseProblems(approved), []);
-  assert.equal(legalProfile.operatorName, 'mielschen');
+  assert.equal(legalProfile.operatorName, 'mileschen');
   assert.equal(legalProfile.operatorCountry, 'Mainland China');
   assert.equal(legalProfile.contactAddress, 'No. 46 Jinqing Avenue, Luqiao District, Taizhou, Zhejiang, China');
   assert.ok(!policyReleaseProblems().includes('contactAddress'));
   assert.ok(!policyReleaseProblems().includes('operatorName'));
-  assert.ok(policyReleaseProblems().includes('ownerApproved'));
+  assert.ok(policyReleaseProblems(draftProfile).includes('ownerApproved'));
   assert.ok(policyReleaseProblems({ ...approved, effectiveAt: '2026-02-30' }).includes('effectiveAt'));
-  assert.throws(() => policyReleaseSql(legalProfile, { publish: true }), /owner approval/);
+  assert.throws(() => policyReleaseSql(draftProfile, { publish: true }), /owner approval/);
 });
 
 test('complete policy drafts cover actual delivery and feedback without publishing themselves', () => {
-  const documents = createPolicyDocuments();
+  const documents = createPolicyDocuments(draftProfile);
   assert.deepEqual(Object.keys(documents).sort(), ['cookies', 'privacy', 'refunds', 'terms']);
   for (const doc of Object.values(documents)) {
     assert.equal(doc.publicationStatus, 'draft');
@@ -73,8 +74,8 @@ test('complete policy drafts cover actual delivery and feedback without publishi
     assert.doesNotMatch(JSON.stringify(doc), /Final reviewed wording goes here|Two successful local custom revisions|no-refunds policy/i);
   }
   const terms = JSON.stringify(documents.terms);
-  assert.match(terms, /public name mielschen, based in Mainland China/);
-  assert.match(terms, /Business correspondence address: No\. 46 Jinqing Avenue/);
+  assert.match(terms, /trading as mileschen, based in Mainland China/);
+  assert.match(terms, /Business correspondence address: No. 46 Jinqing Avenue/);
   assert.ok(terms.includes(includedChanges.afterDelivery));
   assert.match(terms, /simpler paper-briefing edition/);
   assert.match(terms, /Earlier versions remain available/);
@@ -87,7 +88,7 @@ test('complete policy drafts cover actual delivery and feedback without publishi
 });
 
 test('policy SQL preserves versions, escapes operator text and requires explicit approved publication', () => {
-  const draftSql = policyReleaseSql(legalProfile);
+  const draftSql = policyReleaseSql(draftProfile);
   assert.equal((draftSql.match(/INSERT INTO legal_documents/g) || []).length, 4);
   assert.equal((draftSql.match(/,'draft'\);/g) || []).length, 4);
   const liveSql = policyReleaseSql(approved, { publish: true });
@@ -99,7 +100,7 @@ test('policy SQL preserves versions, escapes operator text and requires explicit
 });
 
 test('revised voluntary refund terms preserve mandatory rights and do not promise free unlimited generation',()=>{
-  const docs=createPolicyDocuments(),refunds=JSON.stringify(docs.refunds);
+  const docs=createPolicyDocuments(draftProfile),refunds=JSON.stringify(docs.refunds);
   assert.match(refunds,/before custom generation has begun/);
   assert.match(refunds,/A generated personal plan is part of the custom service/);
   assert.match(refunds,/do not offer an unconditional voluntary full refund/);
@@ -107,7 +108,7 @@ test('revised voluntary refund terms preserve mandatory rights and do not promis
   assert.match(refunds,/two business days/);assert.match(refunds,/five business days/);
   assert.match(refunds,/partial refund does not automatically revoke/);
   assert.match(refunds,/does not reset them/);assert.match(refunds,/not copy protection/);
-  assert.doesNotMatch(refunds,/all sales are final|14 days.*full refund|we charge an automatic deduction/i);
+  assert.doesNotMatch(refunds,/all sales are final|unconditional voluntary 14.day money.back guarantee|we charge an automatic deduction/i);
   assert.match(JSON.stringify(docs.privacy),/not that a person read or used/);
   assert.equal(docs.refunds.publicationStatus,'draft');
 });
@@ -137,4 +138,29 @@ test('the new checkout page waits for its matching API before any public deploym
  assert.ok(guard>0&&guard<workflow.indexOf('Deploy verified public site'));
  assert.match(workflow,/v.purchaseConfirmationVersion!==purchaseConsentVersion/);
  assert.match(workflow,/current public page was retained/);
+});
+
+
+test('reviewed policy draft explains applicable cancellation rights and privacy bases',()=>{
+  const docs=createPolicyDocuments(draftProfile);
+  const refunds=JSON.stringify(docs.refunds),terms=JSON.stringify(docs.terms),privacy=JSON.stringify(docs.privacy);
+  assert.match(refunds,/14 days from entering the contract/);
+  assert.match(refunds,/optional wording/);
+  assert.match(refunds,/voluntary review targets do not extend/);
+  assert.match(terms,/PDF reader/);
+  assert.match(privacy,/legitimate interests/);
+  assert.match(privacy,/one month/);
+  assert.match(privacy,/Resend/);
+  assert.match(privacy,/account and support information may be accessed there/);
+  assert.equal(docs.privacy.publicationStatus,'draft');
+});
+
+
+test('owner-authorized formal policies have an effective date and preserve draft refusal',()=>{
+  assert.deepEqual(policyReleaseProblems(),[]);
+  for(const doc of Object.values(createPolicyDocuments())){
+    assert.equal(doc.publicationStatus,'approved');assert.equal(doc.effectiveAt,'2026-10-24');
+  }
+  assert.doesNotThrow(()=>policyReleaseSql(legalProfile,{publish:true}));
+  assert.throws(()=>policyReleaseSql(draftProfile,{publish:true}),/owner approval/);
 });
