@@ -1,5 +1,6 @@
 import test from 'node:test';
 import {purchaseConsentVersion} from '../shared/purchase-consent.mjs';
+import {assertPaymentRuntime} from '../scripts/payment-runtime.mjs';
 import assert from 'node:assert/strict';
 import { createHmac, createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
@@ -345,6 +346,31 @@ test('checkout requires an explicit current supply confirmation and binds its ex
   assert.equal(spec.serviceRequest.version,purchaseConsentVersion);assert.equal(spec.serviceRequest.statutoryRightsWaived,false);
   assert.equal(JSON.parse(evidence.details_json).specHash,order.purchase_spec_sha256);assert.equal(calls,1);
   assert.equal(db.prepare("SELECT COUNT(*) n FROM order_evidence WHERE event='supply_requested'").get().n,1);
+});
+
+test('real API health and the live release gate agree on keys, flags and published policies',async()=>{
+ const cases=[
+  {name:'non-stage sandbox',patch:{},mode:'test'},
+  {name:'test key with live flag',patch:{LIVE_PAYMENTS_ENABLED:'true'},mode:'test'},
+  {name:'current sandbox path',patch:{STAGE_PREVIEW:'true',TEST_CHECKOUT_ENABLED:'true',LEGAL_RELEASED:'false',TAX_CONFIGURED:'false'},mode:'test'},
+  {name:'live disabled',patch:{STRIPE_SECRET_KEY:'sk_live_fixture'},mode:'closed'},
+  {name:'live complete',patch:{STRIPE_SECRET_KEY:'sk_live_fixture',LIVE_PAYMENTS_ENABLED:'true'},mode:'live'},
+  {name:'live missing webhook',patch:{STRIPE_SECRET_KEY:'sk_live_fixture',LIVE_PAYMENTS_ENABLED:'true',STRIPE_WEBHOOK_SECRET:''},mode:'closed'},
+  {name:'live missing secret',patch:{STRIPE_SECRET_KEY:'',LIVE_PAYMENTS_ENABLED:'true'},mode:'closed'},
+  {name:'live tax not ready',patch:{STRIPE_SECRET_KEY:'sk_live_fixture',LIVE_PAYMENTS_ENABLED:'true',TAX_CONFIGURED:'false'},mode:'closed'},
+  {name:'live legal release off',patch:{STRIPE_SECRET_KEY:'sk_live_fixture',LIVE_PAYMENTS_ENABLED:'true',LEGAL_RELEASED:'false'},mode:'closed'},
+  {name:'live missing policy',patch:{STRIPE_SECRET_KEY:'sk_live_fixture',LIVE_PAYMENTS_ENABLED:'true'},missingPolicy:true,mode:'closed'},
+  {name:'non-stage test missing policy',patch:{},missingPolicy:true,mode:'closed'},
+ ];
+ for(const item of cases){
+  const {db,binding}=database();seedReady(db);if(item.missingPolicy)db.exec("DELETE FROM legal_documents WHERE kind='refunds'");
+  const env={...config(binding),OPENAI_API_KEY:'fixture',OPENAI_MODEL:'fixture',GENERATION_QUEUE:{send:()=>assert.fail('Health must not enqueue')},...item.patch,FETCH:()=>assert.fail('Health must not call a provider')};
+  const response=await handleProductionApi(request('/api/v1/health'),env),health=await response.json();
+  assert.equal(response.status,200,item.name);assert.equal(health.checkoutMode,item.mode,item.name);assert.equal(health.checkout,item.mode!=='closed',item.name);
+  if(item.mode==='live')assert.doesNotThrow(()=>assertPaymentRuntime(health,{expectedMode:'live'}),item.name);
+  else assert.throws(()=>assertPaymentRuntime(health,{expectedMode:'live'}),/declared live/,item.name);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM orders').get().n,0,item.name);
+ }
 });
 
 test('closed checkout fails before touching Stripe', async () => {

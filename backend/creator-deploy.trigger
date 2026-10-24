@@ -95,3 +95,4 @@
 # deploy PR #93 approved post-delivery candidate editions and migration 0039 2026-10-24
 # deploy PR #95 optional material-bound narration with retained original PDF pair 2026-10-24
 # Deploy refund evidence, immediate-supply confirmation and preview marking 2026-10-24.
+# Deploy accurate checkout health mode from QA 2026-10-24; retain Stripe test mode.

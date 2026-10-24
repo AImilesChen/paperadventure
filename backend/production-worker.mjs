@@ -1261,7 +1261,11 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);
       const catalog = await liveCatalog(env);
-      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), checkout: await checkoutReady(env), checkoutMode: testCheckoutReady(env) ? 'test' : paymentReady(env) ? 'live' : 'closed', generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      const checkout = await checkoutReady(env);
+      // A usable sandbox outside STAGE_PREVIEW still uses test keys. Report the
+      // actual enabled mode, never infer live solely from generic readiness.
+      const checkoutMode = !checkout ? 'closed' : env.STRIPE_SECRET_KEY.startsWith('sk_test_') ? 'test' : 'live';
+      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
