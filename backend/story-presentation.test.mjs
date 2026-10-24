@@ -12,6 +12,7 @@ const gameplay={primary:'sequence',secondary:['code','reasoning']};
 const pdfText=bytes=>[...new TextDecoder().decode(bytes).matchAll(/\(((?:\\.|[^\\)])*)\) Tj/g)].map(match=>match[1].replace(/\\([\\()])/g,'$1')).join(' ');
 function purchase(theme='train',style=gameplay,setting='home'){
   const spec=validatePurchase({sku:`custom_${setting}`,creatorVersion:3,customIdea:theme,players:setting==='home'?4:24,groups:6,age:'8-10',paper:'A4',gameplay:style}).spec;
+  delete spec.packMaterialNarrativeVersion; // Explicit regression coverage of the already delivered v1 print path.
   spec.plan=planFixture(spec);spec.plan.title=`The ${theme} mystery`;spec.plan.themeAnchors=[theme];
   spec.plan.goal='Restore the mixed-up train message and make sure the right note reaches the stationmaster before the train arrives.';
   if(theme!=='train')spec.plan.goal=`Help the ${theme} keeper recover the missing message.`;
