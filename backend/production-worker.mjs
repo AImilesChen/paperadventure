@@ -1,3 +1,4 @@
+import {runLivePricePreflight} from './live-payment-release.mjs';
 import {succeededRefundAmount} from './refund-status.mjs';
 import {purchaseConsentSnapshot,validPurchaseConsent,purchaseConsentVersion} from '../shared/purchase-consent.mjs';
 import {recordOrderEvidence,recordAccessEvidence,assertOrderNotRefunded,refundedWork,generationJobOrder,orderWorkEnvironment} from './order-evidence.mjs';
@@ -1924,6 +1925,7 @@ export default {
   async scheduled(_controller, env) {
     env = paymentEnvironment(env);
     if (!env.DB) return;
+    if (await runLivePricePreflight(env)) return;
     await env.DB.batch([
       query(env.DB, 'DELETE FROM access_challenges WHERE expires_at < ?', nowSeconds()),
       query(env.DB, 'DELETE FROM access_rate_limits WHERE expires_at < ?', nowSeconds()),

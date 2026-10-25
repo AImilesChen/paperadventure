@@ -22,7 +22,11 @@ export function paymentEnvironment(env) {
 export async function stripeRequest(env, path, options = {}, fetcher = fetch) {
   if (!env.STRIPE_SECRET_KEY) throw new ApiError(503, 'PAYMENT_NOT_CONFIGURED', 'Payment is not configured.');
   const response = await fetcher(`https://api.stripe.com/v1/${path}`, { ...options, headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, ...(options.headers || {}) } });
-  if (!response.ok) throw new ApiError(502, 'PAYMENT_PROVIDER_ERROR', 'The payment provider could not complete this request.');
+  if (!response.ok) {
+    const error = new ApiError(502, 'PAYMENT_PROVIDER_ERROR', 'The payment provider could not complete this request.');
+    error.providerStatus = response.status; // Internal numeric diagnostic; never copy Stripe response prose.
+    throw error;
+  }
   return response.json();
 }
 
