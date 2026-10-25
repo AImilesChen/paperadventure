@@ -19,6 +19,7 @@ function fixture({creatorVersion=1}={}) {
   const queue=[],objects=new Map(),requests=[];
   const jpeg=new Uint8Array(150);jpeg.set([255,216,255,224]);
   const env={DB:binding,FAL_KEY:'test-secret-not-for-client',SESSION_SECRET:'test-session',GENERATION_QUEUE:{send:async body=>queue.push(body)},PRIVATE_FILES:{put:async(key,bytes)=>objects.set(key,new Uint8Array(bytes)),head:async key=>objects.has(key)?{size:objects.get(key).length}:null,get:async key=>objects.has(key)?{body:objects.get(key),size:objects.get(key).length}:null},FETCH:async(url,init={})=>{
+    assert.equal(init.redirect,'manual','Workers rejects redirect:error before sending any request');
     requests.push({url,init});
     if(init.method==='POST'){assert.equal(url,'https://queue.fal.run/fal-ai/flux/schnell');assert.equal(init.headers.Authorization,'Key '+env.FAL_KEY);const input=JSON.parse(init.body);assert.equal(input.num_images,1);assert.equal(input.enable_safety_checker,true);assert.doesNotMatch(input.prompt,/DO NOT SEND/);return Response.json({request_id:'cover-request-001',status_url:'https://queue.fal.run/fal-ai/flux/requests/cover-request-001/status',response_url:'https://queue.fal.run/fal-ai/flux/requests/cover-request-001'});}
     if(url.endsWith('/status'))return Response.json({status:'COMPLETED'});
@@ -105,6 +106,31 @@ test('an expired in-flight reservation cannot cause a second billable request af
   const f=fixture();await reserveOrderCover(f.order,f.env);f.db.exec("UPDATE order_theme_covers SET status = 'submitting',generation_calls = 1,lease_until = 0");
   await resumeOrderCovers(f.env);assert.equal(f.row().error_code,'COVER_SUBMIT_UNCERTAIN');assert.equal(f.requests.length,0);
   let ack=false;await productionWorker.queue({messages:[{body:{type:'theme_cover',orderId:f.order.id},ack(){ack=true;},retry(){throw Error('terminal covers must not retry');}}]},f.env);assert.equal(ack,true);
+});
+
+test('provider and media redirects are refused without forwarding credentials or submitting another image',async()=>{
+ for(const media of [false,true]){
+  const f=fixture(),original=f.env.FETCH;let seen=0;
+  f.env.FETCH=async(url,init)=>{
+   if((!media&&init.method==='POST')||(media&&url==='https://v3.fal.media/files/cover.jpg')){seen++;assert.equal(init.redirect,'manual');return new Response(null,{status:302,headers:{location:'https://untrusted.example/collect'}});}
+   assert.ok(!url.includes('untrusted.example'));return original(url,init);
+  };
+  await reserveOrderCover(f.order,f.env);await processOrderCover(f.order.id,f.env);if(media){f.due();await processOrderCover(f.order.id,f.env);}
+  assert.equal(f.row().error_code,'COVER_REDIRECT');assert.equal(seen,1);assert.equal(f.row().generation_calls,1);await resumeOrderCovers(f.env);assert.equal(seen,1);
+ }
+});
+
+test('the two-sample repair cannot backfill other orders or repeat a real failed image submission',()=>{
+ const f=fixture();
+ for(const id of ['a658793a-c546-452a-a5ee-74305eb4a5ee','dc1a8305-c29b-442c-86b2-79dea8f01704','unrelated-cover']){
+  f.db.prepare("INSERT INTO orders(id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at) SELECT ?,'custom','custom_home',purchase_spec_json,'hash','owner','cover-price',1499,'USD','published',paid_at FROM orders WHERE id='cover-order'").run(id);
+  f.db.prepare("INSERT INTO order_theme_covers(order_id,status,error_code,generation_calls,expires_at) VALUES(?,'failed','COVER_NETWORK',1,0)").run(id);
+ }
+ const sql=readFileSync(new URL('./recover-cover-samples.sql',import.meta.url),'utf8');f.db.exec(sql);
+ assert.equal(f.db.prepare("SELECT COUNT(*) n FROM order_theme_covers WHERE status='queued' AND generation_calls=0").get().n,2);
+ assert.equal(f.db.prepare("SELECT status FROM order_theme_covers WHERE order_id='unrelated-cover'").get().status,'failed');
+ f.db.exec("UPDATE order_theme_covers SET status='failed',error_code='COVER_NETWORK',generation_calls=1");f.db.exec(sql);
+ assert.equal(f.db.prepare("SELECT COUNT(*) n FROM order_theme_covers WHERE status='queued'").get().n,0,'one-use audit prevents another provider submission');
 });
 
 test('verified payment reserves one cover and a valid initial plan dispatches it without an image call in the plan worker',async()=>{

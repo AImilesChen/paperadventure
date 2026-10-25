@@ -4,6 +4,21 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
+test('paid order help exposes a direct refund entry and unknown themes use an honest placeholder',async()=>{
+ const vite=await createServer({server:{middlewareMode:true},appType:'custom',logLevel:'silent'});
+ try{
+  const {default:Support}=await vite.ssrLoadModule('/src/orderSupport.jsx');
+  const {default:Cover,adventureCoverImage}=await vite.ssrLoadModule('/src/adventureCover.jsx');
+  const help=renderToStaticMarkup(createElement(Support,{orderId:'fixture-order',api:async()=>({cases:[]})}));
+  assert.match(help,/Request a refund/);assert.match(help,/Report a problem/);assert.doesNotMatch(help,/<details/);
+  const refunded=renderToStaticMarkup(createElement(Support,{orderId:'fixture-order',refunded:true,api:async()=>({cases:[]})}));
+  assert.doesNotMatch(refunded,/>Request a refund</);assert.match(refunded,/confirmed by the payment provider/);
+  const order={product_kind:'custom',title:'An upside-down hotel',image:'/assets/custom-adventure-workshop-v1.jpg'};
+  assert.equal(adventureCoverImage(order),null);assert.match(renderToStaticMarkup(createElement(Cover,{order})),/Theme cover unavailable/);
+  assert.equal(adventureCoverImage({product_kind:'ready',image:'/existing-ready-art.jpg'}),'/existing-ready-art.jpg');
+ }finally{await vite.close();}
+});
+
 test('accepted edition download links stay on one version and plan editing is reachable before the long outline',async()=>{
  const vite=await createServer({server:{middlewareMode:true},appType:'custom',logLevel:'silent'});
  try{

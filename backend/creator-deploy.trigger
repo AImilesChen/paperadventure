@@ -102,3 +102,4 @@
 # Deploy fixed listed-price checkout and remove customer-facing tax explanations 2026-10-24.
 
 # Deploy focused fixed-price release readiness and staged-secret selection 2026-10-25.
+2026-10-25: repair Workers cover transport and enable notified support/refund requests, preserving live checkout.

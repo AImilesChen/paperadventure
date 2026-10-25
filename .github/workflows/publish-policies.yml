@@ -38,6 +38,13 @@ jobs:
         run: |
           npx --yes wrangler@4.74.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/paw-d1.json"
           node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-d1.json','utf8'));const id=d.uuid||d.result?.uuid||d.database?.uuid;if(!/^[0-9a-f-]{36}$/i.test(id||''))throw Error('D1 UUID missing');fs.appendFileSync(process.env.GITHUB_ENV,'PAPER_ADVENTURE_STAGE_D1_ID='+id+'\n')"
+      - name: Wait for matching support notification API
+        run: |
+          for attempt in {1..90}; do
+            if curl --fail --silent --show-error --max-time 10 https://paperadventure.app/api/v1/health > "$RUNNER_TEMP/support-health.json" && node -e "const v=require(process.env.RUNNER_TEMP+'/support-health.json');if(v.supportNotifications!==true||v.checkoutMode!=='live')process.exit(1)"; then exit 0; fi
+            sleep 5
+          done
+          exit 1
       - name: Publish policy rows without changing payment flags or old orders
         run: |
           node scripts/write-stage-wrangler.mjs

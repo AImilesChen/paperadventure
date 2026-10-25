@@ -1,3 +1,4 @@
+import OrderSupport from './orderSupport.jsx';
 import {purchaseConsentVersion,purchaseNotice} from '../shared/purchase-consent.mjs';
 import PostDeliveryEditor from './postDeliveryEditor.jsx';
 import { PolicyDocument } from './policyDocument.jsx';
@@ -183,6 +184,7 @@ export function LiveShelf({ Link }) {
               {section === 'games' && order.filesReady ? <div className="shelf-downloads"><CompletePackDownload orderId={order.id} kind={order.product_kind} paper={downloadPaper} setting={order.setting} /><span className="live-note">Or download individual PDFs:</span><a className="button-quiet" href={'/api/v1/files/' + order.id + '/player?paper=' + downloadPaper}>Player Pack · {downloadPaper === 'Letter' ? 'US Letter' : downloadPaper} <DownloadSimple size={18} /></a><a className="button-quiet" href={'/api/v1/files/' + order.id + '/guide?paper=' + downloadPaper}>{order.setting === 'classroom' ? 'Teacher Guide' : 'Host Guide'} <DownloadSimple size={18} /></a><small>Download both: player activities and separate instructions with answers.</small></div> : section === 'games' && <p className="live-note">Online downloads are unavailable. Check your order for access details.</p>}
               {section === 'making' && order.status === 'failed' && <p className="shelf-action-note">{order.deliveryRetryAvailable ? 'Your PDFs are not ready. Retry on this paid order without another checkout.' : 'Your PDFs are not ready. Open this paid order for assistance or refund review.'}</p>}
               <Link className={section === 'making' ? 'shelf-action' + (order.status === 'failed' ? ' shelf-action-urgent' : '') : 'text-link'} to={'/en/orders/' + order.id + '/'}>{section === 'making' ? order.status === 'failed' ? order.deliveryRetryAvailable ? 'Open order to retry PDF' : 'Open order for help' : order.planStatus === 'needs_help' ? 'Open order and recover plan' : order.planStatus === 'review' ? 'Review and edit your plan' : 'View order progress' : 'Order details'} <ArrowRight size={18} /></Link>
+              {order.paid_at&&order.status!=='refunded'&&<Link className="text-link shelf-refund-link" to={'/en/orders/'+order.id+'/?support=refund#order-help'}>Request a refund</Link>}
             </div>
           </article>;
         })}</div>}
@@ -254,21 +256,6 @@ function RevisionForm({ order, refresh }) {
   </section>;
 }
 
-function IssueForm({ orderId, failedDelivery = false, initialRequest = null }) {
-  const [kind, setKind] = useState(failedDelivery ? 'delivery' : 'clue'); const [description, setDescription] = useState(''); const [busy, setBusy] = useState(false); const [notice, setNotice] = useState(''); const [error, setError] = useState('');
-  const [cases, setCases] = useState([]);
-  useEffect(() => { api(`/api/v1/orders/${orderId}/issues`).then(data => setCases(data.cases)).catch(() => {}); }, [orderId]);
-  useEffect(() => { if (initialRequest) { setKind(initialRequest.kind); setDescription(initialRequest.description); } }, [initialRequest]);
-  async function submit(event) {
-    event.preventDefault(); setBusy(true); setError(''); setNotice('');
-    try {
-      const result = await api(`/api/v1/orders/${orderId}/issues`, { method: 'POST', body: JSON.stringify({ issueType: kind, description }) });
-      setNotice(`Report ${result.caseId} was saved on this order. For direct help, email support@paperadventure.app.`); setDescription('');
-      const updated = await api(`/api/v1/orders/${orderId}/issues`); setCases(updated.cases);
-    } catch (failure) { setError(failure.message); } finally { setBusy(false); }
-  }
-  return <details id="order-help" className="order-feedback"><summary>{failedDelivery ? 'Get help with this failed delivery' : 'Report a problem or request a quality review'}</summary><form className="live-revision" onSubmit={submit}><p>{failedDelivery ? 'Your PDFs did not pass the delivery check. Record the missing delivery here, or email support@paperadventure.app directly for assistance or refund review. No new payment is needed.' : 'This records a request on your paid order; it does not immediately regenerate a game or alert a person. For direct help, email support@paperadventure.app with your order reference.'} Do not include child names or photos.</p><label>Issue type<select value={kind} onChange={event => setKind(event.target.value)}><option value="clue">Clue or instructions</option><option value="answer">Answer or hint</option><option value="printing">Printing or layout</option><option value="delivery">Missing delivery</option><option value="refund">Refund request</option><option value="other">Full-pack quality review or other</option></select></label>{kind==='refund'&&<p className="live-note">Refund requests are reviewed manually. Tell us whether the problem is missing delivery, a fault, a duplicate charge or cancellation. A normally delivered custom plan or game is not covered by an unconditional voluntary change-of-mind refund. Mandatory rights remain unchanged. Sending this form records your request; email support@paperadventure.app for a response.</p>}<label>What happened?<textarea minLength="10" maxLength="1000" required value={description} onChange={event => setDescription(event.target.value)} placeholder={failedDelivery ? 'For example: My approved plan is saved, but the PDFs were not delivered.' : 'Describe which page or checkpoint is wrong, or why the full pack needs a remake.'} /></label><button className="button" disabled={busy}>{busy ? 'Recording…' : 'Record request on this order'}</button>{notice && <p role="status">{notice}</p>}{error && <Alert>{error}</Alert>}{cases.length > 0 && <div className="order-report-history"><strong>Requests recorded on this order</strong><ul>{cases.map(item=><li key={item.id}>{item.issue_type==='other'&&item.description?.startsWith('Please review a no-charge remake')?'Full-pack remake review':item.issue_type} · {item.status==='resolved'?'resolved':item.status==='reviewing'?'under review':'recorded'}</li>)}</ul></div>}</form></details>;
-}
 
 export function PaidPlanReview({order,refresh}) {
   const review=order.planReview;
@@ -547,7 +534,7 @@ export function LiveOrder({ Link, orderId }) {
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
   const [selectedPaper, setSelectedPaper] = useState('A4');
-  const [helpRequest,setHelpRequest] = useState(null);
+  const [helpRequest,setHelpRequest] = useState(()=>typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('support')==='refund'?{kind:'refund',description:''}:null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState('');
   const refreshLock = useRef(false);
@@ -623,7 +610,7 @@ export function LiveOrder({ Link, orderId }) {
           {!order.planReview && order.plan && <details className="order-plan-review"><summary>Review the story and five-checkpoint plan</summary><PlanPreview plan={order.plan}/></details>}
         </div>
         <aside className="order-sidebar" aria-label="Order details">
-          <h2>Order details</h2>
+          <h2>Order details</h2>{order.paidAt&&order.status!=='refunded'&&<button type="button" className="button order-refund-entry" onClick={()=>setHelpRequest({kind:'refund',description:'',at:Date.now()})}>Request a refund</button>}
           <dl><div><dt>Payment</dt><dd>{paid ? 'Confirmed' : 'Not confirmed'}</dd></div><div><dt>Total</dt><dd>{formatUsd(order.amountTotal)} · {order.currency}</dd></div><div><dt>Paper</dt><dd>{order.paper === 'Letter' ? 'US Letter' : order.paper || 'Choose on download'}</dd></div>{order.kind === 'custom' && <div><dt>Plan</dt><dd>{approved ? order.downloadVersion>1?`Accepted game version ${order.downloadVersion}`:`Version ${order.planReview.confirmedVersion} approved` : 'Awaiting approval'}</dd></div>}<div><dt>Files</dt><dd>{order.filesReady ? correctingTheme ? order.planReview?.themeReplanFailed ? 'Original ready · correction stopped' : 'Original ready · correction pending' : order.remake && order.remake.status !== 'ready' ? 'Original ready · new pending' : 'Ready' : 'Not available yet'}</dd></div></dl>
           {order.filesReady && order.accessExpiresAt && <p>Online re-download until {new Date(order.accessExpiresAt.replace(' ','T') + 'Z').toLocaleDateString()}.</p>}
           {order.kind === 'custom' && paid && <p>Before approval, edit the story direction. After delivery, preview checkpoint changes or a whole-game candidate before accepting new PDFs.</p>}
@@ -632,7 +619,7 @@ export function LiveOrder({ Link, orderId }) {
       </div>
        <section id={directRecovery?undefined:'delivery-recovery'} className="order-help-footer" aria-label="Help with this order">
         {!directRecovery&&<DeliveryRecovery order={order} refresh={refresh}/>}
-        <IssueForm orderId={orderId} failedDelivery={order.kind === 'custom' && order.status === 'failed' && paid} initialRequest={helpRequest}/>
+        <OrderSupport api={api} canRefund={paid} refunded={order.status==='refunded'} orderId={orderId} failedDelivery={order.kind === 'custom' && order.status === 'failed' && paid} initialRequest={helpRequest}/>
         {order.status !== 'failed' && <p className="live-note">If a file is missing or incorrect, use the help form. A system correction does not use a paid revision.</p>}
       </section>
     </div>

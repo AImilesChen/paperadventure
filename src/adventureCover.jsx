@@ -24,7 +24,7 @@ export function adventureCoverImage(order) {
   if (order.image && order.image !== workshopImage) return order.image;
   const world = themes.find(theme => theme.id === order.themeId);
   if (world) return world.story?.[order.setting]?.image || world.image;
-  return themeArt.find(([pattern]) => pattern.test(order.title || ''))?.[1] || workshopImage;
+  return themeArt.find(([pattern]) => pattern.test(order.title || ''))?.[1] || null;
 }
 
 export default function AdventureCover({ order }) {
@@ -32,6 +32,7 @@ export default function AdventureCover({ order }) {
   const [failed,setFailed]=useState(false);
   useEffect(()=>setFailed(false),[image]);
   const fallback=adventureCoverImage({...order,image:undefined});
-  return image ? <img src={failed?fallback:image} onError={()=>setFailed(true)} alt="" width="800" height="450" loading="lazy" /> : null;
+  const source=failed?fallback:image;
+  return source ? <img src={source} onError={()=>setFailed(true)} alt="" width="800" height="450" loading="lazy" /> : <div className="adventure-cover-placeholder" role="img" aria-label="Theme cover unavailable"><span aria-hidden="true">◇</span><span>Theme cover unavailable</span></div>;
 }
 

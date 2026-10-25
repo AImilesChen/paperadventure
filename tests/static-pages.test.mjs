@@ -141,7 +141,7 @@ test('pricing explains all three choices and confirmed Home and Classroom rights
   assert.match(checkout, /Checkout unavailable/);
   assert.doesNotMatch(terms, /POLICY PREVIEW/);
   assert.match(terms, /Three successful checkpoint changes and two successful whole-game remakes/);
-  assert.match(terms, /Effective 2026-10-24/);
+  assert.match(terms, /Effective 2026-10-25/);
   assert.doesNotMatch(terms, /Final reviewed wording goes here/);
 });
 
@@ -150,7 +150,7 @@ test('all four policy pages contain readable complete published policies and con
     const html = await read(`en/${kind}/index.html`);
     assert.doesNotMatch(html, /POLICY PREVIEW/);
     assert.doesNotMatch(html, /Prepared for review before real payments open/);
-    assert.match(html, /Effective 2026-10-24/);
+    assert.match(html, /Effective 2026-10-25/);
     assert.match(html, /mileschen/);
     assert.match(html, /aria-label="Policy sections"/);
     assert.match(html, /mailto:support@paperadventure.app/);

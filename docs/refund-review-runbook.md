@@ -1,6 +1,6 @@
 # Refund review and order evidence
 
-This release implements the owner's revised voluntary policy, not an automatic refund engine. Stripe remains in test mode until a separate live-payment release. Policy text is still a preview while `ownerApproved`, the effective date and required operator correspondence information remain unresolved. Do not publish the legal SQL or change payment secrets/flags as part of this release.
+Current release: live checkout was enabled on 2026-10-25. This runbook describes manual refund review; it never authorizes an automatic refund. Policy v5 updates the order-form contact route while preserving the rules attached to earlier purchases.
 
 ## Customer rules
 
@@ -14,7 +14,7 @@ The checkout supply request is **not** a statutory cancellation waiver. A plan a
 
 ## Manual handling
 
-1. Verify ownership and payment mode from the order and Stripe. A test purchase cannot produce a monetary refund. The order form records a case; it does not notify a person, so the customer is told to email support as well. Monitor the published support inbox for the stated response target.
+1. Verify ownership and payment mode from the order and Stripe. A test purchase cannot produce a monetary refund. The order form atomically records a case and reserves an operator notification. Notifications use a lease and case-specific key; failed sends retry up to eight times before requiring attention. Customers do not need a second email unless the page reports a terminal notification failure. Monitor the published support inbox for the stated response target. Cloudflare email does not offer provider-level idempotency, so an ambiguous delivery acknowledgement may still duplicate a notice; the case reference remains stable.
 2. Inspect only this order's purchase-bound policy versions, explicit supply notice, support/refund-request time, generation usage, plan approvals, delivery and file-service evidence. Look at the actual defect if relevant. First-provider work means an attempt started, not that a usable plan was delivered. Missing evidence on an older order is not proof that nothing was supplied, nor consent to the new terms. Do not apply new voluntary terms retroactively.
 3. Assess the request under its original terms and applicable mandatory rights. A cancellation received before work begins stays eligible even if work starts while support processes the request. Repeated requests may merit individual review, not automatic refusal. Tell the customer the concrete reason and remedy. Never demand child identity documents or full card details.
 4. Before issuing an approved refund in Stripe, check the payment, previous full/partial refunds and any active dispute to avoid refunding twice. This repository does not issue refunds. Do not create a replacement purchase or reset allowances. Record the outcome through the existing support-case workflow.
