@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 20
     env:
       CI: "1"
-      PAYMENTS_EXPECTED_MODE: ${{ vars.PAYMENTS_EXPECTED_MODE || 'live' }}
+      PAYMENTS_EXPECTED_MODE: live
       CLOUDFLARE_ACCOUNT_ID: "77bc392d46985cd3425691358f5e8a77"
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
