@@ -156,6 +156,15 @@ export async function handleAdminApi(request,env,context={}) {
   const refund=path.match(/^\/api\/v1\/admin\/refunds\/([A-Za-z0-9-]+)\/review$/);
   if(refund&&request.method==='POST')return json(await saveRefundReview(env,actor,refund[1],await bodyOf(request)));
   if(path==='/api/v1/admin/exceptions'&&request.method==='GET')return json(await exceptionList(env));
+  const restoreException=path.match(/^\/api\/v1\/admin\/exceptions\/([A-Za-z0-9-]+)\/restore$/);
+  if(restoreException&&request.method==='POST') {
+   const id=restoreException[1];
+   await env.DB.batch([
+    q(env,'UPDATE admin_exception_archives SET restored_at=CURRENT_TIMESTAMP WHERE order_id=? AND restored_at IS NULL',id),
+    q(env,"INSERT INTO admin_action_log(actor_hash,action,target_kind,target_id) SELECT ?,'test_exception_restored','order',? WHERE changes()=1",actor.emailHash,id),
+   ]);
+   return json({saved:true});
+  }
   if(path==='/api/v1/admin/settings'&&['GET','PUT'].includes(request.method))return json(await settings(env,actor,request.method==='PUT'?await bodyOf(request):null));
   if(path==='/api/v1/admin/audit'&&request.method==='GET')return json(await pageRows(env,"SELECT a.id,a.action,a.target_kind,a.target_id,a.details_json,a.created_at,COALESCE(p.email,'已授权管理员') actor_email FROM admin_action_log a LEFT JOIN account_profiles p ON p.email_hash=a.actor_hash ORDER BY a.id DESC",[],params));
   throw new ApiError(404,'ADMIN_NOT_FOUND','未找到管理功能。');

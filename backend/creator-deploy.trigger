@@ -109,3 +109,5 @@
 2026-10-25-public-feedback-with-mail-notification
 
 2026-10-25-phase-one-private-admin-console
+
+2026-10-25 owner-requested reversible historical test exception cleanup; migration 0045; preserve all financial and file records.

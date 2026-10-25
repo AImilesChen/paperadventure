@@ -121,5 +121,43 @@ test('reply reservation and audit are atomic, so a failed audit never sends or s
 test('support review and public case state roll back together when updating the case fails',async()=>{
  const f=await fixture();f.db.exec("CREATE TRIGGER reject_case_review BEFORE UPDATE ON support_cases BEGIN SELECT RAISE(ABORT,'fixture review failure');END;");
  const response=await f.call('/messages/support/refund-case/review','POST',{status:'resolved',archived:false,internalNote:'Internal only',revision:0});
- assert.equal(response.status,503);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM admin_message_reviews').get().n,0);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM admin_action_log').get().n,0);assert.equal(f.db.prepare('SELECT status FROM support_cases').get().status,'open');
+ assert.equal(response.status,503);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM admin_message_reviews').get().n,0);assert.equal(f.db.prepare("SELECT COUNT(*) n FROM admin_action_log WHERE action='message_reviewed'").get().n,0);assert.equal(f.db.prepare('SELECT status FROM support_cases').get().status,'open');
+});
+
+
+test('historical cleanup removes only confirmed old test exceptions and linked alerts; restore is authorized, atomic and replay-safe',async()=>{
+ const f=await fixture();
+ f.db.exec("DELETE FROM admin_action_log WHERE target_id='historical-tests-20261025'; UPDATE orders SET status='failed',created_at='2026-10-24 10:00:00' WHERE id IN ('test-paid','live-failed','unknown-paid'); INSERT INTO custom_plan_orders(order_id,status) VALUES('test-paid','review'); INSERT INTO order_theme_covers(order_id,status,expires_at) VALUES('test-paid','failed',9999999999); INSERT INTO admin_payment_state(order_id,mode,refund_state) VALUES('test-paid','test','failed'); INSERT INTO support_cases(id,order_id,email_hash,issue_type,description,status) SELECT 'test-case','test-paid',purchaser_email_hash,'delivery','Fixture problem','open' FROM orders WHERE id='test-paid'; INSERT INTO support_case_notifications(case_id,status,attempts) VALUES('test-case','attention',8),('refund-case','attention',8); UPDATE site_feedback SET notification_status='attention' WHERE id='feedback-one'; INSERT INTO admin_replies(id,source_kind,source_id,recipient_email,subject,body,payload_sha256,created_by,status,attempts) VALUES('test-reply','support','test-case','fake@example.test','Fixture','Fixture','hash','fixture','attention',8)");
+ // A test created after the explicit cutoff must remain visible.
+ f.db.exec("INSERT INTO orders(id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at,created_at) SELECT 'future-test',product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,'failed',paid_at,'2026-10-26 00:00:00' FROM orders WHERE id='test-paid'");
+ const before=f.db.prepare('SELECT * FROM orders ORDER BY id').all();
+ const filesBefore=f.db.prepare('SELECT * FROM order_theme_covers').all();
+ const migrate=()=>f.db.exec(readFileSync(new URL('./migrations/0045_admin_exception_archives.sql',import.meta.url),'utf8'));
+ migrate();migrate();
+ let list=await (await f.call('/exceptions')).json();
+ assert.equal(list.archived_total,1);assert.equal(list.archived[0].id,'test-paid');assert.equal(list.waiting_plan_approval,0);assert.equal(list.covers.length,0);assert.equal(list.refund_failures.length,0);
+ assert.deepEqual(list.orders.map(o=>o.id).sort(),['future-test','live-failed','unknown-paid']);
+ assert.deepEqual(list.notifications.map(n=>n.id).sort(),['feedback-one','refund-case']);
+ assert.equal((await (await f.call('/summary')).json()).mail_attention,2);
+ assert.equal((await (await f.call('/orders?mode=test')).json()).total,2);
+ const path='/exceptions/test-paid/restore';
+ assert.equal((await f.call(path,'POST',undefined,{origin:'https://evil.test'})).status,403);
+ assert.equal((await f.call(path,'POST',undefined,{cookie:''})).status,403);
+ assert.equal((await f.call(path,'GET')).status,404);
+ f.db.exec("CREATE TRIGGER fixture_restore_audit_failure BEFORE INSERT ON admin_action_log WHEN NEW.action='test_exception_restored' BEGIN SELECT RAISE(ABORT,'fixture'); END");
+ assert.equal((await f.call(path,'POST')).status,503);assert.equal(f.db.prepare('SELECT restored_at FROM admin_exception_archives').get().restored_at,null);
+ f.db.exec('DROP TRIGGER fixture_restore_audit_failure');
+ assert.equal((await f.call(path,'POST')).status,200);assert.equal((await f.call(path,'POST')).status,200);migrate();
+ list=await (await f.call('/exceptions')).json();assert.equal(list.archived_total,0);assert.equal(list.waiting_plan_approval,1);assert.equal(list.covers.length,1);assert.equal(list.refund_failures.length,1);assert.equal(list.notifications.length,4);assert.ok(list.orders.some(o=>o.id==='test-paid'));
+ assert.equal(f.db.prepare("SELECT COUNT(*) n FROM admin_action_log WHERE action='test_exception_restored'").get().n,1);
+ assert.deepEqual(f.db.prepare('SELECT * FROM orders ORDER BY id').all(),before);assert.deepEqual(f.db.prepare('SELECT * FROM order_theme_covers').all(),filesBefore);assert.equal(f.sent.length,0);
+});
+
+test('historical cleanup also clears bound payment mismatch alerts without rewriting financial state',async()=>{
+ const f=await fixture();f.db.exec("DELETE FROM admin_action_log WHERE target_id='historical-tests-20261025'; UPDATE orders SET created_at='2026-10-24 10:00:00',paid_at=NULL WHERE id='test-paid'; INSERT INTO admin_payment_state(order_id,mode,provider_payment_status) VALUES('test-paid','test','paid')");
+ assert.equal((await (await f.call('/exceptions')).json()).payment_sync.length,1);
+ f.db.exec(readFileSync(new URL('./migrations/0045_admin_exception_archives.sql',import.meta.url),'utf8'));
+ assert.equal((await (await f.call('/exceptions')).json()).payment_sync.length,0);
+ assert.equal(f.db.prepare("SELECT paid_at FROM orders WHERE id='test-paid'").get().paid_at,null);
+ assert.equal(f.db.prepare("SELECT provider_payment_status FROM admin_payment_state WHERE order_id='test-paid'").get().provider_payment_status,'paid');
 });
