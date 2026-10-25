@@ -1,4 +1,5 @@
 import OrderSupport from './orderSupport.jsx';
+import {libraryIntent,libraryPath,orderSupportPath} from '../shared/support-navigation.mjs';
 import {purchaseConsentVersion,purchaseNotice} from '../shared/purchase-consent.mjs';
 import PostDeliveryEditor from './postDeliveryEditor.jsx';
 import { PolicyDocument } from './policyDocument.jsx';
@@ -146,11 +147,12 @@ export function LiveAccount({ Link }) {
 }
 
 export function LiveShelf({ Link }) {
+  const helpIntent=libraryIntent(typeof window==='undefined'?'':window.location.search);
   const [orders, setOrders] = useState(null); const [draft, setDraft] = useState(null);
   const [needsLogin, setNeedsLogin] = useState(false); const [error, setError] = useState('');
   const [section, setSection] = useState('games'); const [paper, setPaper] = useState('A4'); const [historyKind,setHistoryKind] = useState('paid'); const firstLoad = useRef(true);
   const needsAttention = order => order.product_kind === 'custom' && Boolean(order.paid_at) && (['paid','fulfilling'].includes(order.status) || order.status === 'failed');
-  const refresh = () => api('/api/v1/my-orders').then(data => { setOrders(data.orders); if (firstLoad.current) { firstLoad.current = false; if (data.orders.some(needsAttention)) setSection('making'); } setError(''); }).catch(failure => { if (/Sign in|Verify/.test(failure.message)) setNeedsLogin(true); else setError(failure.message); });
+  const refresh = () => api('/api/v1/my-orders').then(data => { setOrders(data.orders); if (firstLoad.current) { firstLoad.current = false; if(helpIntent.view)setSection(helpIntent.view);else if (data.orders.some(needsAttention)) setSection('making'); } setError(''); }).catch(failure => { if (/Sign in|Verify/.test(failure.message)) setNeedsLogin(true); else setError(failure.message); });
   useEffect(() => { refresh(); api('/api/v1/my-draft').then(result => setDraft(result.draft)).catch(() => {}); }, []);
   useEffect(() => { if (!orders?.some(order => ['paid','fulfilling'].includes(order.status)||['queued','submitting','pending'].includes(order.coverStatus))) return; const timer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 10000); return () => clearInterval(timer); }, [orders]);
   async function deleteDraft() {
@@ -166,10 +168,11 @@ export function LiveShelf({ Link }) {
   return <main className="extended-page live-page shelf-page">
     <Intro eyebrow="MY ADVENTURES" title="Your games, ready to play."><p>Download your purchased adventures, follow custom creations and return to your ideas.</p></Intro>
     <section className="shelf-shell">
-      {needsLogin ? <div className="live-panel"><h2>Sign in to your library</h2><Link className="button" to="/en/account/?returnTo=%2Fen%2Fmy-adventures%2F">Sign in with Google <ArrowRight size={18} /></Link></div> : orders === null ? <p role="status">Loading your library…</p> : <>
+      {needsLogin ? <div className="live-panel"><h2>Sign in to your library</h2><Link className="button" to={'/en/account/?returnTo='+encodeURIComponent(libraryPath(helpIntent))}>Sign in with Google <ArrowRight size={18} /></Link></div> : orders === null ? <p role="status">Loading your library…</p> : <>
         <nav className="shelf-tabs" aria-label="Your adventure library">{[['games','My games',games.length],['making','In progress',making.length],['drafts','My drafts',draft ? 1 : 0],['orders','Order history',paidOrders.length]].map(([id,title,count]) => <button type="button" key={id} aria-pressed={section === id} className={section === id ? 'active' : ''} onClick={() => setSection(id)}>{title}<span>{count}</span></button>)}</nav>
         <div className="shelf-toolbar"><p>{section === 'games' ? 'Completed games with downloadable PDFs appear here.' : section === 'making' ? 'Your paid custom orders stay here until delivery, including any that need recovery.' : section === 'drafts' ? 'Saved ideas are not purchases and have not been charged.' : 'Paid purchases are listed separately from unfinished checkout attempts.'}</p><button type="button" className="button-quiet" onClick={refresh}>Refresh</button></div>
         {section === 'orders' && <div className="creator-source-choice"><button type="button" aria-pressed={historyKind==='paid'} onClick={()=>setHistoryKind('paid')}>Paid orders ({paidOrders.length})</button><button type="button" aria-pressed={historyKind==='unpaid'} onClick={()=>setHistoryKind('unpaid')}>Unfinished checkouts ({unpaidOrders.length})</button></div>}
+        {helpIntent.support&&<p className="live-panel" role="status">{helpIntent.support==='refund'?'Choose a paid order below and select Request a refund.':'Choose a paid order below and select Get help with this order.'} Your request will be linked to that purchase.</p>}
         {error && <Alert>{error}</Alert>}
         {section === 'games' && games.some(order => order.product_kind === 'ready') && <label className="shelf-paper">Download paper size<select value={paper} onChange={event => setPaper(event.target.value)}><option value="A4">A4</option><option value="Letter">US Letter</option></select></label>}
         {section === 'drafts' ? draft ? <article className="live-panel shelf-draft"><span className="eyebrow">UNPURCHASED IDEA</span><h2>{draft.customIdea || draft.themeId || 'Your story idea'}</h2><p>{draft.setting === 'classroom' ? 'Classroom' : 'Home'} · {draft.players} players</p><Link className="button" to="/en/create/">Continue designing <ArrowRight size={18} /></Link><button className="button-quiet" onClick={deleteDraft}>Delete draft</button></article> : <div className="shelf-empty"><h2>No saved ideas yet</h2><Link className="button" to="/en/create/">Create an adventure <ArrowRight size={18} /></Link></div> : visible.length === 0 ? <div className="shelf-empty"><Books size={38} /><h2>{section === 'games' ? 'Your first adventure belongs here' : section === 'making' ? 'Nothing is being made right now' : 'No orders yet'}</h2><p>{section === 'games' ? 'Completed purchases appear here. Unfinished checkouts are in Order history.' : 'Explore a game or create a new story for your group.'}</p><Link className="button" to="/en/for-home/">Browse games <ArrowRight size={18} /></Link></div> :
@@ -184,7 +187,7 @@ export function LiveShelf({ Link }) {
               {section === 'games' && order.filesReady ? <div className="shelf-downloads"><CompletePackDownload orderId={order.id} kind={order.product_kind} paper={downloadPaper} setting={order.setting} /><span className="live-note">Or download individual PDFs:</span><a className="button-quiet" href={'/api/v1/files/' + order.id + '/player?paper=' + downloadPaper}>Player Pack · {downloadPaper === 'Letter' ? 'US Letter' : downloadPaper} <DownloadSimple size={18} /></a><a className="button-quiet" href={'/api/v1/files/' + order.id + '/guide?paper=' + downloadPaper}>{order.setting === 'classroom' ? 'Teacher Guide' : 'Host Guide'} <DownloadSimple size={18} /></a><small>Download both: player activities and separate instructions with answers.</small></div> : section === 'games' && <p className="live-note">Online downloads are unavailable. Check your order for access details.</p>}
               {section === 'making' && order.status === 'failed' && <p className="shelf-action-note">{order.deliveryRetryAvailable ? 'Your PDFs are not ready. Retry on this paid order without another checkout.' : 'Your PDFs are not ready. Open this paid order for assistance or refund review.'}</p>}
               <Link className={section === 'making' ? 'shelf-action' + (order.status === 'failed' ? ' shelf-action-urgent' : '') : 'text-link'} to={'/en/orders/' + order.id + '/'}>{section === 'making' ? order.status === 'failed' ? order.deliveryRetryAvailable ? 'Open order to retry PDF' : 'Open order for help' : order.planStatus === 'needs_help' ? 'Open order and recover plan' : order.planStatus === 'review' ? 'Review and edit your plan' : 'View order progress' : 'Order details'} <ArrowRight size={18} /></Link>
-              {order.paid_at&&order.status!=='refunded'&&<Link className="text-link shelf-refund-link" to={'/en/orders/'+order.id+'/?support=refund#order-help'}>Request a refund</Link>}
+              {order.paid_at&&order.status!=='refunded'&&<Link className={helpIntent.support?'button shelf-refund-link':'text-link shelf-refund-link'} to={orderSupportPath(order.id,helpIntent.support||'refund')}>{helpIntent.support==='problem'?'Get help with this order':'Request a refund'}</Link>}
             </div>
           </article>;
         })}</div>}
@@ -534,7 +537,7 @@ export function LiveOrder({ Link, orderId }) {
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
   const [selectedPaper, setSelectedPaper] = useState('A4');
-  const [helpRequest,setHelpRequest] = useState(()=>typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('support')==='refund'?{kind:'refund',description:''}:null);
+  const [helpRequest,setHelpRequest] = useState(()=>{const support=libraryIntent(typeof window==='undefined'?'':window.location.search).support;return support?{kind:support==='refund'?'refund':'other',description:''}:null;});
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState('');
   const refreshLock = useRef(false);

@@ -12,6 +12,22 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
 const read = file => readFile(path.join(out, file), 'utf8');
 
+test('public help leads to authenticated order support instead of pretending to send drafts or recovery email',async()=>{
+  for(const topic of ['','recover/','report/','print/','start/']){
+    const html=await read('en/help/'+topic+'index.html');
+    assert.doesNotMatch(html,/Save feedback draft|Preview recovery step|only saves a draft locally|The planned flow|\/en\/orders\/demo\//);
+    assert.doesNotMatch(html,/<(?:input|textarea|form)\b/,'public help must not imitate an unbound support submission');
+  }
+  const report=await read('en/help/report/index.html');
+  assert.ok(report.includes('/en/my-adventures/?support=problem'));
+  assert.ok(report.includes('/en/my-adventures/?support=refund'));
+  assert.ok(report.includes('id="stopped-game"'));
+  const recovery=await read('en/help/recover/index.html');
+  const links=[...recovery.matchAll(/<a\b[^>]*\bhref="([^"]+)"/g)].map(x=>new URL(x[1].replaceAll('&amp;','&'),'https://paperadventure.app'));
+  assert.ok(links.some(u=>u.pathname==='/en/account/'&&u.searchParams.get('returnTo')==='/en/my-adventures/?view=orders'));
+  assert.ok(links.some(u=>u.href==='mailto:support@paperadventure.app'));
+});
+
 test('classroom group selection updates the saved draft', () => {
   const classroom={setting:'classroom',groups:'',players:'24'};
   assert.equal(updateDraftField(classroom,'groups','6').groups,'6');
