@@ -99,6 +99,7 @@ test('reconciliation uses only bound Stripe GETs and does not change payment, fu
  const result=await f.call('/orders/live-paid/sync','POST');assert.equal(result.status,200);assert.equal((await result.json()).refundSynced,true);assert.equal(calls,2);
  const ledger=f.db.prepare("SELECT * FROM admin_order_ledger WHERE id='live-paid'").get();assert.equal(ledger.refunded_amount,300);assert.equal(ledger.refund_state,'partial');assert.deepEqual(f.db.prepare("SELECT * FROM orders WHERE id='live-paid'").get(),before);
  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM admin_refund_transactions').get().n,1);
+ const journal=await (await f.call('/refunds')).json();assert.equal(journal.transactions[0].status,'succeeded');assert.equal(journal.transactions[0].amount,300);
  assert.equal((await f.call('/orders/test-paid/sync','POST')).status,409);
 });
 
