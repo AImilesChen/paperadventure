@@ -126,7 +126,7 @@ test('sandbox upload and activation workflows check mode before any remote write
   }
   for (const file of ['deploy-preview.yml', 'deploy-creator-api.yml']) {
     const text = readFileSync(`.github/workflows/${file}`, 'utf8');
-    assert.ok(text.includes('vars.PAYMENTS_EXPECTED_MODE'));
+    assert.match(text,/PAYMENTS_EXPECTED_MODE:\s*live/);
     assert.ok(text.includes('node scripts/payment-runtime.mjs <'));
     assert.doesNotMatch(text, /checkoutMode!==['"]test/);
   }
