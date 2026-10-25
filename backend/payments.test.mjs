@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {stripeKeyMode,stripeRequest,checkoutForm,validatePaidSession,verifyFixedPrice} from './payments.mjs';
+import {stripeKeyMode,stripeRequest,checkoutForm,validatePaidSession,verifyFixedPrice,paymentEnvironment} from './payments.mjs';
 
 test('standard and restricted keys share their environment while client and unknown keys stay unsupported',()=>{
   for(const type of ['sk','rk'])for(const mode of ['test','live'])assert.equal(stripeKeyMode(`${type}_${mode}_fixture`),mode);
@@ -59,4 +59,15 @@ test('new fixed-total snapshots reject both surcharges and discounts regardless 
   assert.equal(form.get('automatic_tax[enabled]'),'false');
   assert.equal(form.get('allow_promotion_codes'),'false');
   assert.equal(form.get('line_items[0][tax_rates][0]'),null);
+});
+
+
+test('staged live selection is explicit, fail-closed and preserves the original secrets',()=>{
+  const env={STRIPE_SECRET_KEY:'rk_test_old',STRIPE_WEBHOOK_SECRET:'whsec_old',STRIPE_LIVE_SECRET_KEY:'rk_live_ready',STRIPE_LIVE_WEBHOOK_SECRET:'whsec_ready'};
+  assert.equal(paymentEnvironment(env),env);
+  const selected=paymentEnvironment({...env,PAYMENT_CREDENTIAL_SOURCE:'staged_live'});
+  assert.equal(selected.STRIPE_SECRET_KEY,'rk_live_ready');assert.equal(selected.STRIPE_WEBHOOK_SECRET,'whsec_ready');
+  assert.equal(env.STRIPE_SECRET_KEY,'rk_test_old');assert.equal(env.STRIPE_WEBHOOK_SECRET,'whsec_old');
+  for(const key of [undefined,'rk_test_wrong','pk_live_wrong'])assert.equal(paymentEnvironment({...env,PAYMENT_CREDENTIAL_SOURCE:'staged_live',STRIPE_LIVE_SECRET_KEY:key}).STRIPE_SECRET_KEY,undefined);
+  assert.equal(paymentEnvironment({...env,PAYMENT_CREDENTIAL_SOURCE:'staged_live',STRIPE_LIVE_WEBHOOK_SECRET:undefined}).STRIPE_WEBHOOK_SECRET,undefined);
 });

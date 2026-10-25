@@ -1,3 +1,5 @@
+On 2026-10-25 the owner authorized the focused release optimization and use of existing live payment configuration: remove the obsolete TAX_CONFIGURED prerequisite for fixed-price checkout, align current page states, consolidate current records, and connect already-staged live credentials/prices when accessible. Do not recreate credentials, disclose secret values, repeat settled policy/address approvals, charge a card, issue refunds, call AI or touch old orders as part of configuration work. Missing backend login is an access dependency, not a new legal blocker.
+
 On 2026-10-24 the owner chose fixed listed-price checkout without Stripe Tax enrollment or customer-facing tax explanations. This supersedes the earlier inclusive-Tax verification requirement. Disable automatic tax and added fees; verify live Price identity/amount without Tax API calls and bind exact-total validation to new fixed_total_v1 purchase snapshots. Preserve old orders, all other release gates, policies and generation. No live activation or claim of deferred tax obligations is authorized.
 
 
