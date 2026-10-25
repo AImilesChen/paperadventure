@@ -17,7 +17,7 @@ test('coupon setup creates only the authorized scoped discount, once, without a 
  const f=fixture();await Promise.all([setupOwnerPromotion(f.env),setupOwnerPromotion(f.env)]);await setupOwnerPromotion(f.env);
  assert.equal(f.calls.length,3);assert.equal(f.db.prepare('SELECT status FROM checkout_promotions').get().status,'ready');assert.equal(f.db.prepare('SELECT setup_attempts FROM checkout_promotions').get().setup_attempts,1);
  const post=f.calls[2],form=new URLSearchParams(post.options.body);assert.equal(post.url,'https://api.stripe.com/v1/coupons');assert.equal(post.options.method,'POST');assert.equal(post.options.headers['Idempotency-Key'],c.id+'-create-v1');
- assert.equal(form.get('amount_off'),'899');assert.equal(form.get('currency'),'usd');assert.equal(form.get('duration'),'once');assert.equal(form.get('max_redemptions'),'1');assert.equal(form.get('applies_to[products][0]'),'prod_fixture');assert.equal(form.get('redeem_by'),String(c.expiresAt));
+ assert.equal(form.get('amount_off'),'899');assert.equal(form.get('currency'),'usd');assert.equal(form.get('duration'),'once');assert.equal(form.get('max_redemptions'),'1');assert.equal(form.get('applies_to[products][0]'),'prod_fixture');assert.equal(form.get('redeem_by'),String(c.expiresAt));assert.equal(form.get('expand[0]'),'applies_to');assert.equal(new URL(f.calls[1].url).searchParams.get('expand[]'),'applies_to');
  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM orders').get().n,0);assert.equal(f.db.prepare('SELECT COUNT(*) n FROM checkout_promotion_redemptions').get().n,0);
  assert.equal(f.db.prepare("SELECT details_json FROM admin_action_log WHERE action='payment_check_coupon_setup'").get().details_json.includes('rk_live_fixture'),false);
 });
@@ -35,5 +35,5 @@ test('coupon setup rejects wrong prices and mismatched or broader coupons and do
 });
 test('an existing coupon is verified by exact identity and never recreated',async()=>{
  const f=fixture();f.env.FETCH=async(url,options)=>{f.calls.push({url,options});if(url.includes('/prices/'))return Response.json(f.price);assert.notEqual(options.method,'POST');return Response.json(f.coupon);};
- await setupOwnerPromotion(f.env);assert.equal(f.calls.length,2);assert.equal(f.calls[1].url,'https://api.stripe.com/v1/coupons/'+c.couponId);assert.equal(f.db.prepare('SELECT status FROM checkout_promotions').get().status,'ready');
+ await setupOwnerPromotion(f.env);assert.equal(f.calls.length,2);assert.equal(f.calls[1].url,'https://api.stripe.com/v1/coupons/'+c.couponId+'?expand[]=applies_to');assert.equal(f.db.prepare('SELECT status FROM checkout_promotions').get().status,'ready');
 });

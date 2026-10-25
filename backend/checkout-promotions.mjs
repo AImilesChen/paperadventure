@@ -32,13 +32,13 @@ export async function setupOwnerPromotion(env){
   const actual=await stripeRequest(env,'prices/'+encodeURIComponent(price.stripe_price_id),{signal:AbortSignal.timeout(15000)},env.FETCH||fetch);
   stage='price_verify';
   if(actual.id!==price.stripe_price_id||actual.livemode!==true||actual.active!==true||actual.currency!=='usd'||actual.type!=='one_time'||actual.unit_amount!==c.subtotal||typeof actual.product!=='string'||!/^prod_[A-Za-z0-9]+$/.test(actual.product))throw Error();
-  const form=new URLSearchParams({id:c.couponId,name:'US$8.99 off — one payment check',amount_off:String(c.discount),currency:'usd',duration:'once',max_redemptions:'1',redeem_by:String(c.expiresAt),'applies_to[products][0]':actual.product,'metadata[purpose]':c.id});
+  const form=new URLSearchParams({id:c.couponId,name:'US$8.99 off — one payment check',amount_off:String(c.discount),currency:'usd',duration:'once',max_redemptions:'1',redeem_by:String(c.expiresAt),'applies_to[products][0]':actual.product,'metadata[purpose]':c.id,'expand[0]':'applies_to'});
   stage='coupon_read';
   let coupon;
-  try{coupon=await stripeRequest(env,'coupons/'+encodeURIComponent(c.couponId),{signal:AbortSignal.timeout(15000)},env.FETCH||fetch);}catch(error){if(error.providerStatus!==404)throw error;}
+  try{coupon=await stripeRequest(env,'coupons/'+encodeURIComponent(c.couponId)+'?expand[]=applies_to',{signal:AbortSignal.timeout(15000)},env.FETCH||fetch);}catch(error){if(error.providerStatus!==404)throw error;}
   stage='coupon_create';
   if(!coupon)try{coupon=await stripeRequest(env,'coupons',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded','Idempotency-Key':c.id+'-create-v1'},body:form.toString(),signal:AbortSignal.timeout(15000)},env.FETCH||fetch);}
-  catch(error){if(error.providerStatus!==400)throw error;try{coupon=await stripeRequest(env,'coupons/'+encodeURIComponent(c.couponId),{signal:AbortSignal.timeout(15000)},env.FETCH||fetch);}catch{throw error;}}
+  catch(error){if(error.providerStatus!==400)throw error;try{coupon=await stripeRequest(env,'coupons/'+encodeURIComponent(c.couponId)+'?expand[]=applies_to',{signal:AbortSignal.timeout(15000)},env.FETCH||fetch);}catch{throw error;}}
   stage='coupon_verify';checks={identity:coupon.id===c.couponId,live:coupon.livemode===true,amount:coupon.amount_off===c.discount,currency:coupon.currency==='usd',duration:coupon.duration==='once',limit:coupon.max_redemptions===1,expiry:coupon.redeem_by===c.expiresAt,percentage:coupon.percent_off===null,products:coupon.applies_to?.products?.length===1&&coupon.applies_to.products[0]===actual.product,purpose:coupon.metadata?.purpose===c.id,valid:coupon.valid===true};
   if(coupon.id!==c.couponId||coupon.livemode!==true||coupon.amount_off!==c.discount||coupon.currency!=='usd'||coupon.duration!=='once'||coupon.max_redemptions!==1||coupon.redeem_by!==c.expiresAt||coupon.percent_off!==null||coupon.applies_to?.products?.length!==1||coupon.applies_to.products[0]!==actual.product||coupon.metadata?.purpose!==c.id||coupon.valid!==true)throw Error();
  }catch(error){
