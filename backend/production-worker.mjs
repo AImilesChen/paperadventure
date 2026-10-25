@@ -1,3 +1,4 @@
+import {archivedDrafts,removedDraftSpecs,archiveSavedDraft,restoreSavedDraft} from './library-archives.mjs';
 import {runLivePricePreflight} from './live-payment-release.mjs';
 import {reserveSupportNotification,dispatchSupportNotification,resumeSupportNotifications} from './support-notifications.mjs';
 import {succeededRefundAmount} from './refund-status.mjs';
@@ -610,7 +611,8 @@ async function myOrders(request, env) {
   if (!env.DB || !env.SESSION_SECRET) throw new ApiError(503, 'ACCOUNT_NOT_READY', 'Account storage is not configured.');
   const hash = await authenticatedEmailHash(request, env);
   if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google first.');
-  const rows = await query(env.DB, 'SELECT id,sku,product_kind,status,currency,amount_total,created_at,paid_at,purchase_spec_json FROM orders WHERE purchaser_email_hash = ? ORDER BY created_at DESC LIMIT 50', hash).all();
+  const archived=new URL(request.url).searchParams.get('archived')==='1';
+  const rows = await query(env.DB, `SELECT id,sku,product_kind,status,currency,amount_total,created_at,paid_at,purchase_spec_json FROM orders WHERE purchaser_email_hash = ? AND ${archived?'':'NOT '}EXISTS(SELECT 1 FROM library_order_archives a WHERE a.order_id=orders.id) ORDER BY created_at DESC LIMIT 50`, hash).all();
   const orders = await Promise.all((rows.results || []).map(async order => {
     let spec = {}; try { spec = JSON.parse(order.purchase_spec_json || '{}'); } catch {}
     const setting = order.sku.endsWith('_classroom') ? 'classroom' : 'home';
@@ -642,7 +644,7 @@ async function myOrders(request, env) {
       savedCopyRecoveryAvailable:Boolean(copyRecovery),
       filesReady: Boolean(order.status === 'published' && accessActive(entitlement)), accessExpiresAt: entitlement?.access_expires_at || null };
   }));
-  return json({ orders });
+  return json({ orders, ...(archived?{archivedDrafts:await archivedDrafts(env.DB,hash)}:{}) });
 }
 
 async function orderCover(request,env,orderId) {
@@ -674,11 +676,11 @@ async function savedDraft(request, env) {
   if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google first.');
   if (request.method === 'GET') {
     const row = await query(env.DB, 'SELECT draft_json FROM adult_drafts WHERE email_hash = ?', hash).first();
-    return json({ draft: row ? JSON.parse(row.draft_json) : null });
+    return json({ draft: row ? JSON.parse(row.draft_json) : null, removedDrafts:await removedDraftSpecs(env.DB,hash) });
   }
   requireSameOrigin(request, env);
   if (request.method === 'DELETE') {
-    await query(env.DB, 'DELETE FROM adult_drafts WHERE email_hash = ?', hash).run();
+    await archiveSavedDraft(env.DB,hash);
     return json({ deleted: true });
   }
   const body = await requestBody(request);
@@ -1281,7 +1283,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       // A usable sandbox outside STAGE_PREVIEW still uses test keys. Report the
       // actual enabled mode, never infer live solely from generic readiness.
       const checkoutMode = !checkout ? 'closed' : stripeKeyMode(env.STRIPE_SECRET_KEY);
-      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
@@ -1314,6 +1316,24 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       const session = token ? await verifyAccessToken(env.SESSION_SECRET, token).catch(() => null) : null;
       const email = hash && session?.scope === 'session' && session.email && await emailHash(env, normalizeEmail(session.email)) === hash ? normalizeEmail(session.email) : null;
       return json({ available, authenticated: Boolean(hash), ...(email ? { email } : {}) });
+    }
+    const archivedOrder=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/archive$/);
+    const archivedDraft=path.match(/^\/api\/v1\/archived-drafts\/([A-Za-z0-9-]+)\/restore$/);
+    if((request.method==='DELETE'&&archivedOrder)||(request.method==='POST'&&archivedDraft)) {
+      if(!env.DB||!env.SESSION_SECRET)throw new ApiError(503,'ACCOUNT_NOT_READY','Account storage is not configured.');
+      const hash=await authenticatedEmailHash(request,env);
+      if(!hash)throw new ApiError(401,'EMAIL_VERIFICATION_REQUIRED','Sign in with Google first.');
+      requireSameOrigin(request,env);
+      if(archivedOrder){
+        const order=await query(env.DB,'SELECT id FROM orders WHERE id=? AND purchaser_email_hash=?',archivedOrder[1],hash).first();
+        if(!order)throw new ApiError(404,'ORDER_NOT_FOUND','No verified order was found.');
+        await query(env.DB,'DELETE FROM library_order_archives WHERE order_id=?',order.id).run();
+        return json({restored:true});
+      }
+      const result=await restoreSavedDraft(env.DB,hash,archivedDraft[1]);
+      if(result.missing)throw new ApiError(404,'DRAFT_NOT_FOUND','This archived draft is unavailable.');
+      if(result.conflict)throw new ApiError(409,'DRAFT_ALREADY_EXISTS','You already have a saved draft. Keep it or archive it before restoring another.');
+      return json({restored:true,draft:result.draft});
     }
     if (request.method === 'GET' && path === '/api/v1/my-orders') return await myOrders(request, env);
     if (['GET','PUT','DELETE'].includes(request.method) && path === '/api/v1/my-draft') return await savedDraft(request, env);
