@@ -308,3 +308,39 @@
 .adventure-cover-placeholder{width:100%;aspect-ratio:800/450;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;background:#e9f3f6;color:#46647a;text-align:center;font-weight:700}.adventure-cover-placeholder>span:first-child{font-size:3rem;line-height:1}.adventure-cover-placeholder>span:last-child{font-size:.9rem}.order-support{padding:1.5rem;border:1px solid #9fbecb;border-radius:12px;background:#fffdf7;scroll-margin-top:7rem}.order-support h2,.order-support h3{margin-top:0}.order-support-actions{display:flex;flex-wrap:wrap;gap:.8rem;margin:1rem 0}.order-support-form{margin-top:1.5rem;border-top:1px solid #c4d7df;padding-top:1.5rem}.order-support-receipt{padding:1rem;background:#e7f4ec;border:1px solid #a9ceb7;border-radius:8px}.order-refund-entry{width:100%;margin:.5rem 0 1rem}.shelf-refund-link{display:block;margin-top:1rem}.order-report-history li{margin:.7rem 0}@media(max-width:600px){.order-support-actions{display:grid}.order-support-actions button{width:100%}.order-support{padding:1rem}}
 
 .shelf-restore{margin:14px 0}.shelf-tabs button{min-width:120px}.shelf-draft+.shelf-draft{margin-top:16px}
+
+/* Compact checkout: one total, one complete confirmation, clear promotion controls. */
+.checkout-page .page-intro{padding-top:42px;padding-bottom:14px}
+.checkout-page .page-intro h1{font-size:clamp(2rem,4vw,3.2rem);margin-bottom:12px}
+.checkout-page .live-shell{max-width:780px;padding-top:8px}
+.checkout-card{padding:28px 30px}
+.checkout-order-heading h2{margin:8px 0;font-size:1.7rem}
+.checkout-card .checkout-includes{margin:0 0 7px;font-size:.95rem;font-weight:700}
+.checkout-card .checkout-delivery{margin:0;font-size:.88rem}
+.checkout-order-heading{padding-bottom:20px;border-bottom:1px solid #d5e4e9;margin-bottom:18px}
+.checkout-card form{gap:16px}
+.checkout-card .checkout-account{margin:0;font-size:.86rem;overflow-wrap:anywhere}
+.checkout-details{margin:14px 0 20px;font-size:.88rem;line-height:1.55}
+.checkout-card summary{cursor:pointer;min-height:36px;align-content:center;color:#19475f;font-weight:700;font-size:.88rem}
+.checkout-promotion label{font-size:.82rem;margin:9px 0 7px}
+.checkout-promotion-row{display:flex;align-items:stretch;gap:9px}
+.checkout-promotion-row input{min-width:0;flex:1}
+.checkout-promotion-row .button-quiet{border:1px solid #9abecd;border-radius:8px;padding:10px 15px;justify-content:center;background:#f4fafc;white-space:nowrap;cursor:pointer;min-height:44px}
+.checkout-promotion-row .button-quiet:disabled{opacity:.55;cursor:default}
+.checkout-promotion .live-note{margin:9px 0 0;font-size:.8rem}
+.checkout-promotion-result{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;font-size:.82rem;color:#276347}
+.checkout-promotion-result button{border:0;background:none;color:#31556a;text-decoration:underline;font:inherit;cursor:pointer;padding:5px 0}
+.checkout-total{display:grid;gap:9px;padding:18px 0;border-top:1px solid #d5e4e9;border-bottom:1px solid #d5e4e9}
+.checkout-total>div{display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:.9rem}
+.checkout-total .checkout-discount{color:#276347}
+.checkout-total .checkout-total-main{font-size:1rem;font-weight:800}
+.checkout-total-main strong{font-size:1.9rem;line-height:1.15;white-space:nowrap}
+.checkout-total-main small{display:block;font-size:.76rem;font-weight:400;color:#496c7c;margin-top:4px}
+.checkout-card .checkout-confirmation{padding:0;margin:0;border:0;background:none}
+.checkout-confirmation label{font-size:.9rem;line-height:1.5;font-weight:700;cursor:pointer}
+.checkout-card .checkout-refund-notice{margin:9px 0 0 1.9rem;font-size:.86rem;line-height:1.55;color:#496c7c}
+.checkout-card .checkout-policy-links{margin:9px 0 0 1.9rem;font-size:.84rem;line-height:1.5}
+.checkout-card :is(button,input,summary,a):focus-visible{outline:3px solid #175572;outline-offset:3px}
+@media(max-width:600px){.checkout-page .page-intro{padding-top:28px}.checkout-card{padding:22px 20px}.checkout-page .live-shell{padding-bottom:56px}.checkout-total-main strong{font-size:1.65rem}.checkout-promotion-row .button-quiet{padding:10px 12px}}
+
+@media(max-width:600px){body:has(.checkout-page) .feedback-trigger:not([hidden]){position:static;display:flex;width:max-content;margin:0 14px 16px auto}}
