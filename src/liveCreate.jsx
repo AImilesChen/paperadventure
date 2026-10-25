@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import {matchesRemovedDraft,clearRemovedLocalDraft} from './libraryArchive.mjs';
 import { ArrowRight, Check } from '@phosphor-icons/react';
 import { themes, offerFor, formatUsd } from '../shared/catalog.mjs';
 import { mechanics, mechanicById, venues, moods, avoidChoices, storySuggestions } from '../shared/creator-plan.mjs';
@@ -33,6 +34,7 @@ export function LiveCreate({Link,checkoutReady,checkoutMode,runtimeOffers}) {
     return value;
   });
   const [step,setStep]=useState(draft.step),[guided,setGuided]=useState(false),[agreed,setAgreed]=useState(false),[demo,setDemo]=useState(false),[cloudSaved,setCloudSaved]=useState(false),[summaryOpen,setSummaryOpen]=useState(()=>window.innerWidth>800);
+  const [draftChecked,setDraftChecked]=useState(false);
   const valid=readySetup(draft),suggestions=storySuggestions(draft.idea),offer=runtimeOffers?.find(item=>item.sku===`custom_${draft.setting}`)||offerFor('custom',draft.setting);
   const groupLimit=Math.min(Number(draft.players)||10,10),groupValid=draft.setting!=='classroom'||Number.isInteger(Number(draft.groups))&&Number(draft.groups)>=1&&Number(draft.groups)<=groupLimit;
   const venueList=venues[draft.setting],venueValue=!draft.place?'':venueList.includes(draft.place)?draft.place:'other';
@@ -40,17 +42,25 @@ export function LiveCreate({Link,checkoutReady,checkoutMode,runtimeOffers}) {
   useEffect(()=>{try{localStorage.setItem('paw-draft',JSON.stringify({...draft,step}));}catch{}},[draft,step]);
   useEffect(()=>{fetch('/api/v1/health').then(r=>r.json()).then(data=>setDemo(data.status==='creator_local_demo')).catch(()=>{});},[]);
   useEffect(()=>{
-    if (draft.idea || new URLSearchParams(window.location.search).has('theme')) return;
     let active=true;
-    fetch('/api/v1/my-draft').then(r=>r.ok?r.json():null).then(data=>{if(active&&data?.draft){const restored=fromCloudDraft(data.draft);setDraft(restored);setStep(restored.step);}}).catch(()=>{});
+    fetch('/api/v1/my-draft').then(r=>r.ok?r.json():null).then(data=>{
+      if(!active||!data)return;
+      clearRemovedLocalDraft(localStorage,data.removedDrafts);
+      setDraft(current=>{
+        if(matchesRemovedDraft(current,data.removedDrafts)){setStep(1);return normalizeDraft();}
+        if(!current.idea&&!new URLSearchParams(window.location.search).has('theme')&&data.draft){const restored=fromCloudDraft(data.draft);setStep(restored.step);return restored;}
+        return current;
+      });
+      setDraftChecked(true);
+    }).catch(()=>{});
     return()=>{active=false;};
   },[]);
   useEffect(()=>{
-    if(step!==5||!valid)return;
+    if(!draftChecked||step!==5||!valid)return;
     let active=true;setCloudSaved(false);
     fetch('/api/v1/my-draft',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(draftSpec(draft))}).then(r=>{if(active&&r.ok)setCloudSaved(true);}).catch(()=>{});
     return()=>{active=false;};
-  },[step,valid,JSON.stringify(draftSpec(draft))]);
+  },[draftChecked,step,valid,JSON.stringify(draftSpec(draft))]);
   useEffect(()=>{const media=window.matchMedia('(max-width:800px)'),update=()=>setSummaryOpen(!media.matches);media.addEventListener('change',update);return()=>media.removeEventListener('change',update);},[]);
   function change(name,value){setDraft(current=>updateDraftField(current,name,value));setAgreed(false);setCloudSaved(false);}
   function preference(name,value){change('preferences',{...draft.preferences,[name]:value});}

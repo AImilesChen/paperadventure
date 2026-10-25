@@ -34,7 +34,7 @@ async function approvedCustomInput(env,input) {
 
 function database({includeThemeRecovery=true,includeSemanticRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql','0037_order_8f5d_material_recovery.sql','0038_step_delivery.sql','0039_post_delivery_editions.sql','0040_refund_evidence_guards.sql','0041_support_notifications.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql','0037_order_8f5d_material_recovery.sql','0038_step_delivery.sql','0039_post_delivery_editions.sql','0040_refund_evidence_guards.sql','0041_support_notifications.sql','0042_library_archives.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0024_scoped_semantic_plan_recovery.sql'&&!includeSemanticRecovery)continue;
@@ -2625,4 +2625,85 @@ test('material-bound narration reaches stored enhanced and baseline PDFs without
     assert.ok(f.calls.length<=(failPhase?2:6),'same six enhancement steps or two failed-frame attempts');
     const calls=f.calls.length;await f.process();assert.equal(f.calls.length,calls);
   }
+});
+
+
+test('library archives preserve purchases and require their owner and same origin to restore',async()=>{
+  const {db,binding}=database(),env={...config(binding),FETCH:()=>{throw Error('Archive must not call providers');}};
+  db.prepare("INSERT INTO price_versions(id,sku,currency,unit_amount,tax_behavior) VALUES('archive-price','custom_home','USD',1499,'exclusive')").run();
+  for(const [id,status,paid] of [['stopped','failed','2026-10-24'],['done','published','2026-10-24'],['unpaid','pending_payment',null]]) {
+    db.prepare("INSERT INTO orders(id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at,stripe_payment_intent_id) VALUES(?,'custom','custom_home','{}','hash','archive-owner','archive-price',1499,'USD',?,?,?)").run(id,status,paid,paid?'pi-'+id:null);
+  }
+  db.exec("INSERT INTO library_order_archives(order_id,reason) VALUES('stopped','unfinished'),('unpaid','unpaid_checkout')");
+  const before=db.prepare('SELECT * FROM orders ORDER BY id').all();
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:'archive-owner',exp:Math.floor(Date.now()/1000)+3600});
+  const other=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:'other-owner',exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const get=path=>handleProductionApi(request(path,'GET',undefined,headers),env).then(r=>r.json());
+  assert.deepEqual((await get('/api/v1/my-orders')).orders.map(o=>o.id),['done']);
+  assert.deepEqual((await get('/api/v1/my-orders?archived=1')).orders.map(o=>o.id).sort(),['stopped','unpaid']);
+  assert.equal((await handleProductionApi(request('/api/v1/orders/stopped/archive','DELETE'),env)).status,401);
+  assert.equal((await handleProductionApi(request('/api/v1/orders/stopped/archive','DELETE',undefined,{...headers,origin:'https://evil.example'}),env)).status,403);
+  assert.equal((await handleProductionApi(request('/api/v1/orders/stopped/archive','DELETE',undefined,{...headers,cookie:`paw_session=${other}`}),env)).status,404);
+  assert.equal((await handleProductionApi(request('/api/v1/orders/stopped/archive','DELETE',undefined,headers),env)).status,200);
+  assert.deepEqual(db.prepare('SELECT * FROM orders ORDER BY id').all(),before);
+  assert.equal((await get('/api/v1/my-orders')).orders.length,2);
+  db.exec("UPDATE orders SET paid_at=CURRENT_TIMESTAMP,status='paid' WHERE id='unpaid'");
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM library_order_archives WHERE order_id='unpaid'").get().n,0);
+  db.exec("INSERT INTO library_order_archives(order_id,reason) VALUES('stopped','unfinished');UPDATE orders SET status='published' WHERE id='stopped'");
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM library_order_archives').get().n,0);
+});
+
+test('archived draft restoration is owner-only, atomic and never overwrites a newer draft',async()=>{
+  const {db,binding}=database(),env=config(binding),hash='draft-archive-owner';
+  const old=JSON.stringify({customIdea:'Old idea',setting:'home'});
+  db.prepare('INSERT INTO adult_drafts(email_hash,draft_json) VALUES(?,?)').run(hash,old);
+  const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:hash,exp:Math.floor(Date.now()/1000)+3600});
+  const headers={cookie:`paw_session=${token}`,origin:env.PUBLIC_ORIGIN};
+  const call=(path,method='GET',h=headers)=>handleProductionApi(request(path,method,undefined,h),env);
+  assert.equal((await call('/api/v1/my-draft','DELETE')).status,200);
+  let shelf=await (await call('/api/v1/my-orders?archived=1')).json();
+  assert.equal(shelf.archivedDrafts.length,1);assert.equal(shelf.archivedDrafts[0].title,'Old idea');
+  const id=shelf.archivedDrafts[0].id,path=`/api/v1/archived-drafts/${id}/restore`;
+  const removed=await (await call('/api/v1/my-draft')).json();
+  assert.equal(removed.draft,null);assert.equal(removed.removedDrafts[0].customIdea,'Old idea');
+  assert.equal((await call(path,'POST',{})).status,401);
+  assert.equal((await call(path,'POST',{...headers,origin:'https://evil.example'})).status,403);
+  const other=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:'other',exp:Math.floor(Date.now()/1000)+3600});
+  assert.equal((await call(path,'POST',{...headers,cookie:`paw_session=${other}`})).status,404);
+  db.prepare('INSERT INTO adult_drafts(email_hash,draft_json) VALUES(?,?)').run(hash,'{"customIdea":"New idea"}');
+  assert.equal((await call(path,'POST')).status,409);
+  assert.equal(JSON.parse(db.prepare('SELECT draft_json FROM adult_drafts').get().draft_json).customIdea,'New idea');
+  assert.equal(db.prepare('SELECT restored_at FROM library_draft_archives').get().restored_at,null);
+  db.exec('DELETE FROM adult_drafts');
+  const restored=await call(path,'POST');assert.equal(restored.status,200);
+  assert.equal((await restored.json()).draft.customIdea,'Old idea');
+  assert.equal((await call(path,'POST')).status,404);
+  assert.equal((await (await call('/api/v1/my-draft')).json()).removedDrafts.length,0);
+});
+
+test('one-time owner library cleanup is count-guarded, reversible and preserves financial data',()=>{
+  const {db}=database(),sql=readFileSync(new URL('./owner-library-cleanup-20261025.sql',import.meta.url),'utf8');
+  db.exec("INSERT INTO price_versions(id,sku,currency,unit_amount,tax_behavior) VALUES('cleanup-price','custom_home','USD',1499,'exclusive')");
+  const insert=db.prepare("INSERT INTO orders(id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,paid_at,created_at,stripe_payment_intent_id) VALUES(?,'custom','custom_home','{}','hash',?,'cleanup-price',1499,'USD',?,?,'2026-10-24 00:00:00',?)");
+  const paidIds=['cc63990c-fixture','3abb0a28-fixture','old-3','old-4','old-5','old-6','old-7'];
+  for(const id of paidIds)insert.run(id,'cleanup-owner','failed','2026-10-24','pi-'+id);
+  for(let i=0;i<6;i++)insert.run('unpaid-'+i,'cleanup-owner','pending_payment',null,null);
+  for(let i=0;i<24;i++)insert.run('done-'+i,'cleanup-owner','published','2026-10-24','pi-done-'+i);
+  insert.run('other-order','other-owner','failed','2026-10-24','pi-other');
+  db.prepare("INSERT INTO adult_drafts(email_hash,draft_json,updated_at) VALUES('cleanup-owner',?,'2026-10-24 00:00:00')").run(JSON.stringify({customIdea:'Old idea'}));
+  const orders=db.prepare('SELECT * FROM orders ORDER BY id').all();
+  db.exec("DELETE FROM orders WHERE id='old-7'");db.exec(sql);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM library_cleanup_audits').get().n,0,'mismatch performs no cleanup');
+  insert.run('old-7','cleanup-owner','failed','2026-10-24','pi-old-7');
+  db.exec(sql);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM library_order_archives').get().n,13);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM adult_drafts').get().n,0);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM library_draft_archives').get().n,1);
+  assert.deepEqual(db.prepare('SELECT * FROM orders ORDER BY id').all(),orders);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM library_order_archives WHERE order_id='other-order'").get().n,0);
+  db.exec("DELETE FROM library_order_archives WHERE order_id='old-7'");db.exec(sql);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM library_order_archives').get().n,12,'repeat never re-archives a restored order');
+  insert.run('new-order','cleanup-owner','pending_payment',null,null);db.exec(sql);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM library_order_archives WHERE order_id='new-order'").get().n,0);
 });
