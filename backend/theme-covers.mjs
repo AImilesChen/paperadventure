@@ -33,16 +33,16 @@ async function failCover(orderId,env,code) {
 }
 function queueUrl(value,id,kind) {
   let url;try {url=new URL(value);}catch{throw failure('COVER_PROTOCOL');}
-  const base=`/fal-ai/flux/requests/${id}`,nested=`/fal-ai/flux/schnell/requests/${id}`;
   const suffix=kind==='status'?'/status':'';
   if(url.origin!=='https://queue.fal.run'||url.username||url.password||url.search||url.hash||
-    ![base+suffix,nested+suffix,...(kind==='result'?[base+'/response',nested+'/response']:[])].includes(url.pathname)) throw failure('COVER_PROTOCOL');
+    !['flux','flux-1'].flatMap(model=>{const root=`/fal-ai/${model}/requests/${id}`,full=`/fal-ai/${model}/schnell/requests/${id}`;return [root+suffix,full+suffix,...(kind==='result'?[root+'/response',full+'/response']:[])];}).includes(url.pathname)) throw failure('COVER_PROTOCOL');
   return url.href;
 }
 async function falJson(url,env,options={}) {
   let result;
-  try {result=await (env.FETCH||fetch)(url,{...options,redirect:'error',signal:AbortSignal.timeout(20000),headers:{Authorization:'Key '+env.FAL_KEY.trim(),'content-type':'application/json',...options.headers}});}
+  try {result=await (env.FETCH||fetch)(url,{...options,redirect:'manual',signal:AbortSignal.timeout(20000),headers:{Authorization:'Key '+env.FAL_KEY.trim(),'content-type':'application/json',...options.headers}});}
   catch {throw failure('COVER_NETWORK');}
+  if(result.status>=300&&result.status<400)throw failure('COVER_REDIRECT');
   if(!result.ok) throw failure(result.status===401||result.status===403?'COVER_AUTH':result.status===429?'COVER_LIMIT':'COVER_PROVIDER');
   try{return await result.json();}catch{throw failure('COVER_PROTOCOL');}
 }
@@ -59,7 +59,8 @@ export function coverImageType(bytes) {
 }
 async function imageBytes(url,env) {
   let response;
-  try{response=await (env.FETCH||fetch)(mediaUrl(url),{redirect:'error',signal:AbortSignal.timeout(20000)});}catch(error){throw error.coverCode?error:failure('COVER_NETWORK');}
+  try{response=await (env.FETCH||fetch)(mediaUrl(url),{redirect:'manual',signal:AbortSignal.timeout(20000)});}catch(error){throw error.coverCode?error:failure('COVER_NETWORK');}
+  if(response.status>=300&&response.status<400)throw failure('COVER_REDIRECT');
   if(!response.ok)throw failure('COVER_NETWORK');
   const type=response.headers.get('content-type')?.split(';')[0].trim();
   if(!['image/jpeg','image/png','image/webp'].includes(type)||Number(response.headers.get('content-length'))>MAX_COVER_BYTES)throw failure('COVER_IMAGE_INVALID');

@@ -1,4 +1,5 @@
 import {runLivePricePreflight} from './live-payment-release.mjs';
+import {reserveSupportNotification,dispatchSupportNotification,resumeSupportNotifications} from './support-notifications.mjs';
 import {succeededRefundAmount} from './refund-status.mjs';
 import {purchaseConsentSnapshot,validPurchaseConsent,purchaseConsentVersion} from '../shared/purchase-consent.mjs';
 import {recordOrderEvidence,recordAccessEvidence,assertOrderNotRefunded,refundedWork,generationJobOrder,orderWorkEnvironment} from './order-evidence.mjs';
@@ -1231,28 +1232,40 @@ async function requestPackRemakeRecovery(request, env, orderId) {
   return json(await retryPackRemake(order, env, options), 202);
 }
 
-async function supportCases(request, env, orderId) {
+async function supportCases(request, env, orderId, context) {
   if (!env.DB || !env.SESSION_SECRET) throw new ApiError(503, 'SUPPORT_NOT_READY', 'Support reporting is not configured.');
   const hash = await authenticatedEmailHash(request, env);
   if (!hash) throw new ApiError(401, 'EMAIL_VERIFICATION_REQUIRED', 'Sign in with Google using your purchase email first.');
-  const order = await query(env.DB, 'SELECT id FROM orders WHERE id = ? AND purchaser_email_hash = ?', orderId, hash).first();
+  const order = await query(env.DB, 'SELECT id,status,paid_at FROM orders WHERE id = ? AND purchaser_email_hash = ?', orderId, hash).first();
   if (!order) throw new ApiError(404, 'ORDER_NOT_FOUND', 'No verified order was found.');
   if (request.method === 'GET') {
-    const cases = await query(env.DB, 'SELECT id,issue_type,description,status,created_at,updated_at FROM support_cases WHERE order_id = ? AND email_hash = ? ORDER BY created_at DESC LIMIT 20', orderId, hash).all();
+    const cases = await query(env.DB, 'SELECT c.id,c.issue_type,c.description,c.status,c.created_at,c.updated_at,n.status AS notification_status FROM support_cases c LEFT JOIN support_case_notifications n ON n.case_id=c.id WHERE c.order_id = ? AND c.email_hash = ? ORDER BY c.created_at DESC LIMIT 20', orderId, hash).all();
     return json({ cases: cases.results || [] });
   }
   requireSameOrigin(request, env);
   const body = await requestBody(request);
   if (!['clue','answer','printing','delivery','refund','other'].includes(body.issueType)) throw new ApiError(400, 'INVALID_ISSUE', 'Choose a report type.');
-  const description = String(body.description || '').trim();
+  if(body.issueType==='refund'&&!order.paid_at)throw new ApiError(400,'PAYMENT_NOT_CONFIRMED','No confirmed payment was found for this order.');
+  if(body.requestKey&&!/^[a-f0-9-]{36}$/i.test(body.requestKey))throw new ApiError(400,'INVALID_ISSUE','Please reload the request form.');
+  const reasons={missing_delivery:'Missing delivery',fault:'Faulty or unusable files',duplicate_charge:'Duplicate or incorrect charge',cancellation:'Cancellation',other:'Other'};
+  if(body.refundReason&&!reasons[body.refundReason])throw new ApiError(400,'INVALID_ISSUE','Choose a refund reason.');
+  const description = (body.issueType==='refund'&&body.refundReason?`Refund reason: ${reasons[body.refundReason]}\n`:'')+String(body.description || '').trim();
   if (description.length < 10 || description.length > 1000) throw new ApiError(400, 'INVALID_ISSUE', 'Describe the issue in 10–1000 characters.');
+  const id = body.requestKey?await sha256(`support|${hash}|${orderId}|${body.requestKey}`):crypto.randomUUID();
+  const previous=await query(env.DB,'SELECT issue_type,description FROM support_cases WHERE id=?',id).first();
+  if(previous){
+    if(previous.issue_type!==body.issueType||previous.description!==description)throw new ApiError(409,'REQUEST_CHANGED','This request was already submitted. Open a new form to send a different request.');
+    return json({caseId:id,status:'open'},201);
+  }
   const recent = await query(env.DB, "SELECT COUNT(*) AS count FROM support_cases WHERE order_id = ? AND created_at >= datetime('now','-1 day')", orderId).first();
   if (recent.count >= 5) throw new ApiError(429, 'ISSUE_LIMIT', 'Please wait before sending another report.');
-  const id = crypto.randomUUID();
   await env.DB.batch([
-    query(env.DB, "INSERT INTO support_cases (id,order_id,email_hash,issue_type,description,status) VALUES (?,?,?,?,?,'open')", id, orderId, hash, body.issueType, description),
-    query(env.DB,'INSERT INTO order_evidence(order_id,event,reference,details_json) VALUES(?,?,?,?)',orderId,body.issueType==='refund'?'refund_requested':'support_requested',id,JSON.stringify({issueType:body.issueType,manualReview:true})),
+    query(env.DB, "INSERT OR IGNORE INTO support_cases (id,order_id,email_hash,issue_type,description,status) VALUES (?,?,?,?,?,'open')", id, orderId, hash, body.issueType, description),
+    reserveSupportNotification(env,id),
+    query(env.DB,'INSERT OR IGNORE INTO order_evidence(order_id,event,reference,details_json) VALUES(?,?,?,?)',orderId,body.issueType==='refund'?'refund_requested':'support_requested',id,JSON.stringify({issueType:body.issueType,manualReview:true})),
   ]);
+  const task=dispatchSupportNotification(id,env).catch(()=>console.error('Support notification deferred',{code:'SUPPORT_EMAIL_DEFERRED'}));
+  if(context?.waitUntil)context.waitUntil(task);else await task;
   return json({ caseId: id, status: 'open' }, 201);
 }
 
@@ -1268,7 +1281,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       // A usable sandbox outside STAGE_PREVIEW still uses test keys. Report the
       // actual enabled mode, never infer live solely from generic readiness.
       const checkoutMode = !checkout ? 'closed' : stripeKeyMode(env.STRIPE_SECRET_KEY);
-      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
@@ -1342,7 +1355,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     const revisionPreviewFilePath=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/revision-previews\/([A-Za-z0-9-]+)\/(player|guide)$/);
     if(request.method==='GET'&&revisionPreviewFilePath)return await revisionPreviewFile(request,env,revisionPreviewFilePath[1],revisionPreviewFilePath[2],revisionPreviewFilePath[3]);
     const cases = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/issues$/);
-    if (['GET','POST'].includes(request.method) && cases) return await supportCases(request, env, cases[1]);
+    if (['GET','POST'].includes(request.method) && cases) return await supportCases(request, env, cases[1], context);
     const file = path.match(/^\/api\/v1\/files\/([A-Za-z0-9-]+)\/(player|guide)$/);
     if (request.method === 'GET' && file) return await fileDownload(request, env, file[1], file[2]);
     return error(404, 'NOT_FOUND', 'API route not found.');
@@ -1926,6 +1939,7 @@ export default {
     env = paymentEnvironment(env);
     if (!env.DB) return;
     if (await runLivePricePreflight(env)) return;
+    await resumeSupportNotifications(env).catch(()=>console.error('Support notification deferred',{code:'SUPPORT_EMAIL_DEFERRED'}));
     await env.DB.batch([
       query(env.DB, 'DELETE FROM access_challenges WHERE expires_at < ?', nowSeconds()),
       query(env.DB, 'DELETE FROM access_rate_limits WHERE expires_at < ?', nowSeconds()),
