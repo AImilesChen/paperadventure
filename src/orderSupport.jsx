@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 
 const labels={clue:'Clue or instructions',answer:'Answer or hint',printing:'Printing or layout',delivery:'Missing delivery',refund:'Refund request',other:'Quality review or other'};
-export default function OrderSupport({orderId,failedDelivery=false,initialRequest=null,refunded=false,canRefund=true,api}){
+export default function OrderSupport({orderId,failedDelivery=false,initialRequest=null,refunded=false,canRefund=true,compact=false,api}){
  const [kind,setKind]=useState(failedDelivery?'delivery':'clue'),[description,setDescription]=useState(''),[reason,setReason]=useState('missing_delivery');
  const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[error,setError]=useState(''),[cases,setCases]=useState([]);
  const requestKey=useRef(crypto.randomUUID()),form=useRef(null),textarea=useRef(null);
@@ -18,10 +18,10 @@ export default function OrderSupport({orderId,failedDelivery=false,initialReques
    requestKey.current=crypto.randomUUID();setDescription('');setOpen(false);await refresh().catch(()=>{});
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
- return <section id="order-help" className="order-support" aria-label="Help and refund requests">
-  <h2>Help with this purchase</h2><p>Your request is linked to order {orderId.slice(0,8).toUpperCase()}. You do not need to enter your order number again.</p>
+ return <section id="order-help" className={'order-support'+(compact?' order-support-compact':'')} aria-label="Help and refund requests">
+  <h2>{compact?'Need help with your game?':'Help with this purchase'}</h2><p>{compact?'Get help with downloads, printing or your purchase.':<>Your request is linked to order {orderId.slice(0,8).toUpperCase()}. You do not need to enter your order number again.</>}</p>
   {refunded&&<p className="live-note">A full refund has been confirmed by the payment provider.</p>}
-  <div className="order-support-actions">{canRefund&&!refunded&&<button type="button" className="button" onClick={()=>begin('refund')}>Request a refund</button>}<button type="button" className="button-quiet" onClick={()=>begin(failedDelivery?'delivery':'other')}>Report a problem</button></div>
+  <div className="order-support-actions">{compact&&<button type="button" className="button-quiet" onClick={()=>begin(failedDelivery?'delivery':'other')}>Report a problem</button>}{canRefund&&!refunded&&<button type="button" className={compact?'button-quiet order-support-refund':'button'} onClick={()=>begin('refund')}>Request a refund</button>}{!compact&&<button type="button" className="button-quiet" onClick={()=>begin(failedDelivery?'delivery':'other')}>Report a problem</button>}</div>
   {notice&&<p role="status" className="order-support-receipt">{notice}</p>}
   {open&&<form ref={form} className="live-revision order-support-form" onSubmit={submit}>
    <h3>{kind==='refund'?'Request a refund':'Report a problem'}</h3>
@@ -33,6 +33,6 @@ export default function OrderSupport({orderId,failedDelivery=false,initialReques
    {error&&<p role="alert" className="live-alert">{error} Your request is not confirmed yet; you can retry this submission.</p>}
   </form>}
   {cases.length>0&&<div className="order-report-history"><h3>Your requests</h3><ul>{cases.map(item=><li key={item.id}><strong>{labels[item.issue_type]||'Support request'}</strong> · {item.id.slice(0,8).toUpperCase()} · {item.status==='reviewing'?'Under review':item.status==='resolved'?'Closed':'Received'}{item.notification_status==='attention'&&<p>The request is saved, but the support notification could not be delivered. Please email support@paperadventure.app with this reference.</p>}</li>)}</ul></div>}
-  <p className="live-note">You can also email <a href="mailto:support@paperadventure.app">support@paperadventure.app</a>. An approved refund is completed only after confirmation from the payment provider.</p>
+  <p className="live-note">You can also email <a href="mailto:support@paperadventure.app">support@paperadventure.app</a>. {!compact&&'An approved refund is completed only after confirmation from the payment provider.'}</p>
  </section>;
 }

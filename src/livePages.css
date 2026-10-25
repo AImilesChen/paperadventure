@@ -344,3 +344,40 @@
 @media(max-width:600px){.checkout-page .page-intro{padding-top:28px}.checkout-card{padding:22px 20px}.checkout-page .live-shell{padding-bottom:56px}.checkout-total-main strong{font-size:1.65rem}.checkout-promotion-row .button-quiet{padding:10px 12px}}
 
 @media(max-width:600px){body:has(.checkout-page) .feedback-trigger:not([hidden]){position:static;display:flex;width:max-content;margin:0 14px 16px auto}}
+
+/* Delivered ready-made games: product identity, download, receipt, then support. */
+.delivered-game-page .order-workspace{width:min(1120px,calc(100% - 48px));padding-top:32px}
+.delivered-heading{margin:0 0 25px;max-width:900px}
+.delivered-heading h1{font-size:clamp(2rem,4vw,3.2rem);line-height:1.12;margin:10px 0;overflow-wrap:anywhere}
+.delivered-heading>p{margin:0;color:#496c7c;font-size:.94rem}
+.delivered-heading .delivered-success{display:flex;align-items:center;gap:8px;color:#286148;font-size:.88rem;font-weight:800}
+.delivered-game-card{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:32px;padding:28px;border:1px solid #bdd9e4;border-radius:16px;background:#fffdf9;box-shadow:0 5px 0 #b7dbe766}
+.delivered-cover{min-width:0;align-self:start;border-radius:12px;overflow:hidden;background:#edf7fa;border:1px solid #c8dfe7}
+.delivered-cover>img,.delivered-cover>.adventure-cover-placeholder{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover}
+.delivered-cover>div:not(.adventure-cover-placeholder){padding:17px 19px}
+.delivered-cover p{font-size:.88rem;line-height:1.5;color:#496c7c;margin:6px 0 0}
+.delivered-game-card .order-package{padding:0;border:0;box-shadow:none;background:none}
+.delivered-game-card .order-package h2{font-size:1.65rem;margin:9px 0}
+.delivered-game-card .order-package>p{font-size:.9rem;margin-bottom:18px}
+.delivered-game-card .order-package-downloads{padding-top:17px;margin-top:16px}
+.delivered-game-card .order-paper-choice{display:grid;gap:8px;font-size:.86rem;font-weight:800;color:#31556a;margin:0 0 15px}
+.delivered-game-card .order-paper-choice select{width:100%;min-height:44px;padding:10px 12px;border:1px solid #a2c7d6;border-radius:8px;background:white;color:#173b54;font:inherit}
+.delivered-game-card .complete-pack-download{margin:0}
+.delivered-game-card .live-downloads{margin:14px 0 0;gap:10px}
+.delivered-game-card .live-downloads a{min-height:46px;font-size:.85rem}
+.delivered-receipt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:21px 24px;margin:20px 0;border:1px solid #b8d8e5;border-radius:12px;background:#eef8fb}
+.delivered-receipt dt{font-size:.8rem;color:#496c7c;margin-bottom:6px}
+.delivered-receipt dd{margin:0;font-size:.96rem;font-weight:800;color:#163d58;overflow-wrap:anywhere}
+.delivered-start-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 24px}
+.delivered-start-links>a{display:flex;align-items:center;gap:10px;padding:15px 18px;min-height:48px;border:1px solid #b8d8e5;border-radius:10px;background:#f4fafc;color:#194c67;font-size:.9rem;font-weight:800;text-decoration:none}
+.delivered-start-links>a svg:last-child{margin-left:auto;flex-shrink:0}
+.delivered-start-links>a:hover{background:#fffdf9}
+.order-support-compact{box-shadow:none;padding:22px 24px}
+.extended-page .order-support-compact h2{font-size:1.25rem;line-height:1.3;margin:0 0 7px}
+.order-support-compact>p{font-size:.88rem;line-height:1.55;color:#496c7c;margin:0}
+.order-support-compact .order-support-actions{gap:12px;margin:16px 0}
+.order-support-compact .order-support-actions>button{min-height:44px;padding:10px 15px;border:1px solid #a2c7d6;border-radius:8px;background:#f5fafc;font:800 .86rem 'Nunito Sans',sans-serif;cursor:pointer;color:#19475f}
+.order-support-compact .order-support-actions>.order-support-refund{border-color:transparent;background:none;text-decoration:underline;text-underline-offset:3px}
+.order-support-compact>.live-note{font-size:.8rem}
+@media(max-width:760px){.delivered-game-card{grid-template-columns:minmax(0,1fr);gap:24px;padding:22px}.delivered-cover{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center}.delivered-cover>img{aspect-ratio:1;object-fit:cover}.delivered-receipt{gap:14px;padding:18px}}
+@media(max-width:600px){.delivered-game-page .order-workspace{width:calc(100% - 32px);padding-top:25px}.delivered-heading h1{font-size:2.1rem}.delivered-cover>div:not(.adventure-cover-placeholder){padding:12px}.delivered-cover p{font-size:.8rem}.delivered-receipt{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.delivered-receipt>div:last-child{grid-column:1/-1}.delivered-start-links{grid-template-columns:minmax(0,1fr)}.order-support-compact{padding:20px}.order-support-compact .order-support-actions{display:flex;flex-wrap:wrap}.order-support-compact .order-support-actions>button{width:auto}body:has(.delivered-game-page) .feedback-trigger:not([hidden]){position:static;display:flex;width:max-content;margin:0 14px 16px auto}}

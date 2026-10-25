@@ -2739,6 +2739,8 @@ test('owner one-use coupon charges exactly one dollar, delivers the selected pac
  assert.equal(db.prepare('SELECT COUNT(*) n FROM entitlements').get().n,0);
  assert.equal((await send(event)).status,200);assert.equal((await send(event)).status,200);
  assert.equal(db.prepare('SELECT status FROM orders').get().status,'published');assert.equal(db.prepare('SELECT COUNT(*) n FROM entitlements').get().n,1);assert.equal(db.prepare('SELECT COUNT(*) n FROM checkout_promotion_redemptions').get().n,1);
+ const delivered=await handleProductionApi(request('/api/v1/orders/'+orderId,'GET',undefined,headers),env);assert.equal(delivered.status,200);const view=await delivered.json();
+ assert.equal(view.title,"The Little Dinosaur's Way Home");assert.equal(view.image,'/assets/dinosaur.png');assert.equal(view.themeId,'dinosaur');assert.equal(view.setting,'home');assert.equal(view.packVersion,'v1');assert.equal(view.amountTotal,100);assert.equal(view.purchase_spec_json,undefined);
  assert.equal((await quote()).status,409);
  const refund={id:'evt_coupon_refund',type:'charge.refunded',livemode:true,data:{object:{livemode:true,payment_intent:'pi_couponfixture',currency:'usd',amount:100,amount_refunded:100,refunded:true,refunds:{has_more:false,data:[{id:'re_couponfixture',amount:100,currency:'usd',status:'succeeded',payment_intent:'pi_couponfixture'}]}}}};
  assert.equal((await send(refund)).status,200);assert.equal(db.prepare('SELECT amount_total,status FROM orders').get().amount_total,100);assert.equal(db.prepare('SELECT status FROM entitlements').get().status,'revoked');assert.equal((await quote()).status,409);assert.equal(calls,1);

@@ -811,7 +811,11 @@ async function orderView(request, env, orderId) {
       if(edition?.delivery_mode==='baseline')generationProgress.lastSavedAt=edition.updated_at;
     }
   }
+  const displaySetting=order.sku.endsWith('_classroom')?'classroom':'home';
+  const world=order.product_kind==='ready'?themes.find(theme=>theme.id===spec.themeId):null;
+  const story=world?.story?.[displaySetting];
   return json({ id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
+    ...(order.product_kind==='ready'?{themeId:spec.themeId||null,setting:displaySetting,title:story?.title||world?.title||'Your ready-made adventure',image:story?.image||world?.image||null,packVersion:spec.packVersion||null}:{}),
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
     generationState: order.product_kind === 'custom' ? (activity?.status || (order.status === 'pending_payment' ? 'awaiting_payment' : 'pending')) : null,
     generationFailedAttempts: failedAttempts, pdfGenerationHistory, generationProgress,
@@ -1299,7 +1303,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       // A usable sandbox outside STAGE_PREVIEW still uses test keys. Report the
       // actual enabled mode, never infer live solely from generic readiness.
       const checkoutMode = !checkout ? 'closed' : stripeKeyMode(env.STRIPE_SECRET_KEY);
-      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, adminConsole:true, checkoutPromotions:true, adminNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Account and service administration')), feedback:feedbackReady(env), feedbackNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Site feedback')), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, adminConsole:true, orderPresentation:true, checkoutPromotions:true, adminNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Account and service administration')), feedback:feedbackReady(env), feedbackNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Site feedback')), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
