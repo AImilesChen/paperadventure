@@ -34,7 +34,7 @@ async function approvedCustomInput(env,input) {
 
 function database({includeThemeRecovery=true,includeSemanticRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql','0037_order_8f5d_material_recovery.sql','0038_step_delivery.sql','0039_post_delivery_editions.sql','0040_refund_evidence_guards.sql','0041_support_notifications.sql','0042_library_archives.sql','0043_site_feedback.sql','0044_admin_console.sql','0045_admin_exception_archives.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql','0037_order_8f5d_material_recovery.sql','0038_step_delivery.sql','0039_post_delivery_editions.sql','0040_refund_evidence_guards.sql','0041_support_notifications.sql','0042_library_archives.sql','0043_site_feedback.sql','0044_admin_console.sql','0045_admin_exception_archives.sql','0046_checkout_promotions.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0024_scoped_semantic_plan_recovery.sql'&&!includeSemanticRecovery)continue;
@@ -2706,4 +2706,40 @@ test('one-time owner library cleanup is count-guarded, reversible and preserves 
   assert.equal(db.prepare('SELECT COUNT(*) n FROM library_order_archives').get().n,12,'repeat never re-archives a restored order');
   insert.run('new-order','cleanup-owner','pending_payment',null,null);db.exec(sql);
   assert.equal(db.prepare("SELECT COUNT(*) n FROM library_order_archives WHERE order_id='new-order'").get().n,0);
+});
+
+
+test('owner one-use coupon charges exactly one dollar, delivers the selected pack and refunds only the actual paid amount',async()=>{
+ const {db,binding}=database();seedReady(db);
+ const code='FIXTURE-899',owner='veryhappygou'+'@gmail.com';
+ db.prepare("UPDATE checkout_promotions SET code_hash=?,status='ready'").run(await sha256(code));
+ let calls=0,form;
+ const env={...config(binding),STRIPE_SECRET_KEY:'rk_live_fixture',LIVE_PAYMENTS_ENABLED:'true',FETCH:async(url,init)=>{
+  if(url.endsWith('/prices/price_test_1'))return Response.json({id:'price_test_1',livemode:true,active:true,type:'one_time',currency:'usd',unit_amount:999});
+  assert.equal(url,'https://api.stripe.com/v1/checkout/sessions');calls++;form=new URLSearchParams(init.body);
+  return Response.json({id:'cs_live_coupon_fixture',url:'https://checkout.stripe.com/fixture',client_reference_id:form.get('client_reference_id')});
+ }};
+ const token=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:await sha256(`${env.SESSION_SECRET}|${owner}`),email:owner,provider:'google',googleSubjectHash:'a'.repeat(64),exp:Math.floor(Date.now()/1000)+3600});
+ const headers={origin:env.PUBLIC_ORIGIN,cookie:`paw_session=${token}`,'Idempotency-Key':'owner-coupon-fixture-001'};
+ const input={...purchase,email:owner,promotionCode:code};
+ const quote=()=>handleProductionApi(request('/api/v1/checkout-promotion','POST',input,headers),env);
+ assert.equal((await quote()).status,200);assert.equal(db.prepare('SELECT COUNT(*) n FROM orders').get().n,0);assert.equal(calls,0);
+ assert.equal((await handleProductionApi(request('/api/v1/checkout-promotion','POST',input,{...headers,origin:'https://evil.test'}),env)).status,403);
+ for(const patch of [{promotionCode:'wrong'},{sku:'custom_home'},{email:'another@example.test'}])assert.ok((await handleProductionApi(request('/api/v1/checkout-promotion','POST',{...input,...patch},headers),env)).status>=400);
+ assert.equal((await handleProductionApi(request('/api/v1/checkout-intents','POST',input,{...headers,cookie:''}),env)).status,403);
+ let response=await handleProductionApi(request('/api/v1/checkout-intents','POST',input,headers),env);assert.equal(response.status,201);const {orderId}=await response.json();
+ assert.equal((await handleProductionApi(request('/api/v1/checkout-intents','POST',input,headers),env)).status,200);assert.equal(calls,1);
+ const order=db.prepare('SELECT * FROM orders WHERE id=?').get(orderId),spec=JSON.parse(order.purchase_spec_json);
+ assert.equal(order.amount_total,100);assert.equal(spec.promotion.discount,899);assert.equal(spec.promotion.subtotal,999);assert.equal(spec.checkoutPricing,'fixed_discount_v1');assert.equal(order.purchase_spec_json.includes(code),false);
+ assert.equal(form.get('discounts[0][coupon]'),'paw-owner-live-check-899-20261025');assert.equal(form.get('allow_promotion_codes'),null);assert.equal(form.get('line_items[0][price]'),'price_test_1');assert.equal(form.get('automatic_tax[enabled]'),'false');
+ const session={id:order.stripe_checkout_session_id,livemode:true,client_reference_id:order.id,metadata:{order_id:order.id,spec_hash:order.purchase_spec_sha256},payment_status:'paid',currency:'usd',amount_subtotal:999,amount_total:100,total_details:{amount_discount:899,amount_tax:0,amount_shipping:0},payment_intent:'pi_couponfixture'};
+ const send=event=>{const raw=JSON.stringify(event),t=Math.floor(Date.now()/1000),signature=createHmac('sha256',env.STRIPE_WEBHOOK_SECRET).update(`${t}.${raw}`).digest('hex');return handleProductionApi(new Request(env.PUBLIC_ORIGIN+'/api/v1/stripe/webhook',{method:'POST',headers:{'Stripe-Signature':`t=${t},v1=${signature}`},body:raw}),env);};
+ const event={id:'evt_coupon',type:'checkout.session.completed',livemode:true,data:{object:session}};
+ for(const patch of [{amount_total:999},{amount_total:0},{amount_subtotal:100},{total_details:{amount_discount:899,amount_tax:1,amount_shipping:0}},{livemode:false}])assert.equal((await send({...event,data:{object:{...session,...patch}}})).status,409);
+ assert.equal(db.prepare('SELECT COUNT(*) n FROM entitlements').get().n,0);
+ assert.equal((await send(event)).status,200);assert.equal((await send(event)).status,200);
+ assert.equal(db.prepare('SELECT status FROM orders').get().status,'published');assert.equal(db.prepare('SELECT COUNT(*) n FROM entitlements').get().n,1);assert.equal(db.prepare('SELECT COUNT(*) n FROM checkout_promotion_redemptions').get().n,1);
+ assert.equal((await quote()).status,409);
+ const refund={id:'evt_coupon_refund',type:'charge.refunded',livemode:true,data:{object:{livemode:true,payment_intent:'pi_couponfixture',currency:'usd',amount:100,amount_refunded:100,refunded:true,refunds:{has_more:false,data:[{id:'re_couponfixture',amount:100,currency:'usd',status:'succeeded',payment_intent:'pi_couponfixture'}]}}}};
+ assert.equal((await send(refund)).status,200);assert.equal(db.prepare('SELECT amount_total,status FROM orders').get().amount_total,100);assert.equal(db.prepare('SELECT status FROM entitlements').get().status,'revoked');assert.equal((await quote()).status,409);assert.equal(calls,1);
 });
