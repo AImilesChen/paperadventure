@@ -342,3 +342,5 @@
 .checkout-card .checkout-policy-links{margin:9px 0 0 1.9rem;font-size:.84rem;line-height:1.5}
 .checkout-card :is(button,input,summary,a):focus-visible{outline:3px solid #175572;outline-offset:3px}
 @media(max-width:600px){.checkout-page .page-intro{padding-top:28px}.checkout-card{padding:22px 20px}.checkout-page .live-shell{padding-bottom:56px}.checkout-total-main strong{font-size:1.65rem}.checkout-promotion-row .button-quiet{padding:10px 12px}}
+
+@media(max-width:600px){body:has(.checkout-page) .feedback-trigger:not([hidden]){position:static;display:flex;width:max-content;margin:0 14px 16px auto}}
