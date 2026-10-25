@@ -60,7 +60,7 @@ jobs:
             npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT status,setup_attempts,error_code FROM checkout_promotions WHERE id='owner-live-check-20261025';" --json > "$RUNNER_TEMP/owner-coupon-status.json"
             result=$(node -e "const d=require(process.env.RUNNER_TEMP+'/owner-coupon-status.json');console.log(d[0]?.results?.[0]?.status||'pending')")
             if [ "$result" = ready ]; then echo 'Owner one-use $8.99 coupon is ready; no payment attempted'; exit 0; fi
-            if [ "$result" != pending ]; then cat "$RUNNER_TEMP/owner-coupon-status.json"; echo 'Coupon requires operator follow-up; live checkout remains unchanged'; exit 0; fi
+            if [ "$result" != pending ]; then cat "$RUNNER_TEMP/owner-coupon-status.json"; npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT details_json FROM admin_action_log WHERE action='payment_check_coupon_setup' AND target_id='owner-live-check-20261025' ORDER BY id DESC LIMIT 1" --json; echo 'Coupon requires operator follow-up; live checkout remains unchanged'; exit 0; fi
             sleep 10
           done
           echo 'Coupon setup remains pending; no payment attempted'
