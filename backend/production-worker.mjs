@@ -1,3 +1,7 @@
+import {handleAdminApi} from './admin-api.mjs';
+import {adminIdentity,recordGoogleProfile,recordPurchaseEmail} from './admin-identity.mjs';
+import {resumeAdminReplies} from './admin-mail.mjs';
+import {paymentModeStatement,refundSnapshotStatement,refundTransactionStatements} from './admin-data.mjs';
 import {submitSiteFeedback,resumeFeedbackNotifications,feedbackReady} from './site-feedback.mjs';
 import {archivedDrafts,removedDraftSpecs,archiveSavedDraft,restoreSavedDraft} from './library-archives.mjs';
 import {runLivePricePreflight} from './live-payment-release.mjs';
@@ -345,14 +349,16 @@ async function webhook(request, env, context = {}) {
     const testOrder = Boolean(purchase.paymentMode === 'test' || purchase.legalVersions?.testMode === 'stripe-sandbox-2026-10-09' || order.stripe_checkout_session_id?.startsWith('cs_test_'));
     if (typeof event.livemode!=='boolean' || charge.livemode!==event.livemode || event.livemode===testOrder) throw new ApiError(409,'PAYMENT_MODE_MISMATCH','Refund mode does not match the purchase.');
     if (!order.paid_at || charge.currency?.toLowerCase() !== 'usd' || charge.amount!==order.amount_total || !Number.isInteger(charge.amount_refunded) || charge.amount_refunded<0 || charge.amount_refunded>charge.amount || typeof charge.refunded!=='boolean' || charge.refunded!==(charge.amount_refunded===charge.amount)) throw new ApiError(409, 'REFUND_MISMATCH', 'Refund event does not match the order.');
-    let succeededAmount = null;
+    let succeededAmount = null,checkedRefunds=null;
     if(charge.refunded===true || refundEvent) {
       const refunds = charge.refunds?.has_more===false ? charge.refunds : await stripeRequest(env,'refunds?payment_intent='+encodeURIComponent(charge.payment_intent)+'&limit=100',{},env.FETCH||fetch);
-      succeededAmount = succeededRefundAmount(refunds,charge);
+      succeededAmount = succeededRefundAmount(refunds,charge);checkedRefunds=refunds;
     }
     const full = charge.refunded===true && succeededAmount === order.amount_total;
     const statements = [query(env.DB, 'INSERT INTO webhook_events (stripe_event_id,event_type,order_id) VALUES (?,?,?)', event.id, event.type, order.id),
       query(env.DB,'INSERT OR IGNORE INTO order_evidence(order_id,event,reference,details_json) VALUES(?,?,?,?)',order.id,'refund_webhook',event.id,JSON.stringify({full,amountRefunded:charge.amount_refunded,succeededAmount,mode:event.livemode?'live':'test',refundFailed:event.type==='refund.failed'}))];
+    const refundState=full?'full':checkedRefunds?.data?.some(r=>['pending','requires_action'].includes(r.status))?'pending':succeededAmount>0?'partial':event.type==='refund.failed'?'failed':succeededAmount===0?'none':'unknown';
+    statements.push(refundSnapshotStatement(env,order.id,event.livemode?'live':'test',succeededAmount,refundState,Number.isInteger(event.created)?event.created:0),...refundTransactionStatements(env,order.id,event.livemode?'live':'test',checkedRefunds));
     if (full) statements.push(query(env.DB, "UPDATE orders SET status = 'refunded' WHERE id = ?", order.id), query(env.DB, "UPDATE entitlements SET status = 'revoked' WHERE order_id = ?", order.id));
     await env.DB.batch(statements);
     return json({ received: true, fullRefund: full });
@@ -392,7 +398,9 @@ async function webhook(request, env, context = {}) {
   }
   const spec = JSON.parse(order.purchase_spec_json);
   const months = accessMonths(spec);
+  const verifiedMode=typeof event.livemode==='boolean'&&event.livemode===session.livemode?(event.livemode?'live':'test'):'unknown';
   const statements = [
+    paymentModeStatement(env,order.id,verifiedMode,session.payment_status),
     query(env.DB, 'INSERT OR IGNORE INTO webhook_events (stripe_event_id,event_type,order_id) VALUES (?,?,?)', event.id, event.type, order.id),
     query(env.DB, "UPDATE orders SET status = ?, amount_total = ?, stripe_payment_intent_id = ?, paid_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'pending_payment'", order.product_kind === 'ready' ? 'published' : 'paid', session.amount_total, typeof session.payment_intent === 'string' ? session.payment_intent : null, order.id),
   ];
@@ -411,6 +419,7 @@ async function webhook(request, env, context = {}) {
   }
   statements.push(query(env.DB, "INSERT OR IGNORE INTO delivery_notifications (order_id,kind,status) VALUES (?,?,'pending')", order.id, order.product_kind === 'ready' ? 'files_ready' : 'payment'));
   await env.DB.batch(statements);
+  await recordPurchaseEmail(env,order,session.customer_details?.email||session.customer_email).catch(()=>console.error('Purchase contact deferred',{code:'CONTACT_RECORD_DEFERRED'}));
   // Only this newly completed purchase opts in. Replayed webhooks, account
   // reads and deployments never backfill or regenerate old covers.
   if (order.product_kind === 'custom' && order.status === 'pending_payment') {
@@ -599,8 +608,9 @@ async function googleLogin(request, env) {
   const identity = await verifyGoogleCredential(body.credential, {
     clientId: env.GOOGLE_CLIENT_ID, nonce, fetcher: env.FETCH || fetch,
   });
-  const hash = await emailHash(env, identity.email);
-  const session = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: hash, email: identity.email, exp: nowSeconds() + 7 * 86400 });
+  const profile=await recordGoogleProfile(env,identity);
+  const hash=profile.emailHash;
+  const session = await signAccessToken(env.SESSION_SECRET, { scope: 'session', emailHash: hash, email: identity.email, provider:'google',googleSubjectHash:profile.googleSubjectHash, exp: nowSeconds() + 7 * 86400 });
   const secure = new URL(env.PUBLIC_ORIGIN || request.url).protocol === 'https:' ? '; Secure' : '';
   const headers = new Headers({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
   headers.append('set-cookie', 'paw_session=' + session + '; HttpOnly' + secure + '; SameSite=Lax; Path=/; Max-Age=604800');
@@ -1277,6 +1287,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
   try {
     const url = new URL(request.url);
     const path = url.pathname;
+    if(path==='/api/v1/admin'||path.startsWith('/api/v1/admin/'))return await handleAdminApi(request,env,context);
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);
       const catalog = await liveCatalog(env);
@@ -1284,7 +1295,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       // A usable sandbox outside STAGE_PREVIEW still uses test keys. Report the
       // actual enabled mode, never infer live solely from generic readiness.
       const checkoutMode = !checkout ? 'closed' : stripeKeyMode(env.STRIPE_SECRET_KEY);
-      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, feedback:feedbackReady(env), feedbackNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Site feedback')), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, adminConsole:true, adminNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Account and service administration')), feedback:feedbackReady(env), feedbackNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Site feedback')), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
@@ -1321,7 +1332,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       const token = cookies.split(';').map(part => part.trim()).find(part => part.startsWith('paw_session='))?.slice('paw_session='.length);
       const session = token ? await verifyAccessToken(env.SESSION_SECRET, token).catch(() => null) : null;
       const email = hash && session?.scope === 'session' && session.email && await emailHash(env, normalizeEmail(session.email)) === hash ? normalizeEmail(session.email) : null;
-      return json({ available, authenticated: Boolean(hash), ...(email ? { email } : {}) });
+      return json({ available, authenticated: Boolean(hash), ...(await adminIdentity(request,env)?{admin:true}:{}), ...(email ? { email } : {}) });
     }
     const archivedOrder=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/archive$/);
     const archivedDraft=path.match(/^\/api\/v1\/archived-drafts\/([A-Za-z0-9-]+)\/restore$/);
@@ -1965,6 +1976,7 @@ export default {
     env = paymentEnvironment(env);
     if (!env.DB) return;
     if (await runLivePricePreflight(env)) return;
+    await resumeAdminReplies(env).catch(()=>console.error('Admin reply deferred',{code:'ADMIN_REPLY_DEFERRED'}));
     await resumeFeedbackNotifications(env).catch(()=>console.error('Feedback notification deferred',{code:'FEEDBACK_EMAIL_DEFERRED'}));
     await resumeSupportNotifications(env).catch(()=>console.error('Support notification deferred',{code:'SUPPORT_EMAIL_DEFERRED'}));
     await env.DB.batch([

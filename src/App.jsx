@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import AdminConsole from './adminConsole.jsx';
 import FeedbackWidget from './feedbackWidget.jsx';
 import { ArrowRight, ArrowLeft, ArrowUpRight, CaretDown, Check, Compass, DownloadSimple, List, Minus, PencilSimple, Plus, Printer, Sparkle, UsersThree, Pause, Play, X } from '@phosphor-icons/react';
 import { AccountPreview, AdventuresShelf, CheckoutPreview, HelpExperience, LegalExperience, OrderExperience, PricingExperience, SamplesExperience, ThemesExplorer } from './extended.jsx';
@@ -36,17 +37,18 @@ function Brand() { return <Link to="/en/" className="brand"><span className="bra
 function Header({ route }) {
   const [open, setOpen] = useState(false);
   const [authenticated, setAuthenticated] = useState(null);
+  const [administrator,setAdministrator]=useState(false);
   useEffect(() => setOpen(false), [route]);
   useEffect(() => {
     let active = true;
     fetch('/api/v1/auth/session', { credentials: 'same-origin' }).then(response => response.ok ? response.json() : null)
-      .then(session => { if (active) setAuthenticated(Boolean(session?.authenticated)); }).catch(() => { if (active) setAuthenticated(false); });
+      .then(session => { if (active){setAuthenticated(Boolean(session?.authenticated));setAdministrator(Boolean(session?.admin));} }).catch(() => { if (active) setAuthenticated(false); });
     return () => { active = false; };
   }, []);
   async function signOut() {
     try {
       const response = await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin' });
-      if (response.ok) { setAuthenticated(false); setOpen(false); navigate('/en/'); }
+      if (response.ok) { setAuthenticated(false);setAdministrator(false); setOpen(false); navigate('/en/'); }
     } catch { /* Keep the current session visible if sign-out could not be confirmed. */ }
   }
   useEffect(() => {
@@ -56,7 +58,7 @@ function Header({ route }) {
   }, []);
   const accountPath = authenticated ? '/en/my-adventures/' : '/en/account/';
   const accountLabel = authenticated === null ? 'Account' : authenticated ? 'My adventures' : 'Sign in';
-  return <header className="site-header"><div className="nav-shell"><Brand /><nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label="Main navigation"><Link to="/en/for-home/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-home") || /^\/en\/themes\/[^/]+\/home\/$/.test(route)) ? "page" : undefined}>For home</Link><Link to="/en/for-classroom/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-classroom") || /^\/en\/themes\/[^/]+\/classroom\/$/.test(route)) ? "page" : undefined}>For classrooms</Link><Link to="/en/create/" className="nav-primary-link" aria-current={route.startsWith("/en/create") ? "page" : undefined}>AI custom adventure</Link><Link to="/en/how-it-works/" className="nav-primary-link" aria-current={route.startsWith("/en/how-it-works") ? "page" : undefined}>How it works</Link><Link to="/en/pricing/" className="nav-primary-link" aria-current={route.startsWith("/en/pricing") ? "page" : undefined}>Pricing</Link><Link className="nav-account-mobile" to={accountPath}>{accountLabel}</Link>{authenticated && <button type="button" className="nav-signout nav-account-mobile" onClick={signOut}>Sign out</button>}</nav><div className="nav-actions"><Link className="nav-login" to={accountPath}>{accountLabel}</Link>{authenticated && <button type="button" className="nav-signout" onClick={signOut}>Sign out</button>}<Link className="button button-small" to="/en/create/">Create with AI <ArrowUpRight size={16} /></Link></div><button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X size={25} /> : <List size={25} />}</button></div></header>;
+  return <header className="site-header"><div className="nav-shell"><Brand /><nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label="Main navigation"><Link to="/en/for-home/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-home") || /^\/en\/themes\/[^/]+\/home\/$/.test(route)) ? "page" : undefined}>For home</Link><Link to="/en/for-classroom/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-classroom") || /^\/en\/themes\/[^/]+\/classroom\/$/.test(route)) ? "page" : undefined}>For classrooms</Link><Link to="/en/create/" className="nav-primary-link" aria-current={route.startsWith("/en/create") ? "page" : undefined}>AI custom adventure</Link><Link to="/en/how-it-works/" className="nav-primary-link" aria-current={route.startsWith("/en/how-it-works") ? "page" : undefined}>How it works</Link><Link to="/en/pricing/" className="nav-primary-link" aria-current={route.startsWith("/en/pricing") ? "page" : undefined}>Pricing</Link><Link className="nav-account-mobile" to={accountPath}>{accountLabel}</Link>{authenticated && <button type="button" className="nav-signout nav-account-mobile" onClick={signOut}>Sign out</button>}</nav><div className="nav-actions">{administrator&&<a className="nav-login" href="/admin/">管理后台</a>}<Link className="nav-login" to={accountPath}>{accountLabel}</Link>{authenticated && <button type="button" className="nav-signout" onClick={signOut}>Sign out</button>}<Link className="button button-small" to="/en/create/">Create with AI <ArrowUpRight size={16} /></Link></div><button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X size={25} /> : <List size={25} />}</button></div></header>;
 }
 function Footer({ runtime }) { return <footer className="site-footer"><div className="footer-main"><div><Brand /><p>Made for curious minds and the people who bring them together.</p></div><div className="footer-links"><div><strong>Explore</strong><Link to="/en/for-home/">Home adventures</Link><Link to="/en/for-classroom/">Classroom adventures</Link><Link to="/en/themes/">All themes</Link><Link to="/en/create/">AI custom adventures</Link><Link to="/en/pricing/">Pricing</Link></div><div><strong>Support</strong><Link to="/en/help/">Help</Link><Link to="/en/samples/home/">Free sample</Link><Link to="/en/account/">Sign in</Link></div><div><strong>Legal</strong><Link to="/en/privacy/">Privacy</Link><Link to="/en/terms/">Terms</Link><Link to="/en/cookies/">Cookies</Link><Link to="/en/refunds/">Refunds</Link></div></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Paper Adventure Workshop {runtime?.checkout ? '' : runtime?.sample ? '· Free trial available' : '· Design preview'}</span><span>For grown-ups planning playful adventures.</span></div></footer>; }
 
@@ -198,7 +200,7 @@ export function App() {
       robots.content = 'noindex';
     }
     if (!page) {
-      document.title = `${isPrivateOrderRoute(route) ? 'Your order' : 'Page not found'} | Paper Adventure Workshop`;
+      document.title = `${route==='/admin'||route.startsWith('/admin/')?'管理后台':isPrivateOrderRoute(route) ? 'Your order' : 'Page not found'} | Paper Adventure Workshop`;
       document.querySelector('link[rel="canonical"]')?.remove();
       return;
     }
@@ -247,6 +249,7 @@ export function App() {
   else if (route === '/en/privacy/') page = runtime?.legal ? <LiveLegal key="privacy" kind="privacy" /> : <CurrentPrivacyNotice />;
    else if (['/en/terms/', '/en/cookies/', '/en/refunds/'].includes(route)) page = runtime?.legal ? <LiveLegal key={route} kind={route.split('/')[2]} /> : <LegalExperience Link={Link} kind={route.split('/')[2]} />;
   else page = <NotFoundPage />;
+  if(route==='/admin'||route.startsWith('/admin/'))return <AdminConsole/>;
   return <><Header route={route} />{page}<Footer runtime={runtime} /><FeedbackWidget enabled={runtime?.feedback===true&&runtime?.feedbackNotice===true} Link={Link}/>{conflictTo && <div className="modal-backdrop" role="presentation"><div ref={conflictDialogRef} tabIndex={-1} className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="draft-dialog-title"><span className="eyebrow">SAVED DRAFT</span><h2 id="draft-dialog-title">Start a new adventure?</h2><p>You already have an idea saved in this browser. Choosing the new world will replace that draft.</p><div className="modal-actions"><button className="button-quiet" onClick={dismissConflict}>Keep my draft</button><button className="button" onClick={() => { const to = conflictTo; pendingNavigation = ''; setConflictTo(''); navigate(to, true); }}>Use new world <ArrowRight size={18} /></button></div></div></div>}</>;
 }
 

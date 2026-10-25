@@ -60,3 +60,13 @@ test('hosted API forwards same-origin requests to the deployed backend binding',
   assert.equal(forwarded, incoming);
   assert.equal((await response.json()).status, 'configured_runtime');
 });
+
+test('admin shell and deep links are private, non-cacheable and cannot be framed',async()=>{
+ for(const path of ['/admin','/admin/','/admin/messages/feedback/example/']){
+  const response=await worker.fetch(new Request('https://paperadventure.app'+path,{headers:{accept:'text/html'}}),env);
+  assert.equal(response.status,200);assert.equal(response.headers.get('x-robots-tag'),'noindex');
+  assert.match(response.headers.get('cache-control'),/no-store/);assert.equal(response.headers.get('x-frame-options'),'DENY');
+  assert.equal(response.headers.get('referrer-policy'),'no-referrer');assert.match(response.headers.get('content-security-policy'),/frame-ancestors 'none'/);
+ }
+ const write=await worker.fetch(new Request('https://paperadventure.app/admin/',{method:'POST'}),env);assert.equal(write.status,404);
+});
