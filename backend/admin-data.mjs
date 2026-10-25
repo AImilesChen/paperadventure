@@ -59,6 +59,10 @@ export async function userList(env,params) {
   GROUP BY u.email_hash ORDER BY COALESCE(p.last_login_at,MAX(o.created_at)) DESC,u.email_hash`;
  return pageRows(env,sql,query?[like(query),hash||query]:[],params);
 }
+const activeExceptionOrder=alias=>`NOT EXISTS(SELECT 1 FROM admin_exception_archives ea WHERE ea.order_id=${alias}.id AND ea.restored_at IS NULL)`;
+const attentionSql=`SELECT 'feedback' source_kind,id,notification_status status,notification_attempts attempts FROM site_feedback WHERE notification_status='attention'
+ UNION ALL SELECT 'support',n.case_id,n.status,n.attempts FROM support_case_notifications n JOIN support_cases s ON s.id=n.case_id WHERE n.status='attention' AND NOT EXISTS(SELECT 1 FROM admin_exception_archives ea WHERE ea.order_id=s.order_id AND ea.restored_at IS NULL)
+ UNION ALL SELECT r.source_kind,r.source_id,r.status,r.attempts FROM admin_replies r WHERE r.status='attention' AND NOT EXISTS(SELECT 1 FROM support_cases s JOIN admin_exception_archives ea ON ea.order_id=s.order_id AND ea.restored_at IS NULL WHERE r.source_kind='support' AND s.id=r.source_id)`;
 export async function summary(env,params) {
  const days=[1,7,30].includes(Number(params.get('days')))?Number(params.get('days')):7;
  const from=new Date();from.setUTCHours(0,0,0,0);from.setUTCDate(from.getUTCDate()-days+1);
@@ -72,7 +76,7 @@ export async function summary(env,params) {
  const requests=await q(env,"SELECT COUNT(*) pending FROM support_cases s LEFT JOIN admin_refund_reviews r ON r.case_id=s.id WHERE s.issue_type='refund' AND COALESCE(r.decision,'pending')='pending' AND s.status!='resolved'").first();
  const exceptions=await q(env,"SELECT COUNT(*) delivery FROM admin_order_ledger WHERE payment_mode='live' AND paid_at IS NOT NULL AND status!='refunded' AND (status='failed' OR plan_status='needs_help')").first();
  const modes=await rows(env,'SELECT payment_mode,COUNT(*) total FROM admin_order_ledger GROUP BY payment_mode');
- const attention=await q(env,"SELECT (SELECT COUNT(*) FROM site_feedback WHERE notification_status='attention')+(SELECT COUNT(*) FROM support_case_notifications WHERE status='attention')+(SELECT COUNT(*) FROM admin_replies WHERE status='attention') total").first();
+ const attention=await q(env,`SELECT COUNT(*) total FROM (${attentionSql})`).first();
  const periodRefund=await q(env,"SELECT COALESCE(SUM(amount),0) amount FROM admin_refund_transactions WHERE mode='live' AND status='succeeded' AND provider_created>=?",Math.floor(from.getTime()/1000)).first();
  const refundUnreconciled=await q(env,"SELECT COUNT(*) total FROM admin_order_ledger o WHERE o.payment_mode='live' AND o.refunded_amount>COALESCE((SELECT SUM(t.amount) FROM admin_refund_transactions t WHERE t.order_id=o.id AND t.status='succeeded'),0)").first();
  return {days,since,timezone:'UTC',...sales,...refunds,period_refund_amount:periodRefund.amount,refund_unreconciled:refundUnreconciled.total,paid_total:lifetime.paid_total,net_total:lifetime.paid_total-refunds.refunded_total,registered:users.registered,unread:unread.unread,pending_refunds:requests.pending,delivery_exceptions:exceptions.delivery,mail_attention:attention.total,modes};
@@ -101,13 +105,16 @@ export async function refundList(env,params) {
  return {...requests,confirmed,transactions};
 }
 export async function exceptionList(env) {
- const orders=await rows(env,"SELECT * FROM admin_order_ledger WHERE paid_at IS NOT NULL AND status!='refunded' AND (status='failed' OR plan_status='needs_help') ORDER BY created_at DESC LIMIT 100");
- const covers=await rows(env,"SELECT id,title,payment_mode,cover_status,status FROM admin_order_ledger WHERE cover_status='failed' AND status!='refunded' ORDER BY created_at DESC LIMIT 50");
- const waiting=await q(env,"SELECT COUNT(*) total FROM admin_order_ledger WHERE plan_status='review' AND status!='refunded'").first();
- const notifications=await rows(env,`SELECT 'feedback' source_kind,id,notification_status status,notification_attempts attempts FROM site_feedback WHERE notification_status='attention' UNION ALL SELECT 'support',case_id,status,attempts FROM support_case_notifications WHERE status='attention' UNION ALL SELECT source_kind,source_id,status,attempts FROM admin_replies WHERE status='attention' LIMIT 100`);
- const paymentSync=await rows(env,"SELECT id,title,payment_mode,provider_payment_status,paid_at,refunded_amount,amount_total,status FROM admin_order_ledger WHERE (provider_payment_status='paid' AND paid_at IS NULL) OR (refunded_amount>=amount_total AND amount_total>0 AND status!='refunded') ORDER BY created_at DESC LIMIT 100");
- const refundFailures=await rows(env,"SELECT DISTINCT o.id,o.title,o.payment_mode FROM admin_order_ledger o WHERE o.refund_state='failed' OR EXISTS(SELECT 1 FROM admin_refund_transactions t WHERE t.order_id=o.id AND t.status IN ('failed','requires_action')) ORDER BY o.created_at DESC LIMIT 50");
- return {orders:orders.map(safeOrder),covers,waiting_plan_approval:waiting.total,notifications,payment_sync:paymentSync,refund_failures:refundFailures};
+ const active=activeExceptionOrder('o');
+ const orders=await rows(env,`SELECT o.* FROM admin_order_ledger o WHERE ${active} AND paid_at IS NOT NULL AND status!='refunded' AND (status='failed' OR plan_status='needs_help') ORDER BY created_at DESC LIMIT 100`);
+ const covers=await rows(env,`SELECT id,title,payment_mode,cover_status,status FROM admin_order_ledger o WHERE ${active} AND cover_status='failed' AND status!='refunded' ORDER BY created_at DESC LIMIT 50`);
+ const waiting=await q(env,`SELECT COUNT(*) total FROM admin_order_ledger o WHERE ${active} AND plan_status='review' AND status!='refunded'`).first();
+ const notifications=await rows(env,`${attentionSql} LIMIT 100`);
+ const paymentSync=await rows(env,`SELECT id,title,payment_mode,provider_payment_status,paid_at,refunded_amount,amount_total,status FROM admin_order_ledger o WHERE ${active} AND ((provider_payment_status='paid' AND paid_at IS NULL) OR (refunded_amount>=amount_total AND amount_total>0 AND status!='refunded')) ORDER BY created_at DESC LIMIT 100`);
+ const refundFailures=await rows(env,`SELECT DISTINCT o.id,o.title,o.payment_mode FROM admin_order_ledger o WHERE ${active} AND (o.refund_state='failed' OR EXISTS(SELECT 1 FROM admin_refund_transactions t WHERE t.order_id=o.id AND t.status IN ('failed','requires_action'))) ORDER BY o.created_at DESC LIMIT 50`);
+ const archived=await rows(env,`SELECT o.id,o.title,o.payment_mode,a.archived_at FROM admin_exception_archives a JOIN admin_order_ledger o ON o.id=a.order_id WHERE a.restored_at IS NULL ORDER BY a.archived_at DESC,o.id LIMIT 200`);
+ const archivedCount=await q(env,'SELECT COUNT(*) total FROM admin_exception_archives WHERE restored_at IS NULL').first();
+ return {orders:orders.map(safeOrder),covers,waiting_plan_approval:waiting.total,notifications,payment_sync:paymentSync,refund_failures:refundFailures,archived,archived_total:archivedCount.total};
 }
 export function paymentModeStatement(env,id,mode,status='unknown') {
  const checked=['paid','unpaid','no_payment_required'].includes(status)?status:'unknown';
