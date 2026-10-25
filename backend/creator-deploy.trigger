@@ -105,3 +105,5 @@
 2026-10-25: repair Workers cover transport and enable notified support/refund requests, preserving live checkout.
 
 2026-10-25-library-archives-and-recovery
+
+2026-10-25-public-feedback-with-mail-notification

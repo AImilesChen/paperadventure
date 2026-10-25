@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import FeedbackWidget from './feedbackWidget.jsx';
 import { ArrowRight, ArrowLeft, ArrowUpRight, CaretDown, Check, Compass, DownloadSimple, List, Minus, PencilSimple, Plus, Printer, Sparkle, UsersThree, Pause, Play, X } from '@phosphor-icons/react';
 import { AccountPreview, AdventuresShelf, CheckoutPreview, HelpExperience, LegalExperience, OrderExperience, PricingExperience, SamplesExperience, ThemesExplorer } from './extended.jsx';
 import { themes } from '../shared/catalog.mjs';
@@ -246,6 +247,6 @@ export function App() {
   else if (route === '/en/privacy/') page = runtime?.legal ? <LiveLegal key="privacy" kind="privacy" /> : <CurrentPrivacyNotice />;
    else if (['/en/terms/', '/en/cookies/', '/en/refunds/'].includes(route)) page = runtime?.legal ? <LiveLegal key={route} kind={route.split('/')[2]} /> : <LegalExperience Link={Link} kind={route.split('/')[2]} />;
   else page = <NotFoundPage />;
-  return <><Header route={route} />{page}<Footer runtime={runtime} />{conflictTo && <div className="modal-backdrop" role="presentation"><div ref={conflictDialogRef} tabIndex={-1} className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="draft-dialog-title"><span className="eyebrow">SAVED DRAFT</span><h2 id="draft-dialog-title">Start a new adventure?</h2><p>You already have an idea saved in this browser. Choosing the new world will replace that draft.</p><div className="modal-actions"><button className="button-quiet" onClick={dismissConflict}>Keep my draft</button><button className="button" onClick={() => { const to = conflictTo; pendingNavigation = ''; setConflictTo(''); navigate(to, true); }}>Use new world <ArrowRight size={18} /></button></div></div></div>}</>;
+  return <><Header route={route} />{page}<Footer runtime={runtime} /><FeedbackWidget enabled={runtime?.feedback===true&&runtime?.feedbackNotice===true} Link={Link}/>{conflictTo && <div className="modal-backdrop" role="presentation"><div ref={conflictDialogRef} tabIndex={-1} className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="draft-dialog-title"><span className="eyebrow">SAVED DRAFT</span><h2 id="draft-dialog-title">Start a new adventure?</h2><p>You already have an idea saved in this browser. Choosing the new world will replace that draft.</p><div className="modal-actions"><button className="button-quiet" onClick={dismissConflict}>Keep my draft</button><button className="button" onClick={() => { const to = conflictTo; pendingNavigation = ''; setConflictTo(''); navigate(to, true); }}>Use new world <ArrowRight size={18} /></button></div></div></div>}</>;
 }
 

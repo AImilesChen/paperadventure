@@ -1,3 +1,4 @@
+import {submitSiteFeedback,resumeFeedbackNotifications,feedbackReady} from './site-feedback.mjs';
 import {archivedDrafts,removedDraftSpecs,archiveSavedDraft,restoreSavedDraft} from './library-archives.mjs';
 import {runLivePricePreflight} from './live-payment-release.mjs';
 import {reserveSupportNotification,dispatchSupportNotification,resumeSupportNotifications} from './support-notifications.mjs';
@@ -140,7 +141,7 @@ const offeredFor = (themeId, setting) => themes.find(theme => theme.id === theme
 
 async function publishedLegal(env) {
   if (!env.DB) return null;
-  const result = await query(env.DB, "SELECT kind,version,title,effective_at,sections_json FROM legal_documents WHERE status = 'published' ORDER BY effective_at DESC").all();
+  const result = await query(env.DB, "SELECT kind,version,title,effective_at,sections_json FROM legal_documents WHERE status = 'published' ORDER BY effective_at DESC,version DESC").all();
   const byKind = new Map();
   for (const item of result.results || []) if (!byKind.has(item.kind)) byKind.set(item.kind, item);
   return byKind;
@@ -1283,12 +1284,17 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       // A usable sandbox outside STAGE_PREVIEW still uses test keys. Report the
       // actual enabled mode, never infer live solely from generic readiness.
       const checkoutMode = !checkout ? 'closed' : stripeKeyMode(env.STRIPE_SECRET_KEY);
-      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, feedback:feedbackReady(env), feedbackNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Site feedback')), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
       const item = (await publishedLegal(env))?.get(legalPath[1]);
       return item ? json({ kind: item.kind, version: item.version, title: item.title, effectiveAt: item.effective_at, sections: JSON.parse(item.sections_json) }) : error(404, 'LEGAL_NOT_PUBLISHED', 'This policy is not published.');
+    }
+    if(request.method==='POST'&&path==='/api/v1/feedback'){
+      if(request.headers.get('origin')!==new URL(env.PUBLIC_ORIGIN||request.url).origin)throw new ApiError(403,'ORIGIN_DENIED','The request origin is not allowed.');
+      if(!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))throw new ApiError(415,'JSON_REQUIRED','Send a JSON request.');
+      return await submitSiteFeedback(request,await requestBody(request),env,context);
     }
     if (request.method === 'GET' && path === '/api/v1/catalog') return json(await liveCatalog(env));
     if (request.method === 'GET' && path === '/api/v1/test-packs') return await testReadyCatalog(request, env);
@@ -1959,6 +1965,7 @@ export default {
     env = paymentEnvironment(env);
     if (!env.DB) return;
     if (await runLivePricePreflight(env)) return;
+    await resumeFeedbackNotifications(env).catch(()=>console.error('Feedback notification deferred',{code:'FEEDBACK_EMAIL_DEFERRED'}));
     await resumeSupportNotifications(env).catch(()=>console.error('Support notification deferred',{code:'SUPPORT_EMAIL_DEFERRED'}));
     await env.DB.batch([
       query(env.DB, 'DELETE FROM access_challenges WHERE expires_at < ?', nowSeconds()),
