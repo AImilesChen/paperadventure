@@ -1,0 +1,78 @@
+name: Activate existing live payment configuration
+on:
+  push:
+    branches: [frontend-prd-v13-2026-10-08]
+    paths: [backend/live-release.trigger]
+permissions:
+  contents: read
+concurrency:
+  group: paper-adventure-backend-stage
+  cancel-in-progress: false
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PAYMENTS_EXPECTED_MODE: live
+      RELEASE_REF: live-release-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v7
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v7
+        with: {node-version: '22', cache: npm}
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:backend
+      - run: npm run test:release
+      - name: Prepare current database binding
+        run: |
+          npx --yes wrangler@4.74.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/paw-d1.json"
+          node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-d1.json','utf8'));const id=d.uuid||d.result?.uuid||d.database?.uuid;if(!/^[0-9a-f-]{36}$/i.test(id||''))throw Error('D1 UUID missing');fs.appendFileSync(process.env.GITHUB_ENV,'PAPER_ADVENTURE_STAGE_D1_ID='+id+'\n')"
+      - name: Stage new price references and close checkout during verification
+        run: |
+          node scripts/write-stage-wrangler.mjs
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --file backend/live-prices-stage.sql
+          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var CHECKOUT_ENABLED:false --var LIVE_PAYMENTS_ENABLED:true --var TEST_CHECKOUT_ENABLED:false --var LEGAL_RELEASED:true --var PAYMENT_CREDENTIAL_SOURCE:staged_live --var PAYMENT_RELEASE_PREFLIGHT:$RELEASE_REF
+          echo 'PREFLIGHT_DEPLOYED=true' >> "$GITHUB_ENV"
+      - name: Wait for one scheduled read-only Stripe price verification
+        run: |
+          for attempt in {1..40}; do
+            npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT action,target_id FROM audit_events WHERE id='$RELEASE_REF';" --json > "$RUNNER_TEMP/live-preflight.json"
+            result=$(node -e "const d=require(process.env.RUNNER_TEMP+'/live-preflight.json');console.log(d[0]?.results?.[0]?.action||'pending')")
+            target=$(node -e "const d=require(process.env.RUNNER_TEMP+'/live-preflight.json');console.log(d[0]?.results?.[0]?.target_id||'pending')")
+            if [ "$result" = live_prices_verified ]; then echo 'All four live Prices verified with the stored restricted key'; exit 0; fi
+            if [ "$result" != pending ]; then echo "::error::Live preflight failed ($result, $target). Stored credentials or Price access/amount need correction. No customer payment was attempted."; exit 1; fi
+            sleep 10
+          done
+          echo '::error::Scheduled price verification did not complete'; exit 1
+      - name: Capture reversible catalog state
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT id,status,published_at FROM ready_packs WHERE status='internal_test';" --json > "$RUNNER_TEMP/ready-before.json"
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT id FROM price_versions WHERE sale_enabled=1;" --json > "$RUNNER_TEMP/prices-before.json"
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT ready_pack_id,variant_id,paper,role,status FROM ready_pack_variants;" --json > "$RUNNER_TEMP/variants-before.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const root=process.env.RUNNER_TEMP,q=x=>x===null?'NULL':"'"+String(x).replaceAll("'","''")+"'";
+          const packs=JSON.parse(fs.readFileSync(root+'/ready-before.json'))[0].results;
+          const prices=JSON.parse(fs.readFileSync(root+'/prices-before.json'))[0].results;
+          const variants=JSON.parse(fs.readFileSync(root+'/variants-before.json'))[0].results;
+          const sql=["UPDATE price_versions SET sale_enabled=0;",...prices.map(x=>`UPDATE price_versions SET sale_enabled=1 WHERE id=${q(x.id)};`),...packs.map(x=>`UPDATE ready_packs SET status=${q(x.status)},published_at=${q(x.published_at)} WHERE id=${q(x.id)};`),...variants.map(x=>`UPDATE ready_pack_variants SET status=${q(x.status)} WHERE ready_pack_id=${q(x.ready_pack_id)} AND variant_id=${q(x.variant_id)} AND paper=${q(x.paper)} AND role=${q(x.role)};`)];
+          fs.writeFileSync(root+'/catalog-rollback.sql',sql.join('\n'));
+          NODE
+      - name: Activate verified prices and existing complete private game packs
+        run: |
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --file backend/live-prices-activate.sql
+          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var CHECKOUT_ENABLED:true --var LIVE_PAYMENTS_ENABLED:true --var TEST_CHECKOUT_ENABLED:false --var LEGAL_RELEASED:true --var PAYMENT_CREDENTIAL_SOURCE:staged_live --var PAYMENT_RELEASE_PREFLIGHT:off
+      - name: Verify live mode, policies and the four catalog offers
+        run: |
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/health > "$RUNNER_TEMP/live-health.json"
+          node scripts/payment-runtime.mjs < "$RUNNER_TEMP/live-health.json"
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/catalog > "$RUNNER_TEMP/live-catalog.json"
+          node -e "const d=require(process.env.RUNNER_TEMP+'/live-catalog.json');for(const sku of ['custom_home','custom_classroom','ready_home','ready_classroom'])if(!d.offers.some(p=>p.sku===sku&&p.saleEnabled))throw Error('Live offer unavailable: '+sku);console.log('All four live offers available');"
+      - name: Restore sandbox on failed activation
+        if: failure() && env.PREFLIGHT_DEPLOYED == 'true'
+        run: |
+          if [ -f "$RUNNER_TEMP/catalog-rollback.sql" ]; then npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --file "$RUNNER_TEMP/catalog-rollback.sql"; fi
+          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var CHECKOUT_ENABLED:false --var LIVE_PAYMENTS_ENABLED:false --var TEST_CHECKOUT_ENABLED:true --var LEGAL_RELEASED:true --var PAYMENT_CREDENTIAL_SOURCE:standard --var PAYMENT_RELEASE_PREFLIGHT:off

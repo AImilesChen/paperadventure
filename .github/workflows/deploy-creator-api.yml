@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      PAYMENTS_EXPECTED_MODE: ${{ vars.PAYMENTS_EXPECTED_MODE || 'test' }}
+      PAYMENTS_EXPECTED_MODE: live
       CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
