@@ -113,3 +113,5 @@
 2026-10-25 owner-requested reversible historical test exception cleanup; migration 0045; preserve all financial and file records.
 
 2026-10-25 owner-authorized one-use US$8.99 coupon for US$9.99 ready_home; exact US$1 discount snapshots; no checkout or payment during deploy.
+
+2026-10-25 owner confirmed existing key Coupons Write; retry only the first permission-denied coupon setup with the same idempotency key.
