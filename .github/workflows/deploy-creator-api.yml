@@ -36,7 +36,7 @@ jobs:
         run: |
           node scripts/write-stage-wrangler.mjs
           npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
-          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
+          npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var OWNER_PAYMENT_COUPON_SETUP:v1
       - name: Verify historical test exception cleanup (aggregate counts only)
         run: |
           npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT COUNT(*) AS archived_test_orders, SUM(CASE WHEN o.payment_mode!='test' THEN 1 ELSE 0 END) AS non_test_archived, SUM(CASE WHEN o.cover_status='failed' AND o.status!='refunded' THEN 1 ELSE 0 END) AS cleared_cover_alerts, SUM(CASE WHEN o.paid_at IS NOT NULL AND o.status!='refunded' AND (o.status='failed' OR o.plan_status='needs_help') THEN 1 ELSE 0 END) AS cleared_delivery_alerts, SUM(CASE WHEN o.plan_status='review' AND o.status!='refunded' THEN 1 ELSE 0 END) AS cleared_waiting_plans FROM admin_exception_archives a JOIN admin_order_ledger o ON o.id=a.order_id WHERE a.cleanup_ref='historical-tests-20261025' AND a.restored_at IS NULL" --json
@@ -52,3 +52,14 @@ jobs:
 
 
 
+
+      - name: Verify owner coupon setup without exposing credentials or creating a checkout
+        run: |
+          for attempt in {1..40}; do
+            npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT status,setup_attempts,error_code FROM checkout_promotions WHERE id='owner-live-check-20261025';" --json > "$RUNNER_TEMP/owner-coupon-status.json"
+            result=$(node -e "const d=require(process.env.RUNNER_TEMP+'/owner-coupon-status.json');console.log(d[0]?.results?.[0]?.status||'pending')")
+            if [ "$result" = ready ]; then echo 'Owner one-use $8.99 coupon is ready; no payment attempted'; exit 0; fi
+            if [ "$result" != pending ]; then cat "$RUNNER_TEMP/owner-coupon-status.json"; echo 'Coupon requires operator follow-up; live checkout remains unchanged'; exit 0; fi
+            sleep 10
+          done
+          echo 'Coupon setup remains pending; no payment attempted'

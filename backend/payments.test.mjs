@@ -71,3 +71,16 @@ test('staged live selection is explicit, fail-closed and preserves the original 
   for(const key of [undefined,'rk_test_wrong','pk_live_wrong'])assert.equal(paymentEnvironment({...env,PAYMENT_CREDENTIAL_SOURCE:'staged_live',STRIPE_LIVE_SECRET_KEY:key}).STRIPE_SECRET_KEY,undefined);
   assert.equal(paymentEnvironment({...env,PAYMENT_CREDENTIAL_SOURCE:'staged_live',STRIPE_LIVE_WEBHOOK_SECRET:undefined}).STRIPE_WEBHOOK_SECRET,undefined);
 });
+
+
+test('only the approved immutable promotion snapshot permits a discounted live total',()=>{
+ const p={id:'owner-live-check-20261025',couponId:'paw-owner-live-check-899-20261025',subtotal:999,discount:899,total:100,currency:'USD'};
+ const spec={checkoutPricing:'fixed_discount_v1',paymentMode:'live',promotion:p};
+ const order={id:'order',sku:'ready_home',product_kind:'ready',amount_total:100,stripe_checkout_session_id:'cs',purchase_spec_sha256:'hash',purchase_spec_json:JSON.stringify(spec)};
+ const price={unit_amount:999},session={id:'cs',livemode:true,client_reference_id:'order',metadata:{order_id:'order',spec_hash:'hash'},payment_status:'paid',currency:'usd',amount_subtotal:999,amount_total:100,total_details:{amount_discount:899,amount_tax:0,amount_shipping:0}};
+ assert.equal(validatePaidSession(session,order,price),true);
+ for(const patch of [{id:'other'},{couponId:'other'},{subtotal:1000},{discount:900},{total:99},{currency:'EUR'}])assert.equal(validatePaidSession(session,{...order,purchase_spec_json:JSON.stringify({...spec,promotion:{...p,...patch}})},price),false);
+ for(const patch of [{sku:'custom_home'},{product_kind:'custom'},{amount_total:999}])assert.equal(validatePaidSession(session,{...order,...patch},price),false);
+ for(const patch of [{amount_total:999},{amount_total:99},{amount_subtotal:100},{livemode:false},{currency:'eur'},{total_details:{amount_discount:899,amount_tax:0,amount_shipping:1}}])assert.equal(validatePaidSession({...session,...patch},order,price),false);
+ assert.equal(validatePaidSession(session,{...order,purchase_spec_json:JSON.stringify({checkoutPricing:'fixed_total_v1'})},price),false);
+});

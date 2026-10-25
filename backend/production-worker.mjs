@@ -1,3 +1,4 @@
+import {promotionQuote,setupOwnerPromotion} from './checkout-promotions.mjs';
 import {handleAdminApi} from './admin-api.mjs';
 import {adminIdentity,recordGoogleProfile,recordPurchaseEmail} from './admin-identity.mjs';
 import {resumeAdminReplies} from './admin-mail.mjs';
@@ -255,6 +256,7 @@ async function checkout(request, env) {
   const email = normalizeEmail(input.email);
   const testOnly = testCheckoutReady(env);
   const { offer, spec } = validatePurchase(input);
+  const promotion = await promotionQuote(request,input,env);
   if (!validPurchaseConsent(input.serviceRequest)) throw new ApiError(400,'PURCHASE_CONFIRMATION_REQUIRED','Review the immediate-supply and refund notice, then confirm before checkout.');
   const accountHash = await authenticatedEmailHash(request, env);
   const accountRequired = testOnly || offer.kind === 'custom';
@@ -294,7 +296,7 @@ async function checkout(request, env) {
   const legalVersions = testOnly ? { testMode: 'stripe-sandbox-2026-10-09' } : Object.fromEntries([...legal].map(([kind, item]) => [kind, item.version]));
   const specJson = JSON.stringify({ ...spec, readyPackId: readyPack?.id || null, priceVersionId: price.id, licenceVersion: readyPack?.licence_version || env.CUSTOM_LICENCE_VERSION,
     accessPolicyVersion: productRights.version, onlineRedownloadMonths: productRights.onlineRedownloadMonths,
-    accessStarts: offer.kind === 'ready' ? productRights.readyAccessStarts : productRights.customAccessStarts, legalVersions, paymentMode, checkoutPricing: 'fixed_total_v1', serviceRequest: purchaseConsentSnapshot(offer.kind) });
+    accessStarts: offer.kind === 'ready' ? productRights.readyAccessStarts : productRights.customAccessStarts, legalVersions, paymentMode, checkoutPricing: promotion?'fixed_discount_v1':'fixed_total_v1', ...(promotion?{promotion}:{}), serviceRequest: purchaseConsentSnapshot(offer.kind) });
   const specHash = await sha256(specJson);
   let order = await query(env.DB, 'SELECT * FROM orders WHERE idempotency_key = ?', key).first();
   if (order && (order.purchase_spec_sha256 !== specHash || order.purchaser_email_hash !== buyerHash)) throw new ApiError(409, 'IDEMPOTENCY_CONFLICT', 'This request key was used for another purchase.');
@@ -312,7 +314,7 @@ async function checkout(request, env) {
     const id = crypto.randomUUID();
     await env.DB.batch([
       query(env.DB, `INSERT INTO orders (id,product_kind,sku,purchase_spec_json,purchase_spec_sha256,purchaser_email_hash,price_version_id,amount_total,currency,status,idempotency_key)
-        VALUES (?,?,?,?,?,?,?,?,?,'pending_payment',?)`, id, offer.kind, offer.sku, specJson, specHash, buyerHash, price.id, price.unit_amount, 'USD', key),
+        VALUES (?,?,?,?,?,?,?,?,?,'pending_payment',?)`, id, offer.kind, offer.sku, specJson, specHash, buyerHash, price.id, promotion?.total??price.unit_amount, 'USD', key),
       query(env.DB,'INSERT INTO order_evidence(order_id,event,reference,details_json) VALUES(?,?,?,?)',id,'supply_requested','checkout',JSON.stringify({specHash,legalVersions,serviceRequest:purchaseConsentSnapshot(offer.kind),mode:paymentMode})),
     ]);
     order = await query(env.DB, 'SELECT * FROM orders WHERE id = ?', id).first();
@@ -321,7 +323,7 @@ async function checkout(request, env) {
   const origin = new URL(env.PUBLIC_ORIGIN).origin;
   const form = checkoutForm({ orderId: order.id, email, priceId: testOnly ? null : price.stripe_price_id,
     inlinePrice: testOnly ? { name: `Paper Adventure ${spec.themeId || 'original'} ${offer.setting} ${offer.kind} test`, unitAmount: offer.unitAmount } : null, specHash,
-    successUrl: `${origin}/en/orders/${order.id}/?checkout=returned`, cancelUrl: `${origin}/en/checkout/?cancelled=1` });
+    successUrl: `${origin}/en/orders/${order.id}/?checkout=returned`, cancelUrl: `${origin}/en/checkout/?cancelled=1`, couponId:promotion?.couponId });
   const session = await stripeRequest(env, 'checkout/sessions', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'Idempotency-Key': `paw-${order.id}` }, body: form.toString() }, env.FETCH || fetch);
   if (!session.id || !session.url || session.client_reference_id !== order.id) throw new ApiError(502, 'PAYMENT_PROVIDER_ERROR', 'Payment session could not be verified.');
   await query(env.DB, 'UPDATE orders SET stripe_checkout_session_id = ?, checkout_url = ? WHERE id = ? AND status = ?', session.id, session.url, order.id, 'pending_payment').run();
@@ -378,6 +380,7 @@ async function webhook(request, env, context = {}) {
   const orderId = session?.client_reference_id;
   const order = orderId && await query(env.DB, 'SELECT * FROM orders WHERE id = ?', orderId).first();
   if (!order) throw new ApiError(409, 'UNKNOWN_ORDER', 'Payment event has no matching order.');
+  if(JSON.parse(order.purchase_spec_json).promotion&&event.livemode!==true)throw new ApiError(409,'PAYMENT_MODE_MISMATCH','This promotion requires a live payment.');
   const testOrder = JSON.parse(order.purchase_spec_json).legalVersions?.testMode === 'stripe-sandbox-2026-10-09';
   if (testOrder && (event.livemode !== false || session.livemode !== false)) throw new ApiError(409, 'PAYMENT_MODE_MISMATCH', 'A test order requires a Stripe test event.');
   if (order.status==='refunded') return json({received:true,ignored:true});
@@ -404,6 +407,7 @@ async function webhook(request, env, context = {}) {
     query(env.DB, 'INSERT OR IGNORE INTO webhook_events (stripe_event_id,event_type,order_id) VALUES (?,?,?)', event.id, event.type, order.id),
     query(env.DB, "UPDATE orders SET status = ?, amount_total = ?, stripe_payment_intent_id = ?, paid_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'pending_payment'", order.product_kind === 'ready' ? 'published' : 'paid', session.amount_total, typeof session.payment_intent === 'string' ? session.payment_intent : null, order.id),
   ];
+  if(spec.promotion)statements.push(query(env.DB,'INSERT OR IGNORE INTO checkout_promotion_redemptions(promotion_id,order_id) VALUES(?,?)',spec.promotion.id,order.id));
   if (order.product_kind === 'ready') {
     statements.push(query(env.DB, `INSERT OR IGNORE INTO entitlements (id,order_id,ready_pack_id,status,revision_success_limit,access_expires_at) VALUES (?,?,?,'active',0,datetime('now',?))`,
       crypto.randomUUID(), order.id, spec.readyPackId, `+${months} months`));
@@ -1295,7 +1299,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       // A usable sandbox outside STAGE_PREVIEW still uses test keys. Report the
       // actual enabled mode, never infer live solely from generic readiness.
       const checkoutMode = !checkout ? 'closed' : stripeKeyMode(env.STRIPE_SECRET_KEY);
-      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, adminConsole:true, adminNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Account and service administration')), feedback:feedbackReady(env), feedbackNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Site feedback')), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, adminConsole:true, checkoutPromotions:true, adminNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Account and service administration')), feedback:feedbackReady(env), feedbackNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Site feedback')), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
@@ -1317,6 +1321,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       const theme = catalog.themes.find(item => item.id === id);
       return theme ? json({ theme, offers: catalog.offers }) : error(404, 'THEME_NOT_FOUND', 'Unknown theme.');
     }
+    if(request.method==='POST'&&path==='/api/v1/checkout-promotion'){requireSameOrigin(request,env);const promotion=await promotionQuote(request,await requestBody(request),env);if(!promotion)throw new ApiError(400,'PROMOTION_INVALID','Enter a promotion code.');return json(promotion);}
     if (request.method === 'POST' && path === '/api/v1/checkout-intents') return await checkout(request, env);
     if (request.method === 'POST' && path === '/api/v1/stripe/webhook') return await webhook(request, env, context);
     if (request.method === 'POST' && path === '/api/v1/proposals') return await proposals(request, env);
@@ -1976,6 +1981,7 @@ export default {
     env = paymentEnvironment(env);
     if (!env.DB) return;
     if (await runLivePricePreflight(env)) return;
+    await setupOwnerPromotion(env).catch(()=>console.error('Owner coupon setup deferred',{code:'COUPON_SETUP_DEFERRED'}));
     await resumeAdminReplies(env).catch(()=>console.error('Admin reply deferred',{code:'ADMIN_REPLY_DEFERRED'}));
     await resumeFeedbackNotifications(env).catch(()=>console.error('Feedback notification deferred',{code:'FEEDBACK_EMAIL_DEFERRED'}));
     await resumeSupportNotifications(env).catch(()=>console.error('Support notification deferred',{code:'SUPPORT_EMAIL_DEFERRED'}));

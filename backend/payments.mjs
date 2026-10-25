@@ -1,4 +1,5 @@
 import { ApiError } from './domain.mjs';
+import {validPromotionSnapshot} from './checkout-promotion-policy.mjs';
 
 // Restricted keys authenticate like standard keys; their permissions are
 // enforced by Stripe. Unknown and client-side keys never enable checkout.
@@ -30,7 +31,7 @@ export async function stripeRequest(env, path, options = {}, fetcher = fetch) {
   return response.json();
 }
 
-export function checkoutForm({ orderId, email, priceId, inlinePrice, specHash, successUrl, cancelUrl }) {
+export function checkoutForm({ orderId, email, priceId, inlinePrice, specHash, successUrl, cancelUrl, couponId }) {
   const form = new URLSearchParams();
   const fields = {
     mode: 'payment', client_reference_id: orderId,
@@ -48,6 +49,7 @@ export function checkoutForm({ orderId, email, priceId, inlinePrice, specHash, s
   } else form.set('line_items[0][price]', priceId);
   if (email) form.set('customer_email', email);
   for (const [key, value] of Object.entries(fields)) form.set(key, value);
+  if(couponId){form.delete('allow_promotion_codes');form.set('discounts[0][coupon]',couponId);}
   return form;
 }
 
@@ -61,6 +63,10 @@ export async function verifyFixedPrice(env, price, fetcher = fetch) {
 export function validatePaidSession(session, order, price) {
   if (!session || session.id !== order.stripe_checkout_session_id || session.client_reference_id !== order.id || session.metadata?.order_id !== order.id || session.metadata?.spec_hash !== order.purchase_spec_sha256) return false;
   if (session.payment_status !== 'paid' || session.currency?.toLowerCase() !== 'usd') return false;
+  let spec;try{spec=JSON.parse(order.purchase_spec_json||'{}');}catch{return false;}
+  if(spec.checkoutPricing==='fixed_discount_v1'){
+    return validPromotionSnapshot(spec,order,price)&&session.livemode===true&&session.amount_subtotal===spec.promotion.subtotal&&session.amount_total===spec.promotion.total&&session.total_details?.amount_discount===spec.promotion.discount&&session.total_details?.amount_tax===0&&session.total_details?.amount_shipping===0;
+  }
   if (session.amount_subtotal !== price.unit_amount || !Number.isInteger(session.amount_total) || session.amount_total < session.amount_subtotal) return false;
   let fixedTotal = false;
   try { fixedTotal = JSON.parse(order.purchase_spec_json || '{}').checkoutPricing === 'fixed_total_v1'; } catch { return false; }
