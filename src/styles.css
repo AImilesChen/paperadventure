@@ -145,3 +145,20 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 @keyframes theme-enter{from{opacity:.65;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:600px){.theme-marquee .theme-track{width:100%;padding-inline:5%}.theme-marquee:not(.themes-full) .theme-card{flex-basis:82vw}}
 @media(prefers-reduced-motion:reduce){.theme-marquee .section-heading,.theme-marquee .theme-audience-switch{animation:none}.theme-marquee [data-loop-copy]{display:none}.theme-marquee .theme-card{transition:none}}
+
+/* Keep personal actions together, apart from product discovery. */
+.site-header .nav-shell{gap:24px}
+.site-header .nav-actions{display:flex;gap:16px}
+.header-account{position:relative}
+.header-account-trigger,.header-signin{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:9px 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:#173b57;font-size:.84rem;font-weight:800;white-space:nowrap}
+.header-account-trigger:hover,.header-account-trigger[aria-expanded="true"],.header-signin:hover{background:#ffffff80;border-color:#accbdc}
+.header-account-trigger>svg:last-child{transition:transform .16s}
+.header-account-trigger[aria-expanded="true"]>svg:last-child{transform:rotate(180deg)}
+.header-account-panel{position:absolute;top:calc(100% + 10px);right:0;min-width:220px;max-width:calc(100vw - 32px);padding:7px;border:1px solid #accbdc;border-radius:12px;background:#fffdf9;box-shadow:0 10px 26px #153b5626}
+.header-account-panel a,.header-account-panel button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:44px;padding:11px 12px;border:0;border-radius:7px;background:transparent;text-align:left;color:#173b57;font-size:.87rem;font-weight:800}
+.header-account-panel a:hover,.header-account-panel button:hover{background:#e8f6fd}
+.header-account-panel .header-account-signout{margin-top:5px;border-top:1px solid #d2e3eb;border-radius:0 0 7px 7px;color:#526f7e}
+.nav-create-mobile{display:none}
+@media(max-width:1300px){.site-header .nav-shell{gap:18px}.site-header .nav-actions{margin-left:auto}.site-header .site-nav{top:100%;max-height:calc(100dvh - 90px);overflow-y:auto}.site-nav .nav-create-mobile{display:flex;align-items:center;justify-content:space-between;color:#ad3425;font-weight:900}}
+@media(max-width:600px){.site-header .nav-shell{gap:8px}.site-header .nav-actions{gap:0}.header-account-trigger{min-width:44px;padding:8px;gap:4px}.header-account-trigger span{display:none}.header-account-panel{right:-40px}.site-header .menu-toggle{display:grid;place-items:center;min-width:44px;min-height:44px;padding:8px}.site-header .site-nav{max-height:calc(100dvh - 76px)}}
+@media(prefers-reduced-motion:reduce){.header-account-trigger>svg:last-child{transition:none}}
