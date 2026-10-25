@@ -9,7 +9,7 @@ import {STEP_SAVED,ensureBaseline,enqueueNextStep,activateBaseline} from './step
 import {savedGenerationProgress} from './generation-progress.mjs';
 import {verifyPrintedPuzzles} from './paper-proof.mjs';
 import { normalizeEmail, sha256, sha256Bytes, verifyStripeSignature, signAccessToken, verifyAccessToken } from './security.mjs';
-import { stripeKeyMode, stripeRequest, checkoutForm, validatePaidSession, verifyFixedPrice } from './payments.mjs';
+import { stripeKeyMode, stripeRequest, checkoutForm, validatePaidSession, verifyFixedPrice, paymentEnvironment } from './payments.mjs';
 import { aiProvider, generateStory, generateProposals, reviseStage, revisePrintedWording } from './openai.mjs';
 import { assembleStagedStory, auditStagedStory, generateBlueprint, repairBlueprint, generateStagedCheckpoint, validateBlueprint,
   generateBlueprintFrameStep, generateBlueprintMaterialStep, generateBlueprintClosingStep, assembleBlueprintSteps, recoverSavedBlueprintMaterialStep, validateSavedBlueprintMaterialStep, recoverSavedGroundedBlueprint, recoverSavedBlueprintSteps } from './staged-story.mjs';
@@ -123,7 +123,7 @@ const accountReady = env => Boolean(env.ACCOUNT_ENABLED === 'true' && env.DB && 
 
 function paymentReady(env) {
   return Boolean(env.DB && env.PRIVATE_FILES && emailReady(env) && env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET && env.SESSION_SECRET && env.PUBLIC_ORIGIN &&
-    env.CHECKOUT_ENABLED === 'true' && env.LEGAL_RELEASED === 'true' && env.TAX_CONFIGURED === 'true' &&
+    env.CHECKOUT_ENABLED === 'true' && env.LEGAL_RELEASED === 'true' &&
     (stripeKeyMode(env.STRIPE_SECRET_KEY) === 'test' || (env.LIVE_PAYMENTS_ENABLED === 'true' && stripeKeyMode(env.STRIPE_SECRET_KEY) === 'live')));
 }
 const rangeReady = env => [env.SUPPORTED_AGE_MIN,env.SUPPORTED_AGE_MAX,env.HOME_PLAYER_MAX,env.CLASSROOM_STUDENT_MAX].every(value => Number.isInteger(Number(value)) && Number(value) > 0) && Number(env.SUPPORTED_AGE_MAX) >= Number(env.SUPPORTED_AGE_MIN) && Number(env.HOME_PLAYER_MAX) >= 2 && Number(env.CLASSROOM_STUDENT_MAX) >= 2;
@@ -1256,6 +1256,7 @@ async function supportCases(request, env, orderId) {
 }
 
 export async function handleProductionApi(request, env = {}, context = {}) {
+  env = paymentEnvironment(env);
   try {
     const url = new URL(request.url);
     const path = url.pathname;
@@ -1899,6 +1900,7 @@ export default {
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
   },
   async queue(batch, env) {
+    env = paymentEnvironment(env);
     for (const message of batch.messages) {
       try {
         const orderId=await generationJobOrder(env,message.body);
@@ -1920,6 +1922,7 @@ export default {
     }
   },
   async scheduled(_controller, env) {
+    env = paymentEnvironment(env);
     if (!env.DB) return;
     await env.DB.batch([
       query(env.DB, 'DELETE FROM access_challenges WHERE expires_at < ?', nowSeconds()),

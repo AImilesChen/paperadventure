@@ -9,6 +9,16 @@ export function stripeKeyMode(key) {
   return null;
 }
 
+// Explicitly select already-stored live secrets without overwriting sandbox secrets.
+// An incomplete selection closes checkout rather than falling back to test keys.
+export function paymentEnvironment(env) {
+  if (env.PAYMENT_CREDENTIAL_SOURCE !== 'staged_live') return env;
+  return { ...env,
+    STRIPE_SECRET_KEY: stripeKeyMode(env.STRIPE_LIVE_SECRET_KEY) === 'live' ? env.STRIPE_LIVE_SECRET_KEY : undefined,
+    STRIPE_WEBHOOK_SECRET: typeof env.STRIPE_LIVE_WEBHOOK_SECRET === 'string' && env.STRIPE_LIVE_WEBHOOK_SECRET.startsWith('whsec_') ? env.STRIPE_LIVE_WEBHOOK_SECRET : undefined,
+  };
+}
+
 export async function stripeRequest(env, path, options = {}, fetcher = fetch) {
   if (!env.STRIPE_SECRET_KEY) throw new ApiError(503, 'PAYMENT_NOT_CONFIGURED', 'Payment is not configured.');
   const response = await fetcher(`https://api.stripe.com/v1/${path}`, { ...options, headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, ...(options.headers || {}) } });

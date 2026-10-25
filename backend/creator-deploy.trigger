@@ -100,3 +100,5 @@
 # deploy restricted Stripe key compatibility 2026-10-24
 
 # Deploy fixed listed-price checkout and remove customer-facing tax explanations 2026-10-24.
+
+# Deploy focused fixed-price release readiness and staged-secret selection 2026-10-25.
