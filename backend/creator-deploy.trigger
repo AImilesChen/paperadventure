@@ -115,3 +115,5 @@
 2026-10-25 owner-authorized one-use US$8.99 coupon for US$9.99 ready_home; exact US$1 discount snapshots; no checkout or payment during deploy.
 
 2026-10-25 owner confirmed existing key Coupons Write; retry only the first permission-denied coupon setup with the same idempotency key.
+
+2026-10-25 diagnose fixed owner coupon with safe codes/field booleans; read exact existing coupon before any idempotent creation; no checkout.

@@ -26,6 +26,11 @@ export async function stripeRequest(env, path, options = {}, fetcher = fetch) {
   if (!response.ok) {
     const error = new ApiError(502, 'PAYMENT_PROVIDER_ERROR', 'The payment provider could not complete this request.');
     error.providerStatus = response.status; // Internal numeric diagnostic; never copy Stripe response prose.
+    const detail=await response.json().catch(()=>null);
+    const codes=new Set(['resource_already_exists','resource_missing','parameter_unknown','parameter_missing','parameter_invalid_integer','parameter_invalid_empty','parameter_invalid_string_blank','parameters_exclusive','parameter_invalid_combination','invalid_request_error','permission_error','idempotency_key_in_use','api_key_expired']);
+    if(codes.has(detail?.error?.code))error.providerCode=detail.error.code;
+    const params=new Set(['id','duration','amount_off','currency','max_redemptions','redeem_by','applies_to','applies_to[products]','applies_to[products][0]','name']);
+    if(params.has(detail?.error?.param))error.providerParam=detail.error.param;
     throw error;
   }
   return response.json();
