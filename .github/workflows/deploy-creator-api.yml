@@ -36,6 +36,7 @@ jobs:
         run: |
           node scripts/write-stage-wrangler.mjs
           npx --yes wrangler@4.74.0 d1 migrations apply DB --remote --config backend/wrangler.stage.generated.jsonc
+          npx --yes wrangler@4.74.0 d1 execute DB --remote --config backend/wrangler.stage.generated.jsonc --file backend/owner-coupon-retry-20261025.sql
           npx --yes wrangler@4.74.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var OWNER_PAYMENT_COUPON_SETUP:v1
       - name: Verify historical test exception cleanup (aggregate counts only)
         run: |
