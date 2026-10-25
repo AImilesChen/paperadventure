@@ -196,3 +196,20 @@ test('the paid plan preview shows both supporting activities and labels the inde
     assert.ok(!renderToStaticMarkup(createElement(PlanPreview,{plan:legacy})).includes('Finale · combine your results'));
   }finally{await vite.close();}
 });
+
+
+test('delivered ready-made page shows the real game and paid amount with one secondary refund entry',async()=>{
+ const vite=await createServer({server:{middlewareMode:true},appType:'custom',logLevel:'silent'});
+ try{
+  const {ReadyOrderDelivery}=await vite.ssrLoadModule('/src/livePages.jsx');
+  const Link=({to,children,...props})=>createElement('a',{...props,href:to},children);
+  for(const [sku,paper,guide] of [['ready_home','A4','Host Guide'],['ready_classroom','Letter','Teacher Guide']]){
+   const order={id:'ready-order-123',sku,kind:'ready',title:'The purchased dinosaur adventure',image:'/assets/dinosaur.png',status:'published',paidAt:'2026-10-25 10:00:00',filesReady:true,amountTotal:100,currency:'USD',accessExpiresAt:'2027-10-25 10:00:00'};
+   const html=renderToStaticMarkup(createElement(ReadyOrderDelivery,{order,Link,selectedPaper:paper,setSelectedPaper:()=>{},api:async()=>({cases:[]})}));
+   assert.match(html,/<h1>The purchased dinosaur adventure<\/h1>/);assert.match(html,/src="\/assets\/dinosaur.png"/);assert.match(html,/Total paid/);assert.match(html,/US\$1\.00/);assert.doesNotMatch(html,/US\$9\.99|ready home|Refresh status/);
+   assert.equal((html.match(/>Request a refund<\/button>/g)||[]).length,1);assert.match(html,/button-quiet order-support-refund/);
+   assert.match(html,new RegExp('player\\?paper='+paper));assert.match(html,new RegExp('guide\\?paper='+paper));assert.match(html,new RegExp(guide));
+   assert.match(html,/\/en\/help\/print\//);assert.match(html,/\/en\/help\/start\//);assert.match(html,/aria-label="Paper size"/);
+  }
+ }finally{await vite.close();}
+});

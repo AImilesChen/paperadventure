@@ -6,7 +6,7 @@ import {purchaseConsentVersion,purchaseNotice} from '../shared/purchase-consent.
 import PostDeliveryEditor from './postDeliveryEditor.jsx';
 import { PolicyDocument } from './policyDocument.jsx';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, ArrowClockwise, DownloadSimple, WarningCircle, Books, Sparkle, Receipt } from '@phosphor-icons/react';
+import { ArrowRight, ArrowClockwise, DownloadSimple, WarningCircle, Books, Sparkle, Receipt, CheckCircle, Printer } from '@phosphor-icons/react';
 import { formatUsd, productRights } from '../shared/catalog.mjs';
 import { draftSpec, readySetup } from './creatorDraft.mjs';
 import { PlanPreview } from './creatorPlanPreview.jsx';
@@ -547,6 +547,32 @@ function PdfGenerationHistory({order}) {
   </section>;
 }
 
+export function ReadyOrderDelivery({order,Link,selectedPaper,setSelectedPaper,helpRequest,api:orderApi=api}) {
+  const classroom=order.sku.endsWith('_classroom');
+  const title=order.title||'Your ready-made adventure';
+  const expires=order.accessExpiresAt?new Date(order.accessExpiresAt.replace(' ','T')+'Z').toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'}):null;
+  return <main className="extended-page live-page order-page delivered-game-page">
+    <div className="order-workspace">
+      <Link className="order-back" to="/en/my-adventures/">← My adventures</Link>
+      <header className="delivered-heading">
+        <p className="delivered-success"><CheckCircle size={21} weight="fill" aria-hidden="true"/>Payment confirmed · Files ready</p>
+        <h1>{title}</h1><p>{classroom?'Classroom':'Home'} edition · Ready-made adventure</p>
+      </header>
+      <div className="delivered-game-card">
+        <div className="delivered-cover"><AdventureCover order={{product_kind:'ready',image:order.image}}/><div><span className="eyebrow">YOUR NEXT ADVENTURE</span><p>Print, prepare, and bring the story to life.</p></div></div>
+        <OrderPackage order={order} orderId={order.id} selectedPaper={selectedPaper} setSelectedPaper={setSelectedPaper}/>
+      </div>
+      <dl className="delivered-receipt" aria-label="Order details">
+        <div><dt>Order reference</dt><dd>{order.id.slice(0,8).toUpperCase()}</dd></div>
+        <div><dt>Total paid</dt><dd>{formatUsd(order.amountTotal)}</dd></div>
+        <div><dt>{expires?'Online downloads until':'Edition'}</dt><dd>{expires||`${classroom?'Classroom':'Home'} edition`}</dd></div>
+      </dl>
+      <nav className="delivered-start-links" aria-label="Prepare your game"><Link to="/en/help/print/"><Printer size={20} aria-hidden="true"/><span>Printing guide</span><ArrowRight size={17} aria-hidden="true"/></Link><Link to="/en/help/start/"><Books size={20} aria-hidden="true"/><span>How to set up and play</span><ArrowRight size={17} aria-hidden="true"/></Link></nav>
+      <OrderSupport compact api={orderApi} canRefund={Boolean(order.paidAt)} orderId={order.id} initialRequest={helpRequest}/>
+    </div>
+  </main>;
+}
+
 export function LiveOrder({ Link, orderId }) {
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
@@ -600,7 +626,9 @@ export function LiveOrder({ Link, orderId }) {
   if (error) return <main className="extended-page live-page order-page"><div className="order-workspace"><Alert>{error}</Alert><button className="button" type="button" onClick={() => refresh({ announce: true })} disabled={refreshing}>{refreshing ? 'Checking order…' : 'Retry order status'} {refreshing ? <ArrowClockwise className="is-spinning" size={18}/> : <ArrowRight size={18}/>}</button><p><Link to="/en/account/">Sign in with Google</Link> if your session has expired.</p></div></main>;
   if (!order) return <main className="extended-page live-page order-page"><div className="order-workspace" role="status">Checking your order…</div></main>;
 
-  const title = order.plan?.title || (order.kind === 'ready' ? order.sku.replaceAll('_',' ') : 'Your custom adventure');
+  if(order.kind==='ready'&&order.paidAt&&order.filesReady&&order.status==='published')return <ReadyOrderDelivery order={order} Link={Link} selectedPaper={selectedPaper} setSelectedPaper={setSelectedPaper} helpRequest={helpRequest}/>;
+
+  const title = order.title || order.plan?.title || (order.kind === 'ready' ? 'Your ready-made adventure' : 'Your custom adventure');
   const paid = Boolean(order.paidAt);
   const approved = Boolean(order.planReview?.confirmedVersion);
   const correctingTheme = themeUpdatePending(order);
@@ -675,8 +703,6 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
   const [email, setEmail] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const [authenticated, setAuthenticated] = useState(null);
   const [accountEmail, setAccountEmail] = useState('');
-  const [promotionCode,setPromotionCode]=useState(''),[promotion,setPromotion]=useState(null),[promotionBusy,setPromotionBusy]=useState(false);
-  async function applyPromotion(){setError('');setPromotionBusy(true);try{setPromotion(await api('/api/v1/checkout-promotion',{method:'POST',body:JSON.stringify({sku,email:accountEmail||email,promotionCode})}));}catch(failure){setPromotion(null);setError(failure.message);}finally{setPromotionBusy(false);}}
   useEffect(() => { let active = true; api('/api/v1/auth/session').then(session => { if (active) { setAuthenticated(Boolean(session.authenticated)); setAccountEmail(session.email || ''); } }).catch(() => { if (active) setAuthenticated(false); }); return () => { active = false; }; }, []);
   const customDraftReady = Boolean(draft.creatorVersion===3 && readySetup(draft));
   const eligible = Boolean(['home','classroom'].includes(setting) && offer?.saleEnabled && (ready ? ['published','test_ready'].includes(theme?.[setting]?.readyStatus) : customDraftReady));
@@ -688,8 +714,6 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
     if (!supplyRequested) { setError('Confirm the supply and refund notice before continuing.'); setBusy(false); return; }
     const checkoutEmail = accountEmail || (accountRequired ? null : email);
     const body = ready ? { sku, themeId, packVersion: theme[setting].packVersion, variantId: variantId || null, email: checkoutEmail } : { ...draftSpec(draft), sku, email: checkoutEmail };
-    if(promotionCode.trim()&&!promotion){setError('Apply or remove the promotion code before continuing.');setBusy(false);return;}
-    if(promotion)body.promotionCode=promotionCode.trim();
     body.serviceRequest = {version:purchaseConsentVersion,requested:true};
     try {
       const payload = JSON.stringify(body);
@@ -704,7 +728,7 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
   }
   const notice=purchaseNotice(ready?'ready':'custom');
   const noticeBreak=notice.indexOf('. ')+1;
-  const total=promotion?.total??offer?.unitAmount;
+  const total=offer?.unitAmount;
   return <main className="extended-page live-page checkout-page">
     <Intro eyebrow="CHECKOUT" title="Review your order.">{checkoutMode==='test'&&<p>TEST MODE · No real payment is taken.</p>}</Intro>
     <section className="live-shell"><div className="live-panel checkout-card">
@@ -719,15 +743,7 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
       {!eligible?<Alert>{!ready&&!customDraftReady?'Finish your custom adventure setup before checkout.':'This product is not available for checkout.'}</Alert>:needsSignIn?authenticated===null?<p role="status">Checking adult sign-in…</p>:<div><Alert>Sign in with your adult Google account before checkout.</Alert><Link className="button" to={signInPath}>Sign in with Google <ArrowRight size={18}/></Link></div>:<form onSubmit={start}>
         {ready&&variantIds.length>0&&<label>Classroom story wording<select value={variantId} onChange={event=>setVariantId(event.target.value)}><option value="">{themeId==='halloween'?'Autumn classroom':'Winter classroom'}</option>{variantIds.map(id=><option key={id} value={id}>{id==='halloween'?'Halloween classroom':'Christmas classroom'}</option>)}</select></label>}
         {accountEmail?<p className="checkout-account">Delivery to <strong>{accountEmail}</strong></p>:accountRequired?<p className="checkout-account">Saved to your signed-in account.</p>:<label>Email for your receipt and downloads<input type="email" required autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="you@example.com"/></label>}
-        {ready&&setting==='home'&&checkoutMode==='live'&&<details className="checkout-promotion">
-          <summary>Have a promotion code?</summary>
-          <label htmlFor="checkout-promotion-code">Promotion code</label>
-          <div className="checkout-promotion-row"><input id="checkout-promotion-code" disabled={promotionBusy||busy} value={promotionCode} maxLength={64} autoComplete="off" spellCheck={false} onChange={event=>{setPromotionCode(event.target.value);setPromotion(null);}}/><button type="button" className="button-quiet" disabled={busy||promotionBusy||!promotionCode.trim()||!authenticated} onClick={applyPromotion}>{promotionBusy?'Checking…':'Apply code'}</button></div>
-          {!authenticated&&<p className="live-note"><Link to={signInPath}>Sign in</Link> with the account eligible for your code.</p>}
-          {promotion?<div className="checkout-promotion-result"><span>Code applied</span><button type="button" disabled={busy||promotionBusy} onClick={()=>{setPromotion(null);setPromotionCode('');}}>Remove code</button></div>:promotionCode.trim()&&!promotionBusy&&<p className="live-note">Apply or remove this code before continuing.</p>}
-        </details>}
         <div className="checkout-total" aria-live="polite" aria-atomic="true">
-          {promotion&&<><div><span>Game pack</span><span>{formatUsd(promotion.subtotal)}</span></div><div className="checkout-discount"><span>Promotion</span><span>−{formatUsd(promotion.discount)}</span></div></>}
           <div className="checkout-total-main"><span>Total to pay<small>One-time purchase</small></span><strong>{total===undefined?'Unavailable':formatUsd(total)}</strong></div>
         </div>
         <div className="purchase-confirmation checkout-confirmation">
@@ -735,7 +751,7 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
           <p id="checkout-refund-notice" className="checkout-refund-notice">{notice.slice(noticeBreak+1)}</p>
           <p className="checkout-policy-links"><Link to="/en/terms/">Terms</Link><span aria-hidden="true"> · </span><Link to="/en/refunds/">Refund policy</Link></p>
         </div>
-        <button className="button" disabled={busy||promotionBusy||!supplyRequested||Boolean(promotionCode.trim()&&!promotion)}>{busy?'Preparing checkout…':checkoutMode==='test'?'Continue to Stripe test':'Continue to Stripe'} <ArrowRight size={18}/></button>
+        <button className="button" disabled={busy||!supplyRequested}>{busy?'Preparing checkout…':checkoutMode==='test'?'Continue to Stripe test':'Continue to Stripe'} <ArrowRight size={18}/></button>
         {error&&<Alert>{error}</Alert>}
       </form>}
     </div></section>

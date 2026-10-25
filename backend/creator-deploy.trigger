@@ -117,3 +117,5 @@
 2026-10-25 owner confirmed existing key Coupons Write; retry only the first permission-denied coupon setup with the same idempotency key.
 
 2026-10-25 diagnose fixed owner coupon with safe codes/field booleans; read exact existing coupon before any idempotent creation; no checkout.
+
+2026-10-25 owned ready-order display metadata and completed download page; hide public coupon field; preserve all finance/files and coupon history.
