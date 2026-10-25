@@ -2,7 +2,7 @@ import { handleApi } from './worker.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
 
 const publicHost = 'paperadventure.app';
-const publicRobots = 'User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://paperadventure.app/sitemap.xml\n';
+const publicRobots = 'User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin/\n\nSitemap: https://paperadventure.app/sitemap.xml\n';
 const previewRobots = 'User-agent: *\nDisallow: /\n';
 
 // The same Worker serves the public site and preview aliases. Only the canonical
@@ -24,9 +24,10 @@ export default {
     }
 
     const isPrivateOrder = /^\/en\/orders\/[A-Za-z0-9-]+\/?$/.test(url.pathname) && url.pathname !== '/en/orders/demo/';
+    const isAdmin=/^\/admin(?:\/|$)/.test(url.pathname);
     const canServeShell = ['GET', 'HEAD'].includes(request.method);
-    let response = isPrivateOrder && canServeShell ? null : await env.ASSETS.fetch(request);
-    if ((isPrivateOrder && canServeShell) || (response?.status === 404 && canServeShell && request.headers.get('accept')?.includes('text/html'))) {
+    let response = (isPrivateOrder||isAdmin) && canServeShell ? null : await env.ASSETS.fetch(request);
+    if (((isPrivateOrder||isAdmin) && canServeShell) || (response?.status === 404 && canServeShell && request.headers.get('accept')?.includes('text/html'))) {
       const fallback = new URL(request.url);
       fallback.pathname = '/app-shell.txt';
       fallback.search = '';
@@ -39,6 +40,7 @@ export default {
       }
     }
     const headers = new Headers(response.headers);
+    if(isAdmin){headers.set('cache-control','private, no-store');headers.set('referrer-policy','no-referrer');headers.set('x-frame-options','DENY');headers.set('content-security-policy',"frame-ancestors 'none'; base-uri 'self'");}
     if (isPublicHost && response.ok && pageFor(url.pathname)?.indexable) headers.delete('x-robots-tag');
     else headers.set('x-robots-tag', 'noindex');
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
