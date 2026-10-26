@@ -28,12 +28,12 @@ export function AnalyticsChoices() {
     {open && <div className="analytics-choice-overlay" role="presentation">
       <section ref={dialogRef} tabIndex={-1} className="analytics-choice-dialog" role="dialog" aria-modal="true" aria-labelledby="analytics-choice-title">
         <h2 id="analytics-choice-title">Your privacy choices</h2>
-        <p>Ahrefs and Plausible measure basic traffic without analytics cookies. Google Analytics and Microsoft Clarity start only if you allow enhanced analytics; they use cookies, and Clarity can record visits to public pages.</p>
-        <p>Planning, checkout, accounts, orders and private support pages are excluded. Your choice does not affect purchases or downloads. <a href="/en/cookies/">Read our cookies notice</a>.</p>
-        <label className="analytics-basic-choice"><input type="checkbox" checked={basic} onChange={event=>setBasic(event.target.checked)} /> Include basic traffic statistics (Ahrefs and Plausible)</label>
+        <p>Ahrefs and Plausible count basic traffic without cookies. Google Analytics cookies and Clarity session recordings need your permission.</p>
+        <p>Private pages are excluded. Change your choice anytime. <a href="/en/cookies/">Privacy details</a>.</p>
+        <label className="analytics-basic-choice"><input type="checkbox" aria-label="Include basic traffic statistics (Ahrefs and Plausible)" checked={basic} onChange={event=>setBasic(event.target.checked)} /> Basic traffic statistics</label>
         <div className="analytics-choice-actions">
-          <button type="button" className="button-quiet" onClick={() => choose('denied')}>Decline enhanced analytics</button>
-          <button type="button" className="button" onClick={() => choose('granted')}>Allow enhanced analytics</button>
+          <button type="button" className="button-quiet" aria-label="Decline enhanced analytics" onClick={() => choose('denied')}>Decline enhanced</button>
+          <button type="button" className="button" aria-label="Allow enhanced analytics" onClick={() => choose('granted')}>Allow enhanced</button>
         </div>
       </section>
     </div>}
