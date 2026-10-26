@@ -87,6 +87,17 @@ test('complete policy drafts cover actual delivery and feedback without publishi
   assert.match(JSON.stringify(documents.refunds), /do not assume your statutory cancellation rights have been waived/);
 });
 
+test('analytics notices distinguish default cookieless statistics from enhanced consent and independent opt-out',()=>{
+  const docs=createPolicyDocuments(),privacy=JSON.stringify(docs.privacy),cookies=JSON.stringify(docs.cookies);
+  assert.match(privacy,/plausible.shipsolo.io/);assert.match(privacy,/start by default/);
+  assert.match(privacy,/legitimate interests in understanding and improving public website content/);
+  assert.match(privacy,/start only after you allow enhanced analytics/);
+  assert.match(cookies,/paw-analytics-choice-v3/);assert.match(cookies,/paw-basic-analytics-choice-v1/);
+  assert.match(cookies,/Declining enhanced analytics alone leaves basic statistics enabled/);
+  assert.match(cookies,/Turning off both settings prevents all four/);
+  assert.doesNotMatch(cookies,/keeps Google Analytics, Microsoft Clarity, Ahrefs Web Analytics and Plausible behind both/);
+});
+
 test('policy SQL preserves versions, escapes operator text and requires explicit approved publication', () => {
   const draftSql = policyReleaseSql(draftProfile);
   assert.equal((draftSql.match(/INSERT INTO legal_documents/g) || []).length, 4);
@@ -159,7 +170,7 @@ test('reviewed policy draft explains applicable cancellation rights and privacy 
 test('owner-authorized formal policies have an effective date and preserve draft refusal',()=>{
   assert.deepEqual(policyReleaseProblems(),[]);
   for(const doc of Object.values(createPolicyDocuments())){
-    assert.equal(doc.publicationStatus,'approved');assert.equal(doc.effectiveAt,'2026-10-25');
+    assert.equal(doc.publicationStatus,'approved');assert.equal(doc.effectiveAt,'2026-10-26');
   }
   assert.doesNotThrow(()=>policyReleaseSql(legalProfile,{publish:true}));
   assert.throws(()=>policyReleaseSql(draftProfile,{publish:true}),/owner approval/);

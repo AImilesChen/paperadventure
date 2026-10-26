@@ -52,6 +52,7 @@
 .analytics-choice-dialog h2{margin:0 0 12px;font-size:1.55rem;line-height:1.25}
 .analytics-choice-dialog p{margin:0 0 10px;color:#4c6475;line-height:1.55}
 .analytics-choice-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:20px}
+.analytics-basic-choice{display:flex;align-items:flex-start;gap:10px;margin-top:16px;font-weight:700;line-height:1.5;cursor:pointer}.analytics-basic-choice input{flex:0 0 auto;margin-top:5px;accent-color:#ad3425}
 @media(max-width:600px){.analytics-choice-overlay{padding:10px}.analytics-choice-dialog{padding:22px 18px}.analytics-choice-actions{flex-direction:column}.analytics-choice-actions button{width:100%;justify-content:center}}
 
 .preview-banner{display:flex;align-items:center;justify-content:center;gap:12px;padding:7px 16px;background:#173d58;color:#fff;text-align:center;font-size:.76rem;line-height:1.4}
