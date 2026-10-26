@@ -92,6 +92,8 @@ test('released analytics separates cookieless statistics from consent-based meas
       for(const referrer of ['https://paperadventure.app/','https://paperadventure.app/en/pricing/','https://www.producthunt.com/products/paper-adventure-workshop']){
         const f=await browser({referrer,search:'?utm_source=producthunt&utm_medium=referral',saved:grant});f.analytics.startAnalytics();assert.equal(f.scripts.length,4);
       }
+      const hunt=await browser({search:'?ref=producthunt',referrer:'https://www.producthunt.com/',saved:grant});hunt.analytics.startAnalytics();assert.equal(hunt.scripts.length,4);
+      const unknown=await browser({search:'?ref=private-identifier',saved:grant});unknown.analytics.startAnalytics();assert.equal(unknown.scripts.length,0);
     });
     await t.test('custom events reject free text and use canonical page URLs',async()=>{
       const f=await browser({saved:grant,search:'?utm_source=producthunt'});f.analytics.startAnalytics();

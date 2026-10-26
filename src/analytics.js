@@ -39,6 +39,7 @@ function safeMeasurementUrl(url) {
   if(url.hash)return false;
   return [...url.searchParams].every(([key,value])=>key==='setting'
     ? /^(home|classroom)$/.test(value)
+    : key==='ref' ? value==='producthunt'
     : /^utm_(source|medium|campaign|term|content|id)$/.test(key)&&/^[a-z0-9_-]{1,80}$/i.test(value));
 }
 
