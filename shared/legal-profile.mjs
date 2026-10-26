@@ -8,8 +8,8 @@ export const legalProfile = Object.freeze({
   operatorCountry: 'Mainland China',
   supportEmail: 'support@paperadventure.app',
   audience: 'worldwide',
-  version: '2026-10-25-v7',
-  effectiveAt: '2026-10-25',
+  version: '2026-10-26-v8',
+  effectiveAt: '2026-10-26',
   ownerApproved: true,
 });
 
