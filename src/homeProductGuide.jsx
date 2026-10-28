@@ -1,30 +1,16 @@
-import { ArrowRight, BookOpenText, Printer, UsersThree } from '@phosphor-icons/react';
+import { ArrowRight, ArrowUpRight } from '@phosphor-icons/react';
 import './homeProductGuide.css';
 
 export function HomeProductGuide({ Link, sampleReady = false }) {
   return <section className="home-product-guide" aria-labelledby="home-product-guide-title">
     <div className="home-product-shell">
-      <div className="home-product-heading">
-        <div>
-          <span className="eyebrow">WHAT YOU ACTUALLY PLAY</span>
-          <h2 id="home-product-guide-title">A printable story adventure, from first clue to final reveal<span className="dot">.</span></h2>
-        </div>
-        <p>Paper Adventure offers paper-based adventure games for ages 6–12. An adult prepares the pages, then children solve connected clues together. Choose a ready-made Home or Classroom story, or shape a custom one around your own idea.</p>
-      </div>
+      <div className="home-product-heading"><div><span className="eyebrow">WHAT YOU ACTUALLY PLAY</span><h2 id="home-product-guide-title">Real pages. Shared discoveries<span className="dot">.</span></h2></div><p>Paper Adventure games pair a Player Pack with a separate adult guide. Here are actual excerpts from the free Celebration Home game: a shared evidence record and the host’s clue handoff.</p></div>
       <div className="home-product-layout">
-        <div className="home-product-details">
-          <article><span className="home-product-icon"><Printer size={25} /></span><div><h3>Print the Player Pack</h3><p>Story pages, clues and spaces to record discoveries give players a clear next step at each of five checkpoints.</p></div></article>
-          <article><span className="home-product-icon"><BookOpenText size={25} /></span><div><h3>Keep the adult guide</h3><p>The separate Host or Teacher Guide explains setup, the clue sequence, hints and answers. Players do not need to see it.</p></div></article>
-          <article><span className="home-product-icon"><UsersThree size={25} /></span><div><h3>Play in your setting</h3><p>Home stories suit a household group. Classroom stories give a teacher a distinct group mission with shared clues and guidance.</p></div></article>
-          <p className="home-product-format">Offered editions provide Player Pack and adult-guide PDFs in both A4 and US Letter sizes. Print the size that matches your paper.</p>
-          <div className="home-product-links"><Link className="text-link" to="/en/how-it-works/">See the play process <ArrowRight size={17} /></Link><Link className="text-link" to="/en/samples/">Explore the free Celebration games <ArrowRight size={17} /></Link></div>
-        </div>
-        <div className="home-product-paper-stack">
-          <div className="home-paper home-paper-player"><span className="home-paper-kicker">PLAYER PACK · EXAMPLE LAYOUT</span><strong>Follow the next clue</strong><p>Read the story. Compare what you found. Mark your answer on the page.</p><div className="home-paper-clue"><span>01</span><span>02</span><span>03</span></div><span className="home-paper-line" /><span className="home-paper-line short" /></div>
-          <div className="home-paper home-paper-adult"><span className="home-paper-kicker">HOST / TEACHER GUIDE</span><strong>Ready to guide the game</strong><div className="home-guide-row"><span>Prepare</span><i /></div><div className="home-guide-row"><span>Gentle hint</span><i /></div><div className="home-guide-row"><span>Answer & next step</span><i /></div></div>
-          <p>{sampleReady ? 'Illustrative page layout. Open the free Celebration games to see the actual files.' : 'Illustrative page layout. Finished files may vary.'}</p>
-        </div>
+        <figure className="home-material-card"><a className="home-material-image" href="/assets/celebration-home-detail-record.jpg" target="_blank" rel="noopener noreferrer" aria-label="Enlarge the blank Player Pack evidence record (opens in a new tab)"><img src="/assets/celebration-home-detail-record.jpg" alt="Actual blank record for five Celebration Home checkpoints, with no filled answers" width="1202" height="711" loading="lazy"/><span>Enlarge the page <ArrowUpRight size={16}/></span></a><figcaption><span className="eyebrow">PLAYER PACK · PAGE 3 EXCERPT</span><h3>Print the Player Pack</h3><p>Compare clues and keep one agreed record through five checkpoints. The team uses this evidence at the ending.</p></figcaption></figure>
+        <figure className="home-material-card"><a className="home-material-image" href="/assets/celebration-home-detail-handout-cut.jpg" target="_blank" rel="noopener noreferrer" aria-label="Enlarge the Host Guide clue-handoff excerpt (opens in a new tab)"><img src="/assets/celebration-home-detail-handout-cut.jpg" alt="Actual Host Guide illustration showing a retained letter board and three separate clue cards" width="380" height="491" loading="lazy"/><span>Enlarge the page <ArrowUpRight size={16}/></span></a><figcaption><span className="eyebrow">HOST GUIDE · PAGE 4 EXCERPT</span><h3>Keep the adult guide</h3><p>The adult deals the clue cards, keeps the common board intact, and uses the guide’s hints and answers.</p></figcaption></figure>
       </div>
+      <div className="home-play-example"><div><span className="eyebrow">ONE MOMENT IN THE HOME STORY</span><h3>Different clues. One team decision.</h3><p>At the letter checkpoint, everyone has a reason to contribute.</p></div><ol><li><strong>Share separate clues</strong><p>Courier, Spotter and Keeper each receive one clue and explain what they know.</p></li><li><strong>Compare together</strong><p>The group checks every condition against the common board before agreeing.</p></li><li><strong>Record the evidence</strong><p>Mapper writes the team’s choice, and the adult checks the explanation before the next pile.</p></li></ol></div>
+      <div className="home-product-bottom"><p>Player Pack and adult-guide PDFs come in A4 and US Letter.</p><div><Link className="text-link" to="/en/samples/home/">{sampleReady ? 'Try the complete free Home game' : 'Explore the Home game'} <ArrowRight size={18}/></Link><Link className="text-link" to="/en/guides/run-a-printable-adventure/">See the hosting guide <ArrowRight size={18}/></Link></div></div>
     </div>
   </section>;
 }

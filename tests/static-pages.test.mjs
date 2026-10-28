@@ -73,6 +73,28 @@ test('homepage explains the printable product and links to both ways to play', a
   assert.doesNotMatch(html, /Custom theme idea/);
 });
 
+test('homepage shows actual materials and an honest custom example with audience and guide navigation intact', async () => {
+  const html = await read('en/index.html');
+  const sections = ['sample-spotlight-heading','home-product-guide-title','home-custom-heading','home-guides-heading'];
+  const positions = sections.map(id => html.indexOf(`id="${id}"`));
+  assert.ok(positions.every(position => position >= 0));
+  assert.deepEqual([...positions].sort((a,b) => a-b), positions);
+  assert.doesNotMatch(html, /Illustrative page layout|PLAYER PACK · EXAMPLE LAYOUT|class="two-paths"|Ready to plan your game/);
+  for (const image of ['celebration-home-detail-record.jpg','celebration-home-detail-handout-cut.jpg','custom-paper-format-cards.jpg']) {
+    assert.ok(html.includes(`href="/assets/${image}"`));
+    assert.ok(html.includes(`src="/assets/${image}"`));
+  }
+  assert.match(html, /A hand-authored lighthouse sample rendered in the custom PDF format/);
+  assert.match(html, /After payment, review your personal five-checkpoint plan/);
+  assert.match(html, /Approve it before PDF creation starts/);
+  assert.match(html, /When generation and file checks finish/);
+  assert.match(html, /One team of 2–6; two balanced teams for 7–12/);
+  assert.match(html, /Crews of 2–6 each use a complete paper set/);
+  for (const path of ['/en/for-home/','/en/for-classroom/','/en/samples/home/','/en/samples/classroom/','/en/guides/']) assert.ok(html.includes(`href="${path}"`));
+  assert.equal((html.match(/class="home-guide-card"/g)||[]).length, 3);
+  for (const slug of ['run-a-printable-adventure','organize-a-classroom-adventure','printable-birthday-party-adventures']) assert.ok(html.includes(`href="/en/guides/${slug}/"`));
+});
+
 test('root fallback retains a local redirect without exposing stale preview claims', async () => {
   const html = await read('index.html');
   const shell = await read('app-shell.txt');
