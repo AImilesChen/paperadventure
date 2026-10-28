@@ -101,6 +101,36 @@ test('released analytics separates cookieless statistics from consent-based meas
       const event=Array.from(window.dataLayer.at(-1));assert.deepEqual(event.slice(0,2),['event','theme_open']);assert.deepEqual(event[2],{theme:'dinosaur',page_path:'/en/'});
       const view=window.dataLayer.find(args=>args[1]==='page_view');assert.equal(view[2].page_location,'https://paperadventure.app/en/');
     });
+    await t.test('public conversions reach Plausible without enhanced consent and keep only known dimensions',async()=>{
+      const f=await browser({pathname:'/en/samples/home/'});f.analytics.startAnalytics();
+      f.analytics.trackConversionEvent('sample_download_success',{setting:'home',paper:'A4',email:'private@example.com',order_id:'private-order',text:'private'});
+      assert.deepEqual(Array.from(window.plausible.q[0]),['sample_download_success',{props:{setting:'home',paper:'A4'}}]);
+      assert.equal(window.gtag,undefined);
+      f.analytics.trackConversionEvent('unknown_event',{setting:'home'});
+      f.analytics.trackConversionEvent('sample_download_success',{setting:'home',paper:'private'});
+      f.analytics.trackConversionEvent('product_checkout_click',{setting:'home',theme:'private-customer-id'});
+      assert.equal(window.plausible.q.length,1);
+      f.analytics.saveAnalyticsChoice('denied');
+      f.analytics.trackConversionEvent('sample_browse_themes',{setting:'home'});
+      assert.equal(window.plausible.q.length,2);
+    });
+    await t.test('basic opt-out and private locations cannot send conversion events',async()=>{
+      const f=await browser({saved:{...grant,...optout}});f.analytics.startAnalytics();
+      f.analytics.trackConversionEvent('home_sample_click',{setting:'home'});
+      assert.equal(window.plausible,undefined);
+      assert.ok(window.dataLayer.some(args=>args[1]==='home_sample_click'));
+      window.location.pathname='/en/checkout/';
+      const count=window.dataLayer.length;
+      f.analytics.trackConversionEvent('product_checkout_click',{setting:'home',theme:'dinosaur'});
+      assert.equal(window.dataLayer.length,count);
+      const privatePage=await browser({pathname:'/en/orders/private/',saved:grant});privatePage.analytics.startAnalytics();
+      privatePage.analytics.trackConversionEvent('sample_download_success',{setting:'home',paper:'A4'});
+      assert.equal(window.plausible,undefined);assert.equal(window.gtag,undefined);
+    });
+    await t.test('a blocked collector cannot interrupt a conversion action',async()=>{
+      const f=await browser();f.analytics.startAnalytics();window.plausible=()=>{throw Error('Collector blocked');};
+      assert.doesNotThrow(()=>f.analytics.trackConversionEvent('sample_download_success',{setting:'home',paper:'Letter'}));
+    });
     await t.test('unavailable storage keeps both preferences for the current document',async()=>{
       const f=await browser({storageBlocked:true});f.analytics.startAnalytics();assertBasic(f);
       f.analytics.saveAnalyticsPreferences({basic:false,enhanced:'denied'});assert.equal(f.analytics.basicAnalyticsAllowed(),false);assert.equal(f.analytics.analyticsChoice(),'denied');assert.equal(f.reloads(),1);

@@ -1,0 +1,37 @@
+/* First-visit discovery and purchase hierarchy, using existing site tokens. */
+.home-header .header-create-secondary{display:inline-flex;align-items:center;gap:8px;min-height:43px;padding:9px 13px;border:1px solid #aacbdc;border-radius:9px;font-size:.82rem;font-weight:800;color:#274e68}
+.home-header .header-create-secondary:hover{background:#f8fcfe}
+.home-funnel .hero{min-height:590px;padding-top:28px;padding-bottom:50px;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:4%}
+.home-funnel .hero h1{font-size:clamp(3rem,4.9vw,4.7rem);margin:17px 0 20px}
+.home-funnel .hero-lede{font-size:1.06rem;max-width:510px;margin-bottom:24px}
+.home-funnel .hero-actions{gap:18px}
+.home-funnel .hero-actions .button{min-height:57px;padding:13px 19px;font-size:.96rem;gap:10px;white-space:normal;text-align:center}
+.home-funnel .hero-free-note{margin:20px 0 0;color:#385d73;font-size:.79rem;font-weight:700}
+.home-funnel .hero-facts{margin-top:20px}
+.home-funnel .hero-visual{padding-bottom:72px}
+.home-funnel .hero-visual>img{height:430px}
+.hero-material-preview{position:absolute;bottom:0;left:-12px;display:flex;align-items:center;gap:16px;max-width:100%;padding:15px 18px 15px 13px;border:1px solid #c9d7db;border-radius:13px;background:#fffdf9;box-shadow:0 8px 22px #193e531a}
+.hero-material-pages{display:flex;gap:7px;flex:none}
+.hero-material-pages img{width:61px;height:83px;object-fit:contain;border:1px solid #c9dbe2;background:white;box-shadow:0 3px 6px #173b5712}
+.hero-material-preview strong,.hero-material-preview small{display:block}
+.hero-material-preview strong{font-family:'Bree Serif',serif;font-size:1.15rem;font-weight:400;letter-spacing:-.015em}
+.hero-material-preview small{font-size:.74rem;color:#496a7b;line-height:1.5;margin:5px 0 9px}
+.hero-material-preview .text-link{font-size:.75rem;color:#ad3425}
+.theme-detail-page .theme-breadcrumb{padding-top:17px;padding-bottom:16px}
+.theme-detail-page .theme-edition-switch{display:flex;gap:10px;margin-bottom:18px}
+.theme-detail-page .theme-edition-switch a{min-height:42px;padding:11px 16px;display:block}
+.theme-detail-page .theme-detail-hero-grid{align-items:start;padding-top:32px;padding-bottom:36px;gap:5%}
+.theme-detail-page .theme-detail-hero h1{font-size:clamp(2.25rem,3.65vw,3.5rem);margin:10px 0 13px}
+.theme-detail-page .theme-detail-goal{font-size:1.03rem}
+.theme-detail-page .theme-detail-hook{font-size:.9rem;line-height:1.6;margin-top:16px}
+.theme-detail-page .theme-detail-facts{margin-top:20px;gap:8px}
+.theme-detail-page .theme-detail-facts li{padding:9px 11px}
+.theme-purchase-summary{margin-top:20px}
+.theme-detail-price{display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;margin:0 0 12px}
+.theme-detail-price strong{font-size:1.6rem;color:#102e55;font-weight:900}
+.theme-detail-price span{font-size:.8rem;color:#496a7b}
+.theme-detail-page .theme-detail-hero-actions{margin-top:0;gap:12px}
+.theme-detail-page .theme-detail-hero-actions .button{white-space:normal;text-align:center;gap:10px}
+.theme-detail-page .theme-detail-hero-actions .button-quiet{font-size:.83rem;min-height:44px}
+@media(max-width:1000px){.home-funnel .hero{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3%;min-height:0}.home-funnel .hero-visual>img{height:370px}.hero-material-preview{left:0;gap:10px;padding:12px}.hero-material-pages img{width:48px;height:66px}.hero-material-preview strong{font-size:1rem}}
+@media(max-width:700px){.home-funnel .hero{grid-template-columns:1fr;padding-top:22px;padding-bottom:35px}.home-funnel .hero h1{font-size:clamp(2.6rem,8.5vw,3.5rem)}.home-funnel .hero-copy{padding-top:0}.home-funnel .hero-visual{max-width:450px;justify-self:center;margin-top:23px;padding-bottom:62px}.home-funnel .hero-visual>img{height:280px}.hero-material-preview{left:0;right:0;max-width:350px;margin:auto}.home-funnel .hero-actions{gap:18px}.home-funnel .hero-free-note{font-size:.75rem}.home-header .header-create-secondary{display:none}.theme-detail-page .theme-detail-hero-grid{padding-top:23px;padding-bottom:28px}.theme-detail-page .theme-detail-hero h1{font-size:2.2rem}.theme-detail-page .theme-detail-hero-actions .button{width:100%}.theme-detail-page .theme-detail-price{margin-bottom:14px}}
