@@ -1,6 +1,7 @@
 import { pageFor } from '../shared/page-manifest.mjs';
 import { analyticsConfig } from './analytics-config.js';
 import { isAnalyticsPage } from './analytics-route.mjs';
+import { conversionProperties } from './conversionEvents.mjs';
 
 // Cookieless traffic measurement starts on eligible public pages unless opted out.
 // Cookie analytics and recordings require a separate, current explicit grant.
@@ -102,7 +103,11 @@ export function startAnalytics() {
   if(!basicStarted&&basicAnalyticsAllowed()){
     basicStarted=true;
     if(enabledAnalyticsProviders.ahrefs)loadScript('https://analytics.ahrefs.com/analytics.js', { 'data-key': ahrefsKey });
-    if(enabledAnalyticsProviders.plausible)loadScript(analyticsConfig.plausibleScript, { 'data-domain': plausibleDomain });
+    if(enabledAnalyticsProviders.plausible){
+      // Preserve actions made before the existing async tracker has loaded.
+      window.plausible = window.plausible || function plausible() { (window.plausible.q = window.plausible.q || []).push(arguments); };
+      loadScript(analyticsConfig.plausibleScript, { 'data-domain': plausibleDomain });
+    }
   }
   if(enhancedStarted||analyticsChoice()!=='granted')return;
   enhancedStarted=true;
@@ -155,6 +160,14 @@ export function wireAnalyticsEvents() {
       const url = new URL(anchor.href, window.location.origin);
       if (url.origin !== window.location.origin) return;
       const current = window.location.pathname;
+      const setting = url.searchParams.get('setting');
+      if (anchor.closest('.home-funnel') && /^\/en\/samples\/(home|classroom)\/$/.test(url.pathname)) {
+        trackConversionEvent('home_sample_click', { setting: url.pathname.split('/')[3] });
+      } else if (anchor.closest('.sample-download-page') && ['/en/for-home/','/en/for-classroom/'].includes(url.pathname)) {
+        trackConversionEvent('sample_browse_themes', { setting: url.pathname === '/en/for-home/' ? 'home' : 'classroom' });
+      } else if (anchor.closest('.theme-detail-page') && url.pathname === '/en/checkout/' && url.searchParams.get('kind') === 'ready') {
+        trackConversionEvent('product_checkout_click', { setting, theme: url.searchParams.get('theme') });
+      }
       if (anchor.closest('.hero') && url.pathname === '/en/create/') trackEvent('hero_cta_click', { location: 'hero' });
       else if (anchor.closest('.theme-card, .product-theme-card') && url.pathname.startsWith('/en/themes/')) trackEvent('theme_open', { theme: url.pathname.split('/')[3] || 'unknown' });
       else if (url.pathname === '/en/pricing/') trackEvent('pricing_open', { location: current === '/en/' ? 'home' : 'other' });
@@ -163,5 +176,16 @@ export function wireAnalyticsEvents() {
     }
     const button = target.closest('button');
     if (button?.closest('.faq-item') && button.getAttribute('aria-expanded') === 'false') trackEvent('faq_open');
-  });
+  }, { capture: true });
+}
+
+export function trackConversionEvent(name, properties = {}) {
+  const safe = conversionProperties(name, properties);
+  if (!safe || !analyticsLocationAllowed()) return;
+  // Independent preferences: declining cookies does not disable opted-in basic
+  // measurement; opting out of basic does not enable it through enhanced consent.
+  try {
+    if (basicStarted && enabledAnalyticsProviders.plausible && basicAnalyticsAllowed()) window.plausible?.(name, { props: safe });
+  } catch { /* Measurement must never interrupt navigation or file delivery. */ }
+  try { trackEvent(name, safe); } catch { /* Optional enhanced measurement. */ }
 }
