@@ -1,0 +1,24 @@
+.classroom-free-page #sample-download{scroll-margin-top:24px}
+.classroom-free-page .sample-download-intro h1{font-size:clamp(2rem,3.35vw,3.1rem)}
+.sample-classroom-content .sample-home-preview{height:320px}
+.sample-classroom-jobs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin:0}
+.sample-classroom-jobs>div{padding:23px;border:1px solid #b3d2e1;border-radius:12px;background:#fffdf8}
+.sample-classroom-jobs dt{font-size:1.05rem;line-height:1.4;font-weight:900}
+.sample-classroom-jobs dd{font-size:.91rem;line-height:1.75;color:#416579;margin:10px 0 0}
+.sample-classroom-content p.sample-classroom-job-note{font-size:.88rem;margin:21px 0 0}
+.sample-classroom-printing{padding:25px;border:1px solid #b3d2e1;border-radius:13px;background:#fffdf8}
+.sample-classroom-printing table{width:100%;table-layout:fixed;border-collapse:collapse;text-align:left;font-size:.95rem;line-height:1.6}
+.sample-classroom-printing caption{text-align:left;font-weight:800;margin-bottom:15px}
+.sample-classroom-printing th,.sample-classroom-printing td{padding:14px 12px;border-bottom:1px solid #c5dce6;vertical-align:top}
+.sample-classroom-printing thead{background:#edf7fb}.sample-classroom-printing thead th:first-child{width:20%}.sample-classroom-printing thead th:nth-child(2){width:50%}
+.sample-classroom-printing tbody td:last-child{font-weight:900;color:#a93323}
+.sample-classroom-printing p{font-size:.87rem;margin:19px 0 0}
+.sample-classroom-prep-steps{padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin:30px 0 0}
+.sample-classroom-prep-steps li{border-top:2px solid #a7cedd;padding-top:18px}
+.sample-classroom-prep-steps strong{font-size:1rem;line-height:1.5}
+.sample-classroom-prep-steps p{font-size:.93rem;margin:10px 0 0}
+.sample-classroom-review-note{padding:24px;border:1px solid #bdd7e3;border-radius:12px;background:#edf7fb;margin-top:25px}
+.sample-classroom-review-note h3{font-size:1.25rem;line-height:1.3;margin:0 0 12px}
+.sample-classroom-review-note p{margin:0;font-size:.94rem}
+@media(max-width:1000px){.sample-classroom-jobs{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.sample-classroom-jobs,.sample-classroom-prep-steps{grid-template-columns:1fr}.sample-classroom-jobs dd{font-size:.96rem}.sample-classroom-content .sample-home-preview{height:340px}.sample-classroom-printing{padding:18px 14px}.sample-classroom-printing table{font-size:.87rem}.sample-classroom-printing th,.sample-classroom-printing td{padding:12px 7px}.sample-classroom-printing thead th:first-child{width:23%}.sample-classroom-printing thead th:nth-child(2){width:46%}.sample-classroom-prep-steps{gap:20px}.sample-classroom-review-note{padding:22px}}

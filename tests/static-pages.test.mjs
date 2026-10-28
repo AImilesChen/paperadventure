@@ -113,8 +113,28 @@ test('free Home landing explains the actual complete game without moving downloa
   assert.match(html, /href="#sample-download"/);
   for (const route of ['/en/guides/run-a-printable-adventure/','/en/help/print/','/en/themes/celebration/home/']) assert.ok(html.includes(`href="${route}"`));
   const classroom = await read('en/samples/classroom/index.html');
-  assert.match(classroom, /Your free printable adventure/);
-  assert.doesNotMatch(classroom, /sample-home-content|Fenn’s delivery/);
+  assert.match(classroom, /Free printable classroom adventure game/);
+  assert.doesNotMatch(classroom, /Fenn’s delivery|Courier|Mapper/);
+});
+
+test('free Classroom landing explains separate crews, actual materials and accurate print counts', async () => {
+  const html = await read('en/samples/classroom/index.html');
+  assert.match(html, /<h1[^>]*>Free printable classroom adventure game\.<\/h1>/);
+  assert.ok(html.indexOf('Download complete game · ZIP') < html.indexOf('id="classroom-story-heading"'));
+  for (const name of ['plan','symbols','review']) {
+    assert.ok(html.includes(`href="/assets/celebration-classroom-preview-${name}.jpg"`));
+    assert.ok(html.includes(`src="/assets/celebration-classroom-preview-${name}.jpg"`));
+  }
+  for (const job of ['Story Reader','Prop Mover','Team Recorder','Evidence Checker']) assert.ok(html.includes(job));
+  assert.match(html, /four badge clue cards are separate/);
+  assert.match(html, /With one crew, the teacher reviews/);
+  assert.match(html, /9 pages per crew/);
+  assert.match(html, /4 crews of 6<\/td><td>36/);
+  assert.match(html, /7 crews of 5<\/td><td>63/);
+  assert.match(html, /add nine sheets to print it once/);
+  assert.match(html, /href="#sample-download"/);
+  for (const route of ['/en/guides/organize-a-classroom-adventure/','/en/help/print/','/en/themes/celebration/classroom/']) assert.ok(html.includes(`href="${route}"`));
+  assert.doesNotMatch(html, /Fenn|birthday chest|11 sheets|21 sheets/);
 });
 
 test('root fallback retains a local redirect without exposing stale preview claims', async () => {
