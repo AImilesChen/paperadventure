@@ -36,7 +36,7 @@ export function PricingGuide({ Link, catalog, checkoutMode, checkoutReady }) {
       : null;
 
   return <main className="pricing-guide">
-    <header className="pricing-guide-hero"><div className="pricing-guide-shell"><span className="eyebrow">PRICING</span><h1>Printable adventure pricing for Home &amp; Classroom<span className="dot">.</span></h1><p>Try a complete game free, choose a ready-made story, or create a custom adventure. One-time prices in US dollars. No subscription.</p></div></header>
+    <header className="pricing-guide-hero"><div className="pricing-guide-shell"><span className="eyebrow">PRICING</span><h1>Paper Adventure pricing for Home &amp; Classroom<span className="dot">.</span></h1><p>Try a complete game free, choose a ready-made story, or create a custom adventure. One-time prices in US dollars. No subscription.</p></div></header>
 
     {checkoutNotice && <div className="pricing-guide-shell"><div className="pricing-guide-status" role="note"><ShieldCheck size={23} aria-hidden="true"/><p>{checkoutNotice}</p></div></div>}
 

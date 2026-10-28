@@ -1,10 +1,11 @@
 import { themes } from './catalog.mjs';
 import { guides, guideFor } from './guides.mjs';
+import { siteIdentity } from './site-identity.mjs';
 
 export function pageSchema(page, release, origin = 'https://paperadventure.app') {
   const url = origin + page.path;
-  const publisher = { '@type': 'Organization', '@id': origin + '/#publisher', name: 'Paper Adventure Workshop', url: origin + '/en/', logo: origin + '/icon-512.png' };
-  const graph = [{ '@type': 'WebPage', '@id': url + '#page', name: page.title, description: page.description, url, isPartOf: { '@id': origin + '/#website' } }, { '@type': 'WebSite', '@id': origin + '/#website', name: publisher.name, url: origin + '/en/', publisher: { '@id': publisher['@id'] } }, publisher];
+  const publisher = { '@type': 'Organization', '@id': origin + '/#publisher', ...siteIdentity, url: origin + '/en/', logo: origin + '/icon-512.png' };
+  const graph = [{ '@type': 'WebPage', '@id': url + '#page', name: page.title, description: page.description, url, isPartOf: { '@id': origin + '/#website' } }, { '@type': 'WebSite', '@id': origin + '/#website', ...siteIdentity, url: origin + '/en/', publisher: { '@id': publisher['@id'] } }, publisher];
   if (!page.indexable) return { '@context': 'https://schema.org', '@graph': graph };
   const crumbs = [{ name: 'Home', url: origin + '/en/' }];
   const guide = guideFor(page.path);

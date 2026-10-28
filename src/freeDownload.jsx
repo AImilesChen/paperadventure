@@ -64,7 +64,7 @@ export default function FreeDownload({ Link, classroom = false }) {
     </nav>
     <section className="sample-download-top" aria-labelledby="sample-download-title">
       <header className="sample-download-intro">
-        <span className="eyebrow">COMPLETE FREE GAME · {label.toUpperCase()}</span>
+        <span className="eyebrow">PAPER ADVENTURE · {label.toUpperCase()}</span>
         <h1 id="sample-download-title">Your free printable adventure.</h1>
         <h2>{story.title}</h2><p>{story.goal}</p>
         <div className="sample-download-facts"><span>Ages 6–12</span><span>{classroom ? '2–35 students' : '2–12 players'}</span><span>5 checkpoints</span></div>

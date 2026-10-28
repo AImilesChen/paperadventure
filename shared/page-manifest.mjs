@@ -4,7 +4,7 @@ import { guides } from './guides.mjs';
 const page = (path, title, description, indexable = true) => ({ path, title, description, indexable });
 
 export const publicPages = Object.freeze([
-  page('/en/', 'Printable Adventure Games for Kids | Home & Classroom', 'Explore printable adventure games for ages 6–12. Choose a Home or Classroom story, see the Player Pack and adult guide, try Celebration free, or create your own.'),
+  page('/en/', 'Printable Adventure Games for Kids | Home & Classroom', 'Explore printable adventure games from Paper Adventure for ages 6–12. Choose a Home or Classroom story, see the Player Pack and adult guide, try Celebration free, or create your own.'),
   page('/en/themes/', 'Home and Classroom Printable Adventure Worlds', 'Compare six Home adventures with six Classroom adventures. Celebration is the shared free world; the five other story worlds in each collection are different.'),
   page('/en/for-home/', 'Printable Adventure Games for Kids at Home', 'Explore print-at-home story adventures for ages 6–12. Try the free Celebration game, browse themed Home packs, or create a custom story.'),
   ...themes.flatMap(theme => [
@@ -12,7 +12,7 @@ export const publicPages = Object.freeze([
     ...Object.keys(theme.story).map(setting => page(
       `/en/themes/${theme.id}/${setting}/`,
       `${theme.availableSettings.includes(setting) ? '' : 'Archived | '}${theme.id === 'celebration' ? 'Free Celebration' : theme.title} Printable ${setting === 'home' ? 'Adventure Game for Kids' : 'Classroom Adventure Game'}`,
-      `${theme.story[setting].title}: ${theme.story[setting].goal} Includes player materials and a ${setting === 'home' ? 'Host' : 'Teacher'} Guide in A4 and US Letter.`,
+      `${theme.story[setting].title} by Paper Adventure: ${theme.story[setting].goal} Includes player materials and a ${setting === 'home' ? 'Host' : 'Teacher'} Guide in A4 and US Letter.`,
       theme.availableSettings.includes(setting),
     )),
   ]),

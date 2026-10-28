@@ -9,7 +9,7 @@ export function HomeProductGuide({ Link, sampleReady = false }) {
           <span className="eyebrow">WHAT YOU ACTUALLY PLAY</span>
           <h2 id="home-product-guide-title">A printable story adventure, from first clue to final reveal<span className="dot">.</span></h2>
         </div>
-        <p>These are paper-based adventure games for ages 6–12. An adult prepares the pages, then children solve connected clues together. Choose a ready-made Home or Classroom story, or shape a custom one around your own idea.</p>
+        <p>Paper Adventure offers paper-based adventure games for ages 6–12. An adult prepares the pages, then children solve connected clues together. Choose a ready-made Home or Classroom story, or shape a custom one around your own idea.</p>
       </div>
       <div className="home-product-layout">
         <div className="home-product-details">
