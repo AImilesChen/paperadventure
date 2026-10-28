@@ -24,7 +24,7 @@ export const publicPages = Object.freeze([
   page('/en/create/', 'Custom Printable Adventure Games for Kids', 'Create a printable story adventure for ages 6–12. Choose Home or Classroom, inspect the free format, then review a personal plan after payment before PDFs are made.'),
   page('/en/samples/', 'Free Printable Adventure Samples', 'Explore the free Celebration story games for Home and Classroom, with Player Packs and adult guides in A4 and US Letter.'),
   page('/en/samples/home/', 'Free Printable Adventure Game for Kids', 'Download The Missing Birthday Chest free: a cooperative paper adventure for ages 6–12. Includes five checkpoints, a Player Pack and Host Guide in A4 or US Letter.'),
-  page('/en/samples/classroom/', 'Free Printable Classroom Adventure Game', 'Download the free Celebration Classroom Player Pack and Teacher Guide in A4 or US Letter for a guided group story mission.'),
+  page('/en/samples/classroom/', 'Free Printable Classroom Adventure Game', 'Try The Adventure Club’s First Badge free for ages 6–12. Download the Player Pack and Teacher Guide in A4 or US Letter for teacher-led crews of 2–6.'),
   page('/en/pricing/', 'Printable Adventure Pricing for Home & Classroom', 'Compare the free Celebration trial, ready-made theme packs and AI custom adventures. See one-time Home and Classroom prices, included files and download rights.'),
   page('/en/help/', 'Help with Printable Adventures', 'Find your orders and downloads, solve printing problems, get help with stopped custom games, or request a refund.'),
   page('/en/help/start/', 'Getting Started', 'Prepare the Player Pack and adult guide, set up the opening materials, use hints and guide the group through the ending.'),
