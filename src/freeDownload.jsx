@@ -3,6 +3,7 @@ import { ArrowRight, DownloadSimple, WarningCircle } from '@phosphor-icons/react
 import { themes } from '../shared/catalog.mjs';
 import { prepareSampleDownload } from './sampleDownload.mjs';
 import { trackConversionEvent } from './analytics.js';
+import HomeFreeSample from './homeFreeSample.jsx';
 import './freeDownload.css';
 
 export default function FreeDownload({ Link, classroom = false }) {
@@ -57,18 +58,18 @@ export default function FreeDownload({ Link, classroom = false }) {
     }
   }
 
-  return <main className="extended-page sample-download-page"><div className="sample-download-shell">
+  return <main className={`extended-page sample-download-page${classroom ? '' : ' home-free-page'}`}><div className="sample-download-shell">
     <nav className="sample-edition-tabs live-tabs" aria-label="Choose edition">
       <Link className={!classroom ? 'active' : ''} aria-current={!classroom ? 'page' : undefined} to="/en/samples/home/">For home</Link>
       <Link className={classroom ? 'active' : ''} aria-current={classroom ? 'page' : undefined} to="/en/samples/classroom/">For classrooms</Link>
     </nav>
-    <section className="sample-download-top" aria-labelledby="sample-download-title">
+    <section className="sample-download-top" id={classroom ? undefined : 'sample-download'} aria-labelledby="sample-download-title" tabIndex={classroom ? undefined : -1}>
       <header className="sample-download-intro">
         <span className="eyebrow">PAPER ADVENTURE · {label.toUpperCase()}</span>
-        <h1 id="sample-download-title">Your free printable adventure.</h1>
-        <h2>{story.title}</h2><p>{story.goal}</p>
-        <div className="sample-download-facts"><span>Ages 6–12</span><span>{classroom ? '2–35 students' : '2–12 players'}</span><span>5 checkpoints</span></div>
-        <p className="sample-free-note">No account or payment needed. English PDFs.</p>
+        <h1 id="sample-download-title">{classroom ? 'Your free printable adventure.' : 'Free printable adventure game for kids.'}</h1>
+        <h2>{story.title}</h2><p>{classroom ? story.goal : 'A complete, cooperative paper game from Paper Adventure for ages 6–12. Share clues, rebuild a route and help Fenn the fox deliver his birthday chest.'}</p>
+        <div className="sample-download-facts"><span>Ages 6–12</span><span>{classroom ? '2–35 students' : '2–12 children'}</span><span>5 checkpoints</span></div>
+        <p className="sample-free-note">No account or payment needed. English PDFs.{!classroom && ' An additional adult hosts.'}</p>
       </header>
       <div className="live-panel sample-download-panel" aria-label="Download your free game" aria-busy={Boolean(busy)}>
         <div className="sample-paper-choice"><h3>Choose your paper size</h3><div className="live-tabs" role="group" aria-label="Paper size">{['A4', 'Letter'].map(size => <button key={size} type="button" disabled={Boolean(busy)} className={paper === size ? 'active' : ''} aria-pressed={paper === size} onClick={() => { setPaper(size); setNotice(''); setError(''); }}>{size === 'Letter' ? 'US Letter' : 'A4'}</button>)}</div></div>
@@ -78,7 +79,7 @@ export default function FreeDownload({ Link, classroom = false }) {
         <details className="sample-individual-files"><summary>Download individual PDFs</summary><div className="live-downloads"><div><strong>Player Pack</strong><p>Story, clues and paper activities for {classroom ? 'students' : 'children'}.</p><button type="button" aria-label={`Download ${setting} ${paper} Player Pack`} onClick={() => download('player')} disabled={Boolean(busy)}>{busy === 'player' ? 'Preparing…' : 'Download Player Pack'} <DownloadSimple size={17} /></button></div><div><strong>{guide}</strong><p>Preparation, hints and answers for the adult.</p><button type="button" aria-label={`Download ${setting} ${paper} ${guide}`} onClick={() => download('guide')} disabled={Boolean(busy)}>{busy === 'guide' ? 'Preparing…' : `Download ${guide}`} <DownloadSimple size={17} /></button></div></div></details>
       </div>
     </section>
-    <section className="sample-preparation" aria-labelledby="sample-prep-title">
+    {!classroom ? <HomeFreeSample Link={Link} story={story} /> : <><section className="sample-preparation" aria-labelledby="sample-prep-title">
       <figure><img src={story.image || theme.image} alt={`${story.title} story illustration`} width="800" height="600" loading="lazy" /><figcaption>Story illustration · printable activities are in your download.</figcaption></figure>
       <div><span className="eyebrow">BEFORE YOU PLAY</span><h2 id="sample-prep-title">A little preparation, then a shared story.</h2>
         <p>Home and Classroom are different games. Choose the edition for your group, and use the same paper size for both PDFs.</p>
@@ -87,7 +88,7 @@ export default function FreeDownload({ Link, classroom = false }) {
         <Link className="text-link" to={`/en/themes/celebration/${setting}/`}>See the story and pack contents <ArrowRight size={17} /></Link>
       </div>
     </section>
-    <section className="sample-start-guide" aria-labelledby="sample-start-title"><span className="eyebrow">AFTER DOWNLOADING</span><h2 id="sample-start-title">Set up your paper adventure</h2><ol><li><strong>Read the {guide} first</strong><p>Review preparation, handout order, hints and answers before gathering the group.</p></li><li><strong>Print and prepare</strong><p>Follow the guide to prepare the player pages and paper pieces.</p></li><li><strong>Start the story</strong><p>Give out the player materials in order. Keep the answers with the adult organiser.</p></li></ol><p className="live-note">Found a confusing clue or print issue? <a href="mailto:support@paperadventure.app?subject=Celebration%20trial%20feedback">Tell us what happened</a> without including a child’s name or photo.</p></section>
+    <section className="sample-start-guide" aria-labelledby="sample-start-title"><span className="eyebrow">AFTER DOWNLOADING</span><h2 id="sample-start-title">Set up your paper adventure</h2><ol><li><strong>Read the {guide} first</strong><p>Review preparation, handout order, hints and answers before gathering the group.</p></li><li><strong>Print and prepare</strong><p>Follow the guide to prepare the player pages and paper pieces.</p></li><li><strong>Start the story</strong><p>Give out the player materials in order. Keep the answers with the adult organiser.</p></li></ol><p className="live-note">Found a confusing clue or print issue? <a href="mailto:support@paperadventure.app?subject=Celebration%20trial%20feedback">Tell us what happened</a> without including a child’s name or photo.</p></section></>}
     <section className="sample-next-game"><div><span className="eyebrow">KEEP EXPLORING</span><h2>Find your next story.</h2><p>Explore more ready-made adventures for your {classroom ? 'classroom' : 'family'}.</p></div><Link className="button-quiet" to={`/en/for-${setting}/`}>Browse {label} game themes <ArrowRight size={18} /></Link></section>
   </div></main>;
 }

@@ -95,6 +95,28 @@ test('homepage shows actual materials and an honest custom example with audience
   for (const slug of ['run-a-printable-adventure','organize-a-classroom-adventure','printable-birthday-party-adventures']) assert.ok(html.includes(`href="/en/guides/${slug}/"`));
 });
 
+test('free Home landing explains the actual complete game without moving downloads behind the content', async () => {
+  const html = await read('en/samples/home/index.html');
+  assert.match(html, /<h1[^>]*>Free printable adventure game for kids\.<\/h1>/);
+  assert.ok(html.indexOf('Download complete game · ZIP') < html.indexOf('id="sample-story-heading"'));
+  assert.equal((html.match(/class="sample-home-preview sample-home-preview-/g)||[]).length, 3);
+  for (const image of ['map','record','handout-cut']) {
+    assert.ok(html.includes(`href="/assets/celebration-home-detail-${image}.jpg"`));
+    assert.ok(html.includes(`src="/assets/celebration-home-detail-${image}.jpg"`));
+  }
+  assert.match(html, /five checkpoints|five-checkpoint|Five connected checkpoints/);
+  assert.match(html, /10 pages per team/);
+  assert.match(html, /Read Host Guide pages 1–11 on screen and print page 12 once/);
+  assert.match(html, /11 sheets/);
+  assert.match(html, /21 sheets/);
+  assert.match(html, /adult host is additional/);
+  assert.match(html, /href="#sample-download"/);
+  for (const route of ['/en/guides/run-a-printable-adventure/','/en/help/print/','/en/themes/celebration/home/']) assert.ok(html.includes(`href="${route}"`));
+  const classroom = await read('en/samples/classroom/index.html');
+  assert.match(classroom, /Your free printable adventure/);
+  assert.doesNotMatch(classroom, /sample-home-content|Fenn’s delivery/);
+});
+
 test('root fallback retains a local redirect without exposing stale preview claims', async () => {
   const html = await read('index.html');
   const shell = await read('app-shell.txt');
