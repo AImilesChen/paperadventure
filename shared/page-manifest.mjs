@@ -18,7 +18,7 @@ export const publicPages = Object.freeze([
   ]),
   page('/en/for-classroom/', 'Printable Classroom Adventure Games for Kids', 'Printable story adventures for classrooms, ages 6–12. Explore group missions, the free Celebration game, and Player Packs with Teacher Guides in A4 and US Letter.'),
   page('/en/occasions/halloween/', 'Printable Halloween Adventure Game for Kids', 'Make paper shadows and prepare a friendly festival in The Missing Pumpkin Light. Explore the Home Player Pack, Host Guide and real theatre materials.'),
-  page('/en/guides/', 'Printable Adventure Guides for Parents & Teachers', 'Prepare a printable story game with real material examples, family roles, classroom grouping and birthday activity ideas.'),
+  page('/en/guides/', 'Printable Adventure Game Guides for Parents & Teachers', 'Compare Home, Classroom and birthday game setups for ages 6–12. See real clue handouts, print-count examples, preparation checklists and step-by-step hosting guides.'),
   ...guides.map(guide => page(guide.path, guide.title, guide.description)),
   page('/en/how-it-works/', 'How Printable Story Adventure Games Work', 'Learn how to choose a ready-made or custom printable adventure, prepare the Player Pack and adult guide, and play at home or in a classroom.'),
   page('/en/create/', 'Custom Printable Adventure Games for Kids', 'Create a printable story adventure for ages 6–12. Choose Home or Classroom, inspect the free format, then review a personal plan after payment before PDFs are made.'),

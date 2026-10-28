@@ -5,7 +5,7 @@ import { publicPages, pageFor } from '../shared/page-manifest.mjs';
 import { publicCatalog } from '../shared/catalog.mjs';
 import { publicRelease, publicReleaseData, readPublicRelease, htmlJson } from '../shared/public-release.mjs';
 import { pageSchema } from '../shared/seo.mjs';
-import { guides } from '../shared/guides.mjs';
+import { guides, guideOutcomes } from '../shared/guides.mjs';
 
 const read = pathname => readFile(new URL('../dist/client' + pathname + 'index.html', import.meta.url), 'utf8');
 const bootstrap = html => JSON.parse(html.match(/id="public-release-data">([^<]+)<\/script>/)[1]);
@@ -77,4 +77,37 @@ test('three original illustrated guides have navigation, real materials, article
   assert.match(classroom, /5 crews of 6 \+ 1 crew of 5/);
   assert.match(classroom, /<td>54<\/td>/);
   assert.match(classroom, /four badge clue cards are information to share, separate from these job titles/);
+});
+
+test('guide hub connects its collection schema to actual articles and exposes useful preparation content in HTML', async () => {
+  const html = await read('/en/guides/');
+  const graph = schema(html)['@graph'];
+  const collection = graph.find(item => item['@type'] === 'CollectionPage');
+  const list = graph.find(item => item['@type'] === 'ItemList');
+  assert.equal(collection.mainEntity['@id'], list['@id']);
+  assert.equal(list.numberOfItems, guides.length);
+  assert.deepEqual(list.itemListElement.map(item => [item.position, item.name, item.url]), guides.map((guide, i) => [i + 1, guide.title, 'https://paperadventure.app' + guide.path]));
+  assert.equal(graph.find(item => item['@type'] === 'Article' || item['@type'] === 'FAQPage'), undefined);
+  assert.match(html, /<h1>Printable Adventure Game Guides for Parents &amp; Teachers/);
+  for (const id of ['choose-setting','read-guides','see-materials','prepare-to-play','guide-questions']) {
+    assert.ok(html.includes(`href="#${id}"`), id);
+    assert.ok(html.includes(`id="${id}"`), id);
+  }
+  for (const outcomes of Object.values(guideOutcomes)) for (const outcome of outcomes) assert.ok(html.includes(outcome), outcome);
+  assert.match(html, /<caption>Choosing a setup for the free Celebration games, ages 6–12/);
+  assert.equal((html.match(/<tr><th scope="row">/g)||[]).length, 3);
+  assert.match(html, /One Home team: 11 sheets/);
+  assert.match(html, /24 pupils in four crews: 36 sheets/);
+  assert.match(html, /Read Guide pages 1–11 on screen/);
+  assert.match(html, /read the nine-page Teacher Guide on screen/i);
+  assert.equal((html.match(/<details>/g)||[]).length, 6);
+  for (const image of ['handout-cut','handout-share']) assert.ok(html.includes(`href="/assets/celebration-home-detail-${image}.jpg"`));
+  assert.ok(html.includes('href="/en/help/print/"'));
+  assert.ok(html.includes('href="/en/help/start/"'));
+  for (const [, href] of html.matchAll(/<a\b[^>]*\bhref="([^"]+)"/g)) {
+    const url = new URL(href.replaceAll('&amp;','&'), 'https://paperadventure.app/en/guides/');
+    if (url.origin !== 'https://paperadventure.app' || !url.hash) continue;
+    const target = url.pathname === '/en/guides/' ? html : await read(url.pathname);
+    assert.ok(target.includes(`id="${url.hash.slice(1)}"`), href);
+  }
 });

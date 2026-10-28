@@ -4,3 +4,9 @@ export const guides = [
   { slug: 'printable-birthday-party-adventures', title: 'Printable Birthday Party Adventures for Kids', description: 'Choose a paper story game for a birthday gathering. Compare the free Birthday Chest adventure with dinosaur, space and forest Home themes.', category: 'BIRTHDAY PLANNING', image: '/assets/celebration-home-v0.1.jpg', alt: 'Fenn the fox artwork for The Missing Birthday Chest', summary: 'Pick a story, set up the table and keep every child involved.', sections: [['choose', 'Choose a story'], ['party-setup', 'Set up for your group'], ['party-flow', 'Host the birthday adventure'], ['take-home', 'What to prepare before guests arrive']] },
 ].map(guide => ({ ...guide, path: `/en/guides/${guide.slug}/`, date: '2026-10-28' }));
 export const guideFor = pathname => guides.find(guide => guide.path === pathname);
+
+export const guideOutcomes = {
+  'run-a-printable-adventure': ['Share four jobs between 2–6 children', 'Prepare 11 sheets for one Celebration Home team', 'Deal separate clues and use the adult hints'],
+  'organize-a-classroom-adventure': ['Arrange crews for 20, 24, 30 or 35 pupils', 'Calculate nine Player pages per crew', 'Rotate jobs and organize a friendly badge review'],
+  'printable-birthday-party-adventures': ['Compare the birthday story with other Home themes', 'Prepare one or two complete team sets', 'Plan the handoffs before guests arrive'],
+};

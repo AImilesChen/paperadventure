@@ -1,5 +1,5 @@
 import { themes } from './catalog.mjs';
-import { guideFor } from './guides.mjs';
+import { guides, guideFor } from './guides.mjs';
 
 export function pageSchema(page, release, origin = 'https://paperadventure.app') {
   const url = origin + page.path;
@@ -8,6 +8,11 @@ export function pageSchema(page, release, origin = 'https://paperadventure.app')
   if (!page.indexable) return { '@context': 'https://schema.org', '@graph': graph };
   const crumbs = [{ name: 'Home', url: origin + '/en/' }];
   const guide = guideFor(page.path);
+  if (page.path === '/en/guides/') {
+    graph[0]['@type'] = 'CollectionPage';
+    graph[0].mainEntity = { '@id': url + '#guides' };
+    graph.push({ '@type': 'ItemList', '@id': url + '#guides', name: 'Printable adventure game guides', numberOfItems: guides.length, itemListElement: guides.map((item, index) => ({ '@type': 'ListItem', position: index + 1, name: item.title, url: origin + item.path })) });
+  }
   if (page.path.startsWith('/en/guides/') && guide) crumbs.push({ name: 'Guides', url: origin + '/en/guides/' });
   const match = page.path.match(/^\/en\/themes\/([^/]+)\/(home|classroom)\/$/);
   if (match) {
