@@ -33,6 +33,10 @@
 .pricing-guide-card-small{margin:19px 0 23px;color:#4c6c7b;font-size:.82rem;line-height:1.52}
 .pricing-guide-card .button{width:100%;min-height:57px;margin-top:auto;padding-inline:12px;gap:9px;text-align:center;white-space:normal}
 .pricing-guide-card .button svg{flex:none}
+.pricing-guide-card-small a,.pricing-guide-compare td a,.pricing-guide-rights-note a,.pricing-guide-faq-list p a{color:#a43225;font-weight:900;text-decoration:underline;text-underline-offset:3px}
+.pricing-guide-card-small a{display:inline-flex;align-items:center;gap:5px;margin-top:8px}
+.pricing-guide-faq-list details[id]{scroll-margin-top:24px}
+.pricing-guide-faq-list summary:focus-visible{outline:3px solid #ad3425;outline-offset:4px}
 .pricing-guide-after-cards{margin:25px 0 0;color:#4b6978;font-size:.86rem;line-height:1.55}
 .pricing-guide-compare{background:#dceff7}
 .pricing-guide-compare table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid #bcd6e0;border-radius:13px;background:#fffdf9;table-layout:fixed}
