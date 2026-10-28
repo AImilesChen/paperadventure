@@ -1,14 +1,14 @@
 /* First-visit discovery and purchase hierarchy, using existing site tokens. */
 .home-header .header-create-secondary{display:inline-flex;align-items:center;gap:8px;min-height:43px;padding:9px 13px;border:1px solid #aacbdc;border-radius:9px;font-size:.82rem;font-weight:800;color:#274e68}
 .home-header .header-create-secondary:hover{background:#f8fcfe}
-.home-funnel .hero{min-height:590px;padding-top:28px;padding-bottom:50px;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:4%}
+.home-funnel .hero{min-height:590px;padding-top:28px;padding-bottom:50px;grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr);gap:3%}
 .home-funnel .hero h1{font-size:clamp(3rem,4.9vw,4.7rem);margin:17px 0 20px}
 .home-funnel .hero-lede{font-size:1.06rem;max-width:510px;margin-bottom:24px}
 .home-funnel .hero-actions{gap:18px}
 .home-funnel .hero-actions .button{min-height:57px;padding:13px 19px;font-size:.96rem;gap:10px;white-space:normal;text-align:center}
 .home-funnel .hero-free-note{margin:20px 0 0;color:#385d73;font-size:.79rem;font-weight:700}
 .home-funnel .hero-facts{margin-top:20px}
-.home-funnel .hero-visual>img{height:430px}
+.home-funnel .hero-visual>img{height:clamp(490px,36vw,520px)}
 
 .theme-detail-page .theme-breadcrumb{padding-top:17px;padding-bottom:16px}
 .theme-detail-page .theme-edition-switch{display:flex;gap:10px;margin-bottom:18px}
