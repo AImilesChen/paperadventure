@@ -7,7 +7,7 @@ import { themes } from '../shared/catalog.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
 import { readPublicRelease } from '../shared/public-release.mjs';
 import { pageSchema } from '../shared/seo.mjs';
-import { siteIdentity } from '../shared/site-identity.mjs';
+import { siteIdentity, pageDocumentTitle } from '../shared/site-identity.mjs';
 import { GuidesHub, GuideArticle, HalloweenOccasion } from './guides.jsx';
 import { HomeSamples, HomeCustomStory, HomeGuides } from './homeSections.jsx';
 import { analyticsAvailable } from './analytics.js';
@@ -247,12 +247,14 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
     const origin = canonical ? new URL(canonical.href).origin : window.location.origin;
     if (!canonical) { canonical = document.createElement('link'); canonical.rel = 'canonical'; document.head.appendChild(canonical); }
     const url = `${origin}${page.path}`;
-    document.title = `${page.title} | Paper Adventure Workshop`;
+    document.title = pageDocumentTitle(page);
     for (const [selector, value] of [
       ['meta[name="description"]', page.description],
       ['meta[property="og:title"]', document.title],
       ['meta[property="og:description"]', page.description],
       ['meta[property="og:url"]', url],
+      ['meta[name="twitter:title"]', document.title],
+      ['meta[name="twitter:description"]', page.description],
     ]) document.querySelector(selector)?.setAttribute('content', value);
     canonical?.setAttribute('href', url);
     let siteName = document.querySelector('meta[property="og:site_name"]');

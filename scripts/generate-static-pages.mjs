@@ -9,7 +9,7 @@ import { createServer } from 'vite';
 import { publicPages } from '../shared/page-manifest.mjs';
 import { publicRelease, publicReleaseData, readPublicRelease, htmlJson } from '../shared/public-release.mjs';
 import { pageSchema } from '../shared/seo.mjs';
-import { siteIdentity } from '../shared/site-identity.mjs';
+import { siteIdentity, pageDocumentTitle } from '../shared/site-identity.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
@@ -51,20 +51,20 @@ try {
     markupByPath.set(record.path, markup);
     const url = `${origin}${record.path}`;
     const tags = [
-      `<title>${escape(record.title)} | ${siteIdentity.name}</title>`,
+      `<title>${escape(pageDocumentTitle(record))}</title>`,
       `<meta name="description" content="${escape(record.description)}" />`,
       ...(record.indexable ? [] : ['<meta name="robots" content="noindex" />']),
       `<link rel="canonical" href="${escape(url)}" />`,
       '<meta property="og:type" content="website" />',
       `<meta property="og:site_name" content="${siteIdentity.name}" />`,
-      `<meta property="og:title" content="${escape(record.title)} | Paper Adventure Workshop" />`,
+      `<meta property="og:title" content="${escape(pageDocumentTitle(record))}" />`,
       `<meta property="og:description" content="${escape(record.description)}" />`,
       `<meta property="og:url" content="${escape(url)}" />`,
       `<meta property="og:image" content="${origin}/og-image.jpg" />`,
       '<meta property="og:image:width" content="1200" />',
       '<meta property="og:image:height" content="630" />',
       '<meta name="twitter:card" content="summary_large_image" />',
-      `<meta name="twitter:title" content="${escape(record.title)} | Paper Adventure Workshop" />`,
+      `<meta name="twitter:title" content="${escape(pageDocumentTitle(record))}" />`,
       `<meta name="twitter:description" content="${escape(record.description)}" />`,
       `<meta name="twitter:image" content="${origin}/og-image.jpg" />`,
       `<script type="application/ld+json">${htmlJson(pageSchema(record, initialPublicRelease, origin))}</script>`,
