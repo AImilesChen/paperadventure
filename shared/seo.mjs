@@ -1,0 +1,32 @@
+import { themes } from './catalog.mjs';
+import { guideFor } from './guides.mjs';
+
+export function pageSchema(page, release, origin = 'https://paperadventure.app') {
+  const url = origin + page.path;
+  const publisher = { '@type': 'Organization', '@id': origin + '/#publisher', name: 'Paper Adventure Workshop', url: origin + '/en/', logo: origin + '/icon-512.png' };
+  const graph = [{ '@type': 'WebPage', '@id': url + '#page', name: page.title, description: page.description, url, isPartOf: { '@id': origin + '/#website' } }, { '@type': 'WebSite', '@id': origin + '/#website', name: publisher.name, url: origin + '/en/', publisher: { '@id': publisher['@id'] } }, publisher];
+  if (!page.indexable) return { '@context': 'https://schema.org', '@graph': graph };
+  const crumbs = [{ name: 'Home', url: origin + '/en/' }];
+  const guide = guideFor(page.path);
+  if (page.path.startsWith('/en/guides/') && guide) crumbs.push({ name: 'Guides', url: origin + '/en/guides/' });
+  const match = page.path.match(/^\/en\/themes\/([^/]+)\/(home|classroom)\/$/);
+  if (match) {
+    const [, id, setting] = match;
+    const theme = themes.find(item => item.id === id);
+    const live = release?.catalog?.themes.find(item => item.id === id);
+    if (theme?.availableSettings.includes(setting)) {
+      const story = theme.story[setting];
+      const offer = release?.catalog?.offers.find(item => item.sku === 'ready_' + setting);
+      const free = release?.catalog?.freeSampleThemeId === id && live?.[setting].freeSample;
+      const sale = live?.[setting].readyStatus === 'published' && release?.runtime.checkout && release.runtime.checkoutMode === 'live' && offer?.saleEnabled;
+      graph.push({ '@type': 'Product', '@id': url + '#product', name: story.title + (setting === 'home' ? ' · Home' : ' · Classroom'), description: story.goal, image: origin + (story.image || theme.image), url, sku: story.code, brand: { '@type': 'Brand', name: publisher.name }, ...(free || sale ? { offers: { '@type': 'Offer', url, price: free ? '0.00' : (offer.unitAmount / 100).toFixed(2), priceCurrency: 'USD', availability: 'https://schema.org/InStock', seller: { '@id': publisher['@id'] } } } : {}) });
+      crumbs.push({ name: setting === 'home' ? 'Home adventures' : 'Classroom adventures', url: origin + (setting === 'home' ? '/en/for-home/' : '/en/for-classroom/') });
+    }
+  }
+  if (guide) graph.push({ '@type': 'Article', '@id': url + '#article', headline: guide.title, description: guide.description, image: [origin + guide.image], datePublished: guide.date, dateModified: guide.date, author: { '@id': publisher['@id'] }, publisher: { '@id': publisher['@id'] }, mainEntityOfPage: { '@id': url + '#page' }, inLanguage: 'en' });
+  if (page.path !== '/en/') {
+    crumbs.push({ name: page.title, url });
+    graph.push({ '@type': 'BreadcrumbList', itemListElement: crumbs.map((item, i) => ({ '@type': 'ListItem', position: i + 1, name: item.name, item: item.url })) });
+  }
+  return { '@context': 'https://schema.org', '@graph': graph };
+}

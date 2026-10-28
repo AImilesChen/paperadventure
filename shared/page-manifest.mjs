@@ -1,4 +1,5 @@
 import { themes } from './catalog.mjs';
+import { guides } from './guides.mjs';
 
 const page = (path, title, description, indexable = true) => ({ path, title, description, indexable });
 
@@ -10,13 +11,15 @@ export const publicPages = Object.freeze([
     page(`/en/themes/${theme.id}/`, `${theme.title} Story World`, `Explore the ${theme.title} printable story world.`, false),
     ...Object.keys(theme.story).map(setting => page(
       `/en/themes/${theme.id}/${setting}/`,
-      `${theme.availableSettings.includes(setting) ? '' : 'Archived | '}${theme.story[setting].title} | Printable ${setting === 'home' ? 'Home' : 'Classroom'} Adventure`,
-      `${theme.story[setting].goal} Explore the five paper checkpoints, printable materials and adult guide for this ${setting === 'home' ? 'Home' : 'Classroom'} game.`,
+      `${theme.availableSettings.includes(setting) ? '' : 'Archived | '}${theme.id === 'celebration' ? 'Free Celebration' : theme.title} Printable ${setting === 'home' ? 'Adventure Game for Kids' : 'Classroom Adventure Game'}`,
+      `${theme.story[setting].title}: ${theme.story[setting].goal} Includes player materials and a ${setting === 'home' ? 'Host' : 'Teacher'} Guide in A4 and US Letter.`,
       theme.availableSettings.includes(setting),
     )),
   ]),
   page('/en/for-classroom/', 'Printable Classroom Adventure Games for Kids', 'Printable story adventures for classrooms, ages 6–12. Explore group missions, the free Celebration game, and Player Packs with Teacher Guides in A4 and US Letter.'),
-  page('/en/occasions/halloween/', 'Halloween Story Adventures', 'Explore playful Halloween story-world ideas and preview a printable group adventure.'),
+  page('/en/occasions/halloween/', 'Printable Halloween Adventure Game for Kids', 'Make paper shadows and prepare a friendly festival in The Missing Pumpkin Light. Explore the Home Player Pack, Host Guide and real theatre materials.'),
+  page('/en/guides/', 'Printable Adventure Guides for Parents & Teachers', 'Prepare a printable story game with real material examples, family roles, classroom grouping and birthday activity ideas.'),
+  ...guides.map(guide => page(guide.path, guide.title, guide.description)),
   page('/en/how-it-works/', 'How Printable Story Adventure Games Work', 'Learn how to choose a ready-made or custom printable adventure, prepare the Player Pack and adult guide, and play at home or in a classroom.'),
   page('/en/create/', 'Custom Printable Adventure Games for Kids', 'Create a printable story adventure for ages 6–12. Choose Home or Classroom, inspect the free format, then review a personal plan after payment before PDFs are made.'),
   page('/en/samples/', 'Free Printable Adventure Samples', 'Explore the free Celebration story games for Home and Classroom, with Player Packs and adult guides in A4 and US Letter.'),

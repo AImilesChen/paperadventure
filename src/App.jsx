@@ -5,6 +5,9 @@ import { ArrowRight, ArrowLeft, ArrowUpRight, CaretDown, Check, Compass, Downloa
 import { AccountPreview, AdventuresShelf, CheckoutPreview, HelpExperience, LegalExperience, OrderExperience, PricingExperience, SamplesExperience, ThemesExplorer } from './extended.jsx';
 import { themes } from '../shared/catalog.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
+import { readPublicRelease } from '../shared/public-release.mjs';
+import { pageSchema } from '../shared/seo.mjs';
+import { GuidesHub, GuideArticle, GuideLinks, HalloweenOccasion } from './guides.jsx';
 import { analyticsAvailable } from './analytics.js';
 import { crossesAnalyticsBoundary } from './analytics-route.mjs';
 import { CatalogPage, ThemeDetailPage, WorldsOverview } from './productPages.jsx';
@@ -92,7 +95,7 @@ function Header({ route }) {
     <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);}}>{open ? <X size={25} /> : <List size={25} />}</button>
   </div></header>;
 }
-function Footer({ runtime }) { return <footer className="site-footer"><div className="footer-main"><div><Brand /><p>Made for curious minds and the people who bring them together.</p></div><div className="footer-links"><div><strong>Explore</strong><Link to="/en/for-home/">Home adventures</Link><Link to="/en/for-classroom/">Classroom adventures</Link><Link to="/en/themes/">All themes</Link><Link to="/en/create/">AI custom adventures</Link><Link to="/en/pricing/">Pricing</Link></div><div><strong>Support</strong><Link to="/en/help/">Help</Link><Link to="/en/samples/home/">Free sample</Link><Link to="/en/account/">Sign in</Link></div><div><strong>Legal</strong><Link to="/en/privacy/">Privacy</Link><Link to="/en/terms/">Terms</Link><Link to="/en/cookies/">Cookies</Link><Link to="/en/refunds/">Refunds</Link></div></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Paper Adventure Workshop {runtime?.checkout ? '' : runtime?.sample ? '· Free trial available' : '· Design preview'}</span><span>For grown-ups planning playful adventures.</span></div></footer>; }
+function Footer({ runtime }) { return <footer className="site-footer"><div className="footer-main"><div><Brand /><p>Made for curious minds and the people who bring them together.</p></div><div className="footer-links"><div><strong>Explore</strong><Link to="/en/for-home/">Home adventures</Link><Link to="/en/for-classroom/">Classroom adventures</Link><Link to="/en/themes/">All themes</Link><Link to="/en/create/">AI custom adventures</Link><Link to="/en/pricing/">Pricing</Link></div><div><strong>Support</strong><Link to="/en/guides/">Preparation guides</Link><Link to="/en/help/">Help</Link><Link to="/en/samples/home/">Free sample</Link><Link to="/en/account/">Sign in</Link></div><div><strong>Legal</strong><Link to="/en/privacy/">Privacy</Link><Link to="/en/terms/">Terms</Link><Link to="/en/cookies/">Cookies</Link><Link to="/en/refunds/">Refunds</Link></div></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Paper Adventure Workshop {runtime?.checkout ? '' : runtime?.sample ? '· Free trial available' : '· Design preview'}</span><span>For grown-ups planning playful adventures.</span></div></footer>; }
 
 function ThemeGallery({ full = false, sampleReady = false }) {
   const track = useRef(null);
@@ -178,8 +181,9 @@ function Home({ sampleReady = false }) { return <main className="home-funnel">
   <ThemeGallery sampleReady={sampleReady} />
   <section className="sample-spotlight" aria-labelledby="sample-spotlight-heading"><div className="sample-spotlight-intro"><div><span className="eyebrow">{sampleReady ? "TWO COMPLETE FREE PRINTABLES" : "CELEBRATION TRIAL"}</span><h2 id="sample-spotlight-heading">One celebration. Two ways to play<span className="dot">.</span></h2><p>{sampleReady ? 'Download printable player pages and a separate grown-up guide in A4 or US Letter.' : 'Explore the two stories and their printable game plans while the trial files are being prepared.'}</p></div><span className="sample-price">{sampleReady ? <>FREE<br /><small>both editions</small></> : <>2<br /><small>editions</small></>}</span></div><div className="sample-spotlight-grid"><article className="sample-spotlight-card"><img src="/assets/celebration-home-v0.1.jpg" alt="Fenn the fox Celebration Home adventure artwork" loading="lazy" /><div><span className="sample-setting">FOR FAMILIES</span><h3>The Missing Birthday Chest</h3><p>Follow Fenn the fox through five connected paper clues to find the celebration parcel.</p><Link to="/en/samples/home/" className="text-link">{sampleReady ? "Get the Home game" : "Explore the Home game"} <ArrowRight size={18} /></Link></div></article><article className="sample-spotlight-card"><img src="/assets/celebration-classroom-v0.1.jpg" alt="Adventure Club Celebration Classroom artwork" loading="lazy" /><div><span className="sample-setting">FOR TEACHERS</span><h3>The Adventure Club’s First Badge</h3><p>Rebuild the invitation, make a paper display badge, then welcome another crew.</p><Link to="/en/samples/classroom/" className="text-link">{sampleReady ? "Get the Classroom game" : "Explore the Classroom game"} <ArrowRight size={18} /></Link></div></article></div><p className="sample-spotlight-note">{sampleReady ? 'Both trial editions are ready to download. No payment or subscription.' : 'Explore both trial editions while the printable files are being prepared.'}</p></section>
   <HomeProductGuide Link={Link} sampleReady={sampleReady} />
-  <section className="steps-section"><div className="section-heading"><div><span className="eyebrow">CREATE SOMETHING NEW</span><h2>Want a story of your own<span className="dot">?</span></h2><p>Start from one of the themes above or describe a world nobody has seen yet.</p></div><Link to="/en/how-it-works/" className="text-link">How custom adventures work <ArrowRight size={18} /></Link></div><div className="steps-grid"><article><span className="step-number">01</span><div className="step-icon"><Compass size={30} weight="duotone" /></div><h3>Choose a world</h3><p>Pick an illustrated theme or describe your own idea.</p></article><article><span className="step-number">02</span><div className="step-icon"><UsersThree size={30} weight="duotone" /></div><h3>Tell us your group</h3><p>Plan for your household or your classroom.</p></article><article><span className="step-number">03</span><div className="step-icon"><Printer size={30} weight="duotone" /></div><h3>Preview a direction</h3><p>Choose paper play styles and inspect a five-checkpoint plan before deciding to continue.</p></article></div><Link to="/en/create/" className="button home-create-link">Create your own adventure <ArrowUpRight size={18} /></Link></section>
+  <section className="steps-section"><div className="section-heading"><div><span className="eyebrow">CREATE SOMETHING NEW</span><h2>Want a story of your own<span className="dot">?</span></h2><p>Start from one of the themes above or describe a world nobody has seen yet.</p></div><Link to="/en/how-it-works/" className="text-link">How custom adventures work <ArrowRight size={18} /></Link></div><div className="steps-grid"><article><span className="step-number">01</span><div className="step-icon"><Compass size={30} weight="duotone" /></div><h3>Choose a world</h3><p>Pick an illustrated theme or describe your own idea.</p></article><article><span className="step-number">02</span><div className="step-icon"><UsersThree size={30} weight="duotone" /></div><h3>Tell us your group</h3><p>Plan for your household or your classroom.</p></article><article><span className="step-number">03</span><div className="step-icon"><Printer size={30} weight="duotone" /></div><h3>Review your plan</h3><p>After payment, review your personal five-checkpoint plan. Approve it before we create the printable files.</p></article></div><Link to="/en/create/" className="button home-create-link">Create your own adventure <ArrowUpRight size={18} /></Link></section>
   <section className="two-paths"><div><span className="eyebrow">MADE FOR YOUR MOMENT</span><h2>Two settings.<br />Different adventures<span className="dot">.</span></h2><p>Home packs are household mysteries for 2–12 players. Classroom packs use different teacher-led worlds and group clues for 2–35 students. Celebration has a free edition for each setting.</p></div><div className="path-cards"><Link to="/en/for-home/" className="path-card"><span className="path-icon">⌂</span><span><strong>Home adventure games</strong><small>Household stories, a Host Guide and a free Celebration game</small></span><ArrowUpRight size={23} /></Link><Link to="/en/for-classroom/" className="path-card"><span className="path-icon">✦</span><span><strong>Classroom adventure games</strong><small>Different group missions, a Teacher Guide and a free Celebration game</small></span><ArrowUpRight size={23} /></Link></div></section>
+  <div className="guide-shell"><GuideLinks Link={Link} /></div>
   <section className="faq-preview"><div><span className="eyebrow">A FEW GOOD QUESTIONS</span><h2>Wondering how it works?</h2></div><div className="faq-list">{faq.slice(0, 4).map(([q,a]) => <FaqItem key={q} q={q} a={a} />)}<Link to="/en/help/" className="text-link">More questions <ArrowRight size={18} /></Link></div></section><section className="last-cta"><Sparkle size={27} weight="fill" /><h2>Every great adventure starts with a little idea.</h2><Link to="/en/create/" className="button button-large">Create My Adventure <ArrowUpRight size={22} /></Link></section>
 </main>; }
 function PageIntro({ eyebrow, title, body, children }) { return <section className="page-intro"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{body && <p>{body}</p>}{children}</section>; }
@@ -203,13 +207,13 @@ function MyAdventuresPage() { const draft = initialDraft(); return <main><PageIn
 function OrderPage() { const [state, setState] = useState(0); const states = [['Proposal selected','Your story direction is chosen. In the real product, payment would be a separate confirmed step.'],['Payment pending','A production checkout would clearly show the final price and terms before charging.'],['Creating adventure','After successful payment, the adventure would be generated and checked.'],['Files ready','Player materials and an organiser guide would become available once verified.']]; return <main><PageIntro eyebrow="ORDER FLOW DEMO" title="What happens after you choose." body="Explore the planned order states. This is a visual demonstration; there is no payment, generation, or download." /><div className="order-demo"><div className="order-progress">{states.map(([name],i) => <button key={name} onClick={() => setState(i)} className={state === i ? 'active' : ''}><span>{i + 1}</span>{name}</button>)}</div><div className="order-status"><span className="eyebrow">DEMO STATE {state + 1} OF 4</span><h2>{states[state][0]}</h2><p>{states[state][1]}</p><div className="prototype-notice"><DownloadSimple size={22} /><div><strong>Preview only</strong><p>No real order or printable file exists in this prototype.</p></div></div><button className="button" onClick={() => setState((state + 1) % 4)}>Next state <ArrowRight size={18} /></button></div></div></main>; }
 function LegalPage({ kind }) { const title = { privacy:'Privacy Policy', terms:'Terms of Use', cookies:'Cookie Notice', refunds:'Refund Policy' }[kind] || 'Legal information'; return <main><PageIntro eyebrow="LEGAL INFORMATION" title={title} body="This policy is under legal review and is not yet published for production use." /><div className="legal-notice"><h2>Policy in preparation</h2><p>The site’s legal and compliance draft exists separately for review. This prototype intentionally does not display unfinished policy text as final terms.</p><Link className="text-link" to="/en/help/">Visit Help <ArrowRight size={18} /></Link></div></main>; }
 
-export function App() {
+export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   const [routeLocation, setRouteLocation] = useState(() => `${path()}${window.location.search}`);
   const [queryReady, setQueryReady] = useState(false);
   useEffect(() => setQueryReady(true), []);
   const route = routeLocation.split('?')[0];
-  const [runtime, setRuntime] = useState(null);
-  const [runtimeCatalog, setRuntimeCatalog] = useState(null);
+  const [runtime, setRuntime] = useState(initialPublicRelease?.runtime || null);
+  const [runtimeCatalog, setRuntimeCatalog] = useState(initialPublicRelease?.catalog || null);
   useEffect(() => {
     let cancelled = false;
     Promise.all([fetch('/api/v1/health').then(response => response.json()), fetch('/api/v1/catalog').then(response => response.json())])
@@ -234,6 +238,7 @@ export function App() {
     if (!page) {
       document.title = `${route==='/admin'||route.startsWith('/admin/')?'管理后台':isPrivateOrderRoute(route) ? 'Your order' : 'Page not found'} | Paper Adventure Workshop`;
       document.querySelector('link[rel="canonical"]')?.remove();
+      document.querySelector('script[type="application/ld+json"]')?.remove();
       return;
     }
     let canonical = document.querySelector('link[rel="canonical"]');
@@ -248,13 +253,10 @@ export function App() {
       ['meta[property="og:url"]', url],
     ]) document.querySelector(selector)?.setAttribute('content', value);
     canonical?.setAttribute('href', url);
-    const structured = document.querySelector('script[type="application/ld+json"]');
-    if (structured) structured.textContent = JSON.stringify({
-      '@context': 'https://schema.org', '@type': 'WebPage', name: page.title,
-      description: page.description, url,
-      isPartOf: { '@type': 'WebSite', name: 'Paper Adventure Workshop', url: origin },
-    });
-  }, [route]);
+    let structured = document.querySelector('script[type="application/ld+json"]');
+    if (!structured) { structured = document.createElement('script'); structured.type = 'application/ld+json'; document.head.appendChild(structured); }
+    structured.textContent = JSON.stringify(pageSchema(page, { runtime, catalog: runtimeCatalog }, origin));
+  }, [route, runtime, runtimeCatalog]);
   const [conflictTo, setConflictTo] = useState('');
   const dismissConflict = () => { pendingNavigation = ''; setConflictTo(''); };
   const conflictDialogRef = useModalFocus(Boolean(conflictTo), dismissConflict);
@@ -266,7 +268,9 @@ export function App() {
   else if (route.startsWith('/en/themes')) page = <WorldsOverview Link={Link} catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
-  else if (route.startsWith('/en/occasions/halloween')) page = <ThemesExplorer Link={Link} themes={themes} initialCategory="Seasonal" />;
+  else if (route === '/en/guides/') page = <GuidesHub Link={Link} />;
+  else if (route.startsWith('/en/guides/')) page = <GuideArticle Link={Link} route={route} />;
+  else if (route.startsWith('/en/occasions/halloween')) page = <HalloweenOccasion Link={Link} />;
   else if (route.startsWith('/en/how-it-works')) page = <HowItWorksPage Link={Link} catalog={runtimeCatalog} checkoutMode={runtime?.checkoutMode} />;
   else if (route.startsWith('/en/create')) page = queryReady ? <LiveCreate key={window.location.search} Link={Link} checkoutReady={Boolean(runtime?.checkout)} checkoutMode={runtime?.checkoutMode} runtimeOffers={runtimeCatalog?.offers} /> : <CreatePage key={window.location.search} unavailable={Boolean(runtime)} />;
   else if (route.startsWith('/en/samples/classroom')) page = runtimeCatalog?.themes.find(theme => theme.id === 'celebration')?.classroom.freeSample ? <LiveSamples Link={Link} classroom catalog={runtimeCatalog} /> : <SamplesExperience Link={Link} classroom />;
