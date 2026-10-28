@@ -140,14 +140,15 @@ test('pricing explains all three choices and confirmed Home and Classroom rights
   const pricing = await read('en/pricing/index.html');
   const checkout = await read('en/checkout/demo/index.html');
   const terms = await read('en/terms/index.html');
-  for (const scope of [productRights.home, productRights.classroom]) {
-    assert.ok(pricing.includes(scope), scope);
-  }
+  assert.match(pricing, /one adult purchaser and their household/);
+  assert.match(pricing, /Private, non-commercial play with reasonable reprinting/);
+  assert.match(pricing, /one purchasing teacher’s own classes/);
+  assert.match(pricing, /reasonable reprinting for those classes/);
   assert.match(pricing, /from confirmed payment/);
-  assert.match(pricing, /Three clear ways to begin/);
+  assert.match(pricing, /Choose your game/);
   assert.match(pricing, /Celebration adventure/);
-  assert.match(pricing, /Pick an existing theme/);
-  assert.match(pricing, /Make a new story/);
+  assert.match(pricing, /Choose a ready-made game/);
+  assert.match(pricing, /Create a custom adventure/);
   assert.match(pricing, /\$9\.99/);
   assert.match(pricing, /\$19\.99/);
   assert.doesNotMatch(pricing, /No ready-made packs are published yet/);
@@ -177,8 +178,14 @@ test('all four policy pages contain readable complete published policies and con
   }
   const pricing = await read('en/pricing/index.html');
   const table = pricing.match(/<table>[\s\S]*?<\/table>/)?.[0] || '';
-  assert.match(table, /Three successful checkpoint changes and two successful whole-game remakes/);
-  assert.match(table, /30 days of first qualified delivery/);
+  const changes = pricing.match(/<details[^>]*id="pricing-custom-changes"[\s\S]*?<\/details>/)?.[0] || '';
+  assert.match(changes, /Two successful whole-plan reworks and three successful targeted edits before approval/);
+  assert.match(changes, /Three successful checkpoint changes and two successful whole-game remakes/);
+  assert.match(changes, /30 days of first qualified delivery/);
+  assert.match(changes, /six checkpoint suggestions and four whole-game candidates/);
+  assert.match(table, /href="#pricing-custom-changes"/);
+  assert.match(pricing, /href="\/en\/refunds\/"/);
+  assert.doesNotMatch(pricing, /Live checkout is active|Version 0\.1 drafts|not yet play-tested|Will Stripe charge me now|subscription or points/);
   assert.doesNotMatch(pricing, /2 checkpoint revisions after delivery/);
   const privacy = await read('en/privacy/index.html');
   assert.match(privacy, /modification feedback/);
