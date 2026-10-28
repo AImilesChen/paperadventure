@@ -1,0 +1,67 @@
+.home-free-page #sample-download{scroll-margin-top:24px}
+.home-free-page .sample-download-intro h1{font-size:clamp(2rem,3.35vw,3.1rem)}
+.sample-home-content{margin-top:54px}
+.sample-home-section{padding:44px 0;border-top:1px solid #accfdf}
+.sample-home-heading{max-width:780px;margin-bottom:28px}
+.sample-home-heading h2,.sample-home-story-grid h2{font-size:clamp(1.9rem,2.75vw,2.6rem);line-height:1.14;margin:12px 0 18px}
+.sample-home-content p{color:#416579;font-size:.97rem;line-height:1.75}
+.sample-home-heading>p{margin-bottom:0}
+.sample-home-story-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:42px;align-items:center}
+.sample-home-story-grid figure{margin:0}
+.sample-home-story-grid img{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border:7px solid #fffdf8;border-radius:14px}
+.sample-home-story-grid figcaption{font-size:.75rem;line-height:1.6;color:#486b7c;margin-top:10px}
+.sample-home-story-grid p{margin:0 0 16px}
+.sample-home-story-grid p.sample-home-story-note{font-size:.87rem}
+.sample-home-story-grid .text-link{font-size:.9rem;min-height:44px}
+.sample-home-subheading{margin-top:32px}
+.sample-home-subheading h3{font-size:1.35rem;line-height:1.3;margin:0 0 9px}
+.sample-home-subheading p{margin:0 0 22px;font-size:.92rem}
+.sample-home-missions{padding:0;margin:0;list-style:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.sample-home-missions li{padding:20px 17px;border:1px solid #b3d2e1;border-radius:12px;background:#fffdf8;min-width:0}
+.sample-home-missions li>span{display:block;color:#ad3425;font-size:.77rem;font-weight:900;letter-spacing:.08em;margin-bottom:12px}
+.sample-home-missions h4{font-size:1.02rem;line-height:1.35;margin:0 0 11px}
+.sample-home-missions p{font-size:.87rem;line-height:1.7;margin:0}
+.sample-home-previews{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.sample-home-previews figure{margin:0;overflow:hidden;border:1px solid #b3d2e1;border-radius:13px;background:#fffdf8;display:flex;flex-direction:column}
+.sample-home-preview{position:relative;display:flex;align-items:center;justify-content:center;height:238px;padding:18px 16px 43px;background:#edf7fb}
+.sample-home-preview img{width:100%;height:100%;object-fit:contain}
+.sample-home-preview>span{position:absolute;right:12px;bottom:10px;display:flex;align-items:center;gap:6px;font-size:.75rem;font-weight:800;min-height:30px}
+.sample-home-previews figcaption{padding:22px}
+.sample-home-source{font-size:.72rem;font-weight:800;color:#516f7d}
+.sample-home-previews h3{font-size:1.2rem;line-height:1.3;margin:10px 0}
+.sample-home-previews p{font-size:.9rem;margin:0}
+.sample-home-files{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.sample-home-files article{padding:27px;border:1px solid #b3d2e1;border-radius:13px;background:#fffdf8}
+.sample-home-files .eyebrow{font-size:.67rem}
+.sample-home-files h3{font-size:1.5rem;line-height:1.3;margin:10px 0 20px}
+.sample-home-files h3 span{display:block;font-size:.86rem;font-weight:700;color:#486b7c;margin-top:7px}
+.sample-home-files ul,.sample-home-materials{margin:0;padding-left:19px;color:#416579}
+.sample-home-files li,.sample-home-materials li{font-size:.95rem;line-height:1.75;margin:8px 0}
+.sample-home-prepare{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px;align-items:start}
+.sample-home-prepare h3{font-size:1.25rem;line-height:1.35;margin:0 0 16px}
+.sample-home-prep-steps{padding-left:20px;margin:24px 0 0;color:#416579}
+.sample-home-prep-steps li{padding-left:5px;font-size:.96rem;line-height:1.75;margin-bottom:16px}
+.sample-home-prep-steps strong{color:#123456}
+.sample-home-printing{padding:26px;border:1px solid #b4d2df;border-radius:13px;background:#fffdf8}
+.sample-home-printing p{font-size:.85rem;margin:0 0 18px}
+.sample-home-printing p:last-child{margin:17px 0 0}
+.sample-home-printing dl{margin:0}
+.sample-home-printing dl>div{padding:16px 0;border-top:1px solid #cadee7}
+.sample-home-printing dt{font-size:.88rem;line-height:1.6;font-weight:800}
+.sample-home-printing dd{margin:6px 0 0}
+.sample-home-printing dd strong{display:block;font-size:1.5rem;color:#a93322}
+.sample-home-printing dd span{display:block;font-size:.85rem;line-height:1.65;margin-top:5px;color:#486b7c}
+.sample-home-help-links{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:20px}
+.sample-home-help-links a{font-size:.9rem;min-height:44px}
+.sample-home-faq details{border-bottom:1px solid #b0d0de}
+.sample-home-faq details:first-of-type{border-top:1px solid #b0d0de}
+.sample-home-faq summary{padding:20px 0;cursor:pointer;font-size:1rem;font-weight:800;line-height:1.5}
+.sample-home-faq details p{max-width:860px;margin:0 0 22px}
+.sample-home-faq details p a{text-decoration:underline;text-underline-offset:3px}
+.sample-home-ready{display:flex;align-items:center;justify-content:space-between;gap:30px;padding:30px;border:1px solid #b3d2e1;border-radius:14px;background:#fffdf8;margin-top:12px}
+.sample-home-ready h2{font-size:1.7rem;line-height:1.25;margin:10px 0}
+.sample-home-ready p{font-size:.9rem;margin:0}
+.sample-home-ready .button{flex-shrink:0;font-size:.9rem;min-height:52px;gap:10px}
+.sample-home-content a:focus-visible,.sample-home-content summary:focus-visible{outline:3px solid #155576;outline-offset:4px}
+@media(max-width:1000px){.sample-home-missions{grid-template-columns:repeat(3,minmax(0,1fr))}.sample-home-story-grid{gap:28px}.sample-home-previews{gap:15px}.sample-home-previews figcaption{padding:18px}.sample-home-prepare{gap:26px}.sample-home-ready{display:block}.sample-home-ready .button{margin-top:20px}}
+@media(max-width:700px){.sample-home-story-grid,.sample-home-previews,.sample-home-files,.sample-home-prepare{grid-template-columns:1fr}.sample-home-story-grid figure{max-width:460px}.sample-home-missions{grid-template-columns:1fr}.sample-home-missions li{position:relative;padding:20px 20px 20px 55px}.sample-home-missions li>span{position:absolute;left:18px;top:22px}.sample-home-missions h4{font-size:1.08rem}.sample-home-missions p{font-size:.94rem}.sample-home-previews{gap:22px}.sample-home-preview{height:260px}.sample-home-previews figcaption{padding:23px}.sample-home-previews p{font-size:.96rem}.sample-home-files article{padding:24px}.sample-home-section{padding:34px 0}.sample-home-content{margin-top:36px}.sample-home-heading h2,.sample-home-story-grid h2{font-size:2rem}.sample-home-ready{padding:24px}.sample-home-ready .button{width:100%;white-space:normal;text-align:center}.sample-home-faq summary{font-size:.96rem}.sample-home-faq details p{font-size:.95rem}}
