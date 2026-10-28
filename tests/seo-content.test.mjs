@@ -6,10 +6,27 @@ import { publicCatalog } from '../shared/catalog.mjs';
 import { publicRelease, publicReleaseData, readPublicRelease, htmlJson } from '../shared/public-release.mjs';
 import { pageSchema } from '../shared/seo.mjs';
 import { guides, guideOutcomes } from '../shared/guides.mjs';
+import { siteIdentity } from '../shared/site-identity.mjs';
 
 const read = pathname => readFile(new URL('../dist/client' + pathname + 'index.html', import.meta.url), 'utf8');
 const bootstrap = html => JSON.parse(html.match(/id="public-release-data">([^<]+)<\/script>/)[1]);
 const schema = html => JSON.parse(html.match(/type="application\/ld\+json">([^<]+)<\/script>/)[1]);
+
+test('public content identifies the brand in its main content and keeps site names consistent', async () => {
+  for (const page of publicPages.filter(page => page.indexable)) {
+    const html = await read(page.path);
+    const main = html.match(/<main\b[\s\S]*?<\/main>/)?.[0].replace(/<[^>]+>/g, ' ');
+    assert.match(main, /Paper Adventure/i, `${page.path}: brand must be in content, beyond the header/footer`);
+    assert.ok(html.includes(`<meta property="og:site_name" content="${siteIdentity.name}" />`), page.path);
+    const graph = schema(html)['@graph'];
+    assert.equal(graph.filter(item => item['@type'] === 'WebSite').length, 1, page.path);
+    for (const type of ['WebSite', 'Organization']) {
+      const identity = graph.find(item => item['@type'] === type);
+      assert.equal(identity.name, siteIdentity.name, page.path);
+      assert.equal(identity.alternateName, siteIdentity.alternateName, page.path);
+    }
+  }
+});
 
 test('all indexable HTML uses the same sanitized public bootstrap and schema builder as the client', async () => {
   for (const page of publicPages) {

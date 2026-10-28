@@ -33,7 +33,7 @@ export function HowItWorksPage({ Link, catalog, checkoutMode }) {
       <div className="how-guide-shell how-guide-hero-grid">
         <div className="how-guide-hero-copy">
           <span className="eyebrow"><Sparkle size={17} /> A GUIDE TO GETTING STARTED</span>
-          <h1 id="how-guide-title">How printable story adventures work<span className="dot">.</span></h1>
+          <h1 id="how-guide-title">How Paper Adventure games work<span className="dot">.</span></h1>
           <p>Choose a ready-made game or build a new story from your idea. We will show you what is inside the files, how to prepare them and what happens before your group starts playing.</p>
           <div className="how-guide-actions"><Link className="button" to="/en/themes/">Explore ready-made themes <ArrowRight size={19} /></Link><Link className="how-guide-text-link" to="/en/create/">Create your own adventure <ArrowRight size={18} /></Link></div>
           <p className="how-guide-hero-note">The Celebration Home and Classroom trial games are free to download. Other editions show their current availability on their theme pages.</p>

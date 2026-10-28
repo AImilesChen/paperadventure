@@ -67,7 +67,7 @@ export function CatalogPage({ Link, initialSetting = 'home', overview = false, c
         <div className="catalog-home-copy">
           <span className="eyebrow"><Sparkle size={17} weight="fill" /> PRINT · PLAY · IMAGINE</span>
           <h1 id="home-catalog-title">Printable Adventure Games for Kids at Home<span className="dot">.</span></h1>
-          <p>Turn an afternoon at home into a five-part story adventure. Pick a ready-made game, print the player pages, and follow the Host Guide together. Made for ages 6–12 and groups of 2–12.</p>
+          <p>Explore Paper Adventure’s printable games for ages 6–12. Pick a story, print the player pages and follow the Host Guide with your group of 2–12.</p>
           <div className="catalog-hero-actions"><a className="button" href="#home-games">Explore Home games <ArrowRight size={18} /></a><Link className="button-quiet" to="/en/samples/home/">Try the free Celebration game <DownloadSimple size={18} /></Link></div>
           <ul className="catalog-hero-facts" aria-label="Home game at a glance"><li>Ages 6–12</li><li>2–12 players</li><li>A4 &amp; US Letter</li></ul>
         </div>
@@ -78,7 +78,7 @@ export function CatalogPage({ Link, initialSetting = 'home', overview = false, c
         <div className="catalog-home-copy">
           <span className="eyebrow"><Sparkle size={17} weight="fill" /> PRINT · SHARE · DISCOVER</span>
           <h1 id="classroom-catalog-title">Printable Classroom Adventure Games for Kids<span className="dot">.</span></h1>
-          <p>Bring a shared story mission into your classroom. Print the player pages, share clues in small groups, and use the Teacher Guide to lead five connected checkpoints. Designed for ages 6–12 and 2–35 students.</p>
+          <p>Bring a Paper Adventure story mission into your classroom. Print the player pages, share clues in small groups, and use the Teacher Guide to lead five connected checkpoints. Designed for ages 6–12 and 2–35 students.</p>
           <div className="catalog-hero-actions"><a className="button" href="#classroom-games">Explore Classroom games <ArrowRight size={18} /></a><Link className="button-quiet" to="/en/samples/classroom/">Try the free Celebration game <DownloadSimple size={18} /></Link></div>
           <ul className="catalog-hero-facts" aria-label="Classroom game at a glance"><li>Ages 6–12</li><li>2–35 students</li><li>A4 &amp; US Letter</li></ul>
         </div>
@@ -130,7 +130,7 @@ export function CatalogPage({ Link, initialSetting = 'home', overview = false, c
 export function WorldsOverview({ Link, catalog }) {
   const all = mergedWorlds(catalog);
   return <main className="extended-page product-page worlds-overview">
-    <PageIntro eyebrow="TWO WAYS TO PLAY" title="Choose a world for your group." body="Home and Classroom have different paid story worlds. Celebration is the one shared free world, with a separate game for each setting." />
+    <PageIntro eyebrow="TWO WAYS TO PLAY" title="Choose a world for your group." body="Explore Paper Adventure’s distinct Home and Classroom story worlds. Celebration is the shared free world, with a separate game for each setting." />
     <div className="product-shell">
       {[['home', 'Home adventures', 'Household mysteries with a Host Guide'], ['classroom', 'Classroom adventures', 'Teacher-led group missions with a Teacher Guide']].map(([setting, title, description]) => {
         const items = all.filter(theme => theme.availableSettings ? theme.availableSettings.includes(setting) : Boolean(theme.story?.[setting]));
@@ -195,7 +195,7 @@ export function ThemeDetailPage({ Link, themeId, selectedSetting, catalog, runti
     <section className="theme-detail-hero">
       <div className="product-shell theme-detail-hero-grid">
         <div className="theme-detail-hero-copy">
-          <span className="eyebrow">{label.toUpperCase()} ADVENTURE · {edition.code}</span>
+          <span className="eyebrow">PAPER ADVENTURE · {label.toUpperCase()} · {edition.code}</span>
           <h1>{edition.title}<span className="dot">.</span></h1>
           {experience && <p className="ocean-hero-format">{experience.format}</p>}
           <p className="theme-detail-goal">{christmasHome ? "Fold paper gifts, share wrapping clues and build a winter village display." : halloweenHome ? "Find the cast, fold paper actors and open the theatre windows to perform Pip’s festival ending." : forestHome ? "Sort six mail pieces, repair a rain-blurred parcel label and complete a checked paper delivery." : spaceHome ? "Rebuild the signal, move six paper power cells and decode a message to restore contact with Pip." : celebrationHome ? "Share clues, connect the route and decode a message to help Fenn deliver his birthday chest." : dinosaurHome ? "Build the landscape, choose your supplies and help Milo reach camp when the weather changes." : weatherClassroom ? "Turn paper instruments, check the readings and publish a morning bulletin your teammates can verify." : libraryClassroom ? "Rebuild a mixed-up story, share witness clues and write the missing final page together." : museumClassroom ? "Become a curatorial crew. Follow paper evidence, rebuild an imaginary exhibit and write a label your visitors can check." : edition.goal}</p>
