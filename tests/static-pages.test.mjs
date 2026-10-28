@@ -128,7 +128,10 @@ test('twelve offered games have independent descriptions and five checkpoints', 
       assert.equal((html.match(/class="theme-step-number"/g) || []).length, 5, `${story.code} checkpoint count`);
       assert.match(html, /Four PDF files per edition:/);
       assert.match(html, /A4 or US Letter/);
-      assert.ok(!html.includes('/en/checkout/?kind=ready'), `${story.code} checkout should await live runtime`);
+      const data = JSON.parse(html.match(/id="public-release-data">([^<]+)<\/script>/)[1]);
+      const pack = data.catalog.themes.find(item => item.id === theme.id)[setting];
+      const offer = data.catalog.offers.find(item => item.sku === 'ready_' + setting);
+      assert.equal(html.includes('/en/checkout/?kind=ready'), data.runtime.checkout && ['published','test_ready'].includes(pack.readyStatus) && !pack.freeSample && offer.saleEnabled, `${story.code} checkout must match public availability`);
       assert.equal(theme[setting].readyStatus, 'not_published');
     }
   }

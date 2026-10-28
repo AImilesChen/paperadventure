@@ -7,6 +7,8 @@ import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { createServer } from 'vite';
 import { publicPages } from '../shared/page-manifest.mjs';
+import { publicRelease, publicReleaseData, readPublicRelease, htmlJson } from '../shared/public-release.mjs';
+import { pageSchema } from '../shared/seo.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
@@ -24,12 +26,27 @@ await writeFile(path.join(out, 'app-shell.txt'), template);
 const server = await createServer({ root, server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
 globalThis.localStorage = { getItem: () => null };
 
+async function publicJson(endpoint) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetch(origin + endpoint, { signal: AbortSignal.timeout(15000) });
+      if (!response.ok) throw new Error(`Public release endpoint returned ${response.status}`);
+      return await response.json();
+    } catch (error) { if (attempt === 2) throw error; }
+  }
+}
+
 try {
+  // Fetch public availability once, before rendering any page. A failed build
+  // leaves the previous deployment intact rather than publishing guessed stock.
+  const [health, catalog] = await Promise.all([publicJson('/api/v1/health'), publicJson('/api/v1/catalog')]);
+  const release = publicRelease(health, catalog);
   const { App } = await server.ssrLoadModule('/src/App.jsx');
   const markupByPath = new Map();
   for (const record of publicPages) {
     globalThis.window = { location: { pathname: record.path, search: '', origin } };
-    const markup = renderToString(React.createElement(App));
+    const initialPublicRelease = record.indexable ? release : null;
+    const markup = renderToString(React.createElement(App, { initialPublicRelease }));
     markupByPath.set(record.path, markup);
     const url = `${origin}${record.path}`;
     const tags = [
@@ -48,14 +65,14 @@ try {
       `<meta name="twitter:title" content="${escape(record.title)} | Paper Adventure Workshop" />`,
       `<meta name="twitter:description" content="${escape(record.description)}" />`,
       `<meta name="twitter:image" content="${origin}/og-image.jpg" />`,
-      `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebPage', name: record.title, description: record.description, url, isPartOf: { '@type': 'WebSite', name: 'Paper Adventure Workshop', url: origin } }).replaceAll('<', '\\u003c')}</script>`,
+      `<script type="application/ld+json">${htmlJson(pageSchema(record, initialPublicRelease, origin))}</script>`,
     ].join('\n    ');
     const html = template
       .replace(/\s*<title>[^<]*<\/title>/, '')
       .replace(/\s*<meta name="description"[^>]*>/, '')
       .replace(/\s*<meta name="robots"[^>]*>/, '')
       .replace('</head>', `    ${tags}\n  </head>`)
-      .replace('<div id="root" data-clarity-mask="true"></div>', `<div id="root" data-clarity-mask="true">${markup}</div>`);
+      .replace('<div id="root" data-clarity-mask="true"></div>', `<div id="root" data-clarity-mask="true">${markup}</div>${initialPublicRelease ? `<script type="application/json" id="public-release-data">${htmlJson(publicReleaseData(initialPublicRelease))}</script>` : ''}`);
     if (!html.includes(markup)) throw new Error(`Failed to render ${record.path}`);
     const target = path.join(out, record.path.slice(1), 'index.html');
     await mkdir(path.dirname(target), { recursive: true });
@@ -66,7 +83,7 @@ try {
   const renderPreview = (pathname, search, draft) => {
     globalThis.window = { location: { pathname, search, origin } };
     globalThis.localStorage = { getItem: key => key === 'paw-draft' ? draft : null };
-    return renderToString(React.createElement(App));
+    return renderToString(React.createElement(App, { initialPublicRelease: publicPages.find(page => page.path === pathname)?.indexable ? release : null }));
   };
   const savedDraft = JSON.stringify({ theme: 'space', setting: 'home', players: '5', age: '8–10', direction: 'mission' });
   for (const [pathname, search] of [
@@ -86,6 +103,12 @@ try {
   assert.doesNotMatch(privateOrder, /Your adventure, from checkout to play/);
   assert.match(renderPreview('/en/orders/demo/', '', null), /Your adventure, from checkout to play/);
   console.log('Verified query and saved-draft hydration against the pre-rendered pages');
+  for (const record of publicPages.filter(page => page.indexable)) {
+    globalThis.window = { location: { pathname: record.path, search: '', origin } };
+    const restored = readPublicRelease({ getElementById: () => ({ textContent: htmlJson(publicReleaseData(release)) }) });
+    assert.equal(renderToString(React.createElement(App, { initialPublicRelease: restored })), markupByPath.get(record.path), `Public bootstrap parity: ${record.path}`);
+  }
+  console.log('Verified public bootstrap hydration parity on all indexable routes');
   const indexablePages = publicPages.filter(record => record.indexable);
   const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + indexablePages.map(record => `  <url><loc>${escape(origin + record.path)}</loc></url>`).join('\n') + '\n</urlset>\n';
   await writeFile(path.join(out, 'sitemap.xml'), sitemap);
