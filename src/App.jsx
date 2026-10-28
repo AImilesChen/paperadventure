@@ -76,6 +76,7 @@ function Header({ route }) {
       <Link to="/en/for-classroom/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-classroom") || /^\/en\/themes\/[^/]+\/classroom\/$/.test(route)) ? "page" : undefined}>For classrooms</Link>
       <Link to="/en/create/" className="nav-primary-link" aria-current={route.startsWith("/en/create") ? "page" : undefined}>AI custom adventure</Link>
       <Link to="/en/how-it-works/" className="nav-primary-link" aria-current={route.startsWith("/en/how-it-works") ? "page" : undefined}>How it works</Link>
+      <Link to="/en/guides/" className="nav-primary-link" aria-current={route.startsWith("/en/guides/") ? "page" : undefined}>Guides</Link>
       <Link to="/en/pricing/" className="nav-primary-link" aria-current={route.startsWith("/en/pricing") ? "page" : undefined}>Pricing</Link>
       <Link className="nav-create-mobile" to="/en/create/">Create with AI <ArrowUpRight size={16} /></Link>
     </nav>
