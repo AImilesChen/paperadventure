@@ -7,6 +7,7 @@ import { publicPages } from '../shared/page-manifest.mjs';
 import { productRights, themes } from '../shared/catalog.mjs';
 import { themeDetailContent } from '../src/themeDetailContent.js';
 import { updateDraftField } from '../src/creatorDraft.mjs';
+import { pageDocumentTitle } from '../shared/site-identity.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
@@ -39,7 +40,7 @@ test('every route has visible HTML, canonical metadata and scoped indexing', asy
   for (const page of publicPages) {
     const html = await read(path.join(page.path.slice(1), 'index.html'));
     assert.match(html, /<div id="root" data-clarity-mask="true">[\s\S]*<h1[ >]/, page.path);
-    assert.ok(html.includes(`<title>${page.title.replaceAll('&', '&amp;')} | Paper Adventure Workshop</title>`), page.path);
+    assert.ok(html.includes(`<title>${pageDocumentTitle(page).replaceAll('&', '&amp;')}</title>`), page.path);
     assert.equal(html.includes('<meta name="robots" content="noindex" />'), !page.indexable, page.path);
     assert.ok(html.includes(`<link rel="canonical" href="https://paperadventure.app${page.path}" />`), page.path);
     assert.ok(html.includes('application/ld+json'), page.path);
