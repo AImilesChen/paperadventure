@@ -19,6 +19,7 @@ import { LiveCreate } from './liveCreate.jsx';
 import { CreatorGuide } from './creatorGuide.jsx';
 import './creatorWorkspace.css';
 import './funnel.css';
+import './headerHomeNav.css';
 import { PricingGuide } from './pricingGuide.jsx';
 import { HowItWorksPage } from './howItWorks.jsx';
 import { HomeProductGuide } from './homeProductGuide.jsx';
@@ -46,9 +47,12 @@ function Header({ route }) {
   const [authenticated, setAuthenticated] = useState(null);
   const [administrator,setAdministrator]=useState(false);
   const [accountOpen,setAccountOpen]=useState(false);
+  const [homeOpen,setHomeOpen]=useState(false);
+  const homeRef=useRef(null);
+  const homeTrigger=useRef(null);
   const accountRef=useRef(null);
   const accountTrigger=useRef(null);
-  useEffect(() => {setOpen(false);setAccountOpen(false);}, [route]);
+  useEffect(() => {setOpen(false);setAccountOpen(false);setHomeOpen(false);}, [route]);
   useEffect(() => {
     let active = true;
     fetch('/api/v1/auth/session', { credentials: 'same-origin' }).then(response => response.ok ? response.json() : null)
@@ -64,18 +68,26 @@ function Header({ route }) {
   useEffect(() => {
     const closeOnEscape = event => {
       if(event.key==='Escape'){
-        if(accountOpen){setAccountOpen(false);accountTrigger.current?.focus();}
+        if(homeOpen){setHomeOpen(false);homeTrigger.current?.focus();}
+        else if(accountOpen){setAccountOpen(false);accountTrigger.current?.focus();}
         else if(open){setOpen(false);document.querySelector('.menu-toggle')?.focus();}
       }
     };
-    const closeOutside=event=>{if(!accountRef.current?.contains(event.target))setAccountOpen(false);};
+    const closeOutside=event=>{if(!accountRef.current?.contains(event.target))setAccountOpen(false);if(!homeRef.current?.contains(event.target))setHomeOpen(false);};
     window.addEventListener('keydown', closeOnEscape);
     window.addEventListener('pointerdown',closeOutside);
     return () => {window.removeEventListener('keydown', closeOnEscape);window.removeEventListener('pointerdown',closeOutside);};
-  }, [accountOpen,open]);
+  }, [accountOpen,open,homeOpen]);
   return <header className={route === '/en/' ? 'site-header home-header' : 'site-header'}><div className="nav-shell"><Brand />
-    <nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label="Main navigation" onClick={event=>{if(event.target.closest('a'))setOpen(false);}}>
-      <Link to="/en/for-home/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-home") || /^\/en\/themes\/[^/]+\/home\/$/.test(route)) ? "page" : undefined}>For home</Link>
+    <nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label="Main navigation" onClick={event=>{if(event.target.closest('a')){setOpen(false);setHomeOpen(false);}}}>
+      <div className="header-home-nav" ref={homeRef} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHomeOpen(false);}}>
+        <button type="button" className="nav-primary-link header-home-trigger" ref={homeTrigger} aria-expanded={homeOpen} aria-controls="home-navigation" data-active={route.startsWith('/en/for-home') || /^\/en\/themes\/[^/]+\/home\/$/.test(route) || route === '/en/samples/home/' || route.startsWith('/en/occasions/') || undefined} onClick={()=>{setHomeOpen(value=>!value);setAccountOpen(false);}}>For home <CaretDown size={13} aria-hidden="true"/></button>
+        <div id="home-navigation" className="header-home-panel" hidden={!homeOpen}>
+          <Link to="/en/for-home/" aria-current={route === '/en/for-home/' ? 'page' : undefined}><strong>Home adventures</strong><span>Browse all Home stories</span></Link>
+          <Link to="/en/occasions/birthday/" aria-current={route === '/en/occasions/birthday/' ? 'page' : undefined}><strong>Birthday party games</strong><span>A free story &amp; party preparation</span></Link>
+          <Link to="/en/samples/home/" aria-current={route === '/en/samples/home/' ? 'page' : undefined}><strong>Free Home game</strong><span>Player Pack &amp; Host Guide</span></Link>
+        </div>
+      </div>
       <Link to="/en/for-classroom/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-classroom") || /^\/en\/themes\/[^/]+\/classroom\/$/.test(route)) ? "page" : undefined}>For classrooms</Link>
       <Link to="/en/create/" className="nav-primary-link" aria-current={route.startsWith("/en/create") ? "page" : undefined}>AI custom adventure</Link>
       <Link to="/en/how-it-works/" className="nav-primary-link" aria-current={route.startsWith("/en/how-it-works") ? "page" : undefined}>How it works</Link>
@@ -85,7 +97,7 @@ function Header({ route }) {
     </nav>
     <div className="nav-actions">
       {authenticated ? <div className="header-account" ref={accountRef} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setAccountOpen(false);}}>
-        <button type="button" className="header-account-trigger" ref={accountTrigger} aria-label="Account" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={()=>{setAccountOpen(value=>!value);setOpen(false);}}>
+        <button type="button" className="header-account-trigger" ref={accountTrigger} aria-label="Account" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={()=>{setAccountOpen(value=>!value);setOpen(false);setHomeOpen(false);}}>
           <UserCircle size={22} aria-hidden="true"/><span>Account</span><CaretDown size={13} aria-hidden="true"/>
         </button>
         {accountOpen&&<nav id="account-navigation" className="header-account-panel" aria-label="Account navigation" onClick={event=>{if(event.target.closest('a'))setAccountOpen(false);}}>
@@ -96,7 +108,7 @@ function Header({ route }) {
       </div> : <Link className="header-signin" to="/en/account/">{authenticated===null?'Account':'Sign in'}</Link>}
       <Link className={route === '/en/' ? 'header-create-secondary' : 'button button-small'} to="/en/create/">Create with AI <ArrowUpRight size={16} /></Link>
     </div>
-    <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);}}>{open ? <X size={25} /> : <List size={25} />}</button>
+    <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);setHomeOpen(false);}}>{open ? <X size={25} /> : <List size={25} />}</button>
   </div></header>;
 }
 function Footer({ runtime }) { return <footer className="site-footer"><div className="footer-main"><div><Brand /><p>Made for curious minds and the people who bring them together.</p></div><div className="footer-links"><div><strong>Explore</strong><Link to="/en/for-home/">Home adventures</Link><Link to="/en/for-classroom/">Classroom adventures</Link><Link to="/en/themes/">All themes</Link><Link to="/en/create/">AI custom adventures</Link><Link to="/en/pricing/">Pricing</Link></div><div><strong>Support</strong><Link to="/en/guides/">Preparation guides</Link><Link to="/en/help/">Help</Link><Link to="/en/samples/home/">Free sample</Link><Link to="/en/account/">Sign in</Link></div><div><strong>Legal</strong><Link to="/en/privacy/">Privacy</Link><Link to="/en/terms/">Terms</Link><Link to="/en/cookies/">Cookies</Link><Link to="/en/refunds/">Refunds</Link></div></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Paper Adventure Workshop {runtime?.checkout ? '' : runtime?.sample ? '· Free trial available' : '· Design preview'}</span><span>For grown-ups planning playful adventures.</span></div></footer>; }
