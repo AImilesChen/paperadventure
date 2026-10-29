@@ -14,6 +14,12 @@ export function pageSchema(page, release, origin = 'https://paperadventure.app')
     graph[0].mainEntity = { '@id': url + '#guides' };
     graph.push({ '@type': 'ItemList', '@id': url + '#guides', name: 'Printable adventure game guides', numberOfItems: guides.length, itemListElement: guides.map((item, index) => ({ '@type': 'ListItem', position: index + 1, name: item.title, url: origin + item.path })) });
   }
+  if (page.path === '/en/occasions/birthday/') {
+    graph[0]['@type'] = 'CollectionPage';
+    graph[0].mainEntity = { '@id': url + '#games' };
+    graph.push({ '@type': 'ItemList', '@id': url + '#games', name: 'Home adventure games for birthday gatherings', numberOfItems: 3, itemListElement: ['celebration', 'dinosaur', 'space'].map((id, index) => ({ '@type': 'ListItem', position: index + 1, name: themes.find(item => item.id === id).story.home.title, url: origin + (id === 'celebration' ? '/en/samples/home/' : `/en/themes/${id}/home/`) })) });
+    crumbs.push({ name: 'Home adventures', url: origin + '/en/for-home/' });
+  }
   if (page.path.startsWith('/en/guides/') && guide) crumbs.push({ name: 'Guides', url: origin + '/en/guides/' });
   const match = page.path.match(/^\/en\/themes\/([^/]+)\/(home|classroom)\/$/);
   if (match) {

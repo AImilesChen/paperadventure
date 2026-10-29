@@ -12,6 +12,32 @@ const read = pathname => readFile(new URL('../dist/client' + pathname + 'index.h
 const bootstrap = html => JSON.parse(html.match(/id="public-release-data">([^<]+)<\/script>/)[1]);
 const schema = html => JSON.parse(html.match(/type="application\/ld\+json">([^<]+)<\/script>/)[1]);
 
+test('birthday landing separates choosing a game from hosting and exposes truthful materials and offers', async () => {
+  const route = '/en/occasions/birthday/', html = await read(route);
+  assert.match(html, /<h1>Printable birthday adventure games for kids/);
+  assert.match(html, /Birthday Adventure Games for Kids \| Paper Adventure Workshop/);
+  assert.ok((await readFile(new URL('../dist/client/sitemap.xml', import.meta.url), 'utf8')).includes('https://paperadventure.app' + route));
+  assert.equal((html.match(/<details>/g) || []).length, 6);
+  for (const id of ['birthday-games', 'birthday-preparation']) assert.ok(html.includes(`id="${id}"`));
+  for (const asset of ['birthday-party-table-v1', 'celebration-home-detail-map', 'celebration-home-detail-record', 'celebration-home-detail-handout-cut']) assert.ok(html.includes(`/assets/${asset}.jpg`));
+  assert.match(html, /illustrative scene/);
+  assert.match(html, /10 Player \+ 1 finale = <strong>11/);
+  assert.match(html, /20 Player \+ 1 finale = <strong>21/);
+  assert.match(html, /Other themes have different counts/);
+  assert.match(html, /existing fixed stories, not personalized birthday editions/);
+  const data = bootstrap(html), offer = data.catalog.offers.find(item => item.sku === 'ready_home');
+  if (data.runtime.checkout && data.runtime.checkoutMode === 'live' && offer.saleEnabled) assert.ok(html.includes(`US$${(offer.unitAmount / 100).toFixed(2)} · one-time purchase`));
+  const graph = schema(html)['@graph'], list = graph.find(item => item['@type'] === 'ItemList');
+  assert.equal(graph.find(item => item['@type'] === 'CollectionPage').mainEntity['@id'], list['@id']);
+  assert.equal(list.numberOfItems, 3);
+  for (const item of list.itemListElement) assert.ok(html.includes(`href="${new URL(item.url).pathname}"`));
+  assert.equal(graph.find(item => ['Product', 'Article', 'FAQPage'].includes(item['@type'])), undefined);
+  const birthdayGuide = await read('/en/guides/printable-birthday-party-adventures/');
+  assert.match(birthdayGuide, /<h1>How to Host a Printable Birthday Adventure for Kids/);
+  for (const source of ['/en/', '/en/for-home/', '/en/guides/printable-birthday-party-adventures/']) assert.ok((await read(source)).includes(`href="${route}"`), source);
+  assert.ok(birthdayGuide.includes('href="' + route + '"'));
+});
+
 test('public content identifies the brand in its main content and keeps site names consistent', async () => {
   for (const page of publicPages.filter(page => page.indexable)) {
     const html = await read(page.path);

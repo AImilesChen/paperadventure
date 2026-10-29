@@ -17,6 +17,7 @@ export const publicPages = Object.freeze([
     )),
   ]),
   page('/en/for-classroom/', 'Printable Classroom Adventure Games for Kids', 'Printable story adventures for classrooms, ages 6–12. Explore group missions, the free Celebration game, and Player Packs with Teacher Guides in A4 and US Letter.'),
+  page('/en/occasions/birthday/', 'Birthday Adventure Games for Kids', 'Plan a birthday adventure for ages 6–12. Try the complete free Birthday Chest game, compare dinosaur and space stories, and see real pages and printing tips.'),
   page('/en/occasions/halloween/', 'Printable Halloween Adventure Game for Kids', 'Make paper shadows and prepare a friendly festival in The Missing Pumpkin Light. Explore the Home Player Pack, Host Guide and real theatre materials.'),
   page('/en/guides/', 'Printable Adventure Game Guides for Parents & Teachers', 'Compare Home, Classroom and birthday game setups for ages 6–12. See real clue handouts, print-count examples, preparation checklists and step-by-step hosting guides.'),
   ...guides.map(guide => page(guide.path, guide.title, guide.description)),

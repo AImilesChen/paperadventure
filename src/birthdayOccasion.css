@@ -1,0 +1,54 @@
+.birthday-page{color:var(--navy,#102e50)}
+.birthday-shell{width:89%;max-width:1318px;margin-inline:auto}
+.birthday-hero{display:grid;grid-template-columns:1.1fr 1fr;gap:5%;align-items:center;padding-block:45px 80px}
+.birthday-crumbs{display:flex;flex-wrap:wrap;gap:10px;font-size:.8rem;margin-bottom:32px}
+.birthday-hero h1{font-size:clamp(2.6rem,4.35vw,4.6rem);line-height:1.08;letter-spacing:-.045em;margin:18px 0 22px}
+.birthday-hero p{max-width:590px;line-height:1.75}
+.birthday-actions{display:flex;align-items:center;flex-wrap:wrap;gap:20px 25px;margin-top:28px}
+.birthday-actions .button{display:inline-flex;gap:14px;align-items:center;justify-content:center}
+.birthday-page .birthday-facts{font-size:.85rem;margin-top:22px;line-height:1.8}
+.birthday-story-art,.birthday-scene{margin:0}
+.birthday-story-art img{width:100%;height:auto;border-radius:20px;display:block}
+.birthday-story-art figcaption,.birthday-scene figcaption{font-size:.78rem;line-height:1.6;margin-top:12px}
+.birthday-band{background:#f8f5ef}
+.birthday-section{padding-block:75px;scroll-margin-top:100px}
+.birthday-section h2,.birthday-finish h2{font-size:clamp(1.9rem,3vw,3rem);letter-spacing:-.035em;line-height:1.15;margin:15px 0 20px;max-width:850px}
+.birthday-lead{max-width:770px;line-height:1.8;margin-bottom:32px}
+.birthday-game-grid,.birthday-material-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.birthday-game-card{border:1px solid #b9d5df;border-radius:16px;overflow:hidden;background:#fffdfa;display:flex;flex-direction:column}
+.birthday-game-card>img{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;display:block}
+.birthday-game-card>div{padding:25px;display:flex;flex-direction:column;align-items:flex-start;flex:1}
+.birthday-game-card h3{font-size:1.55rem;line-height:1.25;margin:12px 0}
+.birthday-game-card p{line-height:1.75;font-size:.93rem;margin:0 0 16px}
+.birthday-game-card .birthday-card-label{font-weight:800;color:#a83120}
+.birthday-game-card .birthday-price{font-weight:800;margin-top:auto;padding-top:8px}
+.birthday-game-card .button{display:inline-flex;align-items:center;gap:9px;font-size:.88rem;padding:13px 17px}
+.birthday-note{font-size:.84rem;line-height:1.75;margin-top:22px}
+.birthday-material-grid figure{margin:0;min-width:0}
+.birthday-material-grid a{display:flex;flex-direction:column;background:#fffdfa;border:1px solid #b9d5df;border-radius:14px;padding:20px;text-decoration:none}
+.birthday-material-grid img{width:100%;height:230px;object-fit:contain;display:block}
+.birthday-material-grid a>span{font-size:.82rem;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:20px;font-weight:800}
+.birthday-material-grid figcaption{display:flex;flex-direction:column;gap:5px;margin-top:16px;line-height:1.5}
+.birthday-material-grid figcaption span{font-size:.8rem}
+.birthday-file-note{margin-top:28px;max-width:850px;line-height:1.8}
+.birthday-setup{display:grid;grid-template-columns:1fr 1.08fr;gap:5%;align-items:center}
+.birthday-scene img{width:100%;height:auto;display:block;border-radius:18px}
+.birthday-setup p{line-height:1.8}
+.birthday-table-wrap{max-width:100%;overflow-x:auto;margin-top:24px;border:1px solid #b9d5df;border-radius:12px;background:#fffdfa}
+.birthday-table-wrap table{width:100%;border-collapse:collapse;font-size:.88rem}
+.birthday-table-wrap caption{text-align:left;font-weight:800;padding:16px}
+.birthday-table-wrap th,.birthday-table-wrap td{text-align:left;padding:13px 12px;border-top:1px solid #d4e3e9;vertical-align:top}
+.birthday-table-wrap thead{background:#eaf4f7}
+.birthday-steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;margin:32px 0}
+.birthday-steps li{border-top:2px solid #b9d5df;padding-top:22px}
+.birthday-steps li>span{color:#b23724;font-weight:900;font-size:.9rem}
+.birthday-steps h3{font-size:1.3rem;margin:14px 0 12px}
+.birthday-steps p{line-height:1.8;margin:0}
+.birthday-faq{display:grid;grid-template-columns:.8fr 1.2fr;gap:7%;border-top:1px solid #b9d5df}
+.birthday-faq details{border-bottom:1px solid #b9d5df;padding:20px 0}
+.birthday-faq summary{cursor:pointer;font-weight:800;line-height:1.6}
+.birthday-faq details p{line-height:1.8;margin:15px 0 0}
+.birthday-finish{border-radius:20px;background:#fffdfa;border:1px solid #b9d5df;padding:45px;margin-bottom:80px}
+.birthday-page a:focus-visible,.birthday-page summary:focus-visible{outline:3px solid #a83120;outline-offset:5px}
+@media(max-width:950px){.birthday-hero{grid-template-columns:1fr 1fr;gap:4%}.birthday-game-card>div{padding:20px}.birthday-game-card h3{font-size:1.3rem}.birthday-setup{grid-template-columns:1fr;gap:32px}.birthday-scene{max-width:700px}.birthday-faq{grid-template-columns:1fr;gap:10px}}
+@media(max-width:700px){.birthday-shell{width:90%}.birthday-hero{grid-template-columns:1fr;padding-block:25px 45px;gap:30px}.birthday-crumbs{margin-bottom:25px}.birthday-hero h1{font-size:2.65rem}.birthday-story-art{max-width:520px}.birthday-section{padding-block:48px}.birthday-game-grid,.birthday-material-grid,.birthday-steps{grid-template-columns:1fr}.birthday-game-card h3{font-size:1.55rem}.birthday-material-grid{gap:30px}.birthday-material-grid img{height:260px}.birthday-finish{padding:28px 22px;margin-bottom:45px}.birthday-actions{align-items:flex-start;flex-direction:column}.birthday-hero .button,.birthday-finish .button{max-width:100%}.birthday-table-wrap th,.birthday-table-wrap td{padding:12px 8px;font-size:.8rem}}
