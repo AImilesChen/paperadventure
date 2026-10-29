@@ -12,6 +12,33 @@ const read = pathname => readFile(new URL('../dist/client' + pathname + 'index.h
 const bootstrap = html => JSON.parse(html.match(/id="public-release-data">([^<]+)<\/script>/)[1]);
 const schema = html => JSON.parse(html.match(/type="application\/ld\+json">([^<]+)<\/script>/)[1]);
 
+test('Christmas occasion explains the real paid workshop with preparation and a distinct free trial', async () => {
+  const route = '/en/occasions/christmas/', html = await read(route);
+  assert.match(html, /<h1>A printable Christmas adventure for kids/);
+  assert.match(html, /Printable Christmas Games for Kids \| Paper Adventure Workshop/);
+  assert.ok((await readFile(new URL('../dist/client/sitemap.xml', import.meta.url), 'utf8')).includes('https://paperadventure.app' + route));
+  const missions = html.match(/<ol class="christmas-occasion-missions">([\s\S]*?)<\/ol>/)[1];
+  assert.equal((missions.match(/<li>/g)||[]).length, 5);
+  for (const name of ['gifts', 'frame', 'village']) assert.ok(html.includes(`href="/assets/christmas-home-detail-${name}.jpg"`));
+  assert.ok(html.includes('src="/assets/christmas-family-table-v1.jpg"'));
+  assert.match(html, /illustrative scene/);
+  assert.match(html, /Player Pack · 14 pages/);
+  assert.match(html, /Host Guide · 8 pages/);
+  for (const amount of ['14','28']) assert.ok(html.includes(`<td><strong>${amount}</strong></td>`));
+  assert.match(html, /add 8 sheets once, making 22 sheets for one team or 36 for two/);
+  assert.match(html, /The free option is Celebration Home: The Missing Birthday Chest, a separate birthday story/);
+  assert.equal((html.match(/<details>/g)||[]).length, 6);
+  const data = bootstrap(html), offer = data.catalog.offers.find(item => item.sku === 'ready_home');
+  if (data.runtime.checkout && data.runtime.checkoutMode === 'live' && offer.saleEnabled) assert.ok(html.includes(`Paid Home game · US$${(offer.unitAmount/100).toFixed(2)} · one-time purchase`));
+  const graph = schema(html)['@graph'];
+  assert.ok(graph.find(item=>item['@type']==='WebPage'));
+  const breadcrumbs = graph.find(item=>item['@type']==='BreadcrumbList');
+  assert.equal(breadcrumbs.itemListElement[1].item,'https://paperadventure.app/en/for-home/');
+  assert.equal(graph.find(item=>['Product','CollectionPage','ItemList','FAQPage'].includes(item['@type'])),undefined);
+  assert.ok((await read('/en/')).includes(`href="${route}"`));
+  assert.ok((await read('/en/themes/christmas/home/')).includes(`href="${route}"`));
+});
+
 test('birthday landing separates choosing a game from hosting and exposes truthful materials and offers', async () => {
   const route = '/en/occasions/birthday/', html = await read(route);
   assert.match(html, /<h1>Printable birthday adventure games for kids/);

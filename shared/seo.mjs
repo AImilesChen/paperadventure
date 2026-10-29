@@ -20,6 +20,7 @@ export function pageSchema(page, release, origin = 'https://paperadventure.app')
     graph.push({ '@type': 'ItemList', '@id': url + '#games', name: 'Home adventure games for birthday gatherings', numberOfItems: 3, itemListElement: ['celebration', 'dinosaur', 'space'].map((id, index) => ({ '@type': 'ListItem', position: index + 1, name: themes.find(item => item.id === id).story.home.title, url: origin + (id === 'celebration' ? '/en/samples/home/' : `/en/themes/${id}/home/`) })) });
     crumbs.push({ name: 'Home adventures', url: origin + '/en/for-home/' });
   }
+  if (page.path === '/en/occasions/christmas/') crumbs.push({ name: 'Home adventures', url: origin + '/en/for-home/' });
   if (page.path.startsWith('/en/guides/') && guide) crumbs.push({ name: 'Guides', url: origin + '/en/guides/' });
   const match = page.path.match(/^\/en\/themes\/([^/]+)\/(home|classroom)\/$/);
   if (match) {
