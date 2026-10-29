@@ -4,6 +4,26 @@ import worker from './preview-deploy-worker.mjs';
 
 const env = { ASSETS: { fetch: async request => new Response(new URL(request.url).pathname === '/app-shell.txt' ? '<html>Preview</html>' : '', { status: new URL(request.url).pathname === '/app-shell.txt' ? 200 : 404, headers: { 'content-type': 'text/plain' } }) } };
 
+test('public favicons allow indexing while previews, missing icons and HTML fallbacks stay noindex', async () => {
+  const icons = ['/favicon.ico', '/icon.svg', '/icon-512.png', '/apple-touch-icon.png', '/favicon-16.png', '/favicon-32.png'];
+  const assets = (status, type) => ({ ASSETS: { fetch: async () => new Response('fixture', { status, headers: { 'content-type': type, 'x-robots-tag': 'noindex' } }) } });
+  for (const path of icons) {
+    const type = path.endsWith('.ico') ? 'image/vnd.microsoft.icon' : path.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+    const published = await worker.fetch(new Request('https://paperadventure.app' + path), assets(200, type));
+    assert.equal(published.headers.get('x-robots-tag'), null, path);
+    assert.equal(published.headers.get('content-type'), type);
+    for (const host of ['preview.paperadventure.app', 'paper-adventure-preview-v2.workers.dev']) {
+      assert.equal((await worker.fetch(new Request('https://' + host + path), assets(200, type))).headers.get('x-robots-tag'), 'noindex');
+    }
+    for (const [status, mime] of [[404, type], [200, 'text/html']]) {
+      assert.equal((await worker.fetch(new Request('https://paperadventure.app' + path), assets(status, mime))).headers.get('x-robots-tag'), 'noindex');
+    }
+  }
+  for (const path of ['/en/account/', '/en/checkout/', '/en/orders/example/', '/admin/', '/other-image.png']) {
+    assert.equal((await worker.fetch(new Request('https://paperadventure.app' + path), assets(200, 'image/png'))).headers.get('x-robots-tag'), 'noindex', path);
+  }
+});
+
 test('preview aliases stay noindex while canonical content pages are crawlable', async () => {
   const preview = await worker.fetch(new Request('https://preview.paperadventure.app/en/themes/dinosaur/', { headers: { accept: 'text/html' } }), env);
   assert.equal(preview.status, 200);

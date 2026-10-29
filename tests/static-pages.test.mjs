@@ -13,6 +13,18 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
 const read = file => readFile(path.join(out, file), 'utf8');
 
+test('public HTML declares the stable square high-resolution favicon', async () => {
+  const png = await readFile(path.join(out, 'icon-512.png'));
+  assert.equal(png.subarray(1,4).toString(), 'PNG');
+  assert.equal(png.readUInt32BE(16), 512);
+  assert.equal(png.readUInt32BE(20), 512);
+  for (const page of publicPages.filter(page=>page.indexable)) {
+    const html = await read(page.path.slice(1) + 'index.html');
+    assert.ok(html.includes('<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png"'), page.path);
+    assert.ok(html.includes('href="/favicon.ico"'), page.path);
+  }
+});
+
 test('public help leads to authenticated order support instead of pretending to send drafts or recovery email',async()=>{
   for(const topic of ['','recover/','report/','print/','start/']){
     const html=await read('en/help/'+topic+'index.html');

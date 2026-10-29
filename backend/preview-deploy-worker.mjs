@@ -2,6 +2,7 @@ import { handleApi } from './worker.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
 
 const publicHost = 'paperadventure.app';
+const publicIconPaths = new Set(['/favicon.ico', '/icon.svg', '/icon-512.png', '/apple-touch-icon.png', '/favicon-16.png', '/favicon-32.png']);
 const publicRobots = 'User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin/\n\nSitemap: https://paperadventure.app/sitemap.xml\n';
 const previewRobots = 'User-agent: *\nDisallow: /\n';
 
@@ -41,7 +42,8 @@ export default {
     }
     const headers = new Headers(response.headers);
     if(isAdmin){headers.set('cache-control','private, no-store');headers.set('referrer-policy','no-referrer');headers.set('x-frame-options','DENY');headers.set('content-security-policy',"frame-ancestors 'none'; base-uri 'self'");}
-    if (isPublicHost && response.ok && pageFor(url.pathname)?.indexable) headers.delete('x-robots-tag');
+    const isPublicIcon = publicIconPaths.has(url.pathname) && response.headers.get('content-type')?.toLowerCase().startsWith('image/');
+    if (isPublicHost && response.ok && (pageFor(url.pathname)?.indexable || isPublicIcon)) headers.delete('x-robots-tag');
     else headers.set('x-robots-tag', 'noindex');
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
   },
