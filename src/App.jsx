@@ -9,6 +9,7 @@ import { readPublicRelease } from '../shared/public-release.mjs';
 import { pageSchema } from '../shared/seo.mjs';
 import { siteIdentity, pageDocumentTitle } from '../shared/site-identity.mjs';
 import { GuidesHub, GuideArticle, HalloweenOccasion } from './guides.jsx';
+import { BirthdayOccasion } from './birthdayOccasion.jsx';
 import { HomeSamples, HomeCustomStory, HomeGuides } from './homeSections.jsx';
 import { analyticsAvailable } from './analytics.js';
 import { crossesAnalyticsBoundary } from './analytics-route.mjs';
@@ -277,6 +278,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
   else if (route === '/en/guides/') page = <GuidesHub Link={Link} />;
   else if (route.startsWith('/en/guides/')) page = <GuideArticle Link={Link} route={route} />;
+  else if (route === '/en/occasions/birthday/') page = <BirthdayOccasion Link={Link} catalog={runtimeCatalog} runtime={runtime} />;
   else if (route.startsWith('/en/occasions/halloween')) page = <HalloweenOccasion Link={Link} />;
   else if (route.startsWith('/en/how-it-works')) page = <HowItWorksPage Link={Link} catalog={runtimeCatalog} checkoutMode={runtime?.checkoutMode} />;
   else if (route.startsWith('/en/create')) page = queryReady ? <LiveCreate key={window.location.search} Link={Link} checkoutReady={Boolean(runtime?.checkout)} checkoutMode={runtime?.checkoutMode} runtimeOffers={runtimeCatalog?.offers} /> : <CreatePage key={window.location.search} unavailable={Boolean(runtime)} />;
