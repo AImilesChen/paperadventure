@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { analyticsAvailable, analyticsChoice, basicAnalyticsAllowed, saveAnalyticsPreferences, analyticsLocationAllowed } from './analytics.js';
 import { useModalFocus } from './useModalFocus.js';
 
@@ -23,8 +24,9 @@ export function AnalyticsChoices() {
     setOpen(false);
   }
 
+  const footerSlot = document.getElementById('privacy-choices-slot');
   return <>
-    <button type="button" className="analytics-choice-trigger" onClick={() => {setBasic(basicAnalyticsAllowed());setOpen(true);}}>Privacy choices</button>
+    {footerSlot && createPortal(<button type="button" className="analytics-choice-trigger" aria-haspopup="dialog" onClick={() => {setBasic(basicAnalyticsAllowed());setOpen(true);}}>Privacy settings</button>, footerSlot)}
     {choice === null && !open && <aside className="analytics-consent-banner" aria-label="Optional analytics">
       <p>With your permission, we use optional analytics cookies and session recordings to improve this website.</p>
       <div className="analytics-banner-actions">
