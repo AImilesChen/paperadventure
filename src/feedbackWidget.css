@@ -1,6 +1,6 @@
 .feedback-trigger{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:27;display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:48px;padding:11px 18px;border:1px solid #fffdf9;border-radius:999px;background:#153d5a;color:#fffdf9;box-shadow:0 5px 20px #153d5a30;font:800 .9rem 'Nunito Sans',sans-serif;cursor:pointer}
 .feedback-trigger:hover{background:#0c2b50}.feedback-trigger:focus-visible,.feedback-dialog :is(button,a,input,textarea):focus-visible{outline:3px solid #ad3425;outline-offset:3px}
-body:has(.analytics-choice-trigger) .feedback-trigger{bottom:calc(74px + env(safe-area-inset-bottom,0px))}
+
 .feedback-overlay{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:flex-end;background:#0d294f66;padding:24px}
 .feedback-dialog{position:relative;width:min(100%,460px);max-height:calc(100dvh - 48px);overflow:auto;overscroll-behavior:contain;background:#fffdf9;color:#153d5a;padding:28px;border:1px solid #b3d5e4;border-radius:18px;box-shadow:0 16px 64px #0c2b503d;line-height:1.5}
 .feedback-close{position:absolute;right:15px;top:15px;width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:50%;background:#e8f6fd;color:#153d5a;cursor:pointer}
