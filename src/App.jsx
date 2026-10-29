@@ -10,6 +10,7 @@ import { pageSchema } from '../shared/seo.mjs';
 import { siteIdentity, pageDocumentTitle } from '../shared/site-identity.mjs';
 import { GuidesHub, GuideArticle, HalloweenOccasion } from './guides.jsx';
 import { BirthdayOccasion } from './birthdayOccasion.jsx';
+import { ChristmasOccasion } from './christmasOccasion.jsx';
 import { HomeSamples, HomeCustomStory, HomeGuides } from './homeSections.jsx';
 import { analyticsAvailable } from './analytics.js';
 import { crossesAnalyticsBoundary } from './analytics-route.mjs';
@@ -85,6 +86,7 @@ function Header({ route }) {
         <div id="home-navigation" className="header-home-panel" hidden={!homeOpen}>
           <Link to="/en/for-home/" aria-current={route === '/en/for-home/' ? 'page' : undefined}><strong>Home adventures</strong><span>Browse all Home stories</span></Link>
           <Link to="/en/occasions/birthday/" aria-current={route === '/en/occasions/birthday/' ? 'page' : undefined}><strong>Birthday party games</strong><span>A free story &amp; party preparation</span></Link>
+          <Link to="/en/occasions/christmas/" aria-current={route === '/en/occasions/christmas/' ? 'page' : undefined}><strong>Christmas games</strong><span>A paper gift workshop to share</span></Link>
           <Link to="/en/samples/home/" aria-current={route === '/en/samples/home/' ? 'page' : undefined}><strong>Free Home game</strong><span>Player Pack &amp; Host Guide</span></Link>
         </div>
       </div>
@@ -290,6 +292,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
   else if (route === '/en/guides/') page = <GuidesHub Link={Link} />;
   else if (route.startsWith('/en/guides/')) page = <GuideArticle Link={Link} route={route} />;
+  else if (route === '/en/occasions/christmas/') page = <ChristmasOccasion Link={Link} catalog={runtimeCatalog} runtime={runtime} />;
   else if (route === '/en/occasions/birthday/') page = <BirthdayOccasion Link={Link} catalog={runtimeCatalog} runtime={runtime} />;
   else if (route.startsWith('/en/occasions/halloween')) page = <HalloweenOccasion Link={Link} />;
   else if (route.startsWith('/en/how-it-works')) page = <HowItWorksPage Link={Link} catalog={runtimeCatalog} checkoutMode={runtime?.checkoutMode} />;
