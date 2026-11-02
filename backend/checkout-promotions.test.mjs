@@ -4,6 +4,8 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,readdirSync} from 'node:fs';
 import {setupOwnerPromotion} from './checkout-promotions.mjs';
 import {ownerPromotion as c} from './checkout-promotion-policy.mjs';
+// Exercise this historical, intentionally expiring promotion independently of today's date.
+test.beforeEach(t => t.mock.timers.enable({ apis: ['Date'], now: (c.expiresAt - 86400) * 1000 }));
 function fixture(){
  const db=new DatabaseSync(':memory:');for(const name of readdirSync(new URL('./migrations/',import.meta.url)).filter(x=>x.endsWith('.sql')).sort())db.exec(readFileSync(new URL('./migrations/'+name,import.meta.url),'utf8'));
  const DB={prepare:sql=>({bind:(...args)=>({first:async()=>db.prepare(sql).get(...args)||null,run:async()=>({meta:{changes:Number(db.prepare(sql).run(...args).changes)}})})}),batch:async statements=>{db.exec('BEGIN');try{const out=[];for(const s of statements)out.push(await s.run());db.exec('COMMIT');return out;}catch(e){db.exec('ROLLBACK');throw e;}}};
@@ -36,4 +38,12 @@ test('coupon setup rejects wrong prices and mismatched or broader coupons and do
 test('an existing coupon is verified by exact identity and never recreated',async()=>{
  const f=fixture();f.env.FETCH=async(url,options)=>{f.calls.push({url,options});if(url.includes('/prices/'))return Response.json(f.price);assert.notEqual(options.method,'POST');return Response.json(f.coupon);};
  await setupOwnerPromotion(f.env);assert.equal(f.calls.length,2);assert.equal(f.calls[1].url,'https://api.stripe.com/v1/coupons/'+c.couponId+'?expand[]=applies_to');assert.equal(f.db.prepare('SELECT status FROM checkout_promotions').get().status,'ready');
+});
+
+test('expired coupon setup makes no provider calls and cannot recreate the promotion',async t=>{
+ t.mock.timers.setTime(c.expiresAt * 1000);
+ const f=fixture();await setupOwnerPromotion(f.env);await setupOwnerPromotion(f.env);
+ assert.equal(f.calls.length,0);
+ assert.equal(f.db.prepare('SELECT status FROM checkout_promotions').get().status,'expired');
+ assert.equal(f.db.prepare('SELECT COUNT(*) n FROM orders').get().n,0);
 });
