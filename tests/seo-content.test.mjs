@@ -56,11 +56,14 @@ test('Home catalogue compares real gameplay and preparation without changing Cla
 test('featured Home calculators render an accessible initial estimate and a static reference', async () => {
   for (const [theme, sheets, pieces] of [['dinosaur', 15, 16], ['christmas', 14, 12]]) {
     const html = await read(`/en/themes/${theme}/home/`);
-    assert.match(html, /<label for="pack-children">Number of children/);
+    assert.match(html, /<label for="pack-children"><span class="pack-step-number" aria-hidden="true">1<\/span>Number of children/);
     assert.match(html, /type="number" min="2" max="12" step="1"/);
     assert.match(html, /Adult host not included/);
-    assert.match(html, /<label for="pack-guide">Host Guide/);
-    assert.match(html, /<option value="screen" selected="">Read on screen/);
+    assert.match(html, /id="pack-calculator-title">Game printing calculator/);
+    assert.match(html, /aria-label="Remove one child"/);
+    assert.match(html, /aria-label="Add one child"/);
+    assert.match(html, /type="radio"[^>]*aria-label="Read Host Guide on screen"[^>]*checked=""/);
+    assert.match(html, /type="radio"[^>]*aria-label="Print one Host Guide"/);
     assert.match(html, /role="status" aria-live="polite" aria-atomic="true"/);
     assert.ok(html.includes(`<strong>${sheets}</strong><span>sheets to print</span>`));
     assert.ok(html.replaceAll('<!-- -->', '').includes(`${pieces} total · ${pieces} per team`));
