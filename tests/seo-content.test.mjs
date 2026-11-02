@@ -12,6 +12,46 @@ const read = pathname => readFile(new URL('../dist/client' + pathname + 'index.h
 const bootstrap = html => JSON.parse(html.match(/id="public-release-data">([^<]+)<\/script>/)[1]);
 const schema = html => JSON.parse(html.match(/type="application\/ld\+json">([^<]+)<\/script>/)[1]);
 
+test('custom search HTML describes ordering accurately without a false unavailable state', async () => {
+  const html = await read('/en/create/'), data = bootstrap(html);
+  assert.match(html, /<h1>Your idea\. Their next paper adventure\.<\/h1>/);
+  assert.match(html, /After payment, review your personal plan before the game PDFs are made/);
+  assert.match(html, /href="\/assets\/custom-paper-format-player-A4\.pdf"/);
+  assert.match(html, /href="\/assets\/custom-paper-format-guide-A4\.pdf"/);
+  assert.doesNotMatch(html, /The creator is temporarily unavailable/);
+  assert.equal(html.includes('Custom checkout is currently unavailable'), data.runtime.checkout === false);
+  const priced = data.runtime.checkout && data.catalog.offers.some(offer => ['custom_home','custom_classroom'].includes(offer.sku) && offer.saleEnabled);
+  assert.equal(html.includes('class="custom-create-prices"'), Boolean(priced));
+});
+
+test('featured Home pages expose distinct file inventories, exact print totals and host handoffs', async () => {
+  for (const [theme, player, guide, pieces] of [['dinosaur',15,10,16],['christmas',14,8,12]]) {
+    const html = (await read(`/en/themes/${theme}/home/`)).replace(/<!--.*?-->/g, "");
+    assert.match(html, /id="prepare-game"/);
+    assert.ok(html.includes(`<strong>${player} Player pages</strong>`));
+    assert.ok(html.includes(`${guide}-page Host Guide`));
+    assert.ok(html.includes(`<strong>${pieces} loose pieces per team:</strong>`));
+    const preparation = html.match(/<section id="prepare-game"[\s\S]*?<\/section>/)[0];
+    for (const total of [player,player*2]) assert.ok(preparation.includes(`<td>${total}</td>`));
+    assert.ok(preparation.includes(`Printing one Host Guide adds ${guide} sheets: ${player+guide} for one team or ${player*2+guide} for two`));
+    assert.match(preparation, /Single-sided sheets with the Host Guide on screen/);
+    assert.match(preparation, /Table setup schematic/);
+    assert.match(preparation, /Actual size \/ 100%/);
+    assert.match(preparation, /page 14/);
+    assert.match(preparation, /two balanced teams of 3–6/);
+    assert.match(html, /Selected blank materials from the game, not a view of every page/);
+    assert.doesNotMatch(preparation, /minutes|playtested|play-tested|SUN &gt; FERN|Gift A is for OWL/);
+    assert.equal((html.match(/id="theme-prep-heading"/g)||[]).length, 1);
+  }
+  const dinosaur = await read('/en/themes/dinosaur/home/');
+  assert.match(dinosaur, /Keep the welcome on page 14 and keepsake on page 15/);
+  assert.match(dinosaur, /fixed expedition, not a personalized birthday story/);
+  const christmas = await read('/en/themes/christmas/home/');
+  assert.match(christmas, /frame’s inner window/);
+  assert.match(christmas, /No real gifts, tape or glue/);
+  assert.match(await read('/en/occasions/christmas/'), /href="\/en\/themes\/christmas\/home\/#prepare-game"/);
+});
+
 test('Christmas occasion explains the real paid workshop with preparation and a distinct free trial', async () => {
   const route = '/en/occasions/christmas/', html = await read(route);
   assert.match(html, /<h1>A printable Christmas adventure for kids/);

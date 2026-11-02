@@ -105,6 +105,23 @@ try {
   assert.doesNotMatch(privateOrder, /Your adventure, from checkout to play/);
   assert.match(renderPreview('/en/orders/demo/', '', null), /Your adventure, from checkout to play/);
   console.log('Verified query and saved-draft hydration against the pre-rendered pages');
+  // Availability is a checkout fact, not a side effect of having a public bootstrap.
+  // The first HTML must never label a healthy creator unavailable before hydration.
+  globalThis.window = { location: { pathname: '/en/create/', search: '', origin } };
+  const creatorRelease = structuredClone(release);
+  creatorRelease.runtime.checkout = true;
+  creatorRelease.catalog.offers = creatorRelease.catalog.offers.map(offer => ({ ...offer, saleEnabled: true }));
+  const creatorHtml = value => renderToString(React.createElement(App, { initialPublicRelease: value }));
+  const enabledCreator = creatorHtml(creatorRelease);
+  assert.doesNotMatch(enabledCreator, /creator is temporarily unavailable|Custom checkout is currently unavailable/);
+  assert.match(enabledCreator, /Free format example/);
+  const disabledCreator = creatorHtml({ ...creatorRelease, runtime: { ...creatorRelease.runtime, checkout: false, checkoutMode: 'disabled' } });
+  assert.match(disabledCreator, /Custom checkout is currently unavailable/);
+  assert.doesNotMatch(disabledCreator, /class="custom-create-prices"/);
+  const unknownCreator = creatorHtml(null);
+  assert.doesNotMatch(unknownCreator, /creator is temporarily unavailable|Custom checkout is currently unavailable|class="custom-create-prices"/);
+  assert.match(unknownCreator, /interactive creator/);
+  console.log('Verified enabled, disabled and unknown creator availability in initial HTML');
   for (const record of publicPages.filter(page => page.indexable)) {
     globalThis.window = { location: { pathname: record.path, search: '', origin } };
     const restored = readPublicRelease({ getElementById: () => ({ textContent: htmlJson(publicReleaseData(release)) }) });
