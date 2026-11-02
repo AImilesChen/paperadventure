@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {ownerPromotion} from './checkout-promotion-policy.mjs';
 import {purchaseConsentVersion} from '../shared/purchase-consent.mjs';
 import {assertPaymentRuntime} from '../scripts/payment-runtime.mjs';
 import assert from 'node:assert/strict';
@@ -2709,7 +2710,8 @@ test('one-time owner library cleanup is count-guarded, reversible and preserves 
 });
 
 
-test('owner one-use coupon charges exactly one dollar, delivers the selected pack and refunds only the actual paid amount',async()=>{
+test('owner one-use coupon charges exactly one dollar, delivers the selected pack and refunds only the actual paid amount',async t=>{
+ t.mock.timers.enable({apis:['Date'],now:(ownerPromotion.expiresAt-86400)*1000});
  const {db,binding}=database();seedReady(db);
  const code='FIXTURE-899',owner='veryhappygou'+'@gmail.com';
  db.prepare("UPDATE checkout_promotions SET code_hash=?,status='ready'").run(await sha256(code));
