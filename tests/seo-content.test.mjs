@@ -7,6 +7,68 @@ import { publicRelease, publicReleaseData, readPublicRelease, htmlJson } from '.
 import { pageSchema } from '../shared/seo.mjs';
 import { guides, guideOutcomes } from '../shared/guides.mjs';
 import { siteIdentity } from '../shared/site-identity.mjs';
+import { homeGamePlanning, homePrintPlan } from '../shared/home-game-planning.mjs';
+
+test('Home printing plans balance every supported child count and count the adult guide only once', () => {
+  for (const [theme, pages, guidePages, pieces] of [['dinosaur', 15, 10, 16], ['christmas', 14, 8, 12]]) {
+    for (let children = 2; children <= 12; children++) {
+      const teams = children <= 6 ? 1 : 2;
+      for (const printGuide of [false, true]) {
+        const result = homePrintPlan(theme, String(children), printGuide);
+        assert.equal(result.teams.reduce((a, b) => a + b, 0), children);
+        assert.equal(result.teams.length, teams);
+        assert.ok(result.teams.every(n => n >= (teams === 1 ? 2 : 3) && n <= 6));
+        assert.ok(Math.max(...result.teams) - Math.min(...result.teams) <= 1);
+        assert.equal(result.playerCopies, teams);
+        assert.equal(result.playerSheets, teams * pages);
+        assert.equal(result.guideSheets, printGuide ? guidePages : 0);
+        assert.equal(result.totalSheets, teams * pages + (printGuide ? guidePages : 0));
+        assert.equal(result.pieces, teams * pieces);
+      }
+    }
+  }
+  assert.deepEqual(homePrintPlan('dinosaur', 7).teams, [4, 3]);
+  assert.equal(homePrintPlan('dinosaur', 12, true).totalSheets, 40);
+  assert.equal(homePrintPlan('christmas', 12, true).totalSheets, 36);
+});
+
+test('printing plans reject invalid inputs and editions with different printing rules', () => {
+  for (const invalid of ['', ' ', '1', '13', '2.5', '2e0', '0x2', 'seven', 1, 13, 2.5, NaN, Infinity, null, undefined, {}, [], true]) {
+    assert.equal(homePrintPlan('dinosaur', invalid), null, String(invalid));
+  }
+  for (const theme of ['celebration', 'space', 'forest', 'halloween', 'unknown', '__proto__']) assert.equal(homePrintPlan(theme, 4), null);
+  assert.equal(homePrintPlan('christmas', 4, 'print'), null);
+});
+
+test('Home catalogue compares real gameplay and preparation without changing Classroom cards', async () => {
+  const home = await read('/en/for-home/'), classroom = await read('/en/for-classroom/');
+  assert.equal((home.match(/class="catalog-home-comparison"/g) || []).length, 6);
+  for (const facts of Object.values(homeGamePlanning)) {
+    assert.ok(home.includes(facts.play));
+    assert.ok(home.includes(facts.prepare));
+    assert.ok(home.includes(facts.occasion));
+  }
+  assert.match(home, /adult host, who can read aloud/);
+  assert.match(home, /Host Guide separate/);
+  assert.doesNotMatch(classroom, /catalog-home-comparison|Choosing for your group/);
+});
+
+test('featured Home calculators render an accessible initial estimate and a static reference', async () => {
+  for (const [theme, sheets, pieces] of [['dinosaur', 15, 16], ['christmas', 14, 12]]) {
+    const html = await read(`/en/themes/${theme}/home/`);
+    assert.match(html, /<label for="pack-children">Number of children/);
+    assert.match(html, /type="number" min="2" max="12" step="1"/);
+    assert.match(html, /Adult host not included/);
+    assert.match(html, /<label for="pack-guide">Host Guide/);
+    assert.match(html, /<option value="screen" selected="">Read on screen/);
+    assert.match(html, /role="status" aria-live="polite" aria-atomic="true"/);
+    assert.ok(html.includes(`<strong>${sheets}</strong><span>sheets to print</span>`));
+    assert.ok(html.replaceAll('<!-- -->', '').includes(`${pieces} total · ${pieces} per team`));
+    assert.match(html, /1 team of 4 children/);
+    assert.match(html, /See one- and two-team totals/);
+    assert.match(html, /same for A4 and US Letter/);
+  }
+});
 
 const read = pathname => readFile(new URL('../dist/client' + pathname + 'index.html', import.meta.url), 'utf8');
 const bootstrap = html => JSON.parse(html.match(/id="public-release-data">([^<]+)<\/script>/)[1]);

@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { homeGamePlanning, homePrintPlan } from '../shared/home-game-planning.mjs';
 import dinosaurAssets from './dinosaurPreviewAssets.json';
 import christmasAssets from './christmasHomePreviewAssets.json';
 import './featuredHomePreparation.css';
@@ -5,7 +7,7 @@ import './featuredHomePreparation.css';
 // Counts and handoffs follow dinosaur_home_experience.py and christmas_home_workshop.py.
 const packs = {
   dinosaur: {
-    playerPages: 15, guidePages: 10, pieces: 16,
+    ...homeGamePlanning.dinosaur,
     inventory: '4 job cards · 6 landscape tiles · 4 supply tokens · 2 markers',
     previews: [['map', 'A landscape to build'], ['backpack', 'A place for paper supplies'], ['record', 'A record of the journey']],
     materials: 'Ordinary paper, a pencil, adult-handled scissors and a flat table. All supplies and obstacles in the story are paper pieces.',
@@ -23,7 +25,7 @@ const packs = {
     ],
   },
   christmas: {
-    playerPages: 14, guidePages: 8, pieces: 12,
+    ...homeGamePlanning.christmas,
     inventory: '4 job cards · 1 press · 3 gifts · 3 clue cards · 1 frame',
     previews: [['gifts', 'Three gifts to fold'], ['frame', 'A frame for checking'], ['village', 'A shared winter display']],
     materials: 'Ordinary paper, a pencil, an eraser, adult-handled scissors and a flat table. No real gifts, tape or glue are required.',
@@ -63,11 +65,33 @@ export function FeaturedPackMaterials({ themeId }) {
   })}</div><p className="pack-inventory"><strong>{pack.pieces} loose pieces per team:</strong> {pack.inventory}. Keep boards and other whole pages uncut as directed.</p></div>;
 }
 
+function HomePrintingCalculator({ themeId, Link }) {
+  const pack = packs[themeId];
+  const [children, setChildren] = useState('4');
+  const [printGuide, setPrintGuide] = useState(false);
+  const plan = homePrintPlan(themeId, children, printGuide);
+  return <div className="pack-print-card">
+    <span className="eyebrow">PRINTING CALCULATOR</span>
+    <h3>How much should I print?</h3>
+    <p className="pack-calculator-intro">Count the children, then choose how the adult will read the guide.</p>
+    <div className="pack-calculator-fields">
+      <div><label htmlFor="pack-children">Number of children</label><input id="pack-children" type="number" min="2" max="12" step="1" value={children} onChange={event => setChildren(event.target.value)} aria-describedby="pack-children-help" aria-invalid={!plan}/><small id="pack-children-help">2–12 children. Adult host not included.</small></div>
+      <div><label htmlFor="pack-guide">Host Guide</label><select id="pack-guide" value={printGuide ? 'print' : 'screen'} onChange={event => setPrintGuide(event.target.value === 'print')}><option value="screen">Read on screen</option><option value="print">Print one copy</option></select></div>
+    </div>
+    <div className="pack-calculator-result" role="status" aria-live="polite" aria-atomic="true">
+      {plan ? <><p className="pack-sheet-total"><strong>{plan.totalSheets}</strong><span>sheets to print</span></p><p className="pack-team-result">{plan.teams.length === 1 ? `1 team of ${plan.children} children` : `2 teams: ${plan.teams[0]} + ${plan.teams[1]} children`}</p><dl><div><dt>Player Pack · {pack.playerPages} pages</dt><dd>{plan.playerCopies} {plan.playerCopies === 1 ? 'copy' : 'copies'} · {plan.playerSheets} sheets</dd></div><div><dt>Host Guide · {pack.guidePages} pages</dt><dd>{printGuide ? `1 copy · ${plan.guideSheets} sheets` : 'On screen · 0 sheets'}</dd></div><div><dt>Cut-out pieces</dt><dd>{plan.pieces} total · {pack.pieces} per team</dd></div></dl></> : <p className="pack-calculator-error">Enter a whole number from 2 to 12 to calculate your printing.</p>}
+    </div>
+    <p className="pack-print-note">Single-sided, one PDF page per sheet. The totals are the same for A4 and US Letter. Use one matching paper size for all files; the Host Guide is counted once, even for two teams.</p>
+    <details className="pack-print-reference"><summary>See one- and two-team totals</summary><p><strong>Player Pack · {pack.playerPages} pages</strong><br/>One complete copy per team.</p><p><strong>Host Guide · {pack.guidePages} pages</strong><br/>One adult copy, on screen or printed.</p><div className="pack-table-wrap"><table><caption>Single-sided sheets with the Host Guide on screen</caption><thead><tr><th scope="col">Children</th><th scope="col">Team sets</th><th scope="col">Sheets</th></tr></thead><tbody><tr><th scope="row">2–6</th><td>1</td><td>{pack.playerPages}</td></tr><tr><th scope="row">7–12</th><td>2</td><td>{pack.playerPages * 2}</td></tr></tbody></table></div><p className="pack-print-note">Printing one Host Guide adds {pack.guidePages} sheets: {pack.playerPages + pack.guidePages} for one team or {pack.playerPages * 2 + pack.guidePages} for two. For 7–12 children, use two balanced teams of 3–6; the adult is additional.</p></details>
+    <Link className="text-link" to="/en/help/print/">Printing help →</Link>
+  </div>;
+}
+
 export function FeaturedHomePreparation({ themeId, Link }) {
   const pack = packs[themeId];
   return <>
     <section id="prepare-game" className="theme-detail-section pack-preparation" aria-labelledby="theme-prep-heading"><div className="theme-detail-heading"><span className="eyebrow">PRINT, SET OUT, HOST</span><h2 id="theme-prep-heading">Know what to prepare before everyone arrives.</h2><p>{pack.materials}</p></div>
-      <div className="pack-preparation-grid"><div className="pack-print-card"><h3>How much should I print?</h3><p><strong>Player Pack · {pack.playerPages} pages</strong><br/>One complete copy per team.</p><p><strong>Host Guide · {pack.guidePages} pages</strong><br/>One adult copy, on screen or printed.</p><div className="pack-table-wrap"><table><caption>Single-sided sheets with the Host Guide on screen</caption><thead><tr><th scope="col">Children</th><th scope="col">Team sets</th><th scope="col">Sheets</th></tr></thead><tbody><tr><th scope="row">2–6</th><td>1</td><td>{pack.playerPages}</td></tr><tr><th scope="row">7–12</th><td>2</td><td>{pack.playerPages * 2}</td></tr></tbody></table></div><p className="pack-print-note">Printing one Host Guide adds {pack.guidePages} sheets: {pack.playerPages + pack.guidePages} for one team or {pack.playerPages * 2 + pack.guidePages} for two. For 7–12 children, use two balanced teams of 3–6; the adult is additional.</p><Link className="text-link" to="/en/help/print/">Printing help →</Link></div>
+      <div className="pack-preparation-grid"><HomePrintingCalculator key={themeId} themeId={themeId} Link={Link}/>
       <div className="pack-host-steps"><h3>Your adult preparation checklist</h3><ol>{pack.steps.map(([title, body], index) => <li key={title}><span aria-hidden="true">0{index + 1}</span><div><h4>{title}</h4><p>{body}</p></div></li>)}</ol></div></div>
       <div className="pack-table-setup"><div><span className="eyebrow">SET OUT THE TABLE</span><h3>A space for the team. Later clues with the adult.</h3><p>For two teams, repeat the team area and keep each set separate. Check both teams before moving to the next mission.</p></div><figure><div className="pack-table-zones">{pack.table.map(([title, body]) => <div key={title}><strong>{title}</strong><span>{body}</span></div>)}</div><figcaption>Table setup schematic · positions are suggestions, not an included game board.</figcaption></figure></div>
     </section>

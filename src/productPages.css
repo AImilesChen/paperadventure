@@ -137,3 +137,6 @@
 .catalog-page .catalog-home-benefits{padding-top:42px}
 }
 
+.catalog-host-note{max-width:890px;margin:0 0 24px;color:#416579;font-size:.9rem;line-height:1.65}.catalog-host-note strong{color:#173e57}.catalog-home-comparison{display:grid;gap:12px;margin:0 0 21px;padding:16px 0;border-top:1px solid #c5dce5;border-bottom:1px solid #c5dce5}.catalog-home-comparison>div{display:grid;grid-template-columns:61px minmax(0,1fr);gap:10px;font-size:.82rem;line-height:1.55}.catalog-home-comparison dt{font-weight:900;color:#173e57}.catalog-home-comparison dd{margin:0;color:#416579}
+.catalog-page .catalog-plannable-card h3{min-height:2.48em}.catalog-plannable-card .catalog-home-comparison>div{min-height:3.1em}.catalog-plannable-card .catalog-home-comparison>div:first-child{min-height:4.65em}.catalog-host-note{padding-top:15px}
+@media(max-width:650px){.catalog-page .catalog-plannable-card h3,.catalog-plannable-card .catalog-home-comparison>div,.catalog-plannable-card .catalog-home-comparison>div:first-child{min-height:0}.catalog-page .catalog-custom .button{max-width:100%;min-width:0;white-space:normal}.catalog-page .catalog-custom .button svg{flex-shrink:0}}
