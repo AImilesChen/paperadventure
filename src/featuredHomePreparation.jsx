@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Printer, Users, Monitor, Minus, Plus, Files, Scissors } from '@phosphor-icons/react';
+import { Printer, Monitor, Backspace, Scissors, Equals } from '@phosphor-icons/react';
 import { homeGamePlanning, homePrintPlan } from '../shared/home-game-planning.mjs';
 import dinosaurAssets from './dinosaurPreviewAssets.json';
 import christmasAssets from './christmasHomePreviewAssets.json';
 import './featuredHomePreparation.css';
+import './printingCalculator.css';
 
 // Counts and handoffs follow dinosaur_home_experience.py and christmas_home_workshop.py.
 const packs = {
@@ -66,33 +67,47 @@ export function FeaturedPackMaterials({ themeId }) {
   })}</div><p className="pack-inventory"><strong>{pack.pieces} loose pieces per team:</strong> {pack.inventory}. Keep boards and other whole pages uncut as directed.</p></div>;
 }
 
-function HomePrintingCalculator({ themeId, Link }) {
+export function HomePrintingCalculator({ themeId, Link }) {
   const pack = packs[themeId];
   const [children, setChildren] = useState('4');
   const [printGuide, setPrintGuide] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [replaceEntry, setReplaceEntry] = useState(true);
   const plan = homePrintPlan(themeId, children, printGuide);
+  const ready = !pending && plan;
+  function digit(value) {
+    setChildren(current => replaceEntry || current.length >= 2 || current === '0' ? value : current + value);
+    setReplaceEntry(false);
+    setPending(true);
+  }
+  function edit(value) { setChildren(value); setReplaceEntry(false); setPending(true); }
+  function calculate(event) { event.preventDefault(); setPending(false); setReplaceEntry(true); }
   return <div className="pack-print-card" aria-labelledby="pack-calculator-title">
-    <div className="pack-calculator-heading"><span className="pack-printer-badge" aria-hidden="true"><Printer size={32} weight="duotone"/></span><div><span className="eyebrow">PLAN YOUR PAPER</span><h3 id="pack-calculator-title">Game printing calculator</h3><p>See how many sheets you need for this {themeId === 'dinosaur' ? 'Dinosaur' : 'Christmas'} Home game.</p></div></div>
-    <div className="pack-calculator-body"><div className="pack-calculator-fields">
-      <div className="pack-children-field"><label htmlFor="pack-children"><span className="pack-step-number" aria-hidden="true">1</span>Number of children</label><div className="pack-children-stepper"><button type="button" aria-label="Remove one child" disabled={!plan || plan.children <= 2} onClick={() => setChildren(String(Number(children) - 1))}><Minus size={20}/></button><input id="pack-children" type="number" min="2" max="12" step="1" value={children} onChange={event => setChildren(event.target.value)} aria-describedby="pack-children-help" aria-invalid={!plan}/><button type="button" aria-label="Add one child" disabled={!plan || plan.children >= 12} onClick={() => setChildren(String(Number(children) + 1))}><Plus size={20}/></button></div><small id="pack-children-help">2–12 children. Adult host not included.</small></div>
-      <fieldset className="pack-guide-options"><legend><span className="pack-step-number" aria-hidden="true">2</span>Host Guide</legend><div className="pack-guide-choices"><label className={!printGuide ? 'selected' : ''}><input type="radio" name="pack-guide" value="screen" checked={!printGuide} onChange={() => setPrintGuide(false)} aria-label="Read Host Guide on screen"/><Monitor size={25} aria-hidden="true"/><span><strong>Read on screen</strong><small>No extra sheets</small></span></label><label className={printGuide ? 'selected' : ''}><input type="radio" name="pack-guide" value="print" checked={printGuide} onChange={() => setPrintGuide(true)} aria-label="Print one Host Guide"/><Printer size={25} aria-hidden="true"/><span><strong>Print one copy</strong><small>+{pack.guidePages} sheets total</small></span></label></div></fieldset>
-      <p className="pack-auto-update">Your total updates automatically.</p>
+    <div className="print-tool-heading"><span className="eyebrow">PAPER ADVENTURE</span><h2 id="pack-calculator-title">Game printing calculator</h2><p>Plan the paper for your {themeId === 'dinosaur' ? 'Dinosaur' : 'Christmas'} Home game.</p></div>
+    <div className="print-tool-workbench">
+      <form className="print-calculator-machine" aria-label="Game printing calculator" onSubmit={calculate} noValidate>
+        <div className="print-machine-brand">PAPER ADVENTURE</div>
+        <div className="print-machine-entry"><label htmlFor="pack-children">Children</label><input id="pack-children" aria-label="Number of children" type="number" min="2" max="12" step="1" inputMode="numeric" value={children} onChange={event => edit(event.target.value)} aria-describedby="pack-children-help" aria-invalid={!pending && !plan}/><small id="pack-children-help" className="print-machine-help">2–12 allowed,<br/>adult excluded</small></div>
+        <div className="print-machine-screen"><div className="pack-calculator-result" role="status" aria-live="polite" aria-atomic="true"><p className="pack-sheet-total"><strong className={ready ? '' : 'waiting'}>{ready ? plan.totalSheets : '—'}</strong><span>sheets</span></p><p className={!pending && !plan ? 'print-display-error' : 'print-display-hint'}>{ready ? plan.teams.length === 1 ? `1 team of ${plan.children}` : `2 teams: ${plan.teams[0]} + ${plan.teams[1]}` : pending ? 'Enter 2–12, then press =' : 'Enter a whole number: 2–12'}</p></div></div>
+        <fieldset className="print-machine-modes"><legend>Host Guide</legend><label className={!printGuide ? 'selected' : ''}><input type="radio" name="pack-guide" value="screen" checked={!printGuide} onChange={() => setPrintGuide(false)} aria-label="Read Host Guide on screen"/><Monitor size={27} aria-hidden="true"/><span>On screen<small>+0 sheets</small></span></label><label className={printGuide ? 'selected' : ''}><input type="radio" name="pack-guide" value="print" checked={printGuide} onChange={() => setPrintGuide(true)} aria-label="Print one Host Guide"/><Printer size={27} aria-hidden="true"/><span>Print Guide<small>+{pack.guidePages} sheets</small></span></label></fieldset>
+        <div className="print-machine-keypad" role="group" aria-label="Enter number of children">{['7','8','9','4','5','6','1','2','3'].map(value => <button type="button" key={value} onClick={() => digit(value)} aria-label={`Enter ${value}`}>{value}</button>)}<button type="button" className="print-key-clear" onClick={() => edit('')} aria-label="Clear number">AC</button><button type="button" onClick={() => digit('0')} aria-label="Enter 0">0</button><button type="button" className="print-key-delete" onClick={() => edit(children.slice(0, -1))} aria-label="Delete last digit"><Backspace size={23}/></button></div>
+        <button type="submit" className="print-key-equals" aria-label="Calculate printing"><Equals size={32} weight="bold" aria-hidden="true"/> Calculate</button>
+      </form>
+      <div className="print-receipt" role="region" aria-labelledby="print-receipt-title"><div className="print-receipt-heading"><Printer size={41} aria-hidden="true"/><div><span className="eyebrow">READY FOR YOUR PRINTER</span><h3 id="print-receipt-title">Your print list</h3></div></div>
+        {ready ? <><p className="print-receipt-group">{plan.children} children · {plan.playerCopies} {plan.playerCopies === 1 ? 'team' : 'teams'}</p><dl className="print-receipt-lines"><div><dt>Player Pack<small>{plan.playerCopies} {plan.playerCopies === 1 ? 'copy' : 'copies'} × {pack.playerPages} pages</small></dt><dd>{plan.playerSheets} sheets</dd></div><div><dt>Host Guide<small>{printGuide ? 'One adult copy' : 'Read on screen'}</small></dt><dd>{plan.guideSheets} sheets</dd></div></dl><p className="print-receipt-total"><span>Total</span><strong>{plan.totalSheets} sheets</strong></p><p className="pack-cut-total"><Scissors size={28} aria-hidden="true"/><strong>{plan.pieces} cut-out pieces</strong></p></> : <div className="print-receipt-empty"><p>Your printing list will appear here.</p><p>Type 2–12 children or use the number keys, choose your Guide option, then press <strong>=</strong>.</p></div>}
+        <p className="print-receipt-note">A4 or US Letter · single-sided</p>
+      </div>
     </div>
-    <div className="pack-calculator-result" role="status" aria-live="polite" aria-atomic="true">
-      <span className="pack-result-label"><Files size={21} aria-hidden="true"/> YOUR PRINTING TOTAL</span>
-      {plan ? <><p className="pack-sheet-total"><strong>{plan.totalSheets}</strong><span>sheets to print</span></p><p className="pack-team-result"><Users size={18} aria-hidden="true"/>{plan.teams.length === 1 ? `1 team of ${plan.children} children` : `2 teams: ${plan.teams[0]} + ${plan.teams[1]} children`}</p><dl><div><dt>Player Pack · {pack.playerPages} pages</dt><dd>{plan.playerCopies} {plan.playerCopies === 1 ? 'copy' : 'copies'} · {plan.playerSheets} sheets</dd></div><div><dt>Host Guide · {pack.guidePages} pages</dt><dd>{printGuide ? `1 copy · ${plan.guideSheets} sheets` : 'On screen · 0 sheets'}</dd></div></dl><p className="pack-cut-total"><Scissors size={18} aria-hidden="true"/><span>Cut-out pieces: <strong>{plan.pieces} total · {pack.pieces} per team</strong></span></p></> : <p className="pack-calculator-error">Enter a whole number from 2 to 12 to calculate your printing.</p>}
-    </div></div>
-    <div className="pack-calculator-footer"><p className="pack-print-note">Single-sided, one PDF page per sheet. The totals are the same for A4 and US Letter. Print the Host Guide once, even for two teams.</p>
-    <details className="pack-print-reference"><summary>See one- and two-team totals</summary><p><strong>Player Pack · {pack.playerPages} pages</strong><br/>One complete copy per team.</p><p><strong>Host Guide · {pack.guidePages} pages</strong><br/>One adult copy, on screen or printed.</p><div className="pack-table-wrap"><table><caption>Single-sided sheets with the Host Guide on screen</caption><thead><tr><th scope="col">Children</th><th scope="col">Team sets</th><th scope="col">Sheets</th></tr></thead><tbody><tr><th scope="row">2–6</th><td>1</td><td>{pack.playerPages}</td></tr><tr><th scope="row">7–12</th><td>2</td><td>{pack.playerPages * 2}</td></tr></tbody></table></div><p className="pack-print-note">Printing one Host Guide adds {pack.guidePages} sheets: {pack.playerPages + pack.guidePages} for one team or {pack.playerPages * 2 + pack.guidePages} for two. For 7–12 children, use two balanced teams of 3–6; the adult is additional.</p></details>
-    <Link className="text-link" to="/en/help/print/">Printing help →</Link></div>
+    <div className="pack-calculator-footer"><details className="pack-print-reference"><summary>See one- and two-team totals</summary><p className="print-calculation-note">One PDF page per sheet. Print the Host Guide once, even for two teams. Cut-out pieces are separate from the sheet count.</p><p><strong>Player Pack · {pack.playerPages} pages</strong><br/>One complete copy per team.</p><p><strong>Host Guide · {pack.guidePages} pages</strong><br/>One adult copy, on screen or printed.</p><div className="pack-table-wrap"><table><caption>Single-sided sheets with the Host Guide on screen</caption><thead><tr><th scope="col">Children</th><th scope="col">Team sets</th><th scope="col">Sheets</th></tr></thead><tbody><tr><th scope="row">2–6</th><td>1</td><td>{pack.playerPages}</td></tr><tr><th scope="row">7–12</th><td>2</td><td>{pack.playerPages * 2}</td></tr></tbody></table></div><p className="pack-print-note">Printing one Host Guide adds {pack.guidePages} sheets: {pack.playerPages + pack.guidePages} for one team or {pack.playerPages * 2 + pack.guidePages} for two. For 7–12 children, use two balanced teams of 3–6; the adult is additional.</p></details><Link className="text-link" to="/en/help/print/">Printing help →</Link></div>
   </div>;
 }
 
 export function FeaturedHomePreparation({ themeId, Link }) {
   const pack = packs[themeId];
   return <>
-    <section id="prepare-game" className="theme-detail-section pack-preparation" aria-labelledby="theme-prep-heading"><div className="theme-detail-heading"><span className="eyebrow">PRINT, SET OUT, HOST</span><h2 id="theme-prep-heading">Know what to prepare before everyone arrives.</h2><p>{pack.materials}</p></div>
-      <div className="pack-preparation-grid"><HomePrintingCalculator key={themeId} themeId={themeId} Link={Link}/>
+    <section id="prepare-game" className="theme-detail-section pack-calculator-section" aria-labelledby="pack-calculator-title"><HomePrintingCalculator key={themeId} themeId={themeId} Link={Link}/></section>
+    <section className="theme-detail-section pack-preparation" aria-labelledby="theme-prep-heading"><div className="theme-detail-heading"><span className="eyebrow">PRINT, SET OUT, HOST</span><h2 id="theme-prep-heading">Know what to prepare before everyone arrives.</h2><p>{pack.materials}</p></div>
+      <div className="pack-preparation-grid">
       <div className="pack-host-steps"><h3>Your adult preparation checklist</h3><ol>{pack.steps.map(([title, body], index) => <li key={title}><span aria-hidden="true">0{index + 1}</span><div><h4>{title}</h4><p>{body}</p></div></li>)}</ol></div></div>
       <div className="pack-table-setup"><div><span className="eyebrow">SET OUT THE TABLE</span><h3>A space for the team. Later clues with the adult.</h3><p>For two teams, repeat the team area and keep each set separate. Check both teams before moving to the next mission.</p></div><figure><div className="pack-table-zones">{pack.table.map(([title, body]) => <div key={title}><strong>{title}</strong><span>{body}</span></div>)}</div><figcaption>Table setup schematic · positions are suggestions, not an included game board.</figcaption></figure></div>
     </section>

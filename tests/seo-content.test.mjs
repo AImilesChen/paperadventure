@@ -56,20 +56,21 @@ test('Home catalogue compares real gameplay and preparation without changing Cla
 test('featured Home calculators render an accessible initial estimate and a static reference', async () => {
   for (const [theme, sheets, pieces] of [['dinosaur', 15, 16], ['christmas', 14, 12]]) {
     const html = await read(`/en/themes/${theme}/home/`);
-    assert.match(html, /<label for="pack-children"><span class="pack-step-number" aria-hidden="true">1<\/span>Number of children/);
-    assert.match(html, /type="number" min="2" max="12" step="1"/);
-    assert.match(html, /Adult host not included/);
+    assert.match(html, /<label for="pack-children">Children/);
+    assert.match(html, /aria-label="Number of children" type="number" min="2" max="12" step="1"/);
+    assert.match(html, /adult excluded/);
     assert.match(html, /id="pack-calculator-title">Game printing calculator/);
-    assert.match(html, /aria-label="Remove one child"/);
-    assert.match(html, /aria-label="Add one child"/);
+    assert.match(html, /class="print-calculator-machine" aria-label="Game printing calculator" noValidate=""|class="print-calculator-machine" aria-label="Game printing calculator" novalidate=""/);
+    for (let digit = 0; digit <= 9; digit++) assert.ok(html.includes(`aria-label="Enter ${digit}"`));
+    for (const action of ['Clear number', 'Delete last digit', 'Calculate printing']) assert.ok(html.includes(`aria-label="${action}"`));
     assert.match(html, /type="radio"[^>]*aria-label="Read Host Guide on screen"[^>]*checked=""/);
     assert.match(html, /type="radio"[^>]*aria-label="Print one Host Guide"/);
     assert.match(html, /role="status" aria-live="polite" aria-atomic="true"/);
-    assert.ok(html.includes(`<strong>${sheets}</strong><span>sheets to print</span>`));
-    assert.ok(html.replaceAll('<!-- -->', '').includes(`${pieces} total · ${pieces} per team`));
-    assert.match(html, /1 team of 4 children/);
+    assert.ok(html.includes(`<strong class="">${sheets}</strong><span>sheets</span>`));
+    assert.ok(html.replaceAll('<!-- -->', '').includes(`${pieces} cut-out pieces`));
+    assert.match(html, /1 team of 4/);
     assert.match(html, /See one- and two-team totals/);
-    assert.match(html, /same for A4 and US Letter/);
+    assert.match(html, /A4 or US Letter · single-sided/);
   }
 });
 
@@ -96,7 +97,10 @@ test('featured Home pages expose distinct file inventories, exact print totals a
     assert.ok(html.includes(`<strong>${player} Player pages</strong>`));
     assert.ok(html.includes(`${guide}-page Host Guide`));
     assert.ok(html.includes(`<strong>${pieces} loose pieces per team:</strong>`));
-    const preparation = html.match(/<section id="prepare-game"[\s\S]*?<\/section>/)[0];
+    const calculator = html.match(/<section id="prepare-game"[\s\S]*?<\/section>/)[0];
+    const preparation = calculator + html.match(/<section class="theme-detail-section pack-preparation"[\s\S]*?<\/section>/)[0];
+    assert.match(calculator, /pack-calculator-section/);
+    assert.doesNotMatch(calculator, /Your adult preparation checklist|Table setup schematic/);
     for (const total of [player,player*2]) assert.ok(preparation.includes(`<td>${total}</td>`));
     assert.ok(preparation.includes(`Printing one Host Guide adds ${guide} sheets: ${player+guide} for one team or ${player*2+guide} for two`));
     assert.match(preparation, /Single-sided sheets with the Host Guide on screen/);
