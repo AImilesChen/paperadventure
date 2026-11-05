@@ -1,0 +1,47 @@
+THE MIDNIGHT MASQUERADE — LOCAL DEVELOPMENT HANDOFF
+
+Status: reviewed household v2; owner authorized sales publication 2026-11-05.
+Actual deployment evidence is recorded separately after release completion.
+Story and evidence source: game.json. Interface: app.js, model.mjs, art.mjs, style.css.
+Six rounds; 18 private cards; three information roles; six NPC guests.
+All players cooperate. No player is assigned the culprit or asked to lie.
+
+Build from repository root:
+  node games/midnight-masquerade/build.mjs
+  python games/midnight-masquerade/build_pdfs.py
+  node --test games/midnight-masquerade/model.test.mjs
+  node games/midnight-masquerade/browser-qa.cjs
+  python games/midnight-masquerade/package.py
+Python requires reportlab and pypdf. Browser QA requires the bundled Playwright
+runtime, Edge and a local HTTP server on port 5521; see browser-qa.cjs.
+
+Output: output/private/midnight-masquerade/
+Delivery archive: output/private/midnight-masquerade-household-v2.zip
+Twelve PDFs, 66 pages total across A4 and Letter. Each paper size has 13 shared
+player pages, three 3-page private-role portfolios, a 3-page preparation map
+and an 8-page adult guide. Required player printing is 22 sheets per format.
+Guide and preparation map may stay on screen. Seven packet labels are optional.
+Release recovery R-01 on Player page 12 AFTER round 5 is checked. Release the
+separate confession and certificate on Player page 13 AFTER round 6 is checked.
+One adult host is additional to the advertised investigation-player count.
+Customer ZIP excludes manifest, owner preview and PLAYTEST; these stay internal.
+Print one paper size only. Adult cuts and sorts role cards by round; never give
+an entire role portfolio to a player. See START-HERE.txt for preparation.
+Product-preview.html is an owner review page and is not included in the ZIP.
+
+Private-card viewer is a one-screen passing aid, not secure multiplayer.
+It hides future cards in normal play and clears the visible card when closed
+or the page is hidden. The self-contained purchased file contains all content.
+
+Validation: model tests, complete browser flow, narrow-screen layout, private
+viewer behavior, PDF text/variant/geometry audit and rendered-page review.
+Remaining: actual printing/cutting/sliding, unfamiliar adult preparation and
+independent family playtests. Age suitability and duration need playtesting.
+
+Paid integration uses the separate escape catalog and existing ready_home offer.
+This game has TWELVE protected PDFs, including six role portfolios. The older
+Seventh Carriage default four-file contract is preserved. Eight extra preparation
+and role PDFs use ready_pack_attachments and exact authenticated route allowlists;
+all enforce owner, active entitlement, refund checks and artifact integrity.
+Preserve existing games, customer orders and production payment behavior.
+

@@ -189,10 +189,12 @@ async function liveCatalog(env) {
   const canCheckout = await checkoutReady(env);
   const extraCounts=new Map();
   if(ready.some(p=>escapeProduct(p.theme_world_id))){const rows=await query(env.DB,"SELECT ready_pack_id,COUNT(*) AS total FROM ready_pack_extras GROUP BY ready_pack_id").all();for(const row of rows.results||[])extraCounts.set(row.ready_pack_id,row.total);}
+  const attachmentCounts=new Map();
+  if(ready.some(p=>p.theme_world_id==='midnight-masquerade')){const rows=await query(env.DB,"SELECT ready_pack_id,COUNT(*) AS total FROM ready_pack_attachments GROUP BY ready_pack_id").all();for(const row of rows.results||[])attachmentCounts.set(row.ready_pack_id,row.total);}
   const planSchemaReady = await paidPlanSchemaReady(env);
   return { ...base, publicationState: canCheckout || free ? 'partially_configured' : base.publicationState,
     freeSampleThemeId: free ? 'celebration' : null,
-    escapeGames:escapeProducts.map(p=>{const pack=ready.find(r=>r.theme_world_id===p.id&&r.setting==='home'&&r.version===p.version&&extraCounts.get(r.id)===2);return {...p,home:{readyStatus:pack&&canCheckout&&liveSkus.has(p.sku)?'published':'not_published',packVersion:pack?.version||null}};}),
+    escapeGames:escapeProducts.map(p=>{const pack=ready.find(r=>r.theme_world_id===p.id&&r.setting==='home'&&r.version===p.version&&extraCounts.get(r.id)===2&&(p.id!=='midnight-masquerade'||attachmentCounts.get(r.id)===8));return {...p,home:{readyStatus:pack&&canCheckout&&liveSkus.has(p.sku)?'published':'not_published',packVersion:pack?.version||null}};}),
     themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: readyStatus(theme.id, 'home'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
       classroom: { readyStatus: readyStatus(theme.id, 'classroom'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null,
         variantIds: variantsFor(ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')) } })),
@@ -290,6 +292,11 @@ async function checkout(request, env) {
     if (!readyPack) throw new ApiError(503, 'PACK_NOT_PUBLISHED', 'This ready-made pack is not published.');
     const files = await query(env.DB, 'SELECT paper, role FROM ready_pack_files WHERE ready_pack_id = ?', readyPack.id).all();
     if (files.results?.length !== 4) throw new ApiError(503, 'PACK_FILES_INCOMPLETE', 'The printable pack is incomplete.');
+    if(spec.themeId==='midnight-masquerade'){
+      const attachments=await query(env.DB,'SELECT paper,role FROM ready_pack_attachments WHERE ready_pack_id = ?',readyPack.id).all();
+      const extras=await query(env.DB,'SELECT role FROM ready_pack_extras WHERE ready_pack_id = ?',readyPack.id).all();
+      if(attachments.results?.length!==8||extras.results?.length!==2)throw new ApiError(503,'PACK_FILES_INCOMPLETE','The complete investigation package is not ready.');
+    }
     if (spec.variantId) {
       const variantFiles = await query(env.DB, "SELECT paper, role FROM ready_pack_variants WHERE ready_pack_id = ? AND variant_id = ? AND status = ?", readyPack.id, spec.variantId, testOnly ? 'internal_test' : 'published').all();
       if (variantFiles.results?.length !== 4) throw new ApiError(503, 'PACK_VARIANT_NOT_READY', 'This classroom story wording is not available.');
@@ -1409,6 +1416,8 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if (['GET','POST'].includes(request.method) && cases) return await supportCases(request, env, cases[1], context);
     const extra=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/escape\/(bundle|companion)$/);
     if(request.method==='GET'&&extra)return await serveEscapeExtra(request,env,extra[1],extra[2],{authenticate:authenticatedEmailHash,accessActive,assertNotRefunded:assertOrderNotRefunded,record:recordAccessEvidence});
+    const escapeAttachment=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/escape\/((?:A4|Letter)-(?:setup|role-[ABC])\.pdf)$/);
+    if(request.method==='GET'&&escapeAttachment)return await serveEscapeExtra(request,env,escapeAttachment[1],escapeAttachment[2],{authenticate:authenticatedEmailHash,accessActive,assertNotRefunded:assertOrderNotRefunded,record:recordAccessEvidence});
     const companionPdf=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/escape\/(A4|Letter)-(players|guide)\.pdf$/);
     if(request.method==='GET'&&companionPdf){const url=new URL(request.url);url.searchParams.set('paper',companionPdf[2]);return await fileDownload(new Request(url,request),env,companionPdf[1],companionPdf[3]==='players'?'player':'guide');}
     const file = path.match(/^\/api\/v1\/files\/([A-Za-z0-9-]+)\/(player|guide)$/);
@@ -2031,5 +2040,6 @@ export default {
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
 };
+
 
 

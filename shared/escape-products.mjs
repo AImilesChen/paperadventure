@@ -5,5 +5,12 @@ export const escapeProducts=Object.freeze([Object.freeze({
  availableSettings:['home'],sku:'ready_home',unitAmount:999,version:'v2.0',
  story:{home:{code:'E01',title:'The Missing Seventh Carriage',image:'/assets/seventh-carriage-cover.svg',goal:'Investigate a missing railway carriage, compare evidence and arrange its return.',beats:['Identify the carriage and seal','Share witness accounts','Compare clocks and sightings','Trace the executed transfer','Reconstruct the depot survey','Choose a valid return service']}},
  home:{readyStatus:'not_published',packVersion:null},classroom:{readyStatus:'not_offered',packVersion:null}
+}),Object.freeze({
+ id:'midnight-masquerade',title:'The Midnight Masquerade',code:'E02',series:'escape',
+ path:'/en/escape-room-games/the-midnight-masquerade/',image:'/assets/midnight-masquerade-cover.svg',
+ availableSettings:['home'],sku:'ready_home',unitAmount:999,version:'v2.0',
+ story:{home:{code:'E02',title:'The Midnight Masquerade',image:'/assets/midnight-masquerade-cover.svg',goal:'Share private clues, investigate a sealed display and recover the Dawn Jewel.',beats:['Place six masked guests','Compare the inspections','Combine three witness records','Validate transfer notes','Recover the jewel','Present the complete case']}},
+ home:{readyStatus:'not_published',packVersion:null},classroom:{readyStatus:'not_offered',packVersion:null}
 })]);
 export const escapeProduct=id=>escapeProducts.find(p=>p.id===id);
+

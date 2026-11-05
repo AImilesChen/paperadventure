@@ -1,0 +1,374 @@
+{
+  "id": "midnight-masquerade",
+  "version": 2,
+  "title": "The Midnight Masquerade",
+  "price": {
+    "currency": "USD",
+    "amount": 999,
+    "taxInclusive": true
+  },
+  "opening": "The Midnight Masquerade is about to unveil the Dawn Jewel. Its front seal is untouched, yet the jewel on display is a glass copy. Six guests remain inside the hall. You are the host's young investigation team. Share the evidence, discover how the exchange happened and return the real jewel before the unveiling. All six guests are story characters; none of the players is secretly the culprit.",
+  "ending": "You return the Dawn Jewel to its display. Iris steps forward: I wanted to use it in my final performance. I should have asked. I exchanged it for a copy, moved it on the prop trolley and hid it in the music box. I also left the out-of-date note pointing helpers toward the Portrait box. I am sorry. The host thanks your team for checking facts before drawing a conclusion. Six guests lift their masks, the paper curtains open, and the Dawn Jewel shines over the last dance.",
+  "guests": [
+    {
+      "id": "Lina",
+      "mask": "FOX",
+      "mark": "STAR RIBBON"
+    },
+    {
+      "id": "Omar",
+      "mask": "OWL",
+      "mark": "ROUND BROOCH"
+    },
+    {
+      "id": "Bea",
+      "mask": "HARE",
+      "mark": "LEAF PIN"
+    },
+    {
+      "id": "Iris",
+      "mask": "CAT",
+      "mark": "CRESCENT PIN"
+    },
+    {
+      "id": "Theo",
+      "mask": "STAG",
+      "mark": "DIAMOND CLIP"
+    },
+    {
+      "id": "Nico",
+      "mask": "SWAN",
+      "mark": "SQUARE CUFF"
+    }
+  ],
+  "seatSolution": [
+    "Lina",
+    "Omar",
+    "Bea",
+    "Iris",
+    "Theo",
+    "Nico"
+  ],
+  "seatRules": {
+    "A": [
+      "The FOX sits beside the entrance, at seat 1."
+    ],
+    "B": [
+      "The OWL is immediately clockwise from the FOX.",
+      "The STAG sits directly opposite the OWL."
+    ],
+    "C": [
+      "HARE, CAT and STAG occupy three consecutive seats in that clockwise order."
+    ]
+  },
+  "cues": [
+    {
+      "id": "D3",
+      "text": "First note of Dance 3 / second inspection"
+    },
+    {
+      "id": "D2",
+      "text": "Last chord of Dance 2 / first inspection"
+    },
+    {
+      "id": "I",
+      "text": "Interlude / lighting change between dances"
+    }
+  ],
+  "observations": {
+    "before": "At the last chord of Dance 2, the underside STAR hallmark was visible on the displayed jewel.",
+    "after": "At the first note of Dance 3, the displayed stone had a BUBBLE pattern and no underside STAR hallmark.",
+    "standard": "Exhibit inspection standard: the real Dawn Jewel has an underside STAR hallmark. The glass copy has a BUBBLE pattern and no STAR. Both checks examined the underside, not just the colour."
+  },
+  "method": "DISPLAY STRUCTURE: The front seal crosses the fixed front frame. The insert tray slides out through the REAR SERVICE PANEL without opening that frame.\n\nATTENDANT RECORD: In the interlude, ONE person pulled the tray, placed it on a PROP TROLLEY and wheeled it out, without a handover.\n\nIDENTITY CHECK: A steward checked the identity of every rear-panel user against the seating register. Credentials were not shared. Only the six named guests were in the hall; no other entrance or unsealed opening was used.",
+  "opportunity": {
+    "A": {
+      "label": "Gallery witness / masks seen in the interlude",
+      "values": [
+        "OWL",
+        "HARE",
+        "CAT"
+      ]
+    },
+    "B": {
+      "label": "Rear-panel identity check / actual users by seat",
+      "values": [
+        2,
+        4,
+        5
+      ]
+    },
+    "C": {
+      "label": "Prop-trolley sign-out / names in the interlude",
+      "values": [
+        "Bea",
+        "Iris",
+        "Theo"
+      ]
+    }
+  },
+  "documentRule": {
+    "batch": "II",
+    "dots": 3,
+    "signature": true,
+    "text": "Tonight only batch II transfer notes are valid. A valid note needs all three: batch II, a complete THREE-DOT seal, and the receiving steward signature. A note satisfying only one or two checks is not sufficient."
+  },
+  "documents": [
+    {
+      "id": "N1",
+      "batch": "I",
+      "dots": 2,
+      "signature": true,
+      "destination": "PORTRAIT BOX"
+    },
+    {
+      "id": "N2",
+      "batch": "II",
+      "dots": 3,
+      "signature": true,
+      "destination": "MOON MARK"
+    }
+  ],
+  "containers": [
+    {
+      "id": "music",
+      "name": "Music box",
+      "symbol": "MOON",
+      "lining": "FELT",
+      "shelf": "LOWER"
+    },
+    {
+      "id": "mask",
+      "name": "Mask drawer",
+      "symbol": "MOON",
+      "lining": "FELT",
+      "shelf": "UPPER"
+    },
+    {
+      "id": "portrait",
+      "name": "Portrait box",
+      "symbol": "MOON",
+      "lining": "WOOD",
+      "shelf": "LOWER"
+    },
+    {
+      "id": "violin",
+      "name": "Violin case",
+      "symbol": "STAR",
+      "lining": "FELT",
+      "shelf": "LOWER"
+    }
+  ],
+  "target": {
+    "symbol": "MOON",
+    "lining": "FELT",
+    "shelf": "LOWER"
+  },
+  "roles": {
+    "A": "Guest archivist",
+    "B": "Hall investigator",
+    "C": "Object investigator"
+  },
+  "stages": [
+    {
+      "title": "Behind the masks",
+      "lead": "Use the portrait register and your three private seating briefs to place all six guests. Seat 1 is beside the entrance; seat numbers increase clockwise. Keep this board for later mask-to-name and seat-to-name comparisons.",
+      "reward": "Seating: 1 Lina, 2 Omar, 3 Bea, 4 Iris, 5 Theo, 6 Nico. Keep the completed board.",
+      "hints": [
+        "Read A1, B1 and C1 to each other. Each brief supplies a different part of the placement.",
+        "Start with FOX at 1. OWL is next clockwise, and STAG is opposite OWL.",
+        "OWL is 2 and STAG is 5. HARE-CAT-STAG must therefore occupy 3-4-5; SWAN takes 6."
+      ],
+      "solution": "The unique clockwise seating is Lina-Omar-Bea-Iris-Theo-Nico. Without A1 rotation is ambiguous; without B1 or C1 more than one placement remains."
+    },
+    {
+      "title": "The sealed display",
+      "lead": "Compare the two underside inspections, put the event cues in order, and explain how a copy could appear while the FRONT seal stayed intact. You need A2, B2 and C2.",
+      "reward": "The exchange happened in the interlude between Dances 2 and 3. The rear service panel and sliding tray explain the untouched front seal. One person used the prop trolley.",
+      "hints": [
+        "One investigator holds the earlier check and the genuine-jewel standard. Another holds the later check. Compare them.",
+        "Dance 2 ended before the interlude, which ended before Dance 3 began. The front frame and rear tray are separate parts.",
+        "Order D2-I-D3. The STAR became a BUBBLE copy between inspections. C2 identifies rear-panel access, a sliding tray and the trolley."
+      ],
+      "solution": "D2-I-D3 / INTERLUDE / REAR PANEL / PROP TROLLEY. The real-jewel hallmark disappeared between the two inspections. A fixed-frame front seal cannot rule out the documented rear tray. C2 establishes a single operator and the closed set of six guests."
+    },
+    {
+      "title": "One name in three records",
+      "lead": "Use your seating board to translate masks and seat numbers into names. Compare the gallery witness, actual rear-panel check and trolley register. Name a provisional suspect and list the people in each pairwise overlap.",
+      "reward": "All three records intersect only at Iris. Any two leave two candidates, so no single investigator can establish the identity alone.",
+      "hints": [
+        "A3 lists masks, B3 lists seat numbers, and C3 lists names. Translate before comparing.",
+        "Gallery: Omar, Bea, Iris. Rear panel: Omar, Iris, Theo. Trolley: Bea, Iris, Theo.",
+        "Gallery+panel = Omar/Iris; gallery+trolley = Bea/Iris; panel+trolley = Iris/Theo. Only Iris is in all three."
+      ],
+      "solution": "Iris is the unique triple intersection. The pairwise overlaps each contain two people. Actual identity checks and the one-person/no-handover observation make all three requirements necessary. This is a provisional finding until method and recovery are proved."
+    },
+    {
+      "title": "Two transfer notes",
+      "lead": "A checks the current document rules while B examines both notes. C can investigate the storage inventory in parallel. Choose the valid note and explain what invalidates the other.",
+      "reward": "N2 is valid: batch II, three-dot seal and receiving signature. Its MOON mark is a storage clue, not a container name. N1 points to the wrong place and has the wrong batch and incomplete seal.",
+      "hints": [
+        "Read A4 to B before trusting either destination. All three validity checks are required.",
+        "N1 has a signature, but its batch and seal do not match tonight\u2019s rules.",
+        "N2 passes all three. Keep MOON; do not jump to the Portrait box just because a note names it."
+      ],
+      "solution": "N2 / II / THREE DOTS / SIGNED / MOON. N1 is invalid because it is batch I with two dots. Its named Portrait box destination cannot be used as reliable evidence. The documents do not establish who wrote the invalid note."
+    },
+    {
+      "title": "A place beneath the moon",
+      "lead": "Bring the valid note\u2019s destination mark together with B5\u2019s packing record and C5\u2019s shelf record. Use C4\u2019s container inventory. Choose a container and name the three properties that justify it.",
+      "reward": "MOON + FELT + LOWER identifies the Music box. Any two properties leave two possible containers. The host now releases recovery card R-01 (Player page 12). Check its STAR hallmark; keep the confession on page 13 hidden.",
+      "hints": [
+        "A carries forward the destination from N2. B and C hold the other two target properties.",
+        "Compare symbol, lining and shelf separately. The name of a container is not itself proof.",
+        "Music box is MOON/FELT/LOWER. Mask drawer is upper; Portrait box is wood; Violin case has a star."
+      ],
+      "solution": "Music box / MOON / FELT / LOWER. Each pair of target properties matches two containers; only the triple is unique. Release R-01 on Player page 12 now. Its STAR hallmark confirms the real jewel. Do not release the confession on page 13 yet."
+    },
+    {
+      "title": "Show the whole exchange",
+      "lead": "Take turns presenting the case: A explains person and identity records; B explains interval, method and transport; C explains hiding place and R-01. After each claim, a teammate checks the named sources. Then record the complete case chain and return the jewel.",
+      "reward": "Iris / interlude / rear sliding tray / prop trolley / Music box. Your team returns the STAR-marked jewel and opens the ending.",
+      "hints": [
+        "Do not submit only a name. Bring back the seating board, all three opportunity records, C2, N2 and the packing/shelf records.",
+        "The interval is bounded by A2 and B2. The method and single operator come from C2. Three records identify Iris; three storage properties identify the Music box.",
+        "Use A3+B3+C3 for the person, A2+B2 for the interval, C2 for method/transport, and N2+B5+C5 with C4 for the hiding place. Motive is revealed at the ending, not guessed."
+      ],
+      "solution": "Person Iris; interval INTERLUDE; method REAR PANEL/SLIDING TRAY; transport PROP TROLLEY; place MUSIC BOX. Evidence: A3+B3+C3 / A2+B2 / C2 / N2+B5+C5. Only after this reconstruction should the host read Iris\u2019s admission. No claim about authorship of the invalid note is required."
+    }
+  ],
+  "cards": {
+    "A": [
+      {
+        "id": "A1",
+        "round": 1,
+        "title": "Seat by the entrance",
+        "text": "The FOX sits beside the entrance, at seat 1.",
+        "prompt": "Ask B who sits next to FOX. Ask C about the three-seat sequence."
+      },
+      {
+        "id": "A2",
+        "round": 2,
+        "title": "First inspection",
+        "text": "Exhibit inspection standard: the real Dawn Jewel has an underside STAR hallmark. The glass copy has a BUBBLE pattern and no STAR. Both checks examined the underside, not just the colour. At the last chord of Dance 2, the underside STAR hallmark was visible on the displayed jewel.",
+        "prompt": "Ask B what changed at the later inspection. Do not use colour as evidence."
+      },
+      {
+        "id": "A3",
+        "round": 3,
+        "title": "Gallery witness / masks seen in the interlude",
+        "text": "OWL, HARE, CAT. All observations refer to the interlude between Dances 2 and 3.",
+        "prompt": "Translate your entries using the seating board. Compare with both other records before naming anyone."
+      },
+      {
+        "id": "A4",
+        "round": 4,
+        "title": "Tonight\u2019s validity rule",
+        "text": "Tonight only batch II transfer notes are valid. A valid note needs all three: batch II, a complete THREE-DOT seal, and the receiving steward signature. A note satisfying only one or two checks is not sufficient.",
+        "prompt": "Explain every required check to B. Record only the destination from a valid note."
+      },
+      {
+        "id": "A5",
+        "round": 5,
+        "title": "Carry forward the valid mark",
+        "text": "Take the destination mark from the note your group validated in round 4. Do not use N1 if it failed the checks.",
+        "prompt": "Name the valid note and explain how its batch, seal and signature make the destination mark trustworthy. Ask B and C for the two missing properties."
+      },
+      {
+        "id": "A6",
+        "round": 6,
+        "title": "Person and identity proof",
+        "text": "Review the completed seating board and A3/B3/C3. Be ready to explain why one or two records do not identify a unique operator.",
+        "prompt": "Present the person and three records. Ask B or C to name an alternative left by each pair; let them check your claim."
+      }
+    ],
+    "B": [
+      {
+        "id": "B1",
+        "round": 1,
+        "title": "Neighbours and opposites",
+        "text": "The OWL is immediately clockwise from the FOX. The STAG sits directly opposite the OWL.",
+        "prompt": "Ask A where FOX begins. Ask C who must sit beside STAG."
+      },
+      {
+        "id": "B2",
+        "round": 2,
+        "title": "Second inspection",
+        "text": "At the first note of Dance 3, the displayed stone had a BUBBLE pattern and no underside STAR hallmark.",
+        "prompt": "Ask A what the real jewel should look like. Ask C whether the front seal rules out all access."
+      },
+      {
+        "id": "B3",
+        "round": 3,
+        "title": "Rear-panel identity check / actual users by seat",
+        "text": "2, 4, 5. All observations refer to the interlude between Dances 2 and 3.",
+        "prompt": "Translate your entries using the seating board. Compare with both other records before naming anyone."
+      },
+      {
+        "id": "B4",
+        "round": 4,
+        "title": "Two notes at the desk",
+        "text": "N1: batch I; TWO-DOT seal; receiving signature: Eden (signed); destination PORTRAIT BOX. N2: batch II; THREE-DOT seal; receiving signature: Eden (signed); destination MOON MARK.",
+        "prompt": "Ask A which batch and seal apply tonight. A signature alone does not validate a note."
+      },
+      {
+        "id": "B5",
+        "round": 5,
+        "title": "Packing record",
+        "text": "The transferred jewel was placed against a soft FELT lining. This record describes the destination container, not the trolley.",
+        "prompt": "Ask A for the reliable destination mark. Ask C which shelf the attendant saw."
+      },
+      {
+        "id": "B6",
+        "round": 6,
+        "title": "Interval and method proof",
+        "text": "Review A2, B2 and C2. Separate what was observed from what the team inferred. An intact FRONT seal does not mean the REAR tray could not move.",
+        "prompt": "Present the interval, method and transport with their sources. Ask A or C to check whether each claim is observed or inferred."
+      }
+    ],
+    "C": [
+      {
+        "id": "C1",
+        "round": 1,
+        "title": "Three consecutive guests",
+        "text": "HARE, CAT and STAG occupy three consecutive seats in that clockwise order.",
+        "prompt": "Ask B where STAG belongs, then explain the whole sequence."
+      },
+      {
+        "id": "C2",
+        "round": 2,
+        "title": "Rear-panel manual and attendant",
+        "text": "DISPLAY STRUCTURE: The front seal crosses the fixed front frame. The insert tray slides out through the REAR SERVICE PANEL without opening that frame.\n\nATTENDANT RECORD: In the interlude, ONE person pulled the tray, placed it on a PROP TROLLEY and wheeled it out, without a handover.\n\nIDENTITY CHECK: A steward checked the identity of every rear-panel user against the seating register. Credentials were not shared. Only the six named guests were in the hall; no other entrance or unsealed opening was used.",
+        "prompt": "Explain the single-operator observation and rear tray. Ask A and B to establish the interval."
+      },
+      {
+        "id": "C3",
+        "round": 3,
+        "title": "Prop-trolley sign-out / names in the interlude",
+        "text": "Bea, Iris, Theo. All observations refer to the interlude between Dances 2 and 3.",
+        "prompt": "Translate your entries using the seating board. Compare with both other records before naming anyone."
+      },
+      {
+        "id": "C4",
+        "round": 4,
+        "title": "Storage inventory",
+        "text": "Music box: MOON / FELT / LOWER. Mask drawer: MOON / FELT / UPPER. Portrait box: MOON / WOOD / LOWER. Violin case: STAR / FELT / LOWER.",
+        "prompt": "Prepare all four rows on the shared storage board. Report one pair sharing a mark, one sharing a lining and one sharing a shelf. Explain why the inventory alone cannot choose a destination."
+      },
+      {
+        "id": "C5",
+        "round": 5,
+        "title": "Shelf observation",
+        "text": "The attendant saw the operator place the item in a LOWER storage position. Use your C4 inventory; do not infer location from colour.",
+        "prompt": "Compare LOWER with B\u2019s lining and A\u2019s valid mark. Explain why each other container fails."
+      },
+      {
+        "id": "C6",
+        "round": 6,
+        "title": "Recovery proof",
+        "text": "Review N2, B5, C5 and your C4 inventory. Use recovery card R-01, released after round 5, to confirm the recovered jewel has the STAR hallmark. No clue has established the operator's motive.",
+        "prompt": "Present the hiding-place proof and R-01 hallmark. Ask A or B to check the three properties; then each reader explains one link in the complete case."
+      }
+    ]
+  }
+}
