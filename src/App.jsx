@@ -1,3 +1,4 @@
+import {EscapeTrainDetail} from './escapeTrain.jsx';
 import { useEffect, useRef, useState } from 'react';
 import AdminConsole from './adminConsole.jsx';
 import FeedbackWidget from './feedbackWidget.jsx';
@@ -297,6 +298,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
   else if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;
+  else if (route === '/en/escape-room-games/the-missing-seventh-carriage/') page = <EscapeTrainDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/') page = <EscapeGamesHub Link={Link} />;
   else if (route === '/en/escape-room-games/the-sleeping-lighthouse/') page = <LighthouseDetail Link={Link} />;
   else if (route === '/en/escape-room-games/the-sleeping-lighthouse/play/') page = <LighthousePlay Link={Link} />;
