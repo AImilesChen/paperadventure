@@ -1,0 +1,480 @@
+{
+  "id": "fold-city",
+  "version": 2,
+  "title": "The Secret of Fold City",
+  "seed": 20261105,
+  "initial": [
+    {
+      "r": 0,
+      "f": false
+    },
+    {
+      "r": 0,
+      "f": false
+    },
+    {
+      "r": 0,
+      "f": false
+    }
+  ],
+  "base": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      5
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      13
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      13
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      5
+    ],
+    [
+      10,
+      14,
+      14,
+      10,
+      10,
+      10,
+      10,
+      10
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      2,
+      12,
+      6,
+      8,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      3,
+      9,
+      0,
+      0
+    ]
+  ],
+  "tiles": [
+    {
+      "id": "A",
+      "name": "Rooftop Garden",
+      "origin": [
+        0,
+        0
+      ],
+      "front": [
+        [
+          4,
+          2,
+          10,
+          8
+        ],
+        [
+          5,
+          6,
+          10,
+          12
+        ],
+        [
+          11,
+          9,
+          6,
+          9
+        ],
+        [
+          14,
+          14,
+          11,
+          12
+        ]
+      ],
+      "fold": [
+        6,
+        5,
+        7,
+        3
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Bindery",
+      "origin": [
+        4,
+        0
+      ],
+      "front": [
+        [
+          13,
+          6,
+          12,
+          4
+        ],
+        [
+          3,
+          9,
+          3,
+          13
+        ],
+        [
+          14,
+          10,
+          8,
+          7
+        ],
+        [
+          15,
+          14,
+          10,
+          9
+        ]
+      ],
+      "fold": [
+        6,
+        5,
+        15,
+        3
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Gate Quarter",
+      "origin": [
+        0,
+        4
+      ],
+      "front": [
+        [
+          4,
+          2,
+          15,
+          12
+        ],
+        [
+          11,
+          12,
+          1,
+          5
+        ],
+        [
+          4,
+          7,
+          14,
+          15
+        ],
+        [
+          3,
+          11,
+          13,
+          1
+        ]
+      ],
+      "fold": [
+        6,
+        5,
+        15,
+        3
+      ]
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "H",
+      "name": "Entry Square",
+      "pos": [
+        5,
+        7
+      ]
+    },
+    {
+      "id": "CA",
+      "name": "Garden turntable",
+      "tile": 0,
+      "local": [
+        2,
+        3
+      ],
+      "operator": 0
+    },
+    {
+      "id": "G",
+      "name": "Garden hut",
+      "tile": 0,
+      "local": [
+        3,
+        0
+      ]
+    },
+    {
+      "id": "CB",
+      "name": "Bindery turntable",
+      "tile": 1,
+      "local": [
+        2,
+        2
+      ],
+      "operator": 1
+    },
+    {
+      "id": "W",
+      "name": "Folded bindery desk",
+      "pos": [
+        7,
+        1
+      ],
+      "layer": "base"
+    },
+    {
+      "id": "CC",
+      "name": "Gate turntable",
+      "tile": 2,
+      "local": [
+        2,
+        2
+      ],
+      "operator": 2
+    },
+    {
+      "id": "F",
+      "name": "Crease Lane",
+      "pos": [
+        3,
+        4
+      ],
+      "layer": "base"
+    },
+    {
+      "id": "M",
+      "name": "Inner Gate",
+      "pos": [
+        6,
+        4
+      ]
+    },
+    {
+      "id": "E",
+      "name": "Outside the book",
+      "pos": [
+        8,
+        4
+      ]
+    }
+  ],
+  "gateEdge": [
+    [
+      38,
+      39
+    ]
+  ],
+  "exitCell": [
+    7,
+    4
+  ],
+  "edition": "Household edition 2",
+  "code": "E05",
+  "boardMillimetres": 176,
+  "tileMillimetres": 88,
+  "locale": "en",
+  "limits": [
+    "Physical printing and black-and-white output",
+    "Back-to-back gluing and repeated folding on household paper",
+    "Unfamiliar adult setup and independent family play",
+    "Age suitability and actual preparation/play duration"
+  ],
+  "story": {
+    "opening": "The last visitors have left the Map House. You are still admiring its smallest exhibit: a city built from folding paper. Then the display closes like a book. The bright doorway becomes a painted wall, and your whole party finds itself in the Entry Square. A note hangs from a lamp: 'Visitors, stay together. This city has more than one side. Find the leaf and spool return clasps, bring them to the Inner Gate, and walk out together.' A tiny paper cat points towards the Gate turntable. There is a road to it. Your journey begins there.",
+    "discovery": "The turntables move a whole quarter of the city. A left flap can fold inward, replacing one strip of streets and uncovering the bottom map beneath it. Your feet matter: you can change a quarter only while your party is standing at its own turntable.",
+    "ending": "The leaf and spool clasps click into place. The lane revealed beneath the folded quarter reaches beyond the page. You follow its last street and step back onto the Map House table together. The paper cat stays safe inside. A new exhibit label appears: 'You joined an island, uncovered a lower street and found a way through an old crease.' The attendant smiles at your tiny paper clasps. You have escaped Fold City by changing the map itself.",
+    "certificate": "We found both return clasps, reached the Inner Gate and walked out together. Team: ____________________   Date: ____________________"
+  },
+  "rules": [
+    [
+      "Stay together",
+      "Use ONE party marker, starting at H. Share four jobs: Reader, Route Planner, Map Handler and Road Checker. Rotate jobs on the first visit to each turntable and after taking a clasp. Before a map change, say which connection you want; afterwards, another player traces the visible route. Page 9 shows jobs for 2, 3 or 4 players."
+    ],
+    [
+      "Walk on the visible streets",
+      "A move follows an unbroken two-way street to a labelled stop. Use only the topmost visible road. A covered road and a picture of a building are not passages. You may pass a labelled stop without interacting, and may return along a road."
+    ],
+    [
+      "Change your own quarter",
+      "Rotate or fold A only at CA, B only at CB and C only at CC. A, B and C keep their printed slots; never exchange them. H, M and E belong to the fixed board."
+    ],
+    [
+      "Turn one click clockwise",
+      "At a turntable, turn that whole map card clockwise through 90 degrees. Briefly lift the marker and return it to the SAME printed turntable label, now in its new position. Do not leave the marker on its old board square."
+    ],
+    [
+      "Fold the printed left flap",
+      "At its turntable, fold the card's printed LEFT strip onto the next column. The reverse road strip faces up; the vacated strip exposes the bottom map. Keep the card in its original slot footprint, even when folded or turned. Open the flap to reverse the change."
+    ],
+    [
+      "Explore a place you reached",
+      "At G, take the leaf clasp. At W, take the spool clasp. Keep each beside the map, never over a road. At M with both clasps, install them and mark the gate open. Then actually walk to E to finish."
+    ],
+    [
+      "Recover and continue",
+      "Thinking, hints and errors have no cost. Use the page 9 snapshot to pause. The Adult Guide gives gradual hints and optional rescue resets. For help halfway through paper play, use I am playing on paper in the companion. Undo there covers only actions since the current start or synchronised position."
+    ]
+  ],
+  "events": {
+    "H": {
+      "title": "The city folded around us",
+      "text": "The Entry Square is part of the bottom board and stays still. Through the window, the painted doorway looks solid. The paper cat taps the only open street: it leads to CC. The garden hut holds a leaf clasp; the bindery desk holds a spool clasp. Either may be visited first."
+    },
+    "CC": {
+      "title": "The gate quarter turns",
+      "text": "The cat balances on the CC platform as the whole quarter turns. It is carrying you with the streets, not keeping you over the same board square. Here you may turn C clockwise or fold its printed left flap. Look for a new connection; the Inner Gate still needs both return clasps."
+    },
+    "CA": {
+      "title": "Rooftop Garden",
+      "text": "An ivy ribbon hangs above the hut G, but its front streets form a separate island. 'A different face can join what is apart,' reads the gardener's note. Examine the road behind A's left flap. CA stays on the uncovered front. Discuss which connection you want before changing A."
+    },
+    "G": {
+      "title": "The leaf return clasp",
+      "text": "Your fold has joined the hut to the garden streets. Inside, the paper cat unrolls a visitor ribbon held by an ivy-shaped clasp. Take the LEAF clasp into your shared bag. 'Opening a fold can restore an old way,' says the note. Return to a turntable when you need to change the map.",
+      "item": 1,
+      "after": "The ivy ribbon hangs free: your team has already taken the leaf clasp. The hut stays connected by the reverse road while A is folded. Find a visible route to a turntable and decide which old connection you need next."
+    },
+    "CB": {
+      "title": "The bindery has a bottom floor",
+      "text": "A tiny bell rings under the bookshelves, but there is no desk on this floor. The desk W is printed on the bottom board beneath B. You may inspect that board; entering W needs an exposed, connected street. Which edge would have to become uncovered? Change B only from CB."
+    },
+    "W": {
+      "title": "The spool return clasp",
+      "text": "Where the covering street moved away, a lower lane leads to the bindery desk. The bell is tied to a spool-shaped clasp. Take the SPOOL clasp into your shared bag. The paper cat brushes dust from an old note: 'The exit lane was here before the city covered it. Find the crease, then follow the visible road.'",
+      "item": 2,
+      "after": "The bell is quiet: your team already has the spool clasp. W is a real lower street, exposed by B rather than a tunnel through it. Keep the current roads in place while finding a return route to a turntable."
+    },
+    "F": {
+      "title": "Crease Lane",
+      "text": "A street that was hidden beneath the city is now under your feet. The paper cat follows it towards the Inner Gate. This lane was always on the bottom board; your fold made it usable. Trace its visible connection to M. If a clasp is missing, you can still turn back."
+    },
+    "M": {
+      "title": "The Inner Gate",
+      "text": "A leaf-shaped socket and a spool-shaped socket face the lane. Both return clasps belong here. Install them together when both are in your bag. The gate opening itself is not the end of the journey: your party must still walk along the final street to E."
+    },
+    "E": {
+      "title": "Outside the book",
+      "text": "The leaf and spool clasps click into place. The lane revealed beneath the folded quarter reaches beyond the page. You follow its last street and step back onto the Map House table together. The paper cat stays safe inside. A new exhibit label appears: 'You joined an island, uncovered a lower street and found a way through an old crease.' The attendant smiles at your tiny paper clasps. You have escaped Fold City by changing the map itself."
+    }
+  },
+  "hints": {
+    "H": [
+      "Find a street you can already walk. A building picture alone is not a doorway.",
+      "The fixed square connects to the turntable labelled CC."
+    ],
+    "CA": [
+      "Compare the isolated hut streets with the reverse strip.",
+      "At CA you may fold A. Check which new strip connects to the hut."
+    ],
+    "G": [
+      "The leaf is useful only after you take it.",
+      "Map changes are available at CA, not inside the hut."
+    ],
+    "CB": [
+      "Locate W on the bottom map. Which edge of B must become uncovered?",
+      "The reverse strip faces up after a fold. At CB, compare B's four orientations and the right edge of the board."
+    ],
+    "W": [
+      "Take the spool before leaving.",
+      "You must return to CB before you can change B again."
+    ],
+    "CC": [
+      "The same platform can connect to different quarters after a turn.",
+      "For the Inner Gate, inspect the top edge of C on the bottom board. A folded quarter can uncover a lane."
+    ],
+    "F": [
+      "This is a street on the bottom board. Follow it to a labelled stop.",
+      "The two clasps must be installed at M. You can still return for a missing clasp."
+    ],
+    "M": [
+      "Check your shared bag. A picture of a clasp is not a collected clasp.",
+      "With both clasps, install them, then follow the newly opened final street."
+    ]
+  },
+  "roles": {
+    "names": [
+      "Reader",
+      "Route Planner",
+      "Map Handler",
+      "Road Checker"
+    ],
+    "descriptions": [
+      "Read the event only after arrival.",
+      "Say which connection the team wants to change.",
+      "Turn or fold only at the matching turntable.",
+      "After a change, trace the visible road before walking."
+    ],
+    "rotate": "Rotate jobs on the first visit to each turntable and after taking a clasp. Do not rotate for every trial turn.",
+    "groups": {
+      "2": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "3": [
+        0,
+        0,
+        1,
+        2
+      ],
+      "4": [
+        0,
+        1,
+        2,
+        3
+      ]
+    }
+  },
+  "setupChecks": [
+    "Measure the 88 mm line on the card sheets and the 176 mm board field.",
+    "Practise folding A away from the board; compare the result with Guide page 3, then open it flat.",
+    "Set all fronts upright and flat as in Guide page 4. At H, the only other reachable labelled stop is CC."
+  ]
+}

@@ -1,3 +1,4 @@
+import {EscapeFoldCityDetail} from './escapeFoldCity.jsx';
 import {EscapeLetterDetail} from './escapeLetter.jsx';
 import {EscapeClockDetail} from './escapeClock.jsx';
 import {EscapeMidnightDetail} from './escapeMidnight.jsx';
@@ -301,6 +302,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
   else if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;
+  else if (route === '/en/escape-room-games/the-secret-of-fold-city/') page = <EscapeFoldCityDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/the-last-letter-before-the-storm/') page = <EscapeLetterDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/the-clockmakers-thirteenth-hour/') page = <EscapeClockDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/the-midnight-masquerade/') page = <EscapeMidnightDetail Link={Link} catalog={runtimeCatalog}/>;
