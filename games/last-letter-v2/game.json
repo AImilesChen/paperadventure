@@ -1,0 +1,1739 @@
+{
+  "id": "last-letter",
+  "version": 2,
+  "title": "The Last Letter Before the Storm",
+  "opening": "The old harbour post office is moving. Behind cabinet K, your delivery team finds a sealed letter posted ten years ago. Only M. V. and part of the old workshop address remain readable. Before the evening bell pauses deliveries for the approaching storm, find its owner and make a verified handover. Everyone is safe indoors. There is no real countdown: thinking and hints never cost action spaces.",
+  "routes": {
+    "dock": {
+      "name": "Dock warehouse",
+      "cost": 2,
+      "toolPages": {
+        "folder": 11,
+        "lamp": 12
+      },
+      "proofPage": 13,
+      "sources": [
+        "D-01",
+        "D-02"
+      ],
+      "description": "Shortest trip; follow a shipping receipt through linked warehouse records.",
+      "answers": {
+        "folder": "C3",
+        "lamp": "C3"
+      },
+      "hints": {
+        "folder": [
+          "Find the accepted receipt matching the envelope date.",
+          "Follow its receipt ID into the separate crate index.",
+          "J17 is accepted on 14 May. J17 maps to C3."
+        ],
+        "lamp": [
+          "Use north row AND the two east/west boundaries.",
+          "North alone leaves C1, C3 and C8. The net is left of the crane.",
+          "C3 alone is north, east of the net and west of the crane."
+        ]
+      }
+    },
+    "press": {
+      "name": "Old newspaper office",
+      "cost": 3,
+      "toolPages": {
+        "folder": 14,
+        "lamp": 15
+      },
+      "proofPage": 16,
+      "sources": [
+        "N-01",
+        "N-02"
+      ],
+      "description": "Middle trip; reconstruct a report and interpret its later correction.",
+      "answers": {
+        "folder": "2413",
+        "lamp": "P2"
+      },
+      "hints": {
+        "folder": [
+          "Each ending word connects to the next fragment's first word.",
+          "Start with OUR REPORT; find DOCK, then WORKSHOP, then SWALLOW.",
+          "Read fragments 2,4,1,3. Enter 2413."
+        ],
+        "lamp": [
+          "Compare all three features on every photograph.",
+          "No chimney still leaves P1, P2 and P3. Check door shape and steps too.",
+          "P2 alone has an arched door, two steps and no chimney."
+        ]
+      }
+    },
+    "station": {
+      "name": "Hill signal station",
+      "cost": 4,
+      "toolPages": {
+        "folder": 17,
+        "lamp": 18
+      },
+      "proofPage": 19,
+      "sources": [
+        "S-01",
+        "S-02"
+      ],
+      "description": "Longest trip; decode access to original records rather than interpret a copied report.",
+      "answers": {
+        "folder": "V6",
+        "lamp": "V6"
+      },
+      "hints": {
+        "folder": [
+          "Match date, tide and accepted status to E-01.",
+          "Reject a high tide, another date or a returned item.",
+          "V6 is the only 14 May / LOW / ACCEPTED cabinet."
+        ],
+        "lamp": [
+          "The filled lamps choose a row. The left-to-right flag order chooses a column.",
+          "There are two filled lamps. The flags are triangle, circle, square.",
+          "Two filled lamps give V; T-C-S gives 6. Cabinet V6."
+        ]
+      }
+    }
+  },
+  "players": [
+    {
+      "n": 1,
+      "code": "ACT 1 / E-01",
+      "title": "The envelope behind cabinet K",
+      "blocks": [
+        {
+          "type": "scene",
+          "kind": "envelope",
+          "height": 118
+        },
+        {
+          "type": "p",
+          "text": "The old harbour post office is moving. Behind cabinet K, your delivery team finds a sealed letter posted ten years ago. Only M. V. and part of the old workshop address remain readable. Before the evening bell pauses deliveries for the approaching storm, find its owner and make a verified handover. Everyone is safe indoors. There is no real countdown: thinking and hints never cost action spaces."
+        },
+        {
+          "type": "box",
+          "title": "Outside the sealed letter",
+          "text": "To M. V. / SWALLOW WORKS / old harbour quarter. Postmark: 14 MAY, ten years ago. Collection stamp: LOW TIDE. A small paper boat is drawn beside the intact seal. Clipped outside: receipt J17 / 14 MAY / LOW / ACCEPTED."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Cabinet",
+            "Day",
+            "Status",
+            "Moving crate"
+          ],
+          "rows": [
+            [
+              "K",
+              "14 May",
+              "ACCEPTED",
+              "K4"
+            ],
+            [
+              "K",
+              "14 May",
+              "RETURNED",
+              "K2"
+            ],
+            [
+              "K",
+              "15 May",
+              "ACCEPTED",
+              "K8"
+            ],
+            [
+              "H",
+              "14 May",
+              "ACCEPTED",
+              "H4"
+            ]
+          ]
+        },
+        {
+          "type": "box",
+          "title": "Your first task",
+          "text": "Your host gives you this page AND the shared log on page 2 at the start. Find the moving crate matching cabinet, day and status. Record its code and matching features on log 2; ask the host to check. Then receive route map 3."
+        },
+        {
+          "type": "p",
+          "text": "All identity evidence is outside the letter. The boat doodle is decoration, not proof of a trade. One adult host plus 2-6 players; age 9+ is provisional, duration unmeasured. Read the separate Adult Guide before preparation."
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "code": "ACTS 1-6 / LOG",
+      "title": "Keep one shared delivery record",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Keep this page from the opening through the ending. Rotate reader, investigator and recorder after each act; two players may share duties. Spoken explanations and adult reading support are welcome."
+        },
+        {
+          "type": "box",
+          "title": "Six action spaces",
+          "text": "[ 1 ]  [ 2 ]  [ 3 ]  [ 4 ]  [ 5 ]  [ 6 ]\n6 - route cost - optional help 1 - completed delivery cost = remainder. Cross off ONLY named costs, once. Thinking, wrong answers and hints cost nothing. Zero after a completed delivery is allowed."
+        },
+        {
+          "type": "lines",
+          "labels": [
+            "ACT 1 / Moving crate / three matching features:",
+            "ACT 2 / Route / cost / tool:",
+            "ACT 3A / Route answer / source:"
+          ]
+        },
+        {
+          "type": "box",
+          "title": "ACT 3B / Preserve the evidence",
+          "text": "For each fact write the value, the link you followed, and its source. Keep this history when choosing the recipient."
+        },
+        {
+          "type": "lines",
+          "labels": [
+            "OLD number / supporting detail / source:",
+            "TRADE / supporting detail / source:",
+            "EMBLEM / supporting detail / source:"
+          ]
+        },
+        {
+          "type": "lines",
+          "labels": [
+            "ACT 4 / Help or continue / remaining spaces / T-01 credit if earned:",
+            "ACT 5 / Recipient / why the three others do not fit:",
+            "ACT 6 / Delivery mode / procedure / final result:"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Use the separate receipt on page 6 after the final check. Do not erase earlier evidence to make a new guess fit."
+        }
+      ]
+    },
+    {
+      "n": 3,
+      "code": "ACT 2 + ACT 4 CHOICE / MAP",
+      "title": "Choose your investigation",
+      "blocks": [
+        {
+          "type": "table",
+          "head": [
+            "Route",
+            "Cost",
+            "What you will investigate"
+          ],
+          "rows": [
+            [
+              "Dock warehouse",
+              "2 spaces",
+              "Shortest trip; follow a shipping receipt through linked warehouse records."
+            ],
+            [
+              "Old newspaper office",
+              "3 spaces",
+              "Middle trip; reconstruct a report and interpret its later correction."
+            ],
+            [
+              "Hill signal station",
+              "4 spaces",
+              "Longest trip; decode access to original records rather than interpret a copied report."
+            ]
+          ]
+        },
+        {
+          "type": "box",
+          "title": "Choose ONE story tool",
+          "text": "FOLDER: compare paper indexes and restore text. LAMP: inspect positions, photographs and visible signals. These are printed abilities: no real lamp or waterproof material. Your host gives only the selected tool page, then its route's common evidence page."
+        },
+        {
+          "type": "box",
+          "title": "Know every action cost now",
+          "text": "Each route cost includes the trip OUT and BACK. Later: personal delivery costs 2; authorised collection costs 1. Optional sorting-desk help costs 1. Station + help leaves 1, so collection remains available. No choice can strand the letter."
+        },
+        {
+          "type": "box",
+          "title": "Preset or open-choice preparation",
+          "text": "If only one route was printed, that is today's PRESET route. Circle it; keep tool choice open if both tool sheets were printed. If all routes were printed, choose freely. The companion has a matching adult setup selector. Commit the choice, mark cost on log 2, then receive your first investigation sheet."
+        },
+        {
+          "type": "box",
+          "title": "Return here at ACT 4 / decide BEFORE receiving task 4",
+          "text": "CONTINUE: cost 0; later build the ordinary handover chain yourself. HELP: cost 1; organise unrelated slips, then earn T-01 pre-check credit. Staff will pre-verify part of your final route or collection chain AFTER you identify the recipient. The final helped procedure is shorter. Both choices are respected."
+        },
+        {
+          "type": "p",
+          "text": "Do not make the Act 4 choice until the investigation is checked. Keep this map beside log 2. Tools change the investigation method; all routes uncover the same history."
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "code": "ACT 4 / Q-01 + T-01",
+      "title": "The sorting-desk favour",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Receive ONLY if you chose HELP on map 3 after finishing your investigation. The host marks the 1-space cost once when you choose. These unrelated collection slips do not identify the old letter's recipient."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Drawer",
+            "Current authorisation"
+          ],
+          "rows": [
+            [
+              "1",
+              "Pia authorises uncle Ben"
+            ],
+            [
+              "2",
+              "Leon authorises neighbour Noor"
+            ],
+            [
+              "3",
+              "Rae authorises sister Ada"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "head": [
+            "Slip order",
+            "Names on slip",
+            "Drawer"
+          ],
+          "rows": [
+            [
+              "First",
+              "Leon / Noor",
+              "_____"
+            ],
+            [
+              "Second",
+              "Pia / Ben",
+              "_____"
+            ],
+            [
+              "Third",
+              "Rae / Ada",
+              "_____"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Match BOTH names. Record the drawer numbers in printed slip order and ask for a check. Errors do not spend another space."
+        },
+        {
+          "type": "box",
+          "title": "T-01 / Pre-check credit / host marks AFTER the task passes",
+          "text": "[ ] Earned: host initials ________. Staff have filed the three slips correctly. After you identify the recipient, exchange this credit for the shorter PRE-CHECKED personal or collection sheet. Staff will certify a safe route or the authorised collector, bag and storage record. You still verify the correct resident and complete the receipt."
+        },
+        {
+          "type": "p",
+          "text": "Keep this earned credit with log 2. It does not grant authority to collect somebody else's post and does not reduce the named delivery cost."
+        }
+      ]
+    },
+    {
+      "n": 5,
+      "code": "ACT 5 / R-01",
+      "title": "Which resident matches the old record?",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Receive after the investigation AND the sorting-desk choice/task. Every resident below used M. V. Compare OLD number, registered trade and emblem. Your route evidence must support every fact."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Resident",
+            "Old no.",
+            "Trade",
+            "Emblem"
+          ],
+          "rows": [
+            [
+              "Mara Vale",
+              "8",
+              "BOAT",
+              "SWALLOW"
+            ],
+            [
+              "Mira Vale",
+              "8",
+              "BOAT",
+              "STAR"
+            ],
+            [
+              "Milo Vale",
+              "8",
+              "BOOK",
+              "SWALLOW"
+            ],
+            [
+              "Mina Vale",
+              "18",
+              "BOAT",
+              "SWALLOW"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "head": [
+            "Resident",
+            "Current address",
+            "Personal seal"
+          ],
+          "rows": [
+            [
+              "Mara Vale",
+              "24 Orchard Walk",
+              "A6"
+            ],
+            [
+              "Mira Vale",
+              "42 Orchard Walk",
+              "A9"
+            ],
+            [
+              "Milo Vale",
+              "7 Market Row",
+              "B3"
+            ],
+            [
+              "Mina Vale",
+              "8 Mill Road",
+              "D4"
+            ]
+          ]
+        },
+        {
+          "type": "box",
+          "title": "Identity check",
+          "text": "Name the recipient. Explain which old fact rules out each of the other three residents, and point to your second route sheet. Any two correct facts still leave another candidate."
+        },
+        {
+          "type": "box",
+          "title": "Then choose the final delivery",
+          "text": "Personal delivery costs 2 spaces; authorised collection costs 1. Both complete the mission. If only 1 remains, choose collection. After committing, the host gives ONE final sheet: ordinary personal 7; pre-checked personal 8; ordinary collection 9; pre-checked collection 10. Pre-checked requires earned T-01."
+        },
+        {
+          "type": "p",
+          "text": "Keep the letter sealed. The host retains every unused final sheet, so you need not cover or compare alternative procedures."
+        }
+      ]
+    },
+    {
+      "n": 6,
+      "code": "ACT 6 / RECEIPT",
+      "title": "Your verified handover receipt",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Keep blank until the final handover passes. Complete together, then the host gives ending 20."
+        },
+        {
+          "type": "lines",
+          "labels": [
+            "Confirmed recipient and OLD evidence source:",
+            "Delivery mode / action cost / final remainder:",
+            "Ordinary or pre-checked / T-01 if used:",
+            "PERSONAL: path / house / matching seal:",
+            "COLLECTION: authority or T-01 / collector / bag / counter:",
+            "Resident-register source AND final-instruction source:",
+            "Host checked identity, affordability and evidence (initials):"
+          ]
+        },
+        {
+          "type": "box",
+          "title": "Our delivery team",
+          "text": "Each person names a useful clue. Record which earlier choice changed the final task, and what your team did to check the letter went to the right person."
+        },
+        {
+          "type": "lines",
+          "labels": [
+            "A choice that changed our journey:",
+            "A finding we are proud of:",
+            "Our team:"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Household edition 2. Later plays can explore other investigation methods, but the historical facts and recipient remain the same."
+        }
+      ]
+    },
+    {
+      "n": 7,
+      "code": "ACT 6 / H-01 / ORDINARY PERSONAL",
+      "title": "Find a safe path to the right door",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Use only after PERSONAL delivery is committed and you CONTINUED at the sorting desk. Your host holds the other final sheets. Use R-01 plus this map and notice."
+        },
+        {
+          "type": "scene",
+          "kind": "streets",
+          "height": 130
+        },
+        {
+          "type": "box",
+          "title": "Street and works notice",
+          "text": "BRIDGE is closed for inspection. Use the EVEN side of Orchard Walk for even house numbers. Check the current recipient's house in R-01. Each path below reaches a marked door; choose the path satisfying ALL three checks. Street segments do NOT spend extra spaces: this whole delivery costs 2."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Path",
+            "Route"
+          ],
+          "rows": [
+            [
+              "H1",
+              "POST > BRIDGE > EVEN > 24"
+            ],
+            [
+              "H2",
+              "POST > MARKET > ODD > 24"
+            ],
+            [
+              "H3",
+              "POST > MARKET > EVEN > 24"
+            ],
+            [
+              "H4",
+              "POST > MARKET > EVEN > 42"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Record PATH + HOUSE + PERSONAL SEAL from R-01. Explain why each other path fails. Evidence sources: R-01 and H-01. After a correct check, mark the 2-space delivery cost once and complete receipt 6."
+        }
+      ]
+    },
+    {
+      "n": 8,
+      "code": "ACT 6 / H-02 + T-01 / PRE-CHECKED PERSONAL",
+      "title": "Use your staff-checked route",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Receive only after PERSONAL delivery is committed AND T-01 credit was earned. Exchange that credit now. Staff have already compared street closures, the even-side approach and route continuity; you do not need the ordinary route-search sheet."
+        },
+        {
+          "type": "box",
+          "title": "Staff-certified route / T-01",
+          "text": "Path H3: POST > MARKET > EVEN > recipient's door. The bridge is closed; this path avoids it. The safe approach is verified. Check the door and personal seal against the recipient register yourself."
+        },
+        {
+          "type": "box",
+          "title": "Your draft handover",
+          "text": "Mara Vale / H3 / 42 Orchard Walk / personal seal A6. One field was copied incorrectly. Use R-01 to correct it. State WHICH field changed, then record PATH + corrected HOUSE + SEAL."
+        },
+        {
+          "type": "box",
+          "title": "Evidence and cost",
+          "text": "Use R-01, H-02 and earned T-01. The route pre-check is the practical return for your earlier help; named delivery cost remains 2 spaces. Mark it only after a correct check, then complete receipt 6."
+        },
+        {
+          "type": "p",
+          "text": "You receive no score for helping. Your team traded one action space earlier for a shorter, verified final procedure."
+        }
+      ]
+    },
+    {
+      "n": 9,
+      "code": "ACT 6 / O-01 / ORDINARY COLLECTION",
+      "title": "Build the authorised collection chain",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Use only after COLLECTION is committed and you CONTINUED at the sorting desk. Check recipient, seal AND current authority; names alone do not establish permission."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Authority ID",
+            "Resident / seal",
+            "Collector / status"
+          ],
+          "rows": [
+            [
+              "A4",
+              "Mira Vale / A9",
+              "Tess Rowan / CURRENT"
+            ],
+            [
+              "A2",
+              "Mara Vale / A6",
+              "Tess Rowan / EXPIRED"
+            ],
+            [
+              "A1",
+              "Mara Vale / A6",
+              "Tess Reed / CURRENT"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "head": [
+            "Collector",
+            "Bag",
+            "Storage record"
+          ],
+          "rows": [
+            [
+              "Tess Reed",
+              "B7",
+              "Z4"
+            ],
+            [
+              "Tess Rowan",
+              "B4",
+              "Z3"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "head": [
+            "Storage record",
+            "Counter"
+          ],
+          "rows": [
+            [
+              "Z3",
+              "C3"
+            ],
+            [
+              "Z4",
+              "C2"
+            ]
+          ]
+        },
+        {
+          "type": "box",
+          "title": "Chain check",
+          "text": "Use R-01 to select the matching CURRENT authority. Follow its exact collector to a bag, then follow the storage record to the counter. Give AUTHORITY ID + collector SURNAME + BAG + COUNTER. Explain the wrong authorities. Sources: R-01 and O-01."
+        },
+        {
+          "type": "p",
+          "text": "Collection costs 1 space, marked only after the full chain passes. Complete receipt 6. Authorised collection is a complete successful delivery."
+        }
+      ]
+    },
+    {
+      "n": 10,
+      "code": "ACT 6 / O-02 + T-01 / PRE-CHECKED COLLECTION",
+      "title": "Check the certified collection slip",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Receive only after COLLECTION is committed AND T-01 credit was earned. Staff have already searched and verified the authority, collector, bag and storage record. You do not need the ordinary authority-search sheet."
+        },
+        {
+          "type": "box",
+          "title": "Staff certificate / T-01",
+          "text": "Mara Vale / seal A6 / CURRENT authority A1 / authorised Tess Reed / bag B7 / storage record Z4. Compare the named resident and seal with R-01 before accepting this certificate."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Certified storage record",
+            "Counter"
+          ],
+          "rows": [
+            [
+              "Z4",
+              "C2"
+            ]
+          ]
+        },
+        {
+          "type": "box",
+          "title": "Draft to repair",
+          "text": "Tess Reed / B7 / C3. One field was copied incorrectly. Correct it against the certified record. State WHICH field changed, then give collector SURNAME + BAG + corrected COUNTER."
+        },
+        {
+          "type": "box",
+          "title": "Evidence and cost",
+          "text": "Sources: R-01, O-02 and earned T-01. Your earlier help supplied the verified chain, shortening this last check. Collection still costs 1 space, marked only after a correct check. Complete receipt 6."
+        },
+        {
+          "type": "p",
+          "text": "The host verifies earned T-01 as well as your answer. A name on an unverified draft by itself never grants collection authority."
+        }
+      ]
+    },
+    {
+      "n": 11,
+      "code": "ACT 3A / D-01 / FOLDER",
+      "title": "Dock / protect the paper trail",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Your selected investigation sheet. Keep envelope E-01 and log 2. Your host holds the LAMP sheet and D-02 until their proper handovers."
+        },
+        {
+          "type": "box",
+          "title": "Warehouse accession note",
+          "text": "Match the date and ACCEPTED status on the receipt clipped outside E-01. Then use its ID in the separate crate index. Returned cargo did not reach the workshop."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Receipt",
+            "Date",
+            "Status"
+          ],
+          "rows": [
+            [
+              "J71",
+              "14 May",
+              "RETURNED"
+            ],
+            [
+              "J19",
+              "15 May",
+              "ACCEPTED"
+            ],
+            [
+              "J17",
+              "14 May",
+              "ACCEPTED"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "head": [
+            "Receipt ID",
+            "Crate"
+          ],
+          "rows": [
+            [
+              "J19",
+              "C1"
+            ],
+            [
+              "J17",
+              "C3"
+            ],
+            [
+              "J71",
+              "C8"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Give the CRATE code with source D-01. Explain the receipt-to-index link. After the host checks, receive D-02 on page 13."
+        }
+      ]
+    },
+    {
+      "n": 12,
+      "code": "ACT 3A / D-01 / LAMP",
+      "title": "Dock / inspect the sheltered yard",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Your selected investigation sheet. North is the top row; east is right. The dashed marker lines extend vertically through the yard. They show the net's and crane's east-west positions."
+        },
+        {
+          "type": "scene",
+          "kind": "dock",
+          "height": 185
+        },
+        {
+          "type": "box",
+          "title": "Inspection note",
+          "text": "Find the crate in the NORTH row, EAST of the NET marker and WEST of the CRANE marker. Use all three conditions. A crate between the markers but in the south row is not the target."
+        },
+        {
+          "type": "p",
+          "text": "Give the CRATE code and D-01. Point to a crate excluded by each condition. After the check, receive D-02 on page 13."
+        }
+      ]
+    },
+    {
+      "n": 13,
+      "code": "ACT 3B / D-02",
+      "title": "Dock / a shipment reaches its maker",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Use the crate established on D-01. Connect separate records to obtain the old number, trade and emblem. No drawing on the envelope proves those facts."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Crate",
+            "Delivery berth"
+          ],
+          "rows": [
+            [
+              "C1",
+              "E"
+            ],
+            [
+              "C3",
+              "B"
+            ],
+            [
+              "C8",
+              "D"
+            ],
+            [
+              "C6",
+              "F"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "head": [
+            "Berth",
+            "Old workshop no.",
+            "Trade"
+          ],
+          "rows": [
+            [
+              "B",
+              "8",
+              "Wooden BOAT making"
+            ],
+            [
+              "D",
+              "18",
+              "Wooden BOAT making"
+            ],
+            [
+              "E",
+              "8",
+              "BOOK binding"
+            ],
+            [
+              "F",
+              "18",
+              "BOOK binding"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "head": [
+            "Old no. + trade",
+            "Emblem"
+          ],
+          "rows": [
+            [
+              "8 + BOAT",
+              "SWALLOW"
+            ],
+            [
+              "18 + BOAT",
+              "SWALLOW"
+            ],
+            [
+              "8 + BOOK",
+              "STAR"
+            ],
+            [
+              "18 + BOOK",
+              "STAR"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Record three facts and the supporting links on log 2. Source D-02. Ask the host to check; then return to map 3 for the Act 4 choice. The route cost already includes the return."
+        }
+      ]
+    },
+    {
+      "n": 14,
+      "code": "ACT 3A / N-01 / FOLDER",
+      "title": "Newspaper / restore the report",
+      "blocks": [
+        {
+          "type": "box",
+          "title": "Four fragments",
+          "text": "Start at OUR REPORT; finish at END. Each fragment ends with the word that starts the next. Write fragment NUMBERS in reading order. Keep words within a fragment unchanged."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Fragment",
+            "Printed text"
+          ],
+          "rows": [
+            [
+              "1",
+              "WORKSHOP welcomed its owner beneath a SWALLOW"
+            ],
+            [
+              "2",
+              "OUR REPORT follows a crate unloaded at the DOCK"
+            ],
+            [
+              "3",
+              "SWALLOW sign. Its original report is in this sleeve. END"
+            ],
+            [
+              "4",
+              "DOCK workers carried the crate to the WORKSHOP"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Give the four-number order and source N-01. Explain the joins. After the check, receive N-02 on page 16."
+        }
+      ]
+    },
+    {
+      "n": 15,
+      "code": "ACT 3A / N-01 / LAMP",
+      "title": "Newspaper / find the right photograph",
+      "blocks": [
+        {
+          "type": "box",
+          "title": "Photographer's note",
+          "text": "The workshop had an ARCHED door, TWO separate steps and NO chimney. Inspect every photograph. All three features must agree."
+        },
+        {
+          "type": "scene",
+          "kind": "photos",
+          "height": 195
+        },
+        {
+          "type": "p",
+          "text": "Give the photograph code and N-01. Explain the feature that rejects each of the other three photographs. After the check, receive N-02 on page 16."
+        }
+      ]
+    },
+    {
+      "n": 16,
+      "code": "ACT 3B / N-02",
+      "title": "Newspaper / read what was corrected",
+      "blocks": [
+        {
+          "type": "box",
+          "title": "Original article / 14 May",
+          "text": "\"Swallow Works, at old number 18, reopens its doors. Its owner builds wooden BOATS beneath the painted SWALLOW emblem.\""
+        },
+        {
+          "type": "box",
+          "title": "Correction / 15 May",
+          "text": "\"Yesterday's Swallow Works report contained one error: the old door number was printed with an extra leading digit 1. The owner's trade and painted emblem were reported correctly. We apologise for the typesetting mistake.\""
+        },
+        {
+          "type": "box",
+          "title": "Archive desk notice",
+          "text": "A later street-renaming notice is filed with the current resident register. Do not treat an old workshop number as a current delivery address."
+        },
+        {
+          "type": "p",
+          "text": "Record the corrected OLD number, the TRADE and the EMBLEM with their supporting sentences. Source N-02. Explain which field changes and which remain valid. Ask for a check, then return to map 3 for the Act 4 choice. The route cost already includes the return."
+        }
+      ]
+    },
+    {
+      "n": 17,
+      "code": "ACT 3A / S-01 / FOLDER",
+      "title": "Signal station / compare the accession log",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Match the envelope's date, tide and accepted status to this original station log. Every condition matters. Give the CABINET code, not a date."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Cabinet",
+            "Date",
+            "Tide",
+            "Status"
+          ],
+          "rows": [
+            [
+              "V3",
+              "14 May",
+              "HIGH",
+              "ACCEPTED"
+            ],
+            [
+              "V6",
+              "14 May",
+              "LOW",
+              "ACCEPTED"
+            ],
+            [
+              "V8",
+              "15 May",
+              "LOW",
+              "ACCEPTED"
+            ],
+            [
+              "V9",
+              "14 May",
+              "LOW",
+              "RETURNED"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Record cabinet and S-01. Explain why each other record fails. After the check, receive S-02 on page 19."
+        }
+      ]
+    },
+    {
+      "n": 18,
+      "code": "ACT 3A / S-01 / LAMP",
+      "title": "Signal station / decode the access panel",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Use the visible panel and the general legend. Count FILLED lamps only. Read the three flag shapes left to right. Row letter + column number forms the cabinet code."
+        },
+        {
+          "type": "scene",
+          "kind": "signals",
+          "height": 165
+        },
+        {
+          "type": "table",
+          "head": [
+            "Filled lamps",
+            "Row"
+          ],
+          "rows": [
+            [
+              "1",
+              "U"
+            ],
+            [
+              "2",
+              "V"
+            ],
+            [
+              "3",
+              "W"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "head": [
+            "Flag order / T triangle, C circle, S square",
+            "Column"
+          ],
+          "rows": [
+            [
+              "S-C-T",
+              "1"
+            ],
+            [
+              "C-T-S",
+              "3"
+            ],
+            [
+              "T-C-S",
+              "6"
+            ],
+            [
+              "T-S-C",
+              "8"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Record the CABINET code and S-01. Show how both observations were used. After the check, receive S-02 on page 19."
+        }
+      ]
+    },
+    {
+      "n": 19,
+      "code": "ACT 3B / S-02",
+      "title": "Signal station / connect original records",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Start with the cabinet proved on S-01. Use its survey row, then carry the SAME registration ID through the trade licence and sign register. Do not substitute a different ID because a word looks useful."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Cabinet",
+            "Survey parcel / old no.",
+            "Registration"
+          ],
+          "rows": [
+            [
+              "V3",
+              "Uphill / 18",
+              "W21"
+            ],
+            [
+              "V6",
+              "Harbour / 8",
+              "W12"
+            ],
+            [
+              "V8",
+              "Canal / 8",
+              "W31"
+            ],
+            [
+              "V9",
+              "Market / 18",
+              "W41"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "head": [
+            "Trade licence",
+            "Trade"
+          ],
+          "rows": [
+            [
+              "W21",
+              "BOOK binding"
+            ],
+            [
+              "W31",
+              "BOOK binding"
+            ],
+            [
+              "W12",
+              "Wooden BOAT making"
+            ],
+            [
+              "W41",
+              "Wooden BOAT making"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "head": [
+            "Sign register",
+            "Emblem"
+          ],
+          "rows": [
+            [
+              "W31",
+              "SWALLOW"
+            ],
+            [
+              "W12",
+              "SWALLOW"
+            ],
+            [
+              "W41",
+              "STAR"
+            ],
+            [
+              "W21",
+              "STAR"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Record OLD number, TRADE and EMBLEM with the registration chain. Source S-02. After the check, return to map 3 for Act 4. The 4-space route cost includes your return; only 2 spaces remain before optional help."
+        }
+      ]
+    },
+    {
+      "n": 20,
+      "code": "ENDING / AFTER VERIFIED RECEIPT",
+      "title": "The words that finally arrived",
+      "blocks": [
+        {
+          "type": "box",
+          "title": "Read your matching delivery scene",
+          "text": "PERSONAL: at the correct door, Mara shows her seal. You finish the receipt and hand over the unopened letter before the bell. COLLECTION: the checked collector signs the receipt; the unopened letter enters its verified bag before the bell. After the storm, Mara confirms its safe arrival. Both fulfil the promise."
+        },
+        {
+          "type": "box",
+          "title": "If you helped",
+          "text": "Staff thank you: Leon, Pia and Rae's collection slips are now correctly filed. Your earned pre-check made the final handover shorter. If you continued, recall how you built and verified the full chain yourselves. Neither choice earns a higher score."
+        },
+        {
+          "type": "p",
+          "text": "The next morning, Mara invites your team to share the letter from her childhood friend Iris. It was written before Iris moved away ten years ago."
+        },
+        {
+          "type": "box",
+          "title": "Dear Mara,",
+          "text": "I packed the little boat last. The sail is still crooked, just as we left it. I thought a boat had to be perfect before it could go anywhere. You taught me we could keep making it better together.\n\nI have not forgotten our workshop, or you. I left a forwarding reference with the town post office, in case you would like to write. Perhaps one day we can finish the second sail.\n\nYour friend, Iris"
+        },
+        {
+          "type": "p",
+          "text": "Mara sets a fresh page on the bench. \"Dear Iris,\" she writes, \"I kept the second sail.\" Forwarding reference IF-6 will be checked by the reopened desk before the reply is sent. This is fiction; no real contact is needed."
+        },
+        {
+          "type": "p",
+          "text": "Finish the reflection on receipt 6: which route and tool did you use, what changed after your sorting-desk choice, and which clue mattered? Household edition 2; physical printing, unfamiliar-host setup, family suitability and actual duration remain unverified."
+        }
+      ]
+    }
+  ],
+  "guide": [
+    {
+      "n": 1,
+      "code": "ADULT ONLY / QUICK START",
+      "title": "Open, print, prepare",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "The Last Letter Before the Storm / Household edition 2. This guide contains answers. One adult host plus 2-6 players. English; age 9+ provisional, duration unmeasured. Paper and pencil are enough: no scissors, folding, real lamp, glue or special ink."
+        },
+        {
+          "type": "box",
+          "title": "Choose one paper size",
+          "text": "A4 OR Letter, single-sided, 100%. The Player master has 20 pages. You never need every page for one run. This private Guide has 8 pages; read it on screen or print separately."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Preparation mode",
+            "Print player pages",
+            "Sheets"
+          ],
+          "rows": [
+            [
+              "All choices at table",
+              "1-20",
+              "20"
+            ],
+            [
+              "Preset route; tool still chosen at table",
+              "1,2,3,4,5,6,7,8,9,10,20 + that route's 3 pages",
+              "14"
+            ],
+            [
+              "Preset route AND tool; both help/delivery choices open",
+              "1,2,3,4,5,6,7,8,9,10,20 + chosen first sheet + proof sheet",
+              "13"
+            ],
+            [
+              "Fixed complete run before printing",
+              "1,2,3,5,6,20 + first/proof sheet + ONE final sheet; add 4 if helping",
+              "9 / 10"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Never promise 9-10 sheets while keeping all choices open: the extra sheets preserve choices. In a fixed run, choices were made BEFORE printing. Use the companion's adult setup or this guide to mark a fixed/preset run. Do not offer unprinted options."
+        },
+        {
+          "type": "box",
+          "title": "First five minutes",
+          "text": "Read this guide privately. Put players 1+2 on the table. Put 3 aside for after K4. Sort the selected investigation sheets, optional help 4, register 5, final 7-10, receipt 6 and ending 20 into the host-only piles shown next. Each is a whole sheet: NO manual panel masking is needed."
+        },
+        {
+          "type": "p",
+          "text": "Extract the whole ZIP first. START-HERE gives the same recipes. Optional companion.html and all four PDFs work together offline in a desktop browser. Phone local-file handling varies; paper + this guide is complete."
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "code": "ADULT ONLY / TABLE MAP",
+      "title": "What is on the table, and when?",
+      "blocks": [
+        {
+          "type": "table",
+          "head": [
+            "Checkpoint",
+            "Give to players",
+            "Keep host-only"
+          ],
+          "rows": [
+            [
+              "OPEN / Act 1",
+              "1 envelope + 2 log",
+              "3 and every future sheet"
+            ],
+            [
+              "After K4 / Act 2",
+              "3 map/tool choice; keep 2",
+              "All investigations until commitment"
+            ],
+            [
+              "Act 3A",
+              "ONE first sheet from route/tool table below",
+              "Other tool + proof page"
+            ],
+            [
+              "Act 3B",
+              "Selected proof page",
+              "Unused routes,4-10,20"
+            ],
+            [
+              "Act 4 choice",
+              "Return to choice box on 3",
+              "Help 4 until HELP committed"
+            ],
+            [
+              "Act 4 if helping",
+              "4; after 213 tick T-01",
+              "5 until task checked"
+            ],
+            [
+              "Act 5",
+              "5 resident register; keep 2",
+              "Final 7-10 until mode committed"
+            ],
+            [
+              "Act 6",
+              "ONE final sheet + receipt 6",
+              "Other final sheets and 20"
+            ],
+            [
+              "After valid receipt",
+              "20 ending",
+              "Unused materials stay unused"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "head": [
+            "Route",
+            "Folder first",
+            "Lamp first",
+            "Proof"
+          ],
+          "rows": [
+            [
+              "Dock",
+              "11",
+              "12",
+              "13"
+            ],
+            [
+              "Press",
+              "14",
+              "15",
+              "16"
+            ],
+            [
+              "Station",
+              "17",
+              "18",
+              "19"
+            ]
+          ]
+        },
+        {
+          "type": "box",
+          "title": "The rule for every handover",
+          "text": "Only give the sheet named by the current checkpoint. After committing a route/tool/mode, do not switch it to solve an error. Give a hint and let players retry. Spare sheets remain in your pile; they are not covers or missing clues."
+        }
+      ]
+    },
+    {
+      "n": 3,
+      "code": "ADULT ONLY / ACTS 1-3A",
+      "title": "Opening and first investigation",
+      "blocks": [
+        {
+          "type": "box",
+          "title": "Opening / E-01",
+          "text": "K4 alone matches cabinet K, 14 May and ACCEPTED. Log 2 is already on the table, so players can record before asking you to check."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Route/tool",
+            "Answer",
+            "Three-level hints / reasoning"
+          ],
+          "rows": [
+            [
+              "Dock/folder",
+              "C3",
+              "Find accepted/date receipt; follow J17; J17 maps to C3."
+            ],
+            [
+              "Dock/lamp",
+              "C3",
+              "Use all boundaries; north alone leaves 3; C3 alone is north/east of net/west of crane."
+            ],
+            [
+              "Press/folder",
+              "2413",
+              "Connect ending words; start 2 then DOCK/WORKSHOP/SWALLOW; 2-4-1-3."
+            ],
+            [
+              "Press/lamp",
+              "P2",
+              "Compare all features; reject P1 door/P3 steps/P4 chimney; only P2 matches."
+            ],
+            [
+              "Station/folder",
+              "V6",
+              "Match three conditions; reject high/other day/returned; V6."
+            ],
+            [
+              "Station/lamp",
+              "V6",
+              "Count filled lamps + flag order; 2 and T-C-S; V + 6."
+            ]
+          ]
+        },
+        {
+          "type": "box",
+          "title": "No direct keys in the task instructions",
+          "text": "Use hint 1 to point to relevant observations, hint 2 to narrow the reasoning and hint 3 to explain the answer. Never deduct actions for assistance. The diagram conditions each reject an actual alternative."
+        },
+        {
+          "type": "p",
+          "text": "Route cost is marked once when committed: dock 2 / press 3 / station 4, including return. Tool choice changes the investigation method; it is not an extra inventory cost."
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "code": "ADULT ONLY / ACT3B",
+      "title": "Trace three facts without guessing",
+      "blocks": [
+        {
+          "type": "box",
+          "title": "Dock / D-02 / page 13",
+          "text": "C3 -> berth B -> old 8 + BOAT. Use 8 + BOAT in emblem register -> SWALLOW. Require the crate-to-berth and final register links."
+        },
+        {
+          "type": "box",
+          "title": "Press / N-02 / page 16",
+          "text": "Original 18 has an extra leading 1. Remove that typesetting error -> old 8. The correction expressly preserves BOAT and SWALLOW. Require the correction sentence, not a copied uncorrected 18."
+        },
+        {
+          "type": "box",
+          "title": "Station / S-02 / page 19",
+          "text": "The cabinet V6 from S-01 selects Harbour/old 8/registration W12. Follow W12 into BOAT licence and SWALLOW sign register. Players identify the registration themselves; do not name it before a hint."
+        },
+        {
+          "type": "box",
+          "title": "Checked facts",
+          "text": "8 / BOAT / SWALLOW, with D-02, N-02 or S-02 matching their route. Keep all three supporting details on log 2. The doodle on the envelope is decorative, not registered evidence."
+        },
+        {
+          "type": "box",
+          "title": "Hints",
+          "text": "Hint 1: point to cross-reference/correction/registration. Hint 2: berth B; remove leading 1; cabinet V6 survey. Hint 3: explain the exact chain above. Afterwards return to map 3 for Act 4."
+        },
+        {
+          "type": "p",
+          "text": "All routes discover the same history. Twelve combinations of route/tool/help do not mean twelve different mysteries. Later plays contain familiar underlying facts."
+        }
+      ]
+    },
+    {
+      "n": 5,
+      "code": "ADULT ONLY / ACTS4-5",
+      "title": "A useful favour and a proved identity",
+      "blocks": [
+        {
+          "type": "box",
+          "title": "Act 4 choice on map 3",
+          "text": "CONTINUE costs 0 and uses ordinary final. HELP costs 1 and receives page 4; 213 is Leon/Noor->2, Pia/Ben->1, Rae/Ada->3. Tick T-01 ONLY after that task passes. It gives staff pre-verification AFTER identity, never reveals the recipient early."
+        },
+        {
+          "type": "box",
+          "title": "T-01 payoff",
+          "text": "Personal: staff identify safe path H3, so players need only check a draft house/seal. Collection: staff verify the current authority, collector, bag and storage record; players match resident/seal and repair one counter. This is fewer final checks than the ordinary procedures. Costs remain home 2/collection 1."
+        },
+        {
+          "type": "box",
+          "title": "Act 5 / R-01",
+          "text": "Mara alone matches old 8 / BOAT / SWALLOW. Mira fails EMBLEM (STAR); Milo fails TRADE (BOOK); Mina fails OLD NUMBER (18). Require all three eliminations and the selected route source. Any two old facts leave a second candidate."
+        },
+        {
+          "type": "box",
+          "title": "Hints",
+          "text": "Help: match both names; keep slip order; then 213. Identity: compare OLD fields; reject one candidate for each mismatch; then explain Mara/Mira/Milo/Mina. Read aloud if needed."
+        },
+        {
+          "type": "p",
+          "text": "With station + HELP, 1 action remains and only collection fits. The consequence was disclosed on map 3 before choosing. Helping is optional; no goodness score or superior ending."
+        }
+      ]
+    },
+    {
+      "n": 6,
+      "code": "ADULT ONLY / ACT6",
+      "title": "Verify the chosen final, once",
+      "blocks": [
+        {
+          "type": "table",
+          "head": [
+            "Mode / sorting choice",
+            "Give page / source",
+            "Required result"
+          ],
+          "rows": [
+            [
+              "Personal / CONTINUE",
+              "7 / H-01",
+              "H3 + 24-A6; explain the three rejected paths"
+            ],
+            [
+              "Personal / HELP",
+              "8 / H-02 + earned T-01",
+              "H3 + 24-A6; repair HOUSE NUMBER"
+            ],
+            [
+              "Collection / CONTINUE",
+              "9 / O-01",
+              "A1 + REED-B7-C2; reject wrong/expired authority"
+            ],
+            [
+              "Collection / HELP",
+              "10 / O-02 + earned T-01",
+              "REED-B7-C2; repair COUNTER; match resident/seal"
+            ]
+          ]
+        },
+        {
+          "type": "box",
+          "title": "Ordinary personal / three conditions",
+          "text": "H1 uses closed BRIDGE. H2 uses ODD side for even 24. H4 reaches 42, wrong recipient address. H3 avoids bridge, approaches EVEN and reaches 24. Seal A6 comes from R-01. Path segments are a puzzle, not additional action costs."
+        },
+        {
+          "type": "box",
+          "title": "Ordinary collection / authority chain",
+          "text": "R-01: Mara/A6. A1 matches and is CURRENT; A4 belongs to Mira/A9; A2 is expired. A1 -> Tess REED -> B7/storage Z4 -> C2. Require authority ID as well as final chain."
+        },
+        {
+          "type": "box",
+          "title": "Pre-checked / shorter tasks",
+          "text": "Personal staff-certified H3 is already valid; draft 42 must become 24, retaining seal A6. Collection staff certificate matches Mara/A6 and verifies A1/REED/B7/Z4; draft C3 must becomeC2. Require earned T-01 and repair field; never use an unearned certificate."
+        },
+        {
+          "type": "p",
+          "text": "All finals require R-01 plus correct H/O source. Check affordability, correct result and sources. Mark home 2 or collection 1 ONLY AFTER passing; retries cost 0. Complete receipt 6, then release 20."
+        }
+      ]
+    },
+    {
+      "n": 7,
+      "code": "ADULT ONLY / ENDING + RECOVERY",
+      "title": "A clear finish and an honest restart",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Give ending 20 after verified receipt 6. Read its personal or collection scene, then the shared next-day letter. Include the matching help/continue acknowledgement and ask every player to name a useful finding."
+        },
+        {
+          "type": "box",
+          "title": "Letter privacy",
+          "text": "The investigation never opens the letter. Mara chooses to share it next day. Collection succeeds at verified authorised handover; later arrival is confirmed in the ending."
+        },
+        {
+          "type": "box",
+          "title": "If a paper record is wrong",
+          "text": "Recalculate 6 minus the committed route cost, minus help 1 if chosen, minus final cost only if completed. Correct the record; do not invent penalties or secretly change a choice. Hints and spoken reasoning are welcome."
+        },
+        {
+          "type": "box",
+          "title": "Companion and preset printing",
+          "text": "Before play, Adult preparation offers full choice, preset route, preset route+tool, or fixed-run settings. Match those settings to the printed recipe. Choices remain open only when corresponding sheets are printed. PDFs stay beside HTML after extraction."
+        },
+        {
+          "type": "box",
+          "title": "Save and reset",
+          "text": "Milestones/choices save on this browser if permitted. No typed answers are uploaded. If storage is blocked, keep the tab open. After a lost tab, continue on paper with this guide or replay checked inputs from log 2; there is no automatic restoration without storage. Reset asks before clearing this game's progress."
+        },
+        {
+          "type": "p",
+          "text": "Replay can explore another route/tool, but the recipient and historical facts remain familiar. No account, purchase, online generation, real contact or external service is needed to play."
+        }
+      ]
+    },
+    {
+      "n": 8,
+      "code": "ADULT ONLY / PRE-FLIGHT",
+      "title": "Check the packet before inviting players",
+      "blocks": [
+        {
+          "type": "table",
+          "head": [
+            "Preparation check",
+            "Ready?"
+          ],
+          "rows": [
+            [
+              "One paper size; recipe matches promised choices",
+              "[ ]"
+            ],
+            [
+              "Opening 1 AND log 2 on table",
+              "[ ]"
+            ],
+            [
+              "Map 3 ready; one selected investigation at a time",
+              "[ ]"
+            ],
+            [
+              "Help 4 stays host-only until help chosen",
+              "[ ]"
+            ],
+            [
+              "T-01 earned only after help task passes",
+              "[ ]"
+            ],
+            [
+              "Register 5 follows Act 4; one correct final 7/8/9/10",
+              "[ ]"
+            ],
+            [
+              "Receipt 6 then ending 20 ready",
+              "[ ]"
+            ],
+            [
+              "Hints and action costs understood",
+              "[ ]"
+            ]
+          ]
+        },
+        {
+          "type": "box",
+          "title": "Branch budget",
+          "text": "Dock leaves 4 or 3 after help; press 3 or 2; station 2 or 1. Personal costs 2; collection 1. Two tools produce 12 main states and 22 legal full paths. Every state retains collection. Extra printed path segments do not alter these costs."
+        },
+        {
+          "type": "box",
+          "title": "Validation status",
+          "text": "Digital rule checks, browser flows and PDF rendering do not prove real-world suitability. Physical printing, unfamiliar-adult preparation, independent family play, age suitability and measured duration remain pending. Household edition 2 is prepared for review/household testing; it is not a claim of completed family testing."
+        },
+        {
+          "type": "p",
+          "text": "Original story, diagrams, puzzles and code: Paper Adventure,2026. Household play and reasonable household reprinting; no resale/redistribution. Copyright does not limit access to this guide during your own household play."
+        }
+      ]
+    }
+  ],
+  "tools": {
+    "folder": "Rainproof folder",
+    "lamp": "Inspection lamp"
+  },
+  "dockCrates": [
+    {
+      "id": "C1",
+      "x": 1,
+      "y": 0
+    },
+    {
+      "id": "C3",
+      "x": 2,
+      "y": 0
+    },
+    {
+      "id": "C8",
+      "x": 3,
+      "y": 0
+    },
+    {
+      "id": "C6",
+      "x": 2,
+      "y": 1
+    }
+  ],
+  "photoFacts": [
+    {
+      "id": "P1",
+      "arch": false,
+      "steps": 2,
+      "chimney": false
+    },
+    {
+      "id": "P2",
+      "arch": true,
+      "steps": 2,
+      "chimney": false
+    },
+    {
+      "id": "P3",
+      "arch": true,
+      "steps": 1,
+      "chimney": false
+    },
+    {
+      "id": "P4",
+      "arch": true,
+      "steps": 2,
+      "chimney": true
+    }
+  ],
+  "homePaths": [
+    {
+      "id": "H1",
+      "bridge": true,
+      "side": "EVEN",
+      "house": 24,
+      "nodes": "POST > BRIDGE > EVEN > 24"
+    },
+    {
+      "id": "H2",
+      "bridge": false,
+      "side": "ODD",
+      "house": 24,
+      "nodes": "POST > MARKET > ODD > 24"
+    },
+    {
+      "id": "H3",
+      "bridge": false,
+      "side": "EVEN",
+      "house": 24,
+      "nodes": "POST > MARKET > EVEN > 24"
+    },
+    {
+      "id": "H4",
+      "bridge": false,
+      "side": "EVEN",
+      "house": 42,
+      "nodes": "POST > MARKET > EVEN > 42"
+    }
+  ],
+  "openingPages": [
+    1,
+    2
+  ],
+  "mapPage": 3,
+  "helpPage": 4,
+  "registerPage": 5,
+  "receiptPage": 6,
+  "endingPage": 20,
+  "finalPages": {
+    "home": {
+      "ordinary": 7,
+      "helped": 8
+    },
+    "office": {
+      "ordinary": 9,
+      "helped": 10
+    }
+  },
+  "limits": [
+    "Physical printing including black-and-white output",
+    "Unfamiliar adult preparation",
+    "Independent family playtest",
+    "Age suitability and measured duration"
+  ]
+}

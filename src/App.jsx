@@ -1,3 +1,4 @@
+import {EscapeLetterDetail} from './escapeLetter.jsx';
 import {EscapeClockDetail} from './escapeClock.jsx';
 import {EscapeMidnightDetail} from './escapeMidnight.jsx';
 import {EscapeTrainDetail} from './escapeTrain.jsx';
@@ -300,6 +301,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
   else if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;
+  else if (route === '/en/escape-room-games/the-last-letter-before-the-storm/') page = <EscapeLetterDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/the-clockmakers-thirteenth-hour/') page = <EscapeClockDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/the-midnight-masquerade/') page = <EscapeMidnightDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/the-missing-seventh-carriage/') page = <EscapeTrainDetail Link={Link} catalog={runtimeCatalog}/>;
@@ -328,5 +330,4 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   if(route==='/admin'||route.startsWith('/admin/'))return <AdminConsole/>;
   return <><Header route={route} />{page}<Footer runtime={runtime} /><FeedbackWidget enabled={runtime?.feedback===true&&runtime?.feedbackNotice===true} Link={Link}/>{conflictTo && <div className="modal-backdrop" role="presentation"><div ref={conflictDialogRef} tabIndex={-1} className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="draft-dialog-title"><span className="eyebrow">SAVED DRAFT</span><h2 id="draft-dialog-title">Start a new adventure?</h2><p>You already have an idea saved in this browser. Choosing the new world will replace that draft.</p><div className="modal-actions"><button className="button-quiet" onClick={dismissConflict}>Keep my draft</button><button className="button" onClick={() => { const to = conflictTo; pendingNavigation = ''; setConflictTo(''); navigate(to, true); }}>Use new world <ArrowRight size={18} /></button></div></div></div>}</>;
 }
-
 

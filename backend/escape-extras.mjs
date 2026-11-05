@@ -28,8 +28,7 @@ export async function serveEscapeExtra(request,env,orderId,role,deps){
  await deps.record(env,orderId,'file_served',`escape:${role}:${digest}`,{role,sha256:digest});
  const headers={'cache-control':'private, no-store','x-content-type-options':'nosniff','x-robots-tag':'noindex, nofollow','referrer-policy':'no-referrer'};
  if(attachment)return new Response(bytes,{headers:{...headers,'content-type':'application/pdf','content-disposition':`attachment; filename="${role}"`}});
- if(role==='bundle')return new Response(bytes,{headers:{...headers,'content-type':'application/zip','content-disposition':`attachment; filename="${spec.themeId==='thirteenth-hour'?'The-Clockmakers-Thirteenth-Hour':spec.themeId==='midnight-masquerade'?'The-Midnight-Masquerade':'The-Missing-Seventh-Carriage'}-v2.zip"`}});
+ if(role==='bundle')return new Response(bytes,{headers:{...headers,'content-type':'application/zip','content-disposition':`attachment; filename="${spec.themeId==='last-letter'?'The-Last-Letter-Before-the-Storm':spec.themeId==='thirteenth-hour'?'The-Clockmakers-Thirteenth-Hour':spec.themeId==='midnight-masquerade'?'The-Midnight-Masquerade':'The-Missing-Seventh-Carriage'}-v2.zip"`}});
  let html=new TextDecoder().decode(bytes);
  return new Response(html,{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"}});
 }
-

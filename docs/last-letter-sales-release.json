@@ -1,0 +1,24 @@
+{
+  "status": "reviewed_for_authorized_publication",
+  "date": "2026-11-05",
+  "game": "last-letter",
+  "pack": "escape-last-letter-home-v2",
+  "version": "v2.0",
+  "price": "USD9.99 tax-inclusive",
+  "source": "games/last-letter-v2",
+  "digitalReview": {
+    "pdfPages": 56,
+    "renderedPixelsIdenticalToReviewedV2": true,
+    "modelTests": 10,
+    "legalPaths": 22,
+    "presetFlows": 3,
+    "privateDeliveryTests": 7
+  },
+  "remaining": [
+    "Physical printing and black-and-white output",
+    "Unfamiliar adult preparation",
+    "Independent family playtest",
+    "Age suitability and measured duration"
+  ],
+  "scope": "New E04 household product only; preserve old catalog/prices/orders and all delivery guards; no real checkout/charge/refund/mail/provider call"
+}

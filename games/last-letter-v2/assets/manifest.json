@@ -1,0 +1,37 @@
+[
+  {
+    "name": "boat",
+    "svgSha256": "d0796c64a95efc937d663d6d1652aacbca687a2c33af9a623aeaa8f735dd4b12",
+    "pngSha256": "7deee27589ea67977ae8c305048df10312b1c207fca9c767ed0f362c5e7ebd98"
+  },
+  {
+    "name": "dock",
+    "svgSha256": "2d2bb81247f8b833ee49cf60182ce44f64ab4597cee9eff80996024cd714a2fa",
+    "pngSha256": "3a3d3889d8c21e719f688f7ed6a78d95c92f6e6266419b0758e7a7fd648f4bda"
+  },
+  {
+    "name": "envelope",
+    "svgSha256": "3b6ba2fa589f94a4827f3c6b5277fde813eb9a83f29b30c52dbec1a8977bb8e1",
+    "pngSha256": "74b7d6a321b85a37452c337335f0c0d1f67454bc26c87ea1cdedb40478e61953"
+  },
+  {
+    "name": "harbour",
+    "svgSha256": "1f45e345df9b05ead5690b0c84d6a303d9efd06a2f1af53378c53bb4305b36fc",
+    "pngSha256": "eb20939c350a14f912bc7aa0f3eebf1fccc805728305a1d59ea3cd4c57010df2"
+  },
+  {
+    "name": "photos",
+    "svgSha256": "3e14a77fc460ced87f8e27d8272088d063903a44013a2a66fdb1f9314e6ae500",
+    "pngSha256": "c9a0f8aa926890a7f0340a565364e97d0e99b6a77f6bf85b5922040149512520"
+  },
+  {
+    "name": "signals",
+    "svgSha256": "a1017cb33237db9e8f8b6fa5728dd5ece67454d8c4f62d7fac2eb4aec60ef414",
+    "pngSha256": "e508507d6de04a424eae913cf1c8a42d30ee698f0e51b150f57b82d3760b3074"
+  },
+  {
+    "name": "streets",
+    "svgSha256": "44c10e4587bc1ee6a96665b080e7dc466a5485a1bb7dd6f612dfe2d39c31fc60",
+    "pngSha256": "b7988c7fdd4025ccae0f23dd9bb7d293045c3c2cb7d7883d06cf4e51c3b8959d"
+  }
+]

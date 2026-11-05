@@ -1,0 +1,17 @@
+THE LAST LETTER BEFORE THE STORM / HOUSEHOLD V2 / SALES RELEASE
+
+On 2026-11-05 the owner authorized review and sales publication at USD9.99 tax-inclusive. This edition is E04, separate from all existing games. Preserve old orders, prices and delivery guards. No real checkout, charge, refund, mail or provider generation is part of release verification.
+
+Canonical source: games/last-letter-v2. v1 is retained separately. content.py authors game.json; both PDF formats and the offline companion use that shared evidence. Original art.mjs diagrams use the same dock/photo/path data. Seven reviewed raster snapshots are bound to the generated SVG and PNG SHA256 values in assets/manifest.json; build.mjs verifies both. CI requires no browser or image service to build the paid files.
+
+Release build from repository root:
+  node games/last-letter-v2/build.mjs
+  python games/last-letter-v2/build_pdfs.py
+  node --test games/last-letter-v2/model.test.mjs
+  python games/last-letter-v2/package.py
+
+Authoring changes to game.json or art.mjs require re-running content.py as appropriate, rendering and visually reviewing the affected diagrams and explicitly updating the artwork manifest. render_art.cjs is a local Windows authoring helper, not a CI dependency. render_qa.py and browser/pack QA use the local bundled tools.
+
+Four PDFs: 20 Player and 8 Adult Guide pages per A4/Letter format (56 pages total). All choices open needs 20 Player sheets; preset route14; preset route+tool13; fully fixed run9/10. The adult must keep unearned sheets private; opening1 and shared log2 are available together. No cutting, folding, real lamp or panel masking.
+
+Digital review covers 22 legal complete paths plus 3 preset flows, four offline packaged finals with storage blocked, all PDF text and page bounds, and all56 rendered pages. Physical printing/B&W output, unfamiliar adult preparation, independent family playtesting, age suitability and actual duration remain unverified and are disclosed before purchase.
