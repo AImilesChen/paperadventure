@@ -11,6 +11,8 @@ import { siteIdentity, pageDocumentTitle } from '../shared/site-identity.mjs';
 import { GuidesHub, GuideArticle, HalloweenOccasion } from './guides.jsx';
 import { BirthdayOccasion } from './birthdayOccasion.jsx';
 import { ChristmasOccasion } from './christmasOccasion.jsx';
+import FreePuzzles from './freePuzzles.jsx';
+import { EscapeGamesHub, LighthouseDetail, LighthousePlay } from './lighthouseGame.jsx';
 import { HomeSamples, HomeCustomStory, HomeGuides } from './homeSections.jsx';
 import { analyticsAvailable } from './analytics.js';
 import { crossesAnalyticsBoundary } from './analytics-route.mjs';
@@ -88,6 +90,8 @@ function Header({ route }) {
           <Link to="/en/occasions/birthday/" aria-current={route === '/en/occasions/birthday/' ? 'page' : undefined}><strong>Birthday party games</strong><span>A free story &amp; party preparation</span></Link>
           <Link to="/en/occasions/christmas/" aria-current={route === '/en/occasions/christmas/' ? 'page' : undefined}><strong>Christmas games</strong><span>A paper gift workshop to share</span></Link>
           <Link to="/en/samples/home/" aria-current={route === '/en/samples/home/' ? 'page' : undefined}><strong>Free Home game</strong><span>Player Pack &amp; Host Guide</span></Link>
+          <Link to="/en/escape-room-puzzles/" aria-current={route === '/en/escape-room-puzzles/' ? 'page' : undefined}><strong>Free puzzles</strong><span>Codes, logic &amp; printable clues</span></Link>
+          <Link to="/en/escape-room-games/" aria-current={route.startsWith('/en/escape-room-games/') ? 'page' : undefined}><strong>Escape adventures</strong><span>Complete stories to print &amp; play</span></Link>
         </div>
       </div>
       <Link to="/en/for-classroom/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-classroom") || /^\/en\/themes\/[^/]+\/classroom\/$/.test(route)) ? "page" : undefined}>For classrooms</Link>
@@ -292,6 +296,10 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/themes')) page = <WorldsOverview Link={Link} catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
+  else if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;
+  else if (route === '/en/escape-room-games/') page = <EscapeGamesHub Link={Link} />;
+  else if (route === '/en/escape-room-games/the-sleeping-lighthouse/') page = <LighthouseDetail Link={Link} />;
+  else if (route === '/en/escape-room-games/the-sleeping-lighthouse/play/') page = <LighthousePlay Link={Link} />;
   else if (route === '/en/guides/') page = <GuidesHub Link={Link} />;
   else if (route.startsWith('/en/guides/')) page = <GuideArticle Link={Link} route={route} />;
   else if (route === '/en/occasions/christmas/') page = <ChristmasOccasion Link={Link} catalog={runtimeCatalog} runtime={runtime} />;

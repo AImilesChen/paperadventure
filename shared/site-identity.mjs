@@ -4,6 +4,6 @@ export const siteIdentity = Object.freeze({
 });
 
 export function pageDocumentTitle(page) {
-  const brand = page.path === '/en/' ? siteIdentity.alternateName : siteIdentity.name;
+  const brand = ['/en/', '/en/escape-room-puzzles/'].includes(page.path) || page.path.startsWith('/en/escape-room-games/') ? siteIdentity.alternateName : siteIdentity.name;
   return `${page.title} | ${brand}`;
 }

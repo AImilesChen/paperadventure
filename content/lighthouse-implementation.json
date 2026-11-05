@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-04",
+  "game": "The Sleeping Lighthouse",
+  "status": "local development complete; not deployed",
+  "preview": "http://127.0.0.1:5508/en/escape-room-games/the-sleeping-lighthouse/",
+  "scope": "One new complete free paper-first escape adventure: three linked puzzles, a final task, four original illustrated scenes, optional browser companion, hints, explained solutions, browser-local progress and ending.",
+  "protectedScope": "Existing Home and Classroom stories, puzzles, PDF assets, payment and production delivery code were compared against the task baseline: 44 protected files, 0 changed.",
+  "printables": {
+    "formats": ["A4", "US Letter"],
+    "playerPagesPerFormat": 7,
+    "adultGuidePagesPerFormat": 4,
+    "directory": "public/assets/lighthouse/",
+    "checks": "All 22 pages rendered and visually reviewed; page counts, paper dimensions, answer separation, matching lens geometry and calibration labels checked."
+  },
+  "verification": {
+    "staticTests": "91 passed",
+    "sitesTests": "4 passed",
+    "finalTargetedTests": "14 passed after final navigation and focus changes",
+    "browser": "Full completion, wrong answers, sequential unlocking, hints, assisted completion, reload/resume, restart cancellation/confirmation and download fragment navigation verified.",
+    "downloads": "A4 player PDF and US Letter adult guide triggered real browser download events.",
+    "responsive": "Desktop screenshot and full mobile gameplay screenshot reviewed; 390px detail viewport has no horizontal overflow or broken images.",
+    "console": "No captured browser console errors."
+  },
+  "artProvenance": "content/lighthouse-art-provenance.json",
+  "evidenceDirectory": "tmp/lighthouse-qa/",
+  "remainingValidation": [
+    "Physical printing and cutting at 100% size have not been tested.",
+    "No child or family usability playtest has been performed.",
+    "Production deployment and search-engine ingestion are outside this completed local development task."
+  ]
+}

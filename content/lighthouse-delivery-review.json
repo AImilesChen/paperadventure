@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-04",
+  "game": "The Sleeping Lighthouse",
+  "verdict": "Digitally reviewed release candidate for a short free adult-led printable adventure. Complete paper-only play is supported when the adult has the guide. Physical print/cut and unfamiliar-family playtesting remain unverified.",
+  "reviewed": "Four final PDFs, 22 rendered pages, shared story/puzzle source and browser answer checks.",
+  "findingsFixed": [
+    "Original 180pt-wide module cut rectangles exceeded the printed board slots. Reduced complete cards to 106pt wide (37.39mm); A4 slots are approximately 39.93mm wide. Increased symbol and label sizes to retain legibility.",
+    "Added an explicit adult supply list, colour-optional instruction and inner-window cutting responsibility.",
+    "Specified the handoff after every checked puzzle, including page 7 after the lens, and explicit paper-only answer checking.",
+    "Changed the third-person opening heading from a letter attribution to Your lighthouse mission."
+  ],
+  "checksPassed": [
+    "All 22 final pages visually inspected; enlarged module sheet and shortest-format adult preparation page reviewed.",
+    "No visible clipped text, overlaps, missing symbols or broken page references found. Extracted text stays within page-safe margins.",
+    "A4 and US Letter shipped text matches after paper-name and whitespace normalization.",
+    "All six actual PDF card transforms fit the board slots, including cutting tolerance.",
+    "Lens board and mask have matching 420pt image transforms and 30mm calibration labels.",
+    "Journal has one order; eight possible module selections contain one valid answer; four lens orientations contain one matching sequence. Finale requires direction and code.",
+    "Player pack does not include TMRK or 427 answer strings; adult guide provides hints, solutions, ending and certificate.",
+    "Production build and 14 relevant game/link tests passed."
+  ],
+  "userJourney": [
+    "Adult reads the four-page guide, prints seven single-sided player pages at 100% in one paper size, and cuts the journal, modules and lens.",
+    "Give players pages 1-2, then pages 3-4 after checking the journal, pages 5-6 after checking power, and page 7 after checking the lens.",
+    "Keep findings on page 1, offer progressive hints, check the final combination, then read guide page 4 and award the certificate."
+  ],
+  "limitations": [
+    "No physical printer/scissor trial was performed; digital geometry does not prove every printer's scaling or paper handling.",
+    "No new-user family test establishes actual duration, reading difficulty or age suitability. The 7-12 range is a design target.",
+    "This is a short introductory game with three puzzles and a synthesis finale; do not position it as a long or difficult escape-room product."
+  ],
+  "deployment": "Not deployed; updated files and rebuilt preview are local. Existing Home/Classroom games are unchanged."
+}

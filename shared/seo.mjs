@@ -1,6 +1,8 @@
 import { themes } from './catalog.mjs';
 import { guides, guideFor } from './guides.mjs';
 import { siteIdentity } from './site-identity.mjs';
+import { freePuzzles, puzzlePath } from './free-puzzles.mjs';
+import { lighthouse, lighthouseArt } from './lighthouse-game.mjs';
 
 export function pageSchema(page, release, origin = 'https://paperadventure.app') {
   const url = origin + page.path;
@@ -9,6 +11,21 @@ export function pageSchema(page, release, origin = 'https://paperadventure.app')
   if (!page.indexable) return { '@context': 'https://schema.org', '@graph': graph };
   const crumbs = [{ name: 'Home', url: origin + '/en/' }];
   const guide = guideFor(page.path);
+  if (page.path === lighthouse.hub) {
+    graph[0]['@type'] = 'CollectionPage';
+    graph[0].mainEntity = { '@id': url + '#adventures' };
+    graph.push({ '@type': 'ItemList', '@id': url + '#adventures', name: 'Complete printable escape adventures', numberOfItems: 1, itemListElement: [{ '@type': 'ListItem', position: 1, name: lighthouse.title, url: origin + lighthouse.path }] });
+  }
+  if (page.path === lighthouse.path) {
+    crumbs.push({ name: 'Escape adventures', url: origin + lighthouse.hub });
+    graph[0].image = origin + lighthouseArt.coast;
+    graph[0].about = { '@type': 'Game', name: lighthouse.title, description: page.description, numberOfPlayers: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 6 }, inLanguage: 'en', isAccessibleForFree: true };
+  }
+  if (page.path === puzzlePath) {
+    graph[0]['@type'] = 'CollectionPage';
+    graph[0].mainEntity = { '@id': url + '#puzzles' };
+    graph.push({ '@type': 'ItemList', '@id': url + '#puzzles', name: 'Six free escape-room-style puzzles for kids', numberOfItems: freePuzzles.length, itemListElement: freePuzzles.map((puzzle, index) => ({ '@type': 'ListItem', position: index + 1, name: puzzle.title, url: url + '#' + puzzle.id })) });
+  }
   if (page.path === '/en/guides/') {
     graph[0]['@type'] = 'CollectionPage';
     graph[0].mainEntity = { '@id': url + '#guides' };
