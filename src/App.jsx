@@ -1,3 +1,4 @@
+import {EscapeClockDetail} from './escapeClock.jsx';
 import {EscapeMidnightDetail} from './escapeMidnight.jsx';
 import {EscapeTrainDetail} from './escapeTrain.jsx';
 import { useEffect, useRef, useState } from 'react';
@@ -299,6 +300,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
   else if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;
+  else if (route === '/en/escape-room-games/the-clockmakers-thirteenth-hour/') page = <EscapeClockDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/the-midnight-masquerade/') page = <EscapeMidnightDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/the-missing-seventh-carriage/') page = <EscapeTrainDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/') page = <EscapeGamesHub Link={Link} />;
