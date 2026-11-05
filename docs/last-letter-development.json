@@ -1,0 +1,70 @@
+{
+  "status": "local_playable_v2_optimisation_complete",
+  "title": "The Last Letter Before the Storm",
+  "chineseTitle": "暴风雨前的最后一封信",
+  "edition": 2,
+  "source": "games/last-letter-v2",
+  "preview": "http://127.0.0.1:5526/companion.html",
+  "zip": "output/private/last-letter-household-v2.zip",
+  "zipSha256": "3d59a15bbfbe85155755e4b77d8a2a519646fa1267780780734779694875fc2b",
+  "content": {
+    "acts": 6,
+    "routes": 3,
+    "tools": 2,
+    "mainStates": 12,
+    "legalCompletePaths": 22,
+    "playerPagesPerFormat": 20,
+    "guidePagesPerFormat": 8,
+    "pdfPagesAcrossBothFormats": 56,
+    "pdfs": 4,
+    "fullChoicePrintSheets": 20,
+    "presetRouteSheets": 14,
+    "presetRouteToolSheets": 13,
+    "fixedRunPlayerSheets": [
+      9,
+      10
+    ],
+    "cutPieces": 0,
+    "manualPanelMasking": false,
+    "language": "English"
+  },
+  "checks": {
+    "modelTests": 10,
+    "completeBrowserPaths": 22,
+    "presetAndFixedPrintFlows": 3,
+    "mobile390": "passed",
+    "reloadAndReset": "passed",
+    "allFourFinalsFromExtractedZipOffline": "passed",
+    "storageBlockedFallback": "passed",
+    "relativePdfLinks": "passed",
+    "allAuthoredTextPresent": "passed",
+    "equivalentA4LetterPages": 28,
+    "all56RenderedPagesBoundsChecked": "passed",
+    "all56RenderedPagesVisuallyReviewed": true,
+    "zipIntegrityReadback": "passed",
+    "externalRequestsDuringPlay": 0
+  },
+  "reviewFixes": {
+    "LL01": "Opening now gives1+2 consistently; log is available before first check.",
+    "LL02": "Whole-sheet tool/final materials; host table map; exact print plans and preset constraints.",
+    "LL03": "All three visual conditions necessary; signal/registration keys derived; ordinary final needs safe path or current authority.",
+    "LL04": "Earned T-01 supplies actual verified information and a shorter final; both paths still playable.",
+    "LL05": "Boat added to envelope; customer edition footer; improved writing space and copy spacing.",
+    "LL06": "Real-world checks still pending, explicitly disclosed."
+  },
+  "published": false,
+  "websiteCatalogOrPaymentChanges": false,
+  "remaining": [
+    "Physical print including black-and-white printer output",
+    "Unfamiliar adult preparation",
+    "Independent family playtest",
+    "Age suitability and measured duration"
+  ],
+  "evidence": "tmp/last-letter-v2-qa",
+  "handoff": "games/last-letter-v2/DEVELOPMENT.txt",
+  "previousVersion": {
+    "zip": "output/private/last-letter-household-v1.zip",
+    "source": "games/last-letter",
+    "retained": true
+  }
+}
