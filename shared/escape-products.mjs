@@ -23,5 +23,11 @@ export const escapeProducts=Object.freeze([Object.freeze({
  availableSettings:['home'],sku:'ready_home',unitAmount:999,version:'v2.0',
  story:{home:{code:'E04',title:'The Last Letter Before the Storm',image:'/assets/last-letter-cover.svg',goal:'Investigate a sealed letter and choose how to deliver it before the storm.',beats:['Examine the envelope','Choose a route and tool','Compare the route evidence','Decide whether to help','Identify the recipient','Prove a valid handover']}},
  home:{readyStatus:'not_published',packVersion:null},classroom:{readyStatus:'not_offered',packVersion:null}
+}),Object.freeze({
+ id:'fold-city',title:'The Secret of Fold City',code:'E05',series:'escape',
+ path:'/en/escape-room-games/the-secret-of-fold-city/',image:'/assets/fold-city-cover.svg',
+ availableSettings:['home'],sku:'ready_home',unitAmount:999,version:'v2.0',
+ story:{home:{code:'E05',title:'The Secret of Fold City',image:'/assets/fold-city-cover.svg',goal:'Turn and fold a shared paper map, recover two clasps and find the way outside.',beats:['Enter the paper city','Turn a quarter','Join a hidden road','Uncover lower streets','Carry both return clasps','Walk beyond the map']}},
+ home:{readyStatus:'not_published',packVersion:null},classroom:{readyStatus:'not_offered',packVersion:null}
 })]);
 export const escapeProduct=id=>escapeProducts.find(p=>p.id===id);

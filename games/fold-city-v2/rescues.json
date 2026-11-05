@@ -1,0 +1,117 @@
+[
+  {
+    "id": "start",
+    "label": "No clasps",
+    "state": {
+      "tiles": [
+        {
+          "r": 0,
+          "f": false
+        },
+        {
+          "r": 0,
+          "f": false
+        },
+        {
+          "r": 0,
+          "f": false
+        }
+      ],
+      "at": "H",
+      "clips": 0,
+      "gate": false
+    }
+  },
+  {
+    "id": "leaf",
+    "label": "Leaf carried",
+    "state": {
+      "tiles": [
+        {
+          "r": 2,
+          "f": false
+        },
+        {
+          "r": 0,
+          "f": false
+        },
+        {
+          "r": 2,
+          "f": false
+        }
+      ],
+      "at": "CA",
+      "clips": 1,
+      "gate": false
+    }
+  },
+  {
+    "id": "spool",
+    "label": "Spool carried",
+    "state": {
+      "tiles": [
+        {
+          "r": 2,
+          "f": false
+        },
+        {
+          "r": 2,
+          "f": true
+        },
+        {
+          "r": 2,
+          "f": false
+        }
+      ],
+      "at": "CA",
+      "clips": 2,
+      "gate": false
+    }
+  },
+  {
+    "id": "both",
+    "label": "Both carried",
+    "state": {
+      "tiles": [
+        {
+          "r": 0,
+          "f": false
+        },
+        {
+          "r": 2,
+          "f": true
+        },
+        {
+          "r": 2,
+          "f": false
+        }
+      ],
+      "at": "CC",
+      "clips": 3,
+      "gate": false
+    }
+  },
+  {
+    "id": "installed",
+    "label": "Both installed",
+    "state": {
+      "tiles": [
+        {
+          "r": 0,
+          "f": false
+        },
+        {
+          "r": 2,
+          "f": true
+        },
+        {
+          "r": 1,
+          "f": true
+        }
+      ],
+      "at": "M",
+      "clips": 3,
+      "gate": true
+    }
+  }
+]
