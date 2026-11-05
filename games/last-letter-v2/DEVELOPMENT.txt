@@ -1,53 +1,17 @@
-THE LAST LETTER BEFORE THE STORM / HOUSEHOLD V2 / LOCAL REVIEW
+THE LAST LETTER BEFORE THE STORM / HOUSEHOLD V2 / SALES RELEASE
 
-User approved the v2 optimisation plan. Source is games/last-letter-v2;
-v1 source and ZIP retained. No live catalog, paid artifact, price, checkout,
-customer record, generation, mail or production change is authorised here.
+On 2026-11-05 the owner authorized review and sales publication at USD9.99 tax-inclusive. This edition is E04, separate from all existing games. Preserve old orders, prices and delivery guards. No real checkout, charge, refund, mail or provider generation is part of release verification.
 
-Single source: content.py -> game.json -> both PDF formats and companion.
-art.mjs uses the same dock/photo/path data. Native SVGs are rendered for PDF
-images; no third-party assets, story or online service is used during play.
+Canonical source: games/last-letter-v2. v1 is retained separately. content.py authors game.json; both PDF formats and the offline companion use that shared evidence. Original art.mjs diagrams use the same dock/photo/path data. Seven reviewed raster snapshots are bound to the generated SVG and PNG SHA256 values in assets/manifest.json; build.mjs verifies both. CI requires no browser or image service to build the paid files.
 
-Build from repository root, bundled Python recommended:
-  python games/last-letter-v2/content.py
+Release build from repository root:
   node games/last-letter-v2/build.mjs
-  node games/last-letter-v2/render_art.cjs
   python games/last-letter-v2/build_pdfs.py
   node --test games/last-letter-v2/model.test.mjs
-  python games/last-letter-v2/render_qa.py
-Serve output/private/last-letter-v2 on loopback5526, then:
-  node games/last-letter-v2/browser-qa.cjs
   python games/last-letter-v2/package.py
-  node games/last-letter-v2/pack-qa.cjs
-After visual review, rerun package.py to include latest evidence in audit JSON.
 
-Output ZIP: output/private/last-letter-household-v2.zip. Contains START-HERE,
-PRINT-PLAN, offline companion and four PDFs. Each format:20 player +8 guide
-pages,56 pages total. Open-choice printing20; preset route14; route+tool13;
-fixed complete run9 without help/10 with help. Guide adds8 if printed.
-Do not advertise9/10 sheets with every choice left open. Companion setup
-restricts choices to the selected print recipe. No cut/fold/panel masking.
+Authoring changes to game.json or art.mjs require re-running content.py as appropriate, rendering and visually reviewing the affected diagrams and explicitly updating the artwork manifest. render_art.cjs is a local Windows authoring helper, not a CI dependency. render_qa.py and browser/pack QA use the local bundled tools.
 
-Always hand over opening1 AND log2. Map3 after first check; route first/proof
-pages11-13 dock,14-16 press,17-19 station. Return to Act4 choice on map3;
-help4 only if chosen. Earn T-01 after sorting task, not before. Then register5;
-one final7/8/9/10 plus receipt6. Ending20 only after verified handover.
-Whole sheets stay with adult until relevant; page order is not playing order.
+Four PDFs: 20 Player and 8 Adult Guide pages per A4/Letter format (56 pages total). All choices open needs 20 Player sheets; preset route14; preset route+tool13; fully fixed run9/10. The adult must keep unearned sheets private; opening1 and shared log2 are available together. No cutting, folding, real lamp or panel masking.
 
-Budget unchanged:6 - dock2/press3/station4 - optional help1 - home2/office1.
-12 main states,22 legal full paths. Station+help requires collection.
-New ordinary home: H3,24-A6; reject H1 bridge/H2 side/H4 house.
-Pre-checked home: same verified H3; repair number; earned T-01; H-02.
-New ordinary collection: A1,REED-B7-C2,sealA6; O-01.
-Pre-checked collection: certified chain; repair counter; earned T-01; O-02.
-All require R-01 plus exact final source. Bad attempts never spend actions.
-
-Dock/photo/home three-condition puzzles each have four alternatives: all
-conditions select one, any two leave two. Signal lamp requires two filled
-lamps -> rowV and T-C-S -> column6. W12 is found via V6 survey, not named
-in task instructions. Three routes still prove old8/BOAT/SWALLOW -> Mara.
-Letter remains sealed; she shares it next day in ending20.
-
-Remaining human checks: physical print including B/W, unfamiliar adult setup,
-independent family play, age suitability and measured duration. Digital checks
-do not replace these. This edition is local, not published for sale.
+Digital review covers 22 legal complete paths plus 3 preset flows, four offline packaged finals with storage blocked, all PDF text and page bounds, and all56 rendered pages. Physical printing/B&W output, unfamiliar adult preparation, independent family playtesting, age suitability and actual duration remain unverified and are disclosed before purchase.
