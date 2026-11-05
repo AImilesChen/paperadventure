@@ -1,0 +1,153 @@
+{
+  "id": "thirteenth-hour",
+  "version": 2,
+  "title": "The Clockmaker's Thirteenth Hour",
+  "case": "09",
+  "opening": "The clockmaker has left a workshop full of sleeping clocks. Tonight his apprentice, Ada, is due to hear a message saved inside the striking cabinet. A note says: Twelve hours keep a clock moving. The thirteenth keeps a memory. Wake the lamp, restore the drive and prepare the special chime. Keep every repair record: a scene you have already visited may change.",
+  "ending": "The service extension opens. Your pointer reaches the special thirteenth mark, and Ada reads the message: You once asked why I kept the clock you could not repair. Because you came back, looked again and tried a different way. That is how a clockmaker learns. This extra chime is for you. The repaired clocks begin their ordinary twelve-hour cycle again. Ada sets the workshop sign to OPEN. The thirteenth hour was a single commemorative chime, not a new rule for everyday time.",
+  "tools": [
+    {
+      "id": "A",
+      "socket": "SQUARE",
+      "teeth": 2,
+      "turn": "LEFT"
+    },
+    {
+      "id": "B",
+      "socket": "SQUARE",
+      "teeth": 3,
+      "turn": "LEFT"
+    },
+    {
+      "id": "C",
+      "socket": "ROUND",
+      "teeth": 2,
+      "turn": "LEFT"
+    },
+    {
+      "id": "D",
+      "socket": "SQUARE",
+      "teeth": 2,
+      "turn": "RIGHT"
+    }
+  ],
+  "ticket": {
+    "socket": "SQUARE",
+    "teeth": 2,
+    "turn": "LEFT"
+  },
+  "clocks": [
+    {
+      "id": "copper",
+      "name": "Copper",
+      "letter": "C",
+      "before": 3,
+      "after": 6,
+      "fast": 1
+    },
+    {
+      "id": "porcelain",
+      "name": "Porcelain",
+      "letter": "P",
+      "before": 7,
+      "after": 9,
+      "fast": 2
+    },
+    {
+      "id": "wood",
+      "name": "Wood",
+      "letter": "W",
+      "before": 10,
+      "after": 2,
+      "fast": 3
+    }
+  ],
+  "direction": "RIGHT",
+  "locator": "LEAF",
+  "voucher": [
+    {
+      "code": "257",
+      "mark": "LEAF"
+    },
+    {
+      "code": "275",
+      "mark": "STAR"
+    },
+    {
+      "code": "527",
+      "mark": "MOON"
+    }
+  ],
+  "stages": [
+    {
+      "title": "Accept the repair",
+      "lead": "At the workbench, match the socket, tooth count and turning arrow on the lamp ticket to one tool. Check all three features before unfolding anything.",
+      "reward": "Tool A matches SQUARE, TWO teeth and LEFT. Keep the ticket; the lamp may now be opened.",
+      "hints": [
+        "Compare each tool with all three ticket requirements.",
+        "B has too many teeth; C has the wrong socket; D turns the wrong way.",
+        "Choose A: SQUARE / 2 / LEFT."
+      ],
+      "solution": "A / SQUARE / 2 / LEFT. B fails tooth count; C fails socket shape; D fails turning direction. After checking, the host permits the lamp fold to open."
+    },
+    {
+      "title": "The lamp changes the bench",
+      "lead": "Return to the same workbench. Unfold its lamp panel and join the old line on the bench to the newly visible section. Record the completed arrow for the drive assembly; the repair ticket alone is not the source of this mounting instruction.",
+      "reward": "The joined bench-and-lamp arrow points RIGHT. Record W-01 as its source; keep the lamp open.",
+      "hints": [
+        "Look across the fold, not only at the new panel.",
+        "The bench has the shaft; the lamp panel completes its head.",
+        "The complete arrow points RIGHT. This W-01 arrow is your drive mounting instruction."
+      ],
+      "solution": "RIGHT / W-01 joined bench and lamp. The old shaft and revealed head form one arrow across the fold. The earlier lamp tool turns LEFT; mounting the drive is a separate operation, so the old ticket cannot replace this scene observation."
+    },
+    {
+      "title": "Read the stopped clocks",
+      "lead": "These are independent calibration test dials, not clocks showing one shared real time. The clock wall is still in BEFORE / DRIVE OFF. Read Copper, Porcelain and Wood in that order. Each dial has its own positive test offset to subtract. Subtract that amount, wrapping around a twelve-hour dial. Keep these corrections for later.",
+      "reward": "Historical cabinet code: 2-5-7. It opens the drive-parts cabinet once. The correction rules remain with the team.",
+      "hints": [
+        "Use the BEFORE readings, in C-P-W order.",
+        "Subtract 1 from Copper, 2 from Porcelain and 3 from Wood.",
+        "3-1=2; 7-2=5; 10-3=7. Historical code: 257."
+      ],
+      "solution": "2 / 5 / 7, source BEFORE. This is a cabinet-opening record, not the final pin setting. After checking, release M-01: the transfer register on Player page 6 and the two wheels on page 7."
+    },
+    {
+      "title": "Reconnect the drive",
+      "lead": "Start at LEFT + MOON. First explain the target direction using W-01 and the target locating mark using M-01. Then adjust one wheel at a time and replace the cover. Use the arrow from the reopened workbench and look up your checked historical code in transfer register M-01. Set one wheel for direction and the other for the locating mark. Join the two windows' bridge marks with the fixed centre line. Ask the host to check the two labels before moving the wall strip. No-cut mode: circle chosen labels and record sources; the host checks choices without layering or physical bridge alignment.",
+      "reward": "RIGHT + LEAF makes a continuous bridge through the cover. Move the wall strip UP 45 mm until AFTER / DRIVE ON is visible. The clock readings are now 6, 9 and 2. No-cut: cover BEFORE and reveal the labelled AFTER view on page 10 instead of sliding.",
+      "hints": [
+        "Two earlier findings are needed: W-01's arrow and the historical cabinet code.",
+        "M-01 maps 257 to LEAF. Keep RIGHT at the first window.",
+        "Set RIGHT and LEAF. Their two level bridge lines connect to the fixed centre line. Then change the wall from BEFORE to AFTER."
+      ],
+      "solution": "RIGHT / LEAF / connected. Only RIGHT and LEAF carry level bridge segments at the centre-line height. LEFT/STAR are raised and UP/MOON are lowered. Incorrect wheels cannot connect to the fixed line, even if both wrong segments share a height. Move the connected strip up 45 mm to show 6, 9, 2 and the AFTER tab. Start unsolved at LEFT+MOON. Accept W-01 for direction and M-01 for locating mark before checking the bridge. Minor paper misalignment is not evidence of a wrong choice: realign the centres first."
+    },
+    {
+      "title": "Return to a changed wall",
+      "lead": "The repair has changed the same clock wall. Read the AFTER state, then apply the same three correction rules. Write new results in CURRENT PINS. Leave your old cabinet code in HISTORY; its earlier use was valid.",
+      "reward": "Current pins in C-P-W order: 5-7-11. Copper 6-1=5; Porcelain 9-2=7; Wood 2-3 wraps to 11. Keep the drive connected.",
+      "hints": [
+        "Read the AFTER tab. Do not reuse the old displayed numbers.",
+        "The readings changed, but the clocks' fast-by corrections did not.",
+        "6-1=5; 9-2=7; 2-3 wraps around the twelve-hour dial to 11."
+      ],
+      "solution": "5 / 7 / 11, source AFTER. Historical 257 stays correct for opening the cabinet. The final pins use new readings 6, 9, 2 with the unchanged corrections 1, 2, 3. Place or circle C=5, P=7, W=11 on the striking cabinet tracks."
+    },
+    {
+      "title": "Make the thirteenth chime",
+      "lead": "Take turns proving the three release conditions: drive direction RIGHT with locating mark LEAF; current pins C-P-W; and AFTER / DRIVE ON at the wall. The host checks your sources. Only then unfold the striking cabinet's service extension and move the pointer from the normal twelve-hour dial to its special thirteenth mark.",
+      "reward": "RIGHT / LEAF / 5-7-11 / AFTER. The service extension is released. Point to 13 and open the separate final message.",
+      "hints": [
+        "Look at all three scenes: bench, wall and striking cabinet.",
+        "The final setting is current, not historical. Keep the 257 record as evidence of the earlier opening.",
+        "RIGHT + LEAF, current 5-7-11 and AFTER / DRIVE ON. Confirm W-01 + M-01, clock corrections + AFTER wall, and the exposed state tab."
+      ],
+      "solution": "RIGHT / LEAF / 5 / 7 / 11 / AFTER. Sources: W-01+M-01; AFTER wall+R-01 correction record; active AFTER view label or assembled state tab. Open the already-visible service-extension fold on page 4, point to its special 13 mark and only now release Player page 12. No motive, actual-time calculation or real alarm is required."
+    }
+  ],
+  "wheelStart": {
+    "direction": "LEFT",
+    "mark": "MOON"
+  }
+}

@@ -1,0 +1,75 @@
+THE CLOCKMAKER'S THIRTEENTH HOUR / CASE 09 / LOCAL DEVELOPMENT V2
+
+User authorized game design and development. Not authorized for this edition:
+production publishing, catalog/payment changes, customer actions or AI calls.
+All source and output are separate from live Lighthouse, Carriage and Masquerade.
+English household edition. Age 9+ is a design target, not validated guidance.
+2-5 players plus one adult host. Duration and preparation time unmeasured.
+
+Canonical content: game.json. Rules/state gates: model.mjs. Original SVG:
+art.mjs. Standalone companion: app.js, style.css, build.mjs. Native-vector PDF
+mechanisms and all print content: build_pdfs.py. No third-party story/art assets.
+
+Build from repository root:
+  node games/thirteenth-hour/build.mjs
+  python games/thirteenth-hour/build_pdfs.py
+  node --test games/thirteenth-hour/model.test.mjs
+  python games/thirteenth-hour/render_qa.py
+  python -m http.server 5523 --bind 127.0.0.1 --directory output/private/thirteenth-hour
+  node games/thirteenth-hour/browser-qa.cjs
+  python games/thirteenth-hour/package.py
+
+Python: reportlab, pypdf, Pillow. Rendering uses bundled Windows Poppler;
+browser QA uses bundled Playwright and installed Edge. Adapt their explicit
+runtime paths if moved. Core game, PDF build and package have no network calls.
+Outputs: output/private/thirteenth-hour and thirteenth-hour-household-v2.zip.
+Customer ZIP: START-HERE, companion and four PDFs. Internal manifest and QA
+evidence remain outside it. A4 and Letter each have 12 player + 8 guide pages.
+Standard printing: Player 1-9,11-12 (11 sheets). No-cut: 1,2,4,6,7,9,10,11,12 (9). Guide can stay on screen.
+Standard cutting: 17 pieces, five window openings. No-cut alternative included.
+
+IMPORTANT PHYSICAL DESIGN
+Lamp: connected 180x90 mm, fold right half behind left at 90 mm.
+Wall: FLAT 180x110 mm front mask, NOT a sleeve with folded-back flaps. Keeping
+the front mask flat covers the inactive clock row. Three windows are 28x28 mm,
+centred x=35/90/145 mm, y=55 mm. Connected strip 160x90 mm; face centres
+x=25/80/135 mm, row heights 70 mm (BEFORE) and 25 mm (AFTER).
+Align strip 10 mm from frame left. Initial strip bottom = frame bottom -15 mm;
+move UP 45 mm, ending strip bottom = frame bottom +30 mm. Both state labels
+appear on the protruding grip. The hands and numbers fit within each window.
+Hold the frame side margins; no tape, rails or fastener is required.
+Drive: two 80 mm circular wheels, 180x100 mm cover/backing. Centres x=45/135,
+y=45 mm. Windows x=30/120,y=60,w=30,h=20 mm. Fixed bridge y=67 mm.
+Selected correct sector bridge is +22 mm relative to wheel centre; wrong
+sectors are +/-5 mm. BOTH equally wrong-height bridges still fail the FIXED
+middle line. This is a manually held alignment illustration, not a self-locking
+gearbox. The host checks labels and the join before allowing the wall to move.
+Cabinet: connected 180x110 mm. Fold last 60 mm behind; special 13 is present
+from the beginning, hidden by this fold. Host permits opening only after six
+checked findings. Three numbered tracks take loose pointers or pencil circles.
+
+CONTENT / REUSE
+Tool A is SQUARE/2/LEFT. Revealed mounting arrow is RIGHT; these are different
+operations. BEFORE readings 3,7,10 minus fast-by 1,2,3 yield historical 257.
+M-01 maps 257 to LEAF. Drive RIGHT+LEAF passes; wall becomes 6,9,2.
+Same corrections produce CURRENT 5,7,11 (2-3 wraps to 11). Never erase 257.
+Final proof uses W-01+M-01, AFTER+R-01 and the exposed AFTER tab. The special
+13 is a commemorative chime, not ordinary twelve-hour time arithmetic.
+
+TEST EVIDENCE
+tmp/thirteenth-hour-qa holds six model tests' supporting source, browser flow
+report, 40-page raster review, actual-piece wall/drive assembly simulations,
+PDF content/geometry/transform audit and ZIP hash/integrity results. Simulated
+paper assembly is digital evidence, not proof of a physical print-and-cut test.
+
+REMAINING HUMAN VALIDATION
+Give a first-time adult only the ZIP, without developer explanations. Record
+preparation time, any outside help, masking of future states, wall travel and
+wheel handling. Observe whether players return to earlier scenes, distinguish
+HISTORY/CURRENT, retain the correction rule and share operation duties. Run a
+full paper-only session through the separate ending. Record actual duration,
+reading difficulty, need for hints and no-cut usability. Do not advertise an
+observed duration, validated age range or tested assembly until these occur.
+
+V2 REVISION: no-cut states/R-01 on page 10; grip labels on strip 5 are only for assembly. Wheel backing 8 is independent from repair record 9, with three two-line proof fields. Missions 11; hidden ending 12. Start drive LEFT+MOON, use layer diagram on 8 and confirm sources before alignment. Web selectors update the bridge live and retain choices on reload. Clock values are independent calibration tests, not one real time. Real physical/human validation remains pending.
+

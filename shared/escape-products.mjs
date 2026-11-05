@@ -11,6 +11,12 @@ export const escapeProducts=Object.freeze([Object.freeze({
  availableSettings:['home'],sku:'ready_home',unitAmount:999,version:'v2.0',
  story:{home:{code:'E02',title:'The Midnight Masquerade',image:'/assets/midnight-masquerade-cover.svg',goal:'Share private clues, investigate a sealed display and recover the Dawn Jewel.',beats:['Place six masked guests','Compare the inspections','Combine three witness records','Validate transfer notes','Recover the jewel','Present the complete case']}},
  home:{readyStatus:'not_published',packVersion:null},classroom:{readyStatus:'not_offered',packVersion:null}
+}),Object.freeze({
+ id:'thirteenth-hour',title:"The Clockmaker's Thirteenth Hour",code:'E03',series:'escape',
+ path:'/en/escape-room-games/the-clockmakers-thirteenth-hour/',image:'/assets/thirteenth-hour-cover.svg',
+ availableSettings:['home'],sku:'ready_home',unitAmount:999,version:'v2.0',
+ story:{home:{code:'E03',title:"The Clockmaker's Thirteenth Hour",image:'/assets/thirteenth-hour-cover.svg',goal:'Repair three changing workshop scenes and prepare the special chime.',beats:['Select the repair tool','Unfold the lamp','Calibrate the test dials','Reconnect the drive','Return to the changed wall','Prove the final settings']}},
+ home:{readyStatus:'not_published',packVersion:null},classroom:{readyStatus:'not_offered',packVersion:null}
 })]);
 export const escapeProduct=id=>escapeProducts.find(p=>p.id===id);
 
