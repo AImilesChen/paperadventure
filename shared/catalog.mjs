@@ -1,7 +1,8 @@
+import {escapeProducts} from './escape-products.mjs';
 // Product facts shared by the React preview and the Cloudflare API scaffold.
 import { independentClassroomWorlds } from './classroom-worlds.mjs';
 // Publication remains disabled until real packs, checkout, tax, and legal gates pass.
-export const catalogVersion = '2026-10-10-v1.5-classroom-worlds';
+export const catalogVersion = '2026-11-05-v1.6-escape';
 
 // Owner-confirmed product policy. Consumer-facing legal text and enforcement
 // still require review before any sale or public download is enabled.
@@ -80,6 +81,7 @@ export function publicCatalog() {
     version: catalogVersion,
     publicationState: 'development_preview',
     freeSampleThemeId: null,
+    escapeGames:escapeProducts,
     freeSampleCandidateThemeId: 'celebration',
     productRights,
     offers,

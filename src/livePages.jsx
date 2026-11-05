@@ -31,12 +31,13 @@ function Alert({ children }) { return <p className="live-alert" role="alert"><Wa
 
 const orderLabel = { pending_payment: 'Payment not confirmed', paid: 'Payment confirmed · queued', fulfilling: 'Generating and checking', published: 'Files ready', failed: 'PDF creation stopped · action needed', refunded: 'Refunded' };
 
-function CompletePackDownload({ orderId, paper, setting, kind = 'custom', version = null, label = 'Download complete game · ZIP' }) {
+function CompletePackDownload({ orderId, paper, setting, kind = 'custom', escapeGame = false, version = null, label = 'Download complete game · ZIP' }) {
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('');
   async function download() {
     if (busy) return;
     setBusy(true); setError(''); setNotice('');
     try {
+      if(escapeGame){const response=await fetch('/api/v1/orders/'+encodeURIComponent(orderId)+'/escape/bundle',{credentials:'same-origin'});if(!response.ok)throw new Error('Your complete package could not be downloaded. Sign in with your purchase account and retry.');const bytes=new Uint8Array(await response.arrayBuffer());if(!response.headers.get('content-type')?.includes('application/zip')||bytes[0]!==80||bytes[1]!==75)throw new Error('The package could not be verified.');const url=URL.createObjectURL(new Blob([bytes],{type:'application/zip'}));const a=document.createElement('a');a.href=url;a.download='The-Missing-Seventh-Carriage-v2.zip';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);setNotice('Complete ZIP prepared with both paper sizes, adult guides and the offline companion. Extract it before opening.');return;}
       const selectedVersion=kind==='custom'?(version||(await api('/api/v1/orders/'+encodeURIComponent(orderId))).downloadVersion):null;
       const versionQuery=selectedVersion?'&version='+selectedVersion:'';
       const files = await Promise.all(['player','guide'].map(async role => {
@@ -197,7 +198,7 @@ export function LiveShelf({ Link }) {
               <p className={'shelf-status status-' + order.status}>{order.checkoutExpired ? 'Checkout expired · not paid' : order.status === 'failed' && !order.paid_at ? 'Checkout unsuccessful · not paid' : order.status === 'pending_payment' ? 'Unfinished checkout · not paid' : order.status === 'failed' && order.paid_at ? 'Paid · PDF creation stopped · action needed' : order.planStatus === 'needs_help' ? 'Paid · plan generation stopped · action needed' : order.planStatus === 'review' ? 'Paid · personal plan ready for review' : order.planStatus === 'confirmed' ? 'Paid · creating PDFs' : order.paid_at ? 'Paid · ' + (orderLabel[order.status] || order.status) : orderLabel[order.status] || order.status}</p>
               <p className="live-note">Order {order.id.slice(0,8).toUpperCase()} · {order.paid_at ? 'Paid ' + date(order.paid_at) : 'Started ' + date(order.created_at)} · {formatUsd(order.amount_total)}<br />{order.accessExpiresAt && 'Downloads until ' + date(order.accessExpiresAt)}</p>
               {section!=='archived'&&<ThemeCoverStatus order={order} refresh={refresh} />}
-              {section === 'games' && order.filesReady ? <div className="shelf-downloads"><CompletePackDownload orderId={order.id} kind={order.product_kind} paper={downloadPaper} setting={order.setting} /><span className="live-note">Or download individual PDFs:</span><a className="button-quiet" href={'/api/v1/files/' + order.id + '/player?paper=' + downloadPaper}>Player Pack · {downloadPaper === 'Letter' ? 'US Letter' : downloadPaper} <DownloadSimple size={18} /></a><a className="button-quiet" href={'/api/v1/files/' + order.id + '/guide?paper=' + downloadPaper}>{order.setting === 'classroom' ? 'Teacher Guide' : 'Host Guide'} <DownloadSimple size={18} /></a><small>Download both: player activities and separate instructions with answers.</small></div> : section === 'games' && <p className="live-note">Online downloads are unavailable. Check your order for access details.</p>}
+              {section === 'games' && order.filesReady ? <div className="shelf-downloads"><CompletePackDownload escapeGame={order.themeId==='seventh-carriage'} orderId={order.id} kind={order.product_kind} paper={downloadPaper} setting={order.setting} /><span className="live-note">Or download individual PDFs:</span><a className="button-quiet" href={'/api/v1/files/' + order.id + '/player?paper=' + downloadPaper}>Player Pack · {downloadPaper === 'Letter' ? 'US Letter' : downloadPaper} <DownloadSimple size={18} /></a><a className="button-quiet" href={'/api/v1/files/' + order.id + '/guide?paper=' + downloadPaper}>{order.setting === 'classroom' ? 'Teacher Guide' : 'Host Guide'} <DownloadSimple size={18} /></a><small>Download both: player activities and separate instructions with answers.</small></div> : section === 'games' && <p className="live-note">Online downloads are unavailable. Check your order for access details.</p>}
               {section === 'making' && order.status === 'failed' && <p className="shelf-action-note">{order.deliveryRetryAvailable ? 'Your PDFs are not ready. Retry on this paid order without another checkout.' : 'Your PDFs are not ready. Open this paid order for assistance or refund review.'}</p>}
               <Link className={section === 'making' ? 'shelf-action' + (order.status === 'failed' ? ' shelf-action-urgent' : '') : 'text-link'} to={'/en/orders/' + order.id + '/'}>{section === 'making' ? order.status === 'failed' ? order.deliveryRetryAvailable ? 'Open order to retry PDF' : 'Open order for help' : order.planStatus === 'needs_help' ? 'Open order and recover plan' : order.planStatus === 'review' ? 'Review and edit your plan' : 'View order progress' : 'Order details'} <ArrowRight size={18} /></Link>
               {section==='archived'&&<button type="button" className="button-quiet shelf-restore" disabled={Boolean(restoring)} onClick={()=>restoreEntry(order.id)}>{restoring===order.id?'Restoring…':'Restore to library'}</button>}
@@ -467,11 +468,12 @@ export function OrderPackage({order,orderId,selectedPaper,setSelectedPaper}) {
     </div>}
      {ready && (originalProgress ? <details className="order-earlier-downloads"><summary>Download existing PDFs while the replacement is pending</summary><div id="download-game" className="order-package-downloads">
        <p className="live-note">These files belong to the original version.</p>
-       <CompletePackDownload orderId={orderId} kind={order.kind} version={order.downloadVersion} paper={paper} setting={order.sku.includes('classroom') ? 'classroom' : 'home'} label="Download original game · ZIP"/>
+       <CompletePackDownload escapeGame={order.themeId==='seventh-carriage'} orderId={orderId} kind={order.kind} version={order.downloadVersion} paper={paper} setting={order.sku.includes('classroom') ? 'classroom' : 'home'} label="Download original game · ZIP"/>
        <div className="live-downloads">{['player','guide'].map(role=><a key={role} href={'/api/v1/files/' + orderId + '/' + role + '?paper=' + paper+(order.downloadVersion?'&version='+order.downloadVersion:'')}>{role === 'player' ? 'Original Player Pack' : `Original ${guide}`} <DownloadSimple size={17}/></a>)}</div>
      </div></details> : <div id="download-game" className="order-package-downloads">
       {order.kind === 'ready' ? <label className="order-paper-choice">Paper size<select aria-label="Paper size" value={selectedPaper} onChange={event=>setSelectedPaper(event.target.value)}><option value="A4">A4</option><option value="Letter">US Letter</option></select></label> : <p className="live-note">Paper size: {paper === 'Letter' ? 'US Letter' : paper}</p>}
-      <CompletePackDownload orderId={orderId} kind={order.kind} version={order.downloadVersion} paper={paper} setting={order.sku.includes('classroom') ? 'classroom' : 'home'}/>
+      {order.themeId==='seventh-carriage'&&<p><a className="button" href={'/api/v1/orders/'+orderId+'/escape/companion'}>Open your browser companion →</a></p>}
+      <CompletePackDownload escapeGame={order.themeId==='seventh-carriage'} orderId={orderId} kind={order.kind} version={order.downloadVersion} paper={paper} setting={order.sku.includes('classroom') ? 'classroom' : 'home'}/>
       <div className="live-downloads">{['player','guide'].map(role=><a key={role} href={'/api/v1/files/' + orderId + '/' + role + '?paper=' + paper+(order.downloadVersion?'&version='+order.downloadVersion:'')}>{role === 'player' ? 'Player Pack' : guide} <DownloadSimple size={17}/></a>)}</div>
      </div>)}
   </section>;
@@ -696,7 +698,7 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
   const sku = `${ready ? 'ready' : 'custom'}_${setting}`;
   const offer = catalog?.offers.find(item => item.sku === sku);
   const themeId = params.get('theme') || '';
-  const theme = catalog?.themes.find(item => item.id === themeId);
+  const theme = [...(catalog?.themes||[]),...(catalog?.escapeGames||[])].find(item => item.id === themeId);
   const variantIds = ready && setting === 'classroom' ? theme?.classroom?.variantIds || [] : [];
   const [variantId, setVariantId] = useState('');
   const [supplyRequested,setSupplyRequested] = useState(false);
@@ -706,7 +708,7 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
   useEffect(() => { let active = true; api('/api/v1/auth/session').then(session => { if (active) { setAuthenticated(Boolean(session.authenticated)); setAccountEmail(session.email || ''); } }).catch(() => { if (active) setAuthenticated(false); }); return () => { active = false; }; }, []);
   const customDraftReady = Boolean(draft.creatorVersion===3 && readySetup(draft));
   const eligible = Boolean(['home','classroom'].includes(setting) && offer?.saleEnabled && (ready ? ['published','test_ready'].includes(theme?.[setting]?.readyStatus) : customDraftReady));
-  const accountRequired = checkoutMode === 'test' || !ready;
+  const accountRequired = checkoutMode === 'test' || !ready || theme?.series==='escape';
   const needsSignIn = accountRequired && !authenticated;
   const signInPath = `/en/account/?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`;
   async function start(event) {

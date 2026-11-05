@@ -1,0 +1,323 @@
+{
+  "id": "seventh-carriage",
+  "version": 2,
+  "title": "The Missing Seventh Carriage",
+  "price": {
+    "currency": "USD",
+    "amount": 999,
+    "taxInclusive": true
+  },
+  "opening": "The Night Swallow has arrived at Whitebridge with six carriages. Its departure manifest lists seven. Tonight's cargo includes the great paper clock for tomorrow's town celebration. All passengers are safely accounted for, but the train is incomplete. A witness remembers a station lamp standing still outside the window, although the journey summary says NON-STOP. Your team must find the carriage, explain what happened and arrange its return.",
+  "ending": "The depot bell rings. K7 rolls out of Bay 3 and joins the waiting train. At Whitebridge, the great paper clock unfolds above the square. Stationmaster Ada writes: You did more than find a missing carriage. You checked the evidence, understood the mistake and brought our celebration home. The town clock strikes together with seven small carriage bells.",
+  "carriages": [
+    {
+      "id": "K1",
+      "name": "Engine service",
+      "windows": 1,
+      "door": "left",
+      "roof": "flat",
+      "mark": "BOLT"
+    },
+    {
+      "id": "K2",
+      "name": "Passenger",
+      "windows": 3,
+      "door": "right",
+      "roof": "round",
+      "mark": "CIRCLE"
+    },
+    {
+      "id": "K3",
+      "name": "Dining",
+      "windows": 2,
+      "door": "left",
+      "roof": "round",
+      "mark": "CUP"
+    },
+    {
+      "id": "K4",
+      "name": "Passenger",
+      "windows": 4,
+      "door": "right",
+      "roof": "flat",
+      "mark": "SQUARE"
+    },
+    {
+      "id": "K5",
+      "name": "Luggage",
+      "windows": 0,
+      "door": "middle",
+      "roof": "flat",
+      "mark": "CASE"
+    },
+    {
+      "id": "K6",
+      "name": "Service",
+      "windows": 2,
+      "door": "middle",
+      "roof": "round",
+      "mark": "STAR"
+    },
+    {
+      "id": "K7",
+      "name": "Exhibition cargo",
+      "windows": 1,
+      "door": "right",
+      "roof": "round",
+      "mark": "CLOCK"
+    }
+  ],
+  "arrival": [
+    "K4",
+    "K1",
+    "K6",
+    "K2",
+    "K5",
+    "K3"
+  ],
+  "witnesses": [
+    {
+      "name": "Mina / dining steward",
+      "text": "I put the tea tray away before the carriage lights briefly went out."
+    },
+    {
+      "name": "Jo / passenger",
+      "text": "After the lights came back, I watched the train slow to a complete stop beside a moon-shaped station sign. The sign stayed beside our window while I counted slowly to thirty."
+    },
+    {
+      "name": "Rafi / cargo attendant",
+      "text": "After the lights came back, I stepped onto the platform. I was back aboard before the departure bell."
+    },
+    {
+      "name": "Len / conductor",
+      "text": "The departure bell rang, then we began moving again. Only afterwards did I check the rear connecting door. It was locked."
+    }
+  ],
+  "events": [
+    {
+      "id": "B",
+      "text": "The train stands at a platform."
+    },
+    {
+      "id": "D",
+      "text": "The train departs again."
+    },
+    {
+      "id": "A",
+      "text": "The tea tray is put away."
+    },
+    {
+      "id": "C",
+      "text": "The lights briefly go out."
+    }
+  ],
+  "stations": [
+    {
+      "name": "Pinebridge",
+      "start": "21:18",
+      "end": "21:22",
+      "mark": "PINE"
+    },
+    {
+      "name": "Moonbay",
+      "start": "21:18",
+      "end": "21:22",
+      "mark": "MOON"
+    },
+    {
+      "name": "Crescent Pier",
+      "start": "21:29",
+      "end": "21:31",
+      "mark": "MOON"
+    },
+    {
+      "name": "Stonegate",
+      "start": "21:08",
+      "end": "21:10",
+      "mark": "ARCH"
+    }
+  ],
+  "clock": {
+    "observed": "21:14",
+    "deskObserved": "21:18",
+    "inspection": [
+      {
+        "clock": "Central reference",
+        "reading": "20:00"
+      },
+      {
+        "clock": "Platform clock",
+        "reading": "19:56"
+      },
+      {
+        "clock": "Duty-room clock",
+        "reading": "20:00"
+      }
+    ],
+    "notice": "These inspection readings were recorded at the central 20:00 signal. No clocks were adjusted afterwards. Candidate sighting windows use central reference time."
+  },
+  "transfers": [
+    {
+      "id": "T1",
+      "mark": "CLOCK",
+      "batch": "26",
+      "carriage": "K7",
+      "to": "Exhibition shed",
+      "receipt": "R2",
+      "status": "EXECUTED / receiver signed"
+    },
+    {
+      "id": "T2",
+      "mark": "CLOCK",
+      "batch": "27",
+      "carriage": "K7",
+      "to": "Exhibition shed",
+      "receipt": "R3",
+      "status": "CANCELLED / application only"
+    },
+    {
+      "id": "T3",
+      "mark": "CLOCK",
+      "batch": "27",
+      "carriage": "K7",
+      "to": "Old repair area",
+      "receipt": "R4",
+      "status": "EXECUTED / receiver signed"
+    },
+    {
+      "id": "T4",
+      "mark": "CLOCK",
+      "batch": "27",
+      "carriage": "K5",
+      "to": "Exhibition shed",
+      "receipt": "R5",
+      "status": "EXECUTED / receiver signed"
+    }
+  ],
+  "depot": {
+    "receipt": "R4 / K7 / CLOCK DEPOT. The old building name is still used on receipts. Match the old survey with the current depot map to find its bay number.",
+    "repair": "R4 / K7: connecting device inspected and repaired. Inspection complete, 21:36. RELEASE APPROVED from 21:36. A qualified depot crew will perform the return movement.",
+    "returned": "RETURNED NOTICE: temporary-transfer advice was placed in the retired document slot. The conductor did not receive it. The NON-STOP journey summary was never corrected. Forward this notice to Stationmaster Ada.",
+    "decoy": "R5 / K5 / exhibition shed: baggage door inspected. Complete at 21:25. RELEASE APPROVED. This record applies only to the carriage on receipt R5."
+  },
+  "routes": [
+    {
+      "id": "A",
+      "name": "Early direct service",
+      "time": "21:32",
+      "arrival": "21:48",
+      "bay": "3",
+      "wholeCarriage": true,
+      "rule": "Departs Bay 3 at 21:32; arrives Whitebridge at 21:48. Can carry a whole carriage. Cannot wait for a later release."
+    },
+    {
+      "id": "B",
+      "name": "Repair-area link",
+      "time": "21:42",
+      "arrival": "21:58",
+      "bay": "3",
+      "wholeCarriage": true,
+      "rule": "Departs Bay 3 at 21:42; arrives Whitebridge at 21:58. Can carry a whole carriage."
+    },
+    {
+      "id": "C",
+      "name": "Exhibit loading path",
+      "time": "21:45",
+      "arrival": "21:55",
+      "bay": "3",
+      "wholeCarriage": false,
+      "rule": "Departs the Bay 3 loading desk at 21:45; arrives Whitebridge at 21:55. Handcart service for loose exhibits only. Cannot carry a whole carriage."
+    }
+  ],
+  "stages": [
+    {
+      "title": "The empty place",
+      "lead": "Compare the arrival cards with the departure silhouettes. Circle the unmatched carriage, then find its seal batch on the manifest stub in your record sheet.",
+      "reward": "K7, the CLOCK-marked exhibition carriage, is missing. Its seal batch is 27. It carries the town's paper clock, with no passengers aboard.",
+      "hints": [
+        "Match shapes, windows, doors and roof profiles. The arrival cards deliberately have no carriage numbers.",
+        "The seal stub includes several carriages. First identify the missing one from its shape, then match its number and mark to the stub.",
+        "The one-window carriage with a right-hand door, round roof and CLOCK mark is absent."
+      ],
+      "solution": "K7. Every other manifest silhouette has exactly one matching arrival card. The CLOCK carriage does not. Keep K7 and batch 27 in your notebook."
+    },
+    {
+      "title": "The stop nobody recorded",
+      "lead": "Share the four witness slips. Arrange the events from earliest to latest. Use the statements together; nobody holds the complete sequence.",
+      "reward": "Tea tray away → brief blackout → platform stop → departure. The train stopped after the lights returned, beside a MOON station sign.",
+      "hints": [
+        "Read every witness slip aloud, or exchange the information without showing the cards.",
+        "Mina puts the tea tray before the blackout. Rafi steps out after the lights return and boards before departure.",
+        "The order is A, C, B, D. Jo's stationary sign and Rafi's step onto the platform independently support the stop."
+      ],
+      "solution": "A-C-B-D. The witness accounts establish a real stop, not merely a glimpse of a passing station. The MOON sign is an independent location clue."
+    },
+    {
+      "title": "Two clocks, one moment",
+      "lead": "Decide which clock is reliable using the inspection card. Compare the two observation slips recorded at the same bell. Correct the platform reading, then combine time and the witness sign to identify the train in the sighting register.",
+      "reward": "The duty-room clock agrees with the central reference. The platform clock is four minutes slow, so 21:14 becomes 21:18. Only Moonbay matches both 21:18 and the MOON sign.",
+      "hints": [
+        "Start at the central 20:00 signal. Which local clock agrees, and which one shows an earlier reading?",
+        "The platform showed 19:56 at the central 20:00 signal: it is four minutes slow. The duty-room reading independently confirms the corrected observation.",
+        "The corrected reading is 21:18. Pinebridge matches that time but not the sign; Crescent Pier matches the sign but not the time."
+      ],
+      "solution": "Duty-room clock / four minutes / 21:18 / Moonbay. Two sightings match the time and two match the MOON sign, but their intersection is uniquely Moonbay. These candidate sightings may concern different trains; only one belongs to your stopped train."
+    },
+    {
+      "title": "Follow the seal",
+      "lead": "Match carriage, mark and batch, then check the document status. Find the transfer that was actually executed, not merely requested or cancelled.",
+      "reward": "Transfer T3 matches K7 + CLOCK + batch 27. It records an authorized transfer to the old repair area, receipt R4.",
+      "hints": [
+        "Match all three identity fields, then read the status printed on each slip.",
+        "T2 has the right identity, but its application was CANCELLED. A request alone does not show that a carriage moved.",
+        "T3 alone matches K7 + CLOCK + batch 27 and bears an executed-transfer receiver signature. Its receipt is R4."
+      ],
+      "solution": "T3 / R4. T1 has batch 26; T2 matches the identity but is CANCELLED; T4 belongs to K5. Only T3 proves a completed transfer of the missing carriage."
+    },
+    {
+      "title": "The depot behind the map",
+      "lead": "Reassemble the two old-survey pieces using road edges and the outline. Match the old survey to the current map using WATER TOWER and ARCH. Read the bay through the window, then select the inspection record for the same receipt and carriage.",
+      "reward": "CLOCK DEPOT is Bay 3. Repair is complete and release is approved. The transfer notice went into a retired document slot, leaving the conductor's summary wrong.",
+      "hints": [
+        "Join the road edges and stepped seam before comparing the maps. The half with WATER TOWER and ARCH belongs on the left.",
+        "The CLOCK DEPOT window reveals Bay 3. Do not use the earliest repair time unless its receipt and carriage also match.",
+        "R4 / K7 is the matching inspection record, released at 21:36. R5 / K5 is a different carriage. The returned notice explains why the conductor never learned of the transfer."
+      ],
+      "solution": "Bay 3 / R4 / K7 / release at 21:36 / misfiled notice. The map supplies the location; the matching inspection supplies permission and earliest return time. R5 is irrelevant even though it was released earlier."
+    },
+    {
+      "title": "Bring the seventh home",
+      "lead": "Use your saved evidence to select a return service before Ada’s deadline. Record the departure time, explain why both alternatives fail, and arrange the actions from the work rules. Keep all earlier files available.",
+      "reward": "Plan B is accepted: K7 from Moonbay Bay 3 at 21:42, after its 21:36 release, arriving at 21:58 before 22:00. The crew returns the carriage and verifies seven against the departure manifest.",
+      "hints": [
+        "Bring together the missing-carriage identity, station, current bay and the release time from its matching record.",
+        "Compare each departure with the matching release time. Also check whether the service can move a whole carriage and arrive by 22:00.",
+        "A departs too early at 21:32. C cannot move a whole carriage. B departs 21:42 and arrives 21:58. Derive CONFIRM → RETURN → VERIFY from the work rules."
+      ],
+      "solution": "B / departure 21:42 / K7 / Moonbay / Bay 3 / R4 release at 21:36. A is too early; C is loose-cargo only. B arrives 21:58, before 22:00. Work-rule dependencies uniquely give CONFIRM-RETURN-VERIFY."
+    }
+  ],
+  "seals": [
+    {
+      "carriage": "K3",
+      "mark": "CUP",
+      "batch": "26"
+    },
+    {
+      "carriage": "K7",
+      "mark": "CLOCK",
+      "batch": "27"
+    },
+    {
+      "carriage": "K6",
+      "mark": "STAR",
+      "batch": "27"
+    }
+  ],
+  "deadline": "Stationmaster Ada: return the whole carriage to Whitebridge by 22:00. A crew cannot depart before the release time on the matching signed inspection record.",
+  "movementRules": [
+    "A whole-carriage request needs the matching receipt and signed release approval. Confirm it before asking staff to move anything.",
+    "A return movement must be completed before its carriages can be counted at Whitebridge.",
+    "The final verification compares the returned train with the original departure manifest."
+  ]
+}

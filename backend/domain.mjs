@@ -1,3 +1,4 @@
+import {escapeProduct} from '../shared/escape-products.mjs';
 import { offers, themes } from '../shared/catalog.mjs';
 import { creatorFields } from './creator-preview.mjs';
 import { validatePlan } from '../shared/creator-plan.mjs';
@@ -21,11 +22,12 @@ export function validatePurchase(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new ApiError(400, 'INVALID_SPEC', 'A purchase specification is required.');
   const offer = offers.find(item => item.sku === input.sku);
   if (!offer) throw new ApiError(400, 'UNKNOWN_SKU', 'Choose a valid product.');
-  const themeId = input.themeId && themes.some(theme => theme.id === input.themeId) ? input.themeId : null;
+  const themeId = input.themeId && (themes.some(theme => theme.id === input.themeId) || escapeProduct(input.themeId)) ? input.themeId : null;
   if (offer.kind === 'custom' && themeId && !themes.find(theme => theme.id === themeId)?.availableSettings?.includes(offer.setting)) {
     throw new ApiError(400, 'INVALID_SPEC', 'Choose a story world available for this setting.');
   }
   if (offer.kind === 'ready') {
+    if(escapeProduct(themeId)&&offer.setting!=='home')throw new ApiError(400,'INVALID_SPEC','This escape adventure is a household edition.');
     if (!themeId || input.customIdea) throw new ApiError(400, 'INVALID_SPEC', 'A ready-made pack requires a listed theme.');
     const variantId = input.variantId == null || input.variantId === '' ? null : String(input.variantId);
     if (variantId && !(offer.setting === 'classroom' && ((themeId === 'halloween' && variantId === 'halloween') || (themeId === 'christmas' && variantId === 'christmas')))) {

@@ -1,0 +1,10 @@
+export const key='paw-seventh-carriage-v2';
+const clean=v=>String(v??'').trim().toUpperCase().replace(/[\s–—_]+/g,'-');
+export function checkAnswer(stage,a){
+ if(!a||typeof a!=='object')return false;
+ return [()=>clean(a.carriage)==='K7'&&a.batch==='27',()=>a.order==='A,C,B,D',()=>a.station==='Moonbay'&&a.time==='21:18'&&a.trusted==='duty'&&a.offset==='4',()=>a.transfer==='T3'&&clean(a.receipt)==='R4'&&a.status==='executed',()=>a.bay==='3'&&a.release==='approved'&&a.cause==='misfiled'&&clean(a.receipt)==='R4'&&a.releaseTime==='21:36',()=>a.route==='B'&&clean(a.carriage)==='K7'&&a.station==='Moonbay'&&a.bay==='3'&&a.release==='approved'&&a.order==='CONFIRM,RETURN,VERIFY'&&a.departure==='21:42'&&a.rejectA==='early'&&a.rejectC==='loose'][stage]?.()??false;
+}
+export const solutions=[{carriage:'K7',batch:'27'},{order:'A,C,B,D'},{station:'Moonbay',time:'21:18',trusted:'duty',offset:'4'},{transfer:'T3',receipt:'R4',status:'executed'},{bay:'3',release:'approved',cause:'misfiled',receipt:'R4',releaseTime:'21:36'},{route:'B',carriage:'K7',station:'Moonbay',bay:'3',release:'approved',order:'CONFIRM,RETURN,VERIFY',departure:'21:42',rejectA:'early',rejectC:'loose'}];
+export function fresh(){return {version:2,completed:[],assisted:[],hints:[0,0,0,0,0,0],drafts:{}};}
+export function restore(raw){try{const p=typeof raw==='string'?JSON.parse(raw):raw;if(p?.version!==2||!Array.isArray(p.completed))return fresh();const n=p.completed.length;if(n>6||!p.completed.every((v,i)=>v===i))return fresh();return {version:2,completed:p.completed,assisted:Array.isArray(p.assisted)?p.assisted.filter(v=>Number.isInteger(v)&&v>=0&&v<n):[],hints:Array.from({length:6},(_,i)=>Math.min(3,Math.max(0,Number.isInteger(p.hints?.[i])?p.hints[i]:0))),drafts:p.drafts&&typeof p.drafts==='object'&&!Array.isArray(p.drafts)?p.drafts:{}};}catch{return fresh();}}
+export function complete(p,stage,answer,assisted=false){if(stage!==p.completed.length||!checkAnswer(stage,answer))return p;return {...p,completed:[...p.completed,stage],assisted:assisted?[...p.assisted,stage]:p.assisted};}

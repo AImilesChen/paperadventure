@@ -1,3 +1,5 @@
+import {escapeProducts,escapeProduct} from '../shared/escape-products.mjs';
+import {serveEscapeExtra} from './escape-extras.mjs';
 import {promotionQuote,setupOwnerPromotion} from './checkout-promotions.mjs';
 import {handleAdminApi} from './admin-api.mjs';
 import {adminIdentity,recordGoogleProfile,recordPurchaseEmail} from './admin-identity.mjs';
@@ -142,7 +144,7 @@ async function paidPlanSchemaReady(env) {
   try { return Boolean(await query(env.DB,"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'custom_plan_orders'").first()); }
   catch { return false; }
 }
-const offeredFor = (themeId, setting) => themes.find(theme => theme.id === themeId)?.availableSettings?.includes(setting) ?? false;
+const offeredFor = (themeId, setting) => (themes.find(theme => theme.id === themeId)||escapeProduct(themeId))?.availableSettings?.includes(setting) ?? false;
 
 async function publishedLegal(env) {
   if (!env.DB) return null;
@@ -185,9 +187,12 @@ async function liveCatalog(env) {
     : (ready.some(pack => pack.theme_world_id === themeId && pack.setting === setting && pack.status === 'published') ? 'published'
       : testOnly && ready.some(pack => pack.theme_world_id === themeId && pack.setting === setting && pack.status === 'internal_test') ? 'test_ready' : 'not_published');
   const canCheckout = await checkoutReady(env);
+  const extraCounts=new Map();
+  if(ready.some(p=>escapeProduct(p.theme_world_id))){const rows=await query(env.DB,"SELECT ready_pack_id,COUNT(*) AS total FROM ready_pack_extras GROUP BY ready_pack_id").all();for(const row of rows.results||[])extraCounts.set(row.ready_pack_id,row.total);}
   const planSchemaReady = await paidPlanSchemaReady(env);
   return { ...base, publicationState: canCheckout || free ? 'partially_configured' : base.publicationState,
     freeSampleThemeId: free ? 'celebration' : null,
+    escapeGames:escapeProducts.map(p=>{const pack=ready.find(r=>r.theme_world_id===p.id&&r.setting==='home'&&r.version===p.version&&extraCounts.get(r.id)===2);return {...p,home:{readyStatus:pack&&canCheckout&&liveSkus.has(p.sku)?'published':'not_published',packVersion:pack?.version||null}};}),
     themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: readyStatus(theme.id, 'home'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
       classroom: { readyStatus: readyStatus(theme.id, 'classroom'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null,
         variantIds: variantsFor(ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')) } })),
@@ -259,7 +264,7 @@ async function checkout(request, env) {
   const promotion = await promotionQuote(request,input,env);
   if (!validPurchaseConsent(input.serviceRequest)) throw new ApiError(400,'PURCHASE_CONFIRMATION_REQUIRED','Review the immediate-supply and refund notice, then confirm before checkout.');
   const accountHash = await authenticatedEmailHash(request, env);
-  const accountRequired = testOnly || offer.kind === 'custom';
+  const accountRequired = testOnly || offer.kind === 'custom' || Boolean(escapeProduct(spec.themeId));
   if (accountRequired && !accountHash) throw new ApiError(403, 'ACCOUNT_REQUIRED', 'Sign in with your adult account before checkout.');
   if (!accountRequired && !email) throw new ApiError(400, 'INVALID_EMAIL', 'Enter an adult email address.');
   if (accountRequired && email && accountHash !== await emailHash(env, email))
@@ -631,7 +636,7 @@ async function myOrders(request, env) {
   const orders = await Promise.all((rows.results || []).map(async order => {
     let spec = {}; try { spec = JSON.parse(order.purchase_spec_json || '{}'); } catch {}
     const setting = order.sku.endsWith('_classroom') ? 'classroom' : 'home';
-    const world = themes.find(theme => theme.id === spec.themeId);
+    const world = (themes.find(theme => theme.id === spec.themeId)||escapeProduct(spec.themeId));
     const story = world?.story?.[setting];
     const entitlement = order.status === 'published' ? await query(env.DB, 'SELECT * FROM entitlements WHERE order_id = ?', order.id).first() : null;
     const expired = order.status === 'failed' && !order.paid_at ? await query(env.DB, "SELECT event_type FROM webhook_events WHERE order_id = ? AND event_type = 'checkout.session.expired' LIMIT 1", order.id).first() : null;
@@ -812,7 +817,7 @@ async function orderView(request, env, orderId) {
     }
   }
   const displaySetting=order.sku.endsWith('_classroom')?'classroom':'home';
-  const world=order.product_kind==='ready'?themes.find(theme=>theme.id===spec.themeId):null;
+  const world=order.product_kind==='ready'?(themes.find(theme=>theme.id===spec.themeId)||escapeProduct(spec.themeId)):null;
   const story=world?.story?.[displaySetting];
   return json({ id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
     ...(order.product_kind==='ready'?{themeId:spec.themeId||null,setting:displaySetting,title:story?.title||world?.title||'Your ready-made adventure',image:story?.image||world?.image||null,packVersion:spec.packVersion||null}:{}),
@@ -1303,7 +1308,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       // A usable sandbox outside STAGE_PREVIEW still uses test keys. Report the
       // actual enabled mode, never infer live solely from generic readiness.
       const checkoutMode = !checkout ? 'closed' : stripeKeyMode(env.STRIPE_SECRET_KEY);
-      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, adminConsole:true, orderPresentation:true, checkoutPromotions:true, adminNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Account and service administration')), feedback:feedbackReady(env), feedbackNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Site feedback')), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, adminConsole:true, orderPresentation:true, checkoutPromotions:true,escapePurchases:true, adminNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Account and service administration')), feedback:feedbackReady(env), feedbackNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Site feedback')), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {
@@ -1402,6 +1407,10 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     if(request.method==='GET'&&revisionPreviewFilePath)return await revisionPreviewFile(request,env,revisionPreviewFilePath[1],revisionPreviewFilePath[2],revisionPreviewFilePath[3]);
     const cases = path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/issues$/);
     if (['GET','POST'].includes(request.method) && cases) return await supportCases(request, env, cases[1], context);
+    const extra=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/escape\/(bundle|companion)$/);
+    if(request.method==='GET'&&extra)return await serveEscapeExtra(request,env,extra[1],extra[2],{authenticate:authenticatedEmailHash,accessActive,assertNotRefunded:assertOrderNotRefunded,record:recordAccessEvidence});
+    const companionPdf=path.match(/^\/api\/v1\/orders\/([A-Za-z0-9-]+)\/escape\/(A4|Letter)-(players|guide)\.pdf$/);
+    if(request.method==='GET'&&companionPdf){const url=new URL(request.url);url.searchParams.set('paper',companionPdf[2]);return await fileDownload(new Request(url,request),env,companionPdf[1],companionPdf[3]==='players'?'player':'guide');}
     const file = path.match(/^\/api\/v1\/files\/([A-Za-z0-9-]+)\/(player|guide)$/);
     if (request.method === 'GET' && file) return await fileDownload(request, env, file[1], file[2]);
     return error(404, 'NOT_FOUND', 'API route not found.');
