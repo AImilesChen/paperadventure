@@ -19,6 +19,7 @@ export const publicPages = Object.freeze([
   page('/en/for-classroom/', 'Printable Classroom Adventure Games for Kids', 'Printable story adventures for classrooms, ages 6–12. Explore group missions, the free Celebration game, and Player Packs with Teacher Guides in A4 and US Letter.'),
   page('/en/escape-room-puzzles/', 'Free Escape Room Puzzles for Kids', 'Try six free escape room puzzles from Paper Adventure: codes, logic and routes. Play online or download A4 and US Letter PDFs with a separate answer guide.'),
   page('/en/escape-room-games/', 'Printable Escape Room Games for Kids', 'Explore complete printable escape adventures from Paper Adventure. Start with The Sleeping Lighthouse free: linked puzzles, a final task and an adult guide.'),
+  page('/en/escape-room-games/the-midnight-masquerade/', 'The Midnight Masquerade | Cooperative Printable Mystery', 'Share private clues in six linked investigations. A4 and US Letter household kit, 18 private cards and offline companion. 3-6 players plus adult host. US$9.99.'),
   page('/en/escape-room-games/the-missing-seventh-carriage/', 'The Missing Seventh Carriage | Printable Mystery', 'Investigate a missing railway carriage in six linked paper missions. A household game for ages 9+, with A4 and US Letter PDFs and an offline companion. US$9.99.'),
   page('/en/escape-room-games/the-sleeping-lighthouse/', 'Free Printable Escape Room: Lighthouse', 'Restore a journal, power board and paper lens in The Sleeping Lighthouse, a complete free adventure for ages 7–12. Includes A4 and US Letter PDFs.'),
   page('/en/escape-room-games/the-sleeping-lighthouse/play/', 'Play The Sleeping Lighthouse', 'The optional companion for The Sleeping Lighthouse: check findings, reveal hints and restore the beacon with your printed materials.', false),
@@ -51,4 +52,5 @@ export const publicPages = Object.freeze([
 ]);
 
 export const pageFor = pathname => publicPages.find(page => page.path === pathname) ?? null;
+
 
