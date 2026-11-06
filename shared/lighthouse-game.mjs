@@ -8,6 +8,7 @@ export const lighthouse = Object.freeze({
   ending: 'A warm beam sweeps across the bay. One by one, the paper boats catch its light, and the harbour fills with tiny floating lanterns. Mara waves from the quay: “You did more than find a code. You put every discovery together. The lighthouse is awake, and the festival can begin!”',
 });
 export const lighthouseArt = Object.freeze({
+  cover: '/assets/escape-covers-v2/lighthouse.webp',
   coast: '/assets/lighthouse/coast.webp', desk: '/assets/lighthouse/desk.webp',
   power: '/assets/lighthouse/power.webp', lens: '/assets/lighthouse/lens.webp',
 });

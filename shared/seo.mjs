@@ -18,7 +18,7 @@ export function pageSchema(page, release, origin = 'https://paperadventure.app')
   }
   if (page.path === lighthouse.path) {
     crumbs.push({ name: 'Escape adventures', url: origin + lighthouse.hub });
-    graph[0].image = origin + lighthouseArt.coast;
+    graph[0].image = origin + lighthouseArt.cover;
     graph[0].about = { '@type': 'Game', name: lighthouse.title, description: page.description, numberOfPlayers: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 6 }, inLanguage: 'en', isAccessibleForFree: true };
   }
   if (page.path === puzzlePath) {
