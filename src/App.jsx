@@ -242,13 +242,29 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   const route = routeLocation.split('?')[0];
   const [runtime, setRuntime] = useState(initialPublicRelease?.runtime || null);
   const [runtimeCatalog, setRuntimeCatalog] = useState(initialPublicRelease?.catalog || null);
+  const [catalogStatus, setCatalogStatus] = useState('loading');
+  const [catalogAttempt, setCatalogAttempt] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetch('/api/v1/health').then(response => response.json()), fetch('/api/v1/catalog').then(response => response.json())])
-      .then(([health, catalog]) => { if (!cancelled && health.status === 'configured_runtime') { setRuntime(health); setRuntimeCatalog(catalog); } })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    setCatalogStatus('loading');
+    const read = async url => {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error('Public catalogue request failed');
+      return response.json();
+    };
+    Promise.all([read('/api/v1/health'), read('/api/v1/catalog')])
+      .then(([health, catalog]) => {
+        if (cancelled) return;
+        if (health.status === 'configured_runtime' && catalog && typeof catalog === 'object') {
+          setRuntime(health); setRuntimeCatalog(catalog); setCatalogStatus('ready');
+        } else setCatalogStatus('error');
+      })
+      .catch(() => { if (!cancelled) setCatalogStatus('error'); })
+      .finally(() => clearTimeout(timeout));
+    return () => { cancelled = true; clearTimeout(timeout); controller.abort(); };
+  }, [catalogAttempt]);
   useEffect(() => { const sync = () => setRouteLocation(`${path()}${window.location.search}`); window.addEventListener('popstate', sync); return () => window.removeEventListener('popstate', sync); }, []);
   useEffect(() => {
     const page = pageFor(route);
@@ -306,7 +322,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route === '/en/escape-room-games/the-last-letter-before-the-storm/') page = <EscapeLetterDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/the-clockmakers-thirteenth-hour/') page = <EscapeClockDetail Link={Link} catalog={runtimeCatalog}/>;
   else if (route === '/en/escape-room-games/the-midnight-masquerade/') page = <EscapeMidnightDetail Link={Link} catalog={runtimeCatalog}/>;
-  else if (route === '/en/escape-room-games/the-missing-seventh-carriage/') page = <EscapeTrainDetail Link={Link} catalog={runtimeCatalog}/>;
+  else if (route === '/en/escape-room-games/the-missing-seventh-carriage/') page = <EscapeTrainDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;
   else if (route === '/en/escape-room-games/') page = <EscapeGamesHub Link={Link} />;
   else if (route === '/en/escape-room-games/the-sleeping-lighthouse/') page = <LighthouseDetail Link={Link} />;
   else if (route === '/en/escape-room-games/the-sleeping-lighthouse/play/') page = <LighthousePlay Link={Link} />;
