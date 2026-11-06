@@ -11,7 +11,7 @@ export function conversionProperties(name, properties = {}) {
   if (name.startsWith('escape_')) {
     if (properties.game !== 'sleeping-lighthouse') return null;
     const game = properties.game;
-    if (name === 'escape_pdf_download') return ['A4', 'Letter'].includes(properties.paper) && ['players', 'guide'].includes(properties.file) ? { game, paper: properties.paper, file: properties.file } : null;
+    if (name === 'escape_pdf_download') return ['A4', 'Letter'].includes(properties.paper) && ['players', 'guide', 'complete'].includes(properties.file) ? { game, paper: properties.paper, file: properties.file } : null;
     if (['escape_stage_complete', 'escape_hint_open'].includes(name) && !['journal', 'power', 'lens', 'finale'].includes(properties.stage)) return null;
     if (['escape_stage_complete', 'escape_game_complete'].includes(name) && !['none', 'hint', 'solution'].includes(properties.assistance)) return null;
     return { game, ...(['escape_stage_complete', 'escape_hint_open'].includes(name) ? { stage: properties.stage } : {}), ...(['escape_stage_complete', 'escape_game_complete'].includes(name) ? { assistance: properties.assistance } : {}) };

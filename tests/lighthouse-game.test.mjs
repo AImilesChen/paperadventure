@@ -105,7 +105,7 @@ test('search pages are declared while the companion stays out of the sitemap', a
   assert.equal(schema[0].about.isAccessibleForFree, true);
   assert.ok(!schema.some(x => x['@type'] === 'Product'));
   const html = await readFile('dist/client' + lighthouse.path + 'index.html', 'utf8');
-  assert.ok(html.includes('Seven player pages'));
+  assert.ok(html.includes('Player Pack · 7 pages'));
   assert.ok(html.includes(lighthouse.play));
   const sitemap = await readFile('dist/client/sitemap.xml', 'utf8');
   assert.ok(sitemap.includes(lighthouse.path)); assert.ok(sitemap.includes(lighthouse.hub)); assert.ok(!sitemap.includes(lighthouse.play));
