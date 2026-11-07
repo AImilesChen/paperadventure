@@ -1,0 +1,135 @@
+import { freePuzzles, stampKey, parcels, trailGrid, trailMoves, harbourBridges, puzzleSvg } from './free-puzzles.mjs';
+
+export const workshopKey = 'paw-free-puzzle-workshop-v2';
+export const workshopVersion = 2;
+export const puzzleIds = freePuzzles.map(p => p.id);
+export const parcelNames = ['SUN', 'LEAF', 'STAR', 'MOON'];
+// Crop the original fixed printable diagram: same shapes, patterns and stamp counts.
+export function parcelPicture(id) {
+  const index = parcels.findIndex(p => p.id === id);
+  if (index < 0) return '';
+  const x = 34 + index % 2 * 258, y = 16 + Math.floor(index / 2) * 170;
+  return puzzleSvg('shared-parcel').replace('width="540" height="350" viewBox="0 0 540 350"', `width="216" height="147" viewBox="${x} ${y} 216 147"`);
+}
+export const initialData = id => ({
+  'stamp-code': { letters: ['', '', ''] },
+  'signal-shift': { shift: 0, words: ['', '', '', ''], star: '' },
+  'parcel-queue': { order: ['', '', '', ''] },
+  'shared-parcel': { excluded: [], selected: '', evidence: [] },
+  'forest-trail': { moves: [] },
+  'harbour-route': { path: ['dock'] },
+}[id]);
+const letters = (v, max) => typeof v === 'string' ? v.toUpperCase().replace(/[^A-Z]/g, '').slice(0, max) : '';
+const subset = (v, allowed) => Array.isArray(v) ? [...new Set(v.filter(x => allowed.includes(x)))] : [];
+export function trailInfo(moves) {
+  let x = 0, y = 0;
+  const visited = [{ x, y }], found = [];
+  for (const direction of moves) {
+    const delta = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[direction];
+    if (!delta) return null;
+    x += delta[0]; y += delta[1];
+    if (!trailGrid[y]?.[x]) return null;
+    visited.push({ x, y }); found.push(trailGrid[y][x]);
+  }
+  return { x, y, visited, letters: found.join('') };
+}
+export function bridgeBetween(a, b) { return harbourBridges.find(([x, y]) => x === a && y === b || x === b && y === a); }
+export function harbourInfo(path) {
+  if (!Array.isArray(path) || path[0] !== 'dock' || path.length > 13) return null;
+  let code = '';
+  for (let i = 1; i < path.length; i++) {
+    const bridge = bridgeBetween(path[i - 1], path[i]);
+    if (!bridge) return null;
+    code += bridge[2];
+  }
+  return { code, current: path.at(-1), bridges: path.length - 1 };
+}
+export function cleanData(id, raw) {
+  const d = raw && typeof raw === 'object' ? raw : {};
+  if (id === 'stamp-code') return { letters: [0, 1, 2].map(i => letters(d.letters?.[i], 1)) };
+  if (id === 'signal-shift') return {
+    shift: Number.isInteger(d.shift) && d.shift >= 0 && d.shift < 26 ? d.shift : 0,
+    words: [5, 3, 3, 4].map((max, i) => letters(d.words?.[i], max)),
+    star: ['RED', 'BLUE', 'GREEN', 'GOLD'].includes(d.star) ? d.star : '',
+  };
+  if (id === 'parcel-queue') {
+    const used = new Set();
+    return { order: [0, 1, 2, 3].map(i => { const p = d.order?.[i]; if (!parcelNames.includes(p) || used.has(p)) return ''; used.add(p); return p; }) };
+  }
+  if (id === 'shared-parcel') return { excluded: subset(d.excluded, ['A', 'B', 'C', 'D']), selected: ['A', 'B', 'C', 'D'].includes(d.selected) ? d.selected : '', evidence: subset(d.evidence, [0, 1, 2]) };
+  if (id === 'forest-trail') { const moves = Array.isArray(d.moves) ? d.moves.slice(0, 6) : []; return { moves: trailInfo(moves) ? [...moves] : [] }; }
+  if (id === 'harbour-route') return { path: harbourInfo(d.path) ? [...d.path] : ['dock'] };
+  return null;
+}
+const no = message => ({ ok: false, message });
+export function checkWorkshop(id, raw) {
+  const d = cleanData(id, raw);
+  if (!d) return no('Choose a puzzle first.');
+  if (id === 'stamp-code') {
+    if (d.letters.some(x => !x)) return no('Fill all three stamp slots before checking.');
+    const key = Object.fromEntries(stampKey);
+    if (d.letters.join('') !== ['circle', 'triangle', 'square'].map(s => key[s]).join('')) return no('One or more stamps do not match the key. Compare each shape with its letter.');
+  }
+  if (id === 'signal-shift') {
+    if (d.shift !== 3) return no('Check the decoder alignment: the original A was sent as D.');
+    const decoded = [...'FKHFN WKH UHG VWDU'].map(c => c === ' ' ? c : String.fromCharCode(65 + (c.charCodeAt(0) - 68 + 26) % 26)).join('');
+    if (d.words.some(x => !x) || !d.star) return no('Decode all four words and select a target star before checking.');
+    if (d.words.join(' ') !== decoded) return no('The decoded message does not match the letter rows yet. Recheck one word at a time.');
+    if (d.star !== d.words[2]) return no('The selected star does not match the colour in your decoded message.');
+  }
+  if (id === 'parcel-queue') {
+    if (d.order.some(x => !x)) return no('Place all four different parcels in the queue.');
+    if (d.order[0] !== 'SUN') return no('The queue does not satisfy clue 1: SUN must leave first.');
+    if (d.order.indexOf('STAR') + 1 !== d.order.indexOf('MOON')) return no('Recheck clue 2: STAR must be immediately before MOON.');
+    if (d.order[3] === 'LEAF') return no('Recheck clue 3: LEAF cannot be last.');
+  }
+  if (id === 'shared-parcel') {
+    if (!d.selected) return no('Choose a parcel after comparing the clues.');
+    if (d.excluded.includes(d.selected)) return no('Your chosen parcel is also marked excluded. Review that decision first.');
+    const p = parcels.find(x => x.id === d.selected);
+    if (p.pattern !== 'stripes') return no('Compare the chosen wrapping with helper 1’s clue.');
+    if (p.seal !== 'triangle') return no('Compare the chosen seal with helper 2’s clue.');
+    if (p.stamps !== 2) return no('Count the chosen parcel’s stamps again using helper 3’s clue.');
+    if (d.evidence.length !== 3) return no('Confirm how your chosen parcel matches each of the three helper clues.');
+  }
+  if (id === 'forest-trail') {
+    if (d.moves.length !== 6) return no('Complete six moves, collecting one letter after each move.');
+    const firstWrong = d.moves.findIndex((x, i) => x !== trailMoves[i]);
+    if (firstWrong !== -1) return no(`Recheck direction ${firstWrong + 1}. Use Undo to return to that part of the trail.`);
+    if (trailInfo(d.moves).letters !== freePuzzles.find(p => p.id === id).answer) return no('Recheck the letters collected after each move.');
+  }
+  if (id === 'harbour-route') {
+    const route = harbourInfo(d.path);
+    if (route.current !== 'beacon') return no('Your route must finish at BEACON.');
+    if (route.bridges !== 3) return no('This crossing does not use exactly three bridges. Undo and compare the rules.');
+    if (d.path.includes('mill')) return no('This route visits MILL, which the instructions forbid.');
+    if (new Set(d.path).size !== d.path.length) return no('This route returns to a place already visited.');
+    if (!d.path.includes('bell')) return no('This route misses the required stop at BELL.');
+  }
+  return { ok: true, message: freePuzzles.find(p => p.id === id).payoff };
+}
+export function freshItem(id) { return { data: initialData(id), history: [], hints: 0, viewed: false, completion: null, attempted: false }; }
+export function freshWorkshop() { return { version: workshopVersion, active: puzzleIds[0], items: Object.fromEntries(puzzleIds.map(id => [id, freshItem(id)])) }; }
+export function restoreWorkshop(raw) {
+  const state = freshWorkshop();
+  if (!raw || raw.version !== workshopVersion) return state;
+  state.active = puzzleIds.includes(raw.active) ? raw.active : state.active;
+  for (const id of puzzleIds) {
+    const source = raw.items?.[id];
+    if (!source || typeof source !== 'object') continue;
+    const item = state.items[id];
+    item.data = cleanData(id, source.data);
+    item.history = Array.isArray(source.history) ? source.history.slice(-32).map(d => cleanData(id, d)) : [];
+    item.hints = Number.isInteger(source.hints) ? Math.max(0, Math.min(3, source.hints)) : 0;
+    item.viewed = source.viewed === true;
+    item.attempted = source.attempted === true;
+    if (source.completion && checkWorkshop(id, item.data).ok) item.completion = item.viewed ? 'solution' : item.hints ? 'hint' : 'independent';
+  }
+  return state;
+}
+export function changeData(item, id, data) {
+  return { ...item, data: cleanData(id, data), history: [...item.history, item.data].slice(-32), completion: null };
+}
+export function undoItem(item) {
+  return item.history.length ? { ...item, data: item.history.at(-1), history: item.history.slice(0, -1), completion: null } : item;
+}
