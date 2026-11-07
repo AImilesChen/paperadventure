@@ -1,0 +1,198 @@
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ArrowCounterClockwise, Check, Lightbulb, Circle, Triangle, Square } from '@phosphor-icons/react';
+import { freePuzzles, puzzleSvg, parcels, trailGrid, trailMoves, harbourNodes, harbourBridges } from '../shared/free-puzzles.mjs';
+import { workshopKey, freshWorkshop, freshItem, restoreWorkshop, changeData, undoItem, checkWorkshop, trailInfo, harbourInfo, bridgeBetween, parcelNames, parcelPicture } from '../shared/puzzle-workshop.mjs';
+import { trackConversionEvent } from './analytics.js';
+import './puzzleWorkshop.css';
+
+const mechanics = ['Match letters', 'Decode a message', 'Arrange parcels', 'Compare evidence', 'Walk the trail', 'Plan a crossing'];
+const onlineTasks = [
+  'Match each stamp symbol with its letter to name the delivery tree.',
+  'Decode all four words, then select the star named in the message.',
+  'Arrange all four parcels. Every clue below must be true.',
+  'Choose the parcel that matches all three helper clues.',
+  'Start at S. Follow the six directions and collect the letter after each move.',
+  'Build a route from DOCK to BEACON using all three rules below.',
+];
+const completionNames = { independent: 'Solved independently', hint: 'Solved with hints', solution: 'Completed after viewing solution' };
+const controls = { 'stamp-code': 'Check stamps', 'signal-shift': 'Check message', 'parcel-queue': 'Check order', 'shared-parcel': 'Check parcel', 'forest-trail': 'Check trail', 'harbour-route': 'Check crossing' };
+const toggled = (list, value) => list.includes(value) ? list.filter(x => x !== value) : [...list, value];
+
+function StampBoard({ data, edit }) {
+  const [slot, setSlot] = useState(0);
+  return <div className="pw-stamps">
+    <dl className="pw-stamp-key" aria-label="Stamp key">{[['Circle','O'],['Triangle','A'],['Square','K'],['Diamond','L'],['Star','M'],['Cross','P']].map(([shape, letter]) => <div key={shape}><dt>{shape}</dt><dd>{letter}</dd></div>)}</dl>
+    <p className="pw-instruction">Choose a stamp slot, then choose its letter. You can also type a letter or use Backspace on a slot.</p>
+    <div className="pw-stamp-slots">{['Circle', 'Triangle', 'Square'].map((shape, i) => <button key={shape} aria-label={`${shape} stamp: ${data.letters[i] || 'empty'}`} aria-pressed={slot === i} className={slot === i ? 'selected' : ''} onClick={() => setSlot(i)} onKeyDown={e => {
+      if (/^[a-z]$/i.test(e.key) || ['Backspace', 'Delete'].includes(e.key)) { e.preventDefault(); const next = [...data.letters]; next[i] = e.key.length === 1 ? e.key.toUpperCase() : ''; edit({ letters: next }); }
+    }}>{[<Circle key="circle" size={25}/>, <Triangle key="triangle" size={25}/>, <Square key="square" size={25}/>][i]}<span>{shape}</span><strong>{data.letters[i] || '—'}</strong></button>)}</div>
+    <div className="pw-letter-bank" aria-label="Letter tiles">{['O', 'A', 'K', 'L', 'M', 'P'].map(letter => <button key={letter} aria-label={`Place letter ${letter}`} onClick={() => { const next = [...data.letters]; next[slot] = letter; edit({ letters: next }); setSlot(Math.min(2, slot + 1)); }}>{letter}</button>)}</div>
+    <button className="pw-text-button" onClick={() => { const next = [...data.letters]; next[slot] = ''; edit({ letters: next }); }}>Clear selected stamp</button>
+  </div>;
+}
+
+function CipherBoard({ data, edit, id }) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const [letterIndex, setLetterIndex] = useState(0);
+  return <div>
+    <p className="pw-instruction">Align the original and sent alphabets. Then decode each word yourself and select the star named in the message.</p>
+    <div className="pw-decoder-controls"><button aria-label="Move sent alphabet left" onClick={() => edit({ ...data, shift: (data.shift + 25) % 26 })}><ArrowLeft/> Left</button><output aria-live="polite">Shift {data.shift}</output><button aria-label="Move sent alphabet right" onClick={() => edit({ ...data, shift: (data.shift + 1) % 26 })}>Right <ArrowRight/></button></div>
+    <div className="pw-alphabet" aria-label="Alphabet decoder">{[0, 13].map(start => <div key={start}><span className="pw-alphabet-label">Top: original · Bottom: sent</span><div className="pw-alphabet-row">{[...alphabet.slice(start, start + 13)].map((letter, i) => <div key={letter} className={letterIndex === start + i ? 'selected' : ''}><strong>{letter}</strong><span>{alphabet[(start + i + data.shift) % 26]}</span></div>)}</div></div>)}</div>
+    <label className="pw-pair-select">Inspect a decoder pair<select value={letterIndex} onChange={e => setLetterIndex(Number(e.target.value))}>{[...alphabet].map((letter, i) => <option key={letter} value={i}>Original {letter}</option>)}</select></label>
+    <p className="pw-decoder-pair" aria-live="polite">Selected pair: {alphabet[letterIndex]} → {alphabet[(letterIndex + data.shift) % 26]}</p>
+    <div className="pw-message-words">{['FKHFN', 'WKH', 'UHG', 'VWDU'].map((word, i) => <label key={word} htmlFor={`${id}-word-${i}`}><span>Sent: {word}</span><input id={`${id}-word-${i}`} aria-label={`Decoded word ${i + 1}: ${word}`} value={data.words[i]} maxLength={word.length} autoComplete="off" spellCheck={false} autoCapitalize="characters" onChange={e => { const words = [...data.words]; words[i] = e.target.value; edit({ ...data, words }); }}/></label>)}</div>
+    <div className="pw-star-choices" role="group" aria-label="Target star">{['RED', 'BLUE', 'GREEN', 'GOLD'].map(colour => <button key={colour} aria-pressed={data.star === colour} className={data.star === colour ? 'selected' : ''} onClick={() => edit({ ...data, star: colour })}>{colour} star</button>)}</div>
+  </div>;
+}
+
+function QueueBoard({ data, edit }) {
+  const [selected, setSelected] = useState('');
+  function place(parcel, position) {
+    if (!parcelNames.includes(parcel)) return;
+    const order = data.order.map(x => x === parcel ? '' : x); order[position] = parcel; edit({ order }); setSelected('');
+  }
+  function shift(index, delta) {
+    if (index + delta < 0 || index + delta > 3) return;
+    const order = [...data.order]; [order[index], order[index + delta]] = [order[index + delta], order[index]]; edit({ order });
+  }
+  return <div>
+    <p className="pw-instruction">Select a parcel, then a numbered slot. You can also drag a parcel into a slot. Arrange all four before checking.</p>
+    <div className="pw-parcel-bank" role="group" aria-label="Available parcels">{parcelNames.map(parcel => <button key={parcel} draggable onDragStart={e => e.dataTransfer.setData('text/plain', parcel)} aria-pressed={selected === parcel} className={selected === parcel ? 'selected' : ''} onClick={() => setSelected(parcel)}><strong>{parcel}</strong><small>{data.order.includes(parcel) ? 'In queue · select to move' : 'Choose parcel'}</small></button>)}</div>
+    <ol className="pw-queue">{data.order.map((parcel, i) => <li key={i} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); place(e.dataTransfer.getData('text/plain'), i); }}><span>Position {i + 1}</span><button className="pw-queue-slot" aria-label={`Position ${i + 1}: ${parcel || 'empty'}`} onClick={() => { if (selected) place(selected, i); else if (parcel) setSelected(parcel); }}>{parcel || (selected ? 'Place here' : 'Empty')}</button><div className="pw-queue-move"><button aria-label={`Move position ${i + 1} earlier`} disabled={i === 0 || !parcel} onClick={() => shift(i, -1)}><ArrowUp size={17}/></button><button aria-label={`Move position ${i + 1} later`} disabled={i === 3 || !parcel} onClick={() => shift(i, 1)}><ArrowDown size={17}/></button><button aria-label={`Clear position ${i + 1}`} disabled={!parcel} onClick={() => edit({ order: data.order.map((x, n) => n === i ? '' : x) })}>Clear</button></div></li>)}</ol>
+    <p className="pw-small" role="status">{selected ? `${selected} selected. Choose a position.` : 'Select a parcel to place or move it.'}</p>
+  </div>;
+}
+
+function EvidenceBoard({ data, edit }) {
+  const [helper, setHelper] = useState(0);
+  const [inspection, setInspection] = useState('A');
+  const clues = freePuzzles.find(p => p.id === 'shared-parcel').clues;
+  return <div>
+    <p className="pw-instruction">Read each helper’s clue. Inspect the parcels, mark your own exclusions, and choose the parcel supported by all three clues.</p>
+    <div className="pw-helper-tabs" role="group" aria-label="Helper clues">{clues.map((_, i) => <button key={i} aria-pressed={helper === i} className={helper === i ? 'selected' : ''} onClick={() => setHelper(i)}>Helper {i + 1}</button>)}</div>
+    <p className="pw-clue" aria-live="polite">{clues[helper]}</p>
+    <div className="pw-evidence-grid">{parcels.map(p => <div key={p.id} className={`pw-evidence-parcel ${data.excluded.includes(p.id) ? 'excluded' : ''} ${data.selected === p.id ? 'chosen' : ''}`}><button className="pw-inspect" aria-label={`Inspect parcel ${p.id}`} aria-pressed={inspection === p.id} onClick={() => setInspection(p.id)}><strong>Parcel {p.id}</strong><span className="pw-parcel-picture" aria-hidden="true" dangerouslySetInnerHTML={{ __html: parcelPicture(p.id) }}/><span>{p.pattern} · {p.seal} seal</span><span>{p.stamps} {p.stamps === 1 ? 'stamp' : 'stamps'}</span></button><div><button aria-pressed={data.excluded.includes(p.id)} onClick={() => edit({ ...data, excluded: toggled(data.excluded, p.id) })}>{data.excluded.includes(p.id) ? 'Excluded · keep' : 'Exclude'}</button><button aria-label={`Choose parcel ${p.id}`} aria-pressed={data.selected === p.id} disabled={data.excluded.includes(p.id)} onClick={() => { setInspection(p.id); edit({ ...data, selected: p.id, evidence: [] }); }}>{data.selected === p.id ? 'Chosen' : 'Choose'}</button></div></div>)}</div>
+    <div className="pw-inspection" aria-live="polite"><strong>Inspecting parcel {inspection}</strong><div className="pw-parcel-picture pw-parcel-zoom" aria-hidden="true" dangerouslySetInnerHTML={{ __html: parcelPicture(inspection) }}/><p>{parcels.find(p => p.id === inspection).pattern} wrapping, a {parcels.find(p => p.id === inspection).seal} seal, and {parcels.find(p => p.id === inspection).stamps} stamp(s).</p></div>
+    <fieldset className="pw-evidence-check"><legend>{data.selected ? `How does parcel ${data.selected} match?` : 'Choose a parcel to review its evidence'}</legend>{clues.map((clue, i) => <label key={i}><input type="checkbox" disabled={!data.selected} checked={data.evidence.includes(i)} onChange={() => edit({ ...data, evidence: toggled(data.evidence, i) })}/> My chosen parcel matches: {clue.replace(/^Helper \d: /, '')}</label>)}</fieldset>
+  </div>;
+}
+
+function ForestBoard({ data, edit, notify, locked }) {
+  const info = trailInfo(data.moves);
+  function move(direction) {
+    if (locked) return;
+    if (data.moves.length >= 6) { notify('Six moves recorded. Check the trail or undo a move.'); return; }
+    const moves = [...data.moves, direction];
+    if (!trailInfo(moves)) { notify('That move would leave the map. Your position has not changed.'); return; }
+    edit({ moves });
+  }
+  return <div>
+    <p className="pw-instruction">Move one square per instruction. Collect each landing letter; do not collect the starting S. Focus the map to use arrow keys.</p>
+    <ol className="pw-direction-strip" aria-label="Trail instructions">{trailMoves.map((direction, i) => <li key={i} className={i === data.moves.length ? 'current' : ''}>{i + 1}. {direction}</li>)}</ol>
+    <div className="pw-forest-map" role="group" tabIndex={locked ? -1 : 0} aria-disabled={locked} aria-label={`Forest map. Current row ${info.y + 1}, column ${info.x + 1}, letter ${trailGrid[info.y][info.x]}. Use arrow keys to move.`} onKeyDown={e => { const direction = { ArrowUp: 'N', ArrowRight: 'E', ArrowDown: 'S', ArrowLeft: 'W' }[e.key]; if (direction) { e.preventDefault(); move(direction); } }}>{trailGrid.flatMap((row, y) => row.map((letter, x) => { const here = x === info.x && y === info.y; const steps = info.visited.map((p, i) => i > 0 && p.x === x && p.y === y ? i : null).filter(Boolean); return <div key={`${x}-${y}`} className={`${here ? 'here' : ''} ${steps.length ? 'visited' : ''}`}><strong>{letter}</strong><small>{here ? 'You are here' : steps.length ? `Step ${steps.join(', ')}` : x === 0 && y === 0 ? 'Start' : ''}</small></div>; }))}</div>
+    <div className="pw-direction-pad" role="group" aria-label="Move on the forest map">{[['N', 'North', ArrowUp], ['W', 'West', ArrowLeft], ['S', 'South', ArrowDown], ['E', 'East', ArrowRight]].map(([d, name, Icon]) => <button key={d} aria-label={`Move ${name.toLowerCase()}`} onClick={() => move(d)}><Icon size={20}/>{name}</button>)}</div>
+    <div className="pw-collected" aria-live="polite"><strong>Collected letters</strong><span>{info.letters || 'None yet'}</span><small>{data.moves.length} / 6 moves · {data.moves.join(' → ') || 'At the starting S'}</small></div>
+  </div>;
+}
+
+function HarbourBoard({ data, edit, notify }) {
+  const info = harbourInfo(data.path);
+  function go(node) {
+    if (!bridgeBetween(info.current, node)) { notify(`There is no bridge from ${info.current.toUpperCase()} to ${node.toUpperCase()}. Choose a connected stop.`); return; }
+    if (data.path.length >= 13) { notify('Undo a move or restart this crossing before adding more stops.'); return; }
+    edit({ path: [...data.path, node] });
+  }
+  return <div>
+    <p className="pw-instruction">Click a connected stop to cross its bridge. Bridge numbers join your code automatically. All connected stops remain available so you can test your own route.</p>
+    <div className="pw-harbour-map"><svg viewBox="0 0 540 330" role="img" aria-label="Bridge map. The same bridges and numbers are listed below.">{harbourBridges.map(([a, b, digit]) => { const p = harbourNodes.find(n => n.id === a), q = harbourNodes.find(n => n.id === b); const used = data.path.some((node, i) => i > 0 && (data.path[i - 1] === a && node === b || data.path[i - 1] === b && node === a)); return <g key={digit}><line x1={p.x} y1={p.y} x2={q.x} y2={q.y} className={used ? 'used' : ''}/><rect x={(p.x + q.x) / 2 - 13} y={(p.y + q.y) / 2 - 13} width="26" height="26" rx="5"/><text x={(p.x + q.x) / 2} y={(p.y + q.y) / 2 + 6} textAnchor="middle">{digit}</text></g>; })}</svg>{harbourNodes.map(node => <button key={node.id} style={{ left: `${node.x / 540 * 100}%`, top: `${node.y / 330 * 100}%` }} className={info.current === node.id ? 'current' : ''} aria-label={`Go to ${node.label}${info.current === node.id ? ', current stop' : ''}`} aria-current={info.current === node.id ? 'location' : undefined} onClick={() => go(node.id)}>{node.label}</button>)}</div>
+    <details className="pw-bridge-list"><summary>Read all bridge connections</summary><ul>{harbourBridges.map(([a, b, digit]) => <li key={digit}>{a.toUpperCase()} ↔ {b.toUpperCase()}: bridge {digit}</li>)}</ul></details>
+    <div className="pw-collected" aria-live="polite"><strong>Bridge code: {info.code || '—'}</strong><span>{info.bridges} bridges crossed</span><small>{data.path.map(n => n.toUpperCase()).join(' → ')}</small></div>
+  </div>;
+}
+
+function InteractiveCard({ puzzle, index, item, active, ready, update, edit, check, feedback, notify, restart, chooseNext }) {
+  const [resetOpen, setResetOpen] = useState(false);
+  const [solutionOpen, setSolutionOpen] = useState(false);
+  const [solutionConfirm, setSolutionConfirm] = useState(false);
+  const heading = useRef(null);
+  const printedReference = useRef(null);
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 701px)');
+    const fitReference = () => { if (printedReference.current) printedReference.current.open = desktop.matches; };
+    fitReference(); desktop.addEventListener('change', fitReference);
+    return () => desktop.removeEventListener('change', fitReference);
+  }, []);
+  function showSolution() {
+    update(current => ({ ...current, viewed: current.completion ? current.viewed : true }));
+    setSolutionOpen(true); setSolutionConfirm(false);
+  }
+  const sceneProps = { data: item.data, edit, notify, id: puzzle.id, locked: !ready || Boolean(item.completion) };
+  return <article className="puzzle-card" id={puzzle.id} hidden={!active} aria-labelledby={`${puzzle.id}-title`}>
+    <header className="pw-card-heading"><span className="puzzle-number">{puzzle.number}</span><div><span className="puzzle-category">{mechanics[index]} · {puzzle.level}</span><h3 id={`${puzzle.id}-title`} ref={heading} tabIndex={-1}>{puzzle.title}</h3></div><button className="pw-choose" onClick={() => { document.getElementById('pw-title')?.scrollIntoView({ block: 'start', behavior: 'instant' }); document.querySelector('.pw-picker a[aria-current]')?.focus({ preventScroll: true }); }}>Choose a puzzle</button></header>
+    <div className="pw-layout"><div className="pw-brief"><p className="pw-task">{onlineTasks[index]}</p>{puzzle.clues && <ol className="puzzle-clue-cards">{puzzle.clues.map(clue => <li key={clue}>{clue}</li>)}</ol>}
+      <details className="pw-story"><summary>Story & mission</summary><p>{puzzle.story}</p><p>{puzzle.task}</p></details>
+      <details className="pw-reference" ref={printedReference}><summary>Printable diagram & text description</summary><div className="puzzle-board" role="img" aria-label={puzzle.transcript} dangerouslySetInnerHTML={{ __html: puzzleSvg(puzzle.id) }}/><p className="pw-small">{puzzle.transcript}</p></details>
+    </div><div className="pw-play-area"><span className="pw-play-label">YOUR PLAY SPACE</span><fieldset className="pw-game-controls" disabled={!ready || Boolean(item.completion)}><legend className="pw-sr-only">{mechanics[index]} controls</legend>
+      {index === 0 ? <StampBoard {...sceneProps}/> : index === 1 ? <CipherBoard {...sceneProps}/> : index === 2 ? <QueueBoard {...sceneProps}/> : index === 3 ? <EvidenceBoard {...sceneProps}/> : index === 4 ? <ForestBoard {...sceneProps}/> : <HarbourBoard {...sceneProps}/>}
+    </fieldset>
+    <div className="pw-actions"><button className="pw-check" disabled={!ready || Boolean(item.completion)} onClick={check}>{item.completion ? <><Check size={18}/> Completed</> : controls[puzzle.id]}</button><button disabled={!ready || !item.history.length || Boolean(item.completion)} onClick={() => update(undoItem)}><ArrowCounterClockwise size={18}/> Undo</button><button disabled={!ready} onClick={() => setResetOpen(true)}>Restart puzzle</button></div>
+    <p role="status" className={`pw-feedback ${item.completion ? 'success' : ''}`}>{item.completion ? `${completionNames[item.completion]}. ${puzzle.payoff}` : feedback}</p>
+    {item.completion && <div className="pw-celebration"><strong>Discovery recorded</strong><p>{item.completion === 'solution' ? 'You completed this puzzle after opening its explanation. Try it again later without the solution.' : 'Your actions fit the clues. Tell someone how you worked it out.'}</p><button className="pw-check" onClick={chooseNext}>{index === 5 ? 'Choose another puzzle' : 'Try the next puzzle'} <ArrowRight size={18}/></button><a href="#print-puzzles">Get the printable sheets</a></div>}
+    {resetOpen && <div className="pw-confirm" role="group" aria-label="Confirm puzzle restart"><p>Clear this puzzle’s moves, hints and completion? The other five puzzles stay saved.</p><button onClick={() => { restart(); setResetOpen(false); setSolutionOpen(false); setSolutionConfirm(false); heading.current?.focus(); }}>Restart this puzzle</button><button onClick={() => setResetOpen(false)}>Keep playing</button></div>}
+    <div className="pw-help"><button disabled={!ready || item.hints >= 3 || Boolean(item.completion)} onClick={() => { update(current => ({ ...current, hints: Math.min(3, current.hints + 1) })); trackConversionEvent('puzzle_hint_open', { puzzle: puzzle.id }); }}><Lightbulb size={18}/>{item.hints >= 3 ? 'All hints shown' : `Show hint ${item.hints + 1} of 3`}</button><button aria-expanded={solutionOpen || solutionConfirm} aria-controls={`${puzzle.id}-solution`} disabled={!ready} onClick={() => { if (solutionOpen) setSolutionOpen(false); else if (item.completion || item.viewed) showSolution(); else setSolutionConfirm(true); }}>{solutionOpen ? 'Hide explanation' : item.completion ? 'Read explanation' : 'Reveal solution'}</button></div>
+    {item.hints > 0 && <ol className="puzzle-hints">{puzzle.hints.slice(0, item.hints).map((hint, i) => <li key={i}><strong>Hint {i + 1}</strong><p>{hint}</p></li>)}</ol>}
+    {solutionConfirm && <div className="pw-confirm"><p>This reveals the answer. Completing afterwards will be marked “after viewing solution”.</p><button onClick={showSolution}>Show solution</button><button onClick={() => setSolutionConfirm(false)}>Keep solving</button></div>}
+    <div className="puzzle-solution" id={`${puzzle.id}-solution`} hidden={!solutionOpen}><p><strong>{puzzle.answer}.</strong> {puzzle.solution}</p><p className="pw-small">The explanation does not fill or complete the puzzle for you.</p></div>
+    </div></div>
+  </article>;
+}
+
+export default function PuzzleWorkshop() {
+  const [state, setState] = useState(freshWorkshop);
+  const [ready, setReady] = useState(false);
+  const [storage, setStorage] = useState('loading');
+  const [feedback, setFeedback] = useState({});
+  const [clearOpen, setClearOpen] = useState(false);
+  const [round, setRound] = useState(0);
+  const title = useRef(null);
+  const loaded = useRef(false);
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    let restored = freshWorkshop();
+    try { const raw = localStorage.getItem(workshopKey); if (raw) { try { restored = restoreWorkshop(JSON.parse(raw)); } catch { setStorage('recovered'); } } }
+    catch { setStorage('unavailable'); }
+    const requested = window.location.hash.slice(1);
+    if (freePuzzles.some(p => p.id === requested)) restored.active = requested;
+    setState(restored);
+    setReady(true);
+  }, []);
+  useEffect(() => {
+    if (!ready) return;
+    try { localStorage.setItem(workshopKey, JSON.stringify(state)); setStorage(current => current === 'recovered' ? current : 'saved'); }
+    catch { setStorage('unavailable'); }
+  }, [state, ready]);
+  function update(id, transform) { setFeedback(old => ({ ...old, [id]: '' })); setState(old => ({ ...old, items: { ...old.items, [id]: transform(old.items[id]) } })); }
+  function select(id, focus = false) {
+    setState(old => ({ ...old, active: id }));
+    window.history.replaceState(window.history.state, '', `#${id}`);
+    if (focus) requestAnimationFrame(() => { document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'instant' }); document.getElementById(`${id}-title`)?.focus({ preventScroll: true }); });
+  }
+  function check(id) {
+    const item = state.items[id], result = checkWorkshop(id, item.data);
+    setFeedback(old => ({ ...old, [id]: result.message }));
+    if (!item.attempted) trackConversionEvent('puzzle_attempt', { puzzle: id });
+    const assistance = item.viewed ? 'solution' : item.hints ? 'hint' : 'none';
+    if (result.ok && !item.completion) trackConversionEvent('puzzle_solved', { puzzle: id, assistance });
+    setState(old => ({ ...old, items: { ...old.items, [id]: { ...old.items[id], attempted: true, completion: result.ok ? item.viewed ? 'solution' : item.hints ? 'hint' : 'independent' : null } } }));
+  }
+  const completed = Object.values(state.items).filter(i => i.completion).length;
+  return <section id="try-puzzles" className="pw-workshop puzzle-shell" aria-labelledby="pw-title">
+    <div className="puzzle-section-title" ref={title} tabIndex={-1}><div><span className="eyebrow">PICK A CLUE · PLAY RIGHT HERE</span><h2 id="pw-title">Six puzzles. Six ways to solve.</h2><p>Match, decode, arrange, compare, walk or connect. Choose any puzzle and work directly in its play space.</p></div><div className="pw-progress" role="status"><strong>{completed} / 6</strong><span>puzzles completed</span></div></div>
+    <nav className="pw-picker" aria-label="Choose a puzzle">{freePuzzles.map((p, i) => <a key={p.id} href={`#${p.id}`} aria-current={state.active === p.id ? 'step' : undefined} onClick={e => { e.preventDefault(); select(p.id, true); }}><span>{p.number} · {mechanics[i]}</span><strong>{p.title}</strong><small>{state.items[p.id].completion ? completionNames[state.items[p.id].completion] : 'Ready to play'}</small></a>)}</nav>
+    <div className="pw-storage"><p role="status">{!ready ? 'Loading saved progress…' : storage === 'unavailable' ? 'Browser saving is unavailable. You can keep playing, but progress may be lost when you leave or reload.' : storage === 'recovered' ? 'An unreadable save was reset. New progress is saved in this browser.' : 'Progress saves automatically in this browser, including moves and hints. It does not sync to other devices.'}</p><button disabled={!ready} onClick={() => setClearOpen(true)}>Clear saved progress</button></div>
+    {clearOpen && <div className="pw-confirm"><p>Clear all six puzzles, hints and completion records in this browser?</p><button onClick={() => { setState(freshWorkshop()); setRound(n => n + 1); setFeedback({}); setClearOpen(false); window.history.replaceState(window.history.state, '', '#stamp-code'); title.current?.focus(); }}>Clear all progress</button><button onClick={() => setClearOpen(false)}>Keep progress</button></div>}
+    <div className="pw-game-stack">{freePuzzles.map((puzzle, index) => <InteractiveCard key={`${puzzle.id}-${state.items[puzzle.id].revision || 0}-${round}`} puzzle={puzzle} index={index} item={state.items[puzzle.id]} ready={ready} active={state.active === puzzle.id} update={transform => update(puzzle.id, transform)} edit={data => update(puzzle.id, item => changeData(item, puzzle.id, data))} check={() => check(puzzle.id)} feedback={feedback[puzzle.id] || ''} notify={message => setFeedback(old => ({ ...old, [puzzle.id]: message }))} restart={() => { update(puzzle.id, old => ({ ...freshItem(puzzle.id), revision: (old.revision || 0) + 1 })); requestAnimationFrame(() => document.getElementById(`${puzzle.id}-title`)?.focus()); }} chooseNext={() => select(freePuzzles[(index + 1) % 6].id, true)}/>)}</div>
+    <p className="pw-small pw-storage-note">Your moves stay on this device. Puzzle event counts use fixed puzzle IDs and help-use labels, not typed answers. Prefer paper? The original six puzzles and separate answer guide are below.</p>
+  </section>;
+}
