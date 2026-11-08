@@ -1,3 +1,4 @@
+import {lightRules,lightTranscript,lightSvg} from './harbour-lights.mjs';
 import { forestRules,forestTranscript,forestSvg } from './forest-loop.mjs';
 import { bayPieces, bayStart, bayHints, baySolution, solveBay } from './loading-bay.mjs';
 // Original Paper Adventure puzzles. Shared by the website, PDF builder and solvers.
@@ -79,15 +80,15 @@ export const freePuzzles = Object.freeze([
     payoff:'Route restored. Your journey explains all four exhibits and follows every road rule.',
   },
   {
-    id: 'harbour-route', number: '06', category: 'route', level: 'One more step', title: 'The harbour crossing',
-    story: 'A messenger needs to get from the dock to the beacon. Three instructions narrow the crossing down to one route.',
-    task: 'Follow the rules and read the bridge numbers in travel order. What three-digit code does the route give?',
-    format: 'Three digits', answer: '258',
-    clues: ['Start at DOCK and finish at BEACON.', 'Cross exactly three bridges and visit BELL.', 'Do not visit MILL or return to a place you already visited.'],
-    transcript: 'Bridges connect DOCK–OAK (2), DOCK–MILL (6), OAK–BELL (5), OAK–PINE (4), MILL–PINE (3), BELL–BEACON (8), PINE–BEACON (9). Only named stops are junctions.',
-    hints: ['Because MILL is forbidden, the first bridge must go from DOCK to OAK.', 'You must visit BELL and use only three bridges in total. Compare OAK’s two onward choices.', 'The route is DOCK → OAK → BELL → BEACON. Read the numbers on those three bridges in order.'],
-    solution: 'Avoiding MILL forces DOCK–OAK. To visit BELL within three bridges, continue OAK–BELL–BEACON. The bridge numbers are 2, 5 and 8, giving 258.',
-    payoff: 'The messenger reaches the beacon by the only route that fits all the instructions.',
+    id: 'harbour-route', number: '06', category: 'logic', level: 'Think deeper', title: 'The fog harbour circuit',
+    story: 'The harbour control panel is scrambled. Each switch changes several navigation lights at once.',
+    task: 'Restore all 36 navigation lights to ON. Each switch flips itself and its direct neighbours. Choose Check circuit when ready.',
+    format: 'Record the switches you press; calculate the resulting ON/OFF board.', answer: 'All 36 navigation lights ON',
+    transcript: lightTranscript(),
+    hints: ['Look at overlapping switch effects, not just dark lights.', 'Two presses of one switch cancel. Record a tentative press plan.', 'The complete guide shows an initial-board restoration plan, with the affected lights at every step.'],
+    solution: 'Track switch parity and overlapping effects. The four worked stages show a complete restoration from the printed initial board.',
+    payoff: 'Circuit restored. All 36 navigation lights are on.',
+
   },
 ]);
 
@@ -95,7 +96,7 @@ export function normalizePuzzleAnswer(value) {
   return typeof value === 'string' ? value.trim().toUpperCase().replace(/[\s-]+/g, '') : '';
 }
 export function checkPuzzleAnswer(id, value) {
-  if (['parcel-queue','forest-trail'].includes(id)) return false; // This puzzle is completed by legal board movement, never a typed answer.
+  if (['parcel-queue','forest-trail','harbour-route'].includes(id)) return false; // This puzzle is completed by legal board movement, never a typed answer.
   const puzzle = freePuzzles.find(p => p.id === id);
   return Boolean(puzzle && normalizePuzzleAnswer(value) === normalizePuzzleAnswer(puzzle.answer));
 }
@@ -157,13 +158,7 @@ export function puzzleSvg(id) {
   } else if (id === 'forest-trail') {
     return forestSvg();
   } else if (id === 'harbour-route') {
-    harbourBridges.forEach(([a, b, n]) => {
-      const from = harbourNodes.find(p => p.id === a), to = harbourNodes.find(p => p.id === b);
-      const x = (from.x + to.x) / 2, y = (from.y + to.y) / 2;
-      body += `<path d="M${from.x} ${from.y}L${to.x} ${to.y}" stroke="#7997a2" stroke-width="4"/><circle cx="${x}" cy="${y}" r="14" fill="white" stroke="${ink}"/>${text(x, y + 6, n, 17, 'text-anchor="middle" font-weight="bold"')}`;
-    });
-    harbourNodes.forEach(p => { body += `<rect x="${p.x - 37}" y="${p.y - 22}" width="74" height="44" rx="8" fill="${p.id === 'dock' || p.id === 'beacon' ? '#d5e8dd' : 'white'}" stroke="${ink}" stroke-width="2"/>${text(p.x, p.y + 5, p.label, 13, 'text-anchor="middle" font-weight="bold"')}`; });
-    body += text(270, 332, 'Only named stops are junctions.', 15, 'text-anchor="middle"');
+    return lightSvg();
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="540" height="350" viewBox="0 0 540 350">${body}</svg>`;
 }

@@ -1,3 +1,4 @@
+import {lightDesign,lightEdition} from '../shared/harbour-lights.mjs';
 import {answerRoute,forestEdition} from '../shared/forest-loop.mjs';
 import { bayStart, solveBay } from '../shared/loading-bay.mjs';
 import test from 'node:test';
@@ -12,7 +13,7 @@ const correct = {
   'parcel-queue': { edition: 3, positions: solveBay(bayStart).at(-1).positions },
   'shared-parcel': { edition: 3, selected: 'A', wrongRecord: 3, excluded: [], notes: '' },
   'forest-trail': { edition:forestEdition, path:answerRoute },
-  'harbour-route': { path: ['dock', 'oak', 'bell', 'beacon'] },
+  'harbour-route': {edition:lightEdition,state:2**36-1},
 };
 test('six completed interactions agree with the original puzzle answers; blanks and final-answer-only guesses cannot pass', () => {
   for (const [id, data] of Object.entries(correct)) {
@@ -38,22 +39,6 @@ test('evidence completion requires both the parcel and the false record; notes a
   for (const selected of ['B', 'C', 'D']) assert.equal(checkWorkshop('shared-parcel', { ...d, selected }).ok, false);
   for (const wrongRecord of [null, 1, 2, 4]) assert.equal(checkWorkshop('shared-parcel', { ...d, wrongRecord }).ok, false);
   assert.equal(checkWorkshop('shared-parcel', { ...d, excluded: ['A'] }).ok, false);
-});
-test('harbour checks every connected path up to six bridges; only the printed route can pass', () => {
-  const accepted = [];
-  function walk(path) {
-    if (checkWorkshop('harbour-route', { path }).ok) accepted.push(path);
-    if (path.length >= 7) return;
-    for (const [a, b] of harbourBridges) {
-      const next = a === path.at(-1) ? b : b === path.at(-1) ? a : null;
-      if (next) walk([...path, next]);
-    }
-  }
-  walk(['dock']);
-  assert.deepEqual(accepted, [correct['harbour-route'].path]);
-  assert.equal(harbourInfo(['dock', 'bell', 'beacon']), null);
-  assert.equal(checkWorkshop('harbour-route', { path: ['dock', 'oak', 'pine', 'beacon'] }).ok, false);
-  assert.equal(checkWorkshop('harbour-route', { path: ['dock', 'mill', 'pine', 'beacon'] }).ok, false);
 });
 test('undo restores whole snapshots including route, selected evidence and exclusions', () => {
   for (const [id, data] of Object.entries(correct)) {

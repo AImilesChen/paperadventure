@@ -1,3 +1,4 @@
+import {freshLights,cleanLights,checkLights,lightEdition} from './harbour-lights.mjs';
 import { freshForest,cleanForest,checkForest,forestEdition } from './forest-loop.mjs';
 import { freshParcel, cleanParcel, checkParcel, parcelEdition, parcelSvg } from './parcel-evidence.mjs';
 import { freshBay, cleanBay, checkBay, bayEdition } from './loading-bay.mjs';
@@ -15,7 +16,7 @@ export const initialData = id => ({
   'parcel-queue': freshBay(),
   'shared-parcel': freshParcel(),
   'forest-trail': freshForest(),
-  'harbour-route': { path: ['dock'] },
+  'harbour-route': freshLights(),
 }[id]);
 const letters = (v, max) => typeof v === 'string' ? v.toUpperCase().replace(/[^A-Z]/g, '').slice(0, max) : '';
 const subset = (v, allowed) => Array.isArray(v) ? [...new Set(v.filter(x => allowed.includes(x)))] : [];
@@ -57,7 +58,7 @@ export function cleanData(id, raw) {
   if (id === 'parcel-queue') return cleanBay(d);
   if (id === 'shared-parcel') return cleanParcel(d);
   if (id === 'forest-trail') return cleanForest(d);
-  if (id === 'harbour-route') return { path: harbourInfo(d.path) ? [...d.path] : ['dock'] };
+  if (id === 'harbour-route') return cleanLights(d);
   return null;
 }
 const no = message => ({ ok: false, message });
@@ -75,17 +76,10 @@ export function checkWorkshop(id, raw) {
   if (id === 'parcel-queue') return checkBay(d);
   if (id === 'shared-parcel') return checkParcel(d);
   if (id === 'forest-trail') return checkForest(d);
-  if (id === 'harbour-route') {
-    const route = harbourInfo(d.path);
-    if (route.current !== 'beacon') return no('Your route must finish at BEACON.');
-    if (route.bridges !== 3) return no('This crossing does not use exactly three bridges. Undo and compare the rules.');
-    if (d.path.includes('mill')) return no('This route visits MILL, which the instructions forbid.');
-    if (new Set(d.path).size !== d.path.length) return no('This route returns to a place already visited.');
-    if (!d.path.includes('bell')) return no('This route misses the required stop at BELL.');
-  }
+  if (id === 'harbour-route') return checkLights(d);
   return { ok: true, message: freePuzzles.find(p => p.id === id).payoff };
 }
-export function freshItem(id) { return { data: initialData(id), history: [], hints: 0, viewed: false, completion: null, attempted: false, ...(id === 'forest-trail' ? {redo:[],legacyForestCompletion:null,startedAt:null,finishedAt:null} : {}), ...(id === 'stamp-code' ? { routeHints: 0, legacyCompletion: null } : {}) }; }
+export function freshItem(id) { return { data: initialData(id), history: [], hints: 0, viewed: false, completion: null, attempted: false, ...(['forest-trail','harbour-route'].includes(id) ? {redo:[],startedAt:null,finishedAt:null,...(id === 'forest-trail'?{legacyForestCompletion:null}:{legacyHarbourCompletion:null})} : {}), ...(id === 'stamp-code' ? { routeHints: 0, legacyCompletion: null } : {}) }; }
 export function freshWorkshop() { return { version: workshopVersion, active: puzzleIds[0], items: Object.fromEntries(puzzleIds.map(id => [id, freshItem(id)])) }; }
 export function restoreWorkshop(raw) {
   const state = freshWorkshop();
@@ -98,6 +92,17 @@ export function restoreWorkshop(raw) {
     // Older direct OAK lookup saves reset only this puzzle.
     if (id === 'stamp-code' && ![3, stampEdition].includes(source.data?.edition)) continue;
     const item = state.items[id];
+    if(id === 'harbour-route') {
+      item.legacyHarbourCompletion = ['independent','hint','solution'].includes(source.legacyHarbourCompletion)?source.legacyHarbourCompletion:null;
+      if(source.data?.edition!==lightEdition) {
+        item.legacyHarbourCompletion=['independent','hint','solution'].includes(source.completion)?source.completion:item.legacyHarbourCompletion;
+        continue;
+      }
+      item.startedAt=Number.isFinite(source.startedAt)&&source.startedAt>0&&source.startedAt<=Date.now()?source.startedAt:null;
+      item.finishedAt=Number.isFinite(source.finishedAt)&&source.finishedAt>=item.startedAt&&source.finishedAt<=Date.now()&&source.completion?source.finishedAt:null;
+      item.redo=Array.isArray(source.redo)?source.redo.slice(-128).map(cleanLights):[];
+    }
+
     if (id === 'forest-trail') {
       item.legacyForestCompletion = ['independent','hint','solution'].includes(source.legacyForestCompletion) ? source.legacyForestCompletion : null;
       if(source.data?.edition !== forestEdition) {
@@ -131,7 +136,7 @@ export function restoreWorkshop(raw) {
       item.legacyCompletion = legacy?.edition === 3 && ['independent', 'hint', 'solution'].includes(legacy.completion) ? { edition: 3, completion: legacy.completion } : null;
       item.routeHints = source.data?.edition === stampEdition && Number.isInteger(source.routeHints) ? Math.max(0, Math.min(3, source.routeHints)) : 0;
     }
-    item.history = Array.isArray(source.history) ? source.history.slice(id === 'forest-trail' ? -128 : -32).map(d => cleanData(id, d)) : [];
+    item.history = Array.isArray(source.history) ? source.history.slice(['forest-trail','harbour-route'].includes(id) ? -128 : -32).map(d => cleanData(id, d)) : [];
     item.hints = Number.isInteger(source.hints) ? Math.max(0, Math.min(3, source.hints)) : 0;
     item.viewed = source.viewed === true;
     item.attempted = source.attempted === true;
@@ -140,7 +145,7 @@ export function restoreWorkshop(raw) {
   return state;
 }
 export function changeData(item, id, data) {
-  return { ...item, data: cleanData(id, data), history: [...item.history, item.data].slice(id === 'forest-trail' ? -128 : -32), ...(id === 'forest-trail' ? {redo:[]} : {}), completion: null };
+  return { ...item, data: cleanData(id, data), history: [...item.history, item.data].slice(['forest-trail','harbour-route'].includes(id) ? -128 : -32), ...(['forest-trail','harbour-route'].includes(id) ? {redo:[]} : {}), completion: null };
 }
 export function undoItem(item) {
   return item.history.length ? { ...item, data: item.history.at(-1), history: item.history.slice(0, -1), completion: null } : item;
