@@ -4,12 +4,8 @@ import { bayPieces, bayStart, bayHints, baySolution, solveBay } from './loading-
 import { stampRecords, stampLabels, stampShapeNames, postalStops, postalClues, postalClueText } from './stamp-investigation.mjs';
 export const puzzlePath = '/en/escape-room-puzzles/';
 export const puzzleCategories = Object.freeze({ code: 'Codes', logic: 'Logic', route: 'Routes' });
-export const parcels = [
-  { id: 'A', pattern: 'stripes', seal: 'triangle', stamps: 1 },
-  { id: 'B', pattern: 'dots', seal: 'triangle', stamps: 2 },
-  { id: 'C', pattern: 'stripes', seal: 'triangle', stamps: 2 },
-  { id: 'D', pattern: 'stripes', seal: 'circle', stamps: 2 },
-];
+import { parcels, parcelSheetSvg, parcelRecords, verifiedParcelRecords, parcelHints, parcelSteps, parcelSolution } from './parcel-evidence.mjs';
+export { parcels } from './parcel-evidence.mjs';
 export const trailGrid = [['S', 'B', 'R', 'F'], ['H', 'D', 'I', 'A'], ['N', 'G', 'E', 'T'], ['L', 'P', 'U', 'M']];
 export const trailMoves = ['E', 'E', 'S', 'W', 'S', 'E'];
 export const harbourNodes = [
@@ -62,15 +58,15 @@ export const freePuzzles = Object.freeze([
     payoff: 'Delivery complete. You cleared the loading bay and sent X through the exit.'
   },
   {
-    id: 'shared-parcel', number: '04', category: 'logic', level: 'Share the clues', title: 'The right parcel',
-    story: 'Three helpers each remember a different detail about a missing parcel. Compare all three clues with the four parcels.',
-    task: 'Which parcel matches every clue? On paper, give one clue card to each player or take turns reading them aloud.',
-    format: 'One letter: A, B, C or D', answer: 'C',
-    clues: ['Helper 1: It has stripes.', 'Helper 2: It has a triangle seal.', 'Helper 3: It has exactly two stamps.'],
-    transcript: 'Parcel A: stripes, triangle seal, one stamp. B: dots, triangle seal, two stamps. C: stripes, triangle seal, two stamps. D: stripes, circle seal, two stamps.',
-    hints: ['A parcel must satisfy all three helpers, not just one of them.', 'Cross out B because its wrapping has dots. Compare the seals and stamp counts on the others.', 'A has too few stamps and D has the wrong seal. Which parcel is left?'],
-    solution: 'C has stripes, a triangle seal and two stamps. A fails the stamp clue, B fails the wrapping clue and D fails the seal clue. Only C matches all three.',
-    payoff: 'The helpers agree on a parcel using their combined evidence.',
+    id: 'shared-parcel', number: '04', category: 'logic', level: 'Reconstruct the hidden ledger', title: 'The miscopied parcel records',
+    story: 'Four sealed parcels have lost their recipient and contents labels. All four verified records are true. Exactly one of three copied notes is false. Restore the relationships to find the compass.',
+    task: 'Find the parcel holding the compass and the one false copied note. Each of Ava, Ben, Cleo and Drew receives one parcel; map, key, clock and compass each occur once. All four verified records are true; copied notes I, II and III have exactly two true notes and one false note.',
+    format: 'Compass in parcel: ____    False copied note (I, II or III): ____', answer: 'A / note III',
+    clues: parcelRecords.map(record => record.text), verified: verifiedParcelRecords.map(record => record.text), steps: parcelSteps, ledger: parcelSolution,
+    transcript: parcels.map(p => `Parcel ${p.id}: ${p.stamps} ${p.stamps === 1 ? 'stamp' : 'stamps'}, ${p.pattern}, ${p.ribbon} ribbon.`).join(' '),
+    hints: parcelHints,
+    solution: 'A / note III. Parcel A holds Ava\u0027s compass. B holds Ben\u0027s map, C holds Cleo\u0027s key, and D holds Drew\u0027s clock. Copied notes I and II are true; III is false because the compass belongs to Ava, not Cleo.',
+    payoff: 'The compass is in parcel A, for Ava. Copied note III is false.',
   },
   {
     id: 'forest-trail', number: '05', category: 'route', level: 'Start here', title: 'The forest trail',
@@ -157,13 +153,7 @@ export function puzzleSvg(id) {
     body += text(385,160,'EXIT >',18,'font-weight="bold"');
     body += text(270,335,'Make room, move back, then open the exit.',14,'text-anchor="middle"');
   } else if (id === 'shared-parcel') {
-    parcels.forEach((p, i) => {
-      const x = 38 + (i % 2) * 258, y = 20 + Math.floor(i / 2) * 170;
-      body += `<rect x="${x}" y="${y}" width="208" height="139" rx="6" fill="white" stroke="${ink}" stroke-width="2"/>`;
-      for (let n = 0; n < 7; n++) body += p.pattern === 'stripes' ? `<path d="M${x + 14 + n * 28} ${y + 48}v71" stroke="#7997a2" stroke-width="3"/>` : `<circle cx="${x + 15 + n * 28}" cy="${y + 66}" r="4" fill="#7997a2"/><circle cx="${x + 15 + n * 28}" cy="${y + 104}" r="4" fill="#7997a2"/>`;
-      body += `<rect x="${x + 70}" y="${y + 66}" width="65" height="58" rx="6" fill="white"/>${symbol(p.seal, x + 103, y + 94)}${text(x + 15, y + 30, p.id, 23, 'font-weight="bold"')}`;
-      for (let s = 0; s < p.stamps; s++) body += `<rect x="${x + 136 + s * 31}" y="${y + 13}" width="23" height="27" fill="${pale}" stroke="${ink}" stroke-dasharray="2 2"/>`;
-    });
+    return parcelSheetSvg();
   } else if (id === 'forest-trail') {
     body = text(28, 31, 'ONE SQUARE PER MOVE', 13, 'font-weight="bold"');
     trailGrid.forEach((row, r) => row.forEach((letter, c) => { const x = 27 + c * 67, y = 48 + r * 67; body += `<rect x="${x}" y="${y}" width="67" height="67" fill="${r === 0 && c === 0 ? '#d5e8dd' : 'white'}" stroke="#7997a2"/>${text(x + 33.5, y + 43, letter, 26, 'text-anchor="middle" font-weight="bold"')}`; }));

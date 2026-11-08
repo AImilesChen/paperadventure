@@ -1,23 +1,18 @@
+import { freshParcel, cleanParcel, checkParcel, parcelEdition, parcelSvg } from './parcel-evidence.mjs';
 import { freshBay, cleanBay, checkBay, bayEdition } from './loading-bay.mjs';
 import { freshMoon, cleanMoon, checkMoon, moonEdition } from './moon-signal.mjs';
-import { freePuzzles, parcels, trailGrid, trailMoves, harbourBridges, puzzleSvg } from './free-puzzles.mjs';
+import { freePuzzles, trailGrid, trailMoves, harbourBridges } from './free-puzzles.mjs';
 import { stampEdition, stampLabels, inspectStampMatches, postalWords, inspectPostalRoute, linkedPostalPair } from './stamp-investigation.mjs';
 
 export const workshopKey = 'paw-free-puzzle-workshop-v2';
 export const workshopVersion = 2;
 export const puzzleIds = freePuzzles.map(p => p.id);
-// Crop the original fixed printable diagram: same shapes, patterns and stamp counts.
-export function parcelPicture(id) {
-  const index = parcels.findIndex(p => p.id === id);
-  if (index < 0) return '';
-  const x = 34 + index % 2 * 258, y = 16 + Math.floor(index / 2) * 170;
-  return puzzleSvg('shared-parcel').replace('width="540" height="350" viewBox="0 0 540 350"', `width="216" height="147" viewBox="${x} ${y} 216 147"`);
-}
+export const parcelPicture = parcelSvg;
 export const initialData = id => ({
   'stamp-code': { edition: stampEdition, matches: ['', '', '', ''], verified: false, route: ['', '', '', '', ''], pair: [], notes: ['', '', '', ''], readClues: [] },
   'signal-shift': freshMoon(),
   'parcel-queue': freshBay(),
-  'shared-parcel': { excluded: [], selected: '', evidence: [] },
+  'shared-parcel': freshParcel(),
   'forest-trail': { moves: [] },
   'harbour-route': { path: ['dock'] },
 }[id]);
@@ -59,7 +54,7 @@ export function cleanData(id, raw) {
   }
   if (id === 'signal-shift') return cleanMoon(d);
   if (id === 'parcel-queue') return cleanBay(d);
-  if (id === 'shared-parcel') return { excluded: subset(d.excluded, ['A', 'B', 'C', 'D']), selected: ['A', 'B', 'C', 'D'].includes(d.selected) ? d.selected : '', evidence: subset(d.evidence, [0, 1, 2]) };
+  if (id === 'shared-parcel') return cleanParcel(d);
   if (id === 'forest-trail') { const moves = Array.isArray(d.moves) ? d.moves.slice(0, 6) : []; return { moves: trailInfo(moves) ? [...moves] : [] }; }
   if (id === 'harbour-route') return { path: harbourInfo(d.path) ? [...d.path] : ['dock'] };
   return null;
@@ -77,15 +72,7 @@ export function checkWorkshop(id, raw) {
   }
   if (id === 'signal-shift') return checkMoon(d);
   if (id === 'parcel-queue') return checkBay(d);
-  if (id === 'shared-parcel') {
-    if (!d.selected) return no('Choose a parcel after comparing the clues.');
-    if (d.excluded.includes(d.selected)) return no('Your chosen parcel is also marked excluded. Review that decision first.');
-    const p = parcels.find(x => x.id === d.selected);
-    if (p.pattern !== 'stripes') return no('Compare the chosen wrapping with helper 1’s clue.');
-    if (p.seal !== 'triangle') return no('Compare the chosen seal with helper 2’s clue.');
-    if (p.stamps !== 2) return no('Count the chosen parcel’s stamps again using helper 3’s clue.');
-    if (d.evidence.length !== 3) return no('Confirm how your chosen parcel matches each of the three helper clues.');
-  }
+  if (id === 'shared-parcel') return checkParcel(d);
   if (id === 'forest-trail') {
     if (d.moves.length !== 6) return no('Complete six moves, collecting one letter after each move.');
     const firstWrong = d.moves.findIndex((x, i) => x !== trailMoves[i]);
@@ -115,6 +102,12 @@ export function restoreWorkshop(raw) {
     // Older direct OAK lookup saves reset only this puzzle.
     if (id === 'stamp-code' && ![3, stampEdition].includes(source.data?.edition)) continue;
     const item = state.items[id];
+    if (id === 'shared-parcel' && source.data?.edition !== parcelEdition) {
+      item.legacyParcelCompletion = ['independent', 'hint', 'solution'].includes(source.completion) ? source.completion : ['independent', 'hint', 'solution'].includes(source.legacyParcelCompletion) ? source.legacyParcelCompletion : null;
+      continue;
+    }
+    if (id === 'shared-parcel' && ['independent', 'hint', 'solution'].includes(source.legacyParcelCompletion)) item.legacyParcelCompletion = source.legacyParcelCompletion;
+
     if (id === 'parcel-queue' && source.data?.edition !== bayEdition) {
       item.legacyBayCompletion = ['independent','hint','solution'].includes(source.completion) ? source.completion : null;
       continue;

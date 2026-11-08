@@ -1,3 +1,4 @@
+import { parcelEdition } from './parcel-evidence.mjs';
 // Local UX prototype only. Real balances and entitlements must live on the server.
 import { freePuzzles } from './free-puzzles.mjs';
 import { bayEdition } from './loading-bay.mjs';
@@ -9,14 +10,15 @@ const ids = freePuzzles.map(p => p.id);
 export const helpName = kind => kind === 'solution' ? 'Full solution' : `Hint ${kind.split('-')[1]}`;
 export function helpKey(id, kind) {
   if (!ids.includes(id) || !Object.hasOwn(helpPrices, kind)) return null;
-  return `${id}@${id === 'stamp-code' ? stampEdition : id === 'parcel-queue' ? bayEdition : 1}:${kind}`;
+  return `${id}@${id === 'stamp-code' ? stampEdition : id === 'parcel-queue' ? bayEdition : id === 'shared-parcel' ? parcelEdition : 1}:${kind}`;
 }
 const allowedKeys = new Set(ids.flatMap(id => Object.keys(helpPrices).map(kind => helpKey(id, kind))));
-export function freshCreditPreview() { return { version: 1, balance: previewStartingBalance, unlocked: [], history: [], sequence: 0 }; }
+export function freshCreditPreview() { return { version: 1, balance: previewStartingBalance, unlocked: [], history: [], sequence: 0, spentByEdition: {} }; }
 export function restoreCreditPreview(raw) {
   if (raw?.version !== 1 || !Number.isSafeInteger(raw.balance) || raw.balance < 0 || raw.balance > 10000) return freshCreditPreview();
   return {
     version: 1, balance: raw.balance,
+    spentByEdition: raw.spentByEdition && typeof raw.spentByEdition === 'object' && Number.isInteger(raw.spentByEdition[`shared-parcel@${parcelEdition}`]) ? { [`shared-parcel@${parcelEdition}`]: Math.max(0, Math.min(5, raw.spentByEdition[`shared-parcel@${parcelEdition}`])) } : {},
     unlocked: Array.isArray(raw.unlocked) ? [...new Set(raw.unlocked.map(key => typeof key === 'string' ? key.replace('stamp-code@3:', `stamp-code@${stampEdition}:`) : key).filter(key => allowedKeys.has(key)))] : [],
     history: Array.isArray(raw.history) ? raw.history.slice(-100).filter(row => row && Number.isSafeInteger(row.sequence) && row.sequence > 0 && Number.isSafeInteger(row.cost) && row.cost >= 0 && row.cost <= 5 && Number.isSafeInteger(row.balance) && row.balance >= 0 && row.balance <= 10000 && (row.kind === 'demo-reset' || helpKey(row.puzzle, row.kind))).map(row => ({ sequence: row.sequence, ...(row.puzzle ? { puzzle: row.puzzle } : {}), kind: row.kind, cost: row.cost, balance: row.balance })) : [],
     sequence: Number.isSafeInteger(raw.sequence) && raw.sequence >= 0 ? raw.sequence : 0,
@@ -36,8 +38,9 @@ export function quoteHelp(wallet, id, kind, completed = false) {
   if (!key) return { ok: false, reason: 'unknown-help' };
   const owned = wallet.unlocked.includes(key) || kind !== 'solution' && wallet.unlocked.includes(helpKey(id, 'solution'));
   const earned = kind === 'solution' && completed;
-  const cost = owned || earned ? 0 : helpPrices[kind];
-  return { ok: true, key, owned, earned, cost, balance: wallet.balance, remaining: wallet.balance - cost, affordable: wallet.balance >= cost };
+  const paidBefore = id === 'shared-parcel' ? wallet.spentByEdition?.[`shared-parcel@${parcelEdition}`] || 0 : 0;
+  const cost = owned || earned ? 0 : id === 'shared-parcel' && kind === 'solution' ? Math.max(0, helpPrices.solution - paidBefore) : helpPrices[kind];
+  return { ok: true, key, owned, earned, cost, paidBefore, balance: wallet.balance, remaining: wallet.balance - cost, affordable: wallet.balance >= cost };
 }
 export function unlockPreviewHelp(wallet, id, kind, completed = false) {
   const quote = quoteHelp(wallet, id, kind, completed);
@@ -45,7 +48,7 @@ export function unlockPreviewHelp(wallet, id, kind, completed = false) {
   if (!quote.affordable) return { ok: false, wallet, reason: 'insufficient-credits', quote };
   if (quote.owned) return { ok: true, wallet, quote, charged: 0 };
   const sequence = wallet.sequence + 1, balance = wallet.balance - quote.cost;
-  return { ok: true, charged: quote.cost, quote, wallet: { ...wallet, balance, sequence, unlocked: [...new Set([...wallet.unlocked, ...(kind === 'solution' ? Object.keys(helpPrices).map(level => helpKey(id, level)) : [quote.key])])], history: [...wallet.history, { sequence, puzzle: id, kind, cost: quote.cost, balance }].slice(-100) } };
+  return { ok: true, charged: quote.cost, quote, wallet: { ...wallet, balance, sequence, ...(id === 'shared-parcel' ? { spentByEdition: { ...wallet.spentByEdition, [`shared-parcel@${parcelEdition}`]: Math.min(5, (wallet.spentByEdition?.[`shared-parcel@${parcelEdition}`] || 0) + quote.cost) } } : {}), unlocked: [...new Set([...wallet.unlocked, ...(kind === 'solution' ? Object.keys(helpPrices).map(level => helpKey(id, level)) : [quote.key])])], history: [...wallet.history, { sequence, puzzle: id, kind, cost: quote.cost, balance }].slice(-100) } };
 }
 export function resetDemoBalance(wallet) {
   const sequence = wallet.sequence + 1;

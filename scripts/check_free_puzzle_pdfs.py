@@ -11,7 +11,7 @@ for file in sorted((ROOT / 'public/assets/free-puzzles').glob('*.pdf')):
     guide = file.stem.endswith('guide')
     letter = '-Letter-' in file.name
     expected = (612, 792) if letter else (595.28, 841.89)
-    assert len(reader.pages) == (6 if guide else 8), file.name
+    assert len(reader.pages) == (7 if guide else 8), file.name
     for page in reader.pages:
         assert abs(float(page.mediabox.width) - expected[0]) < .02
         assert abs(float(page.mediabox.height) - expected[1]) < .02
@@ -35,6 +35,18 @@ for file in sorted((ROOT / 'public/assets/free-puzzles').glob('*.pdf')):
             else:
                 assert len(page.images) == 1
                 assert 'Working notes / explain your thinking:' in page.extract_text()
+    evidence_text = ' '.join(reader.pages[4 if guide else 5].extract_text().split())
+    assert 'The miscopied parcel records' in evidence_text
+    if guide:
+        assert 'Answer: A / note III' in evidence_text
+        assert 'guide page 7' in evidence_text
+        reasoning = ' '.join(reader.pages[6].extract_text().split())
+        assert 'The map cannot be in A.' in reasoning and 'The compass is in A.' in reasoning
+        assert 'A / Ava / compass' in reasoning and 'D / Drew / clock' in reasoning
+    else:
+        for line in ['ALL FOUR ARE TRUE', 'EXACTLY TWO TRUE AND ONE FALSE', 'False copied note (I, II or III):']:
+            assert line in evidence_text, line
+        assert 'A / note III' not in evidence_text
     report.append({'file': file.name, 'pages': len(reader.pages), 'width': expected[0], 'height': expected[1], 'answer_separation': True})
 assert len(report) == 4
 for file in sorted((ROOT / 'public/assets/free-puzzles').glob('*players.pdf')):
