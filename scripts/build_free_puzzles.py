@@ -135,12 +135,60 @@ def bay_players(pdf, paper, width, height, puzzle):
     pdf.showPage()
 
 
+def parcel_players(pdf, paper, width, height, puzzle):
+    y = header(pdf, width, height, 'PLAYER', 6, 8, paper)
+    y = heading(pdf, '04  The miscopied parcel records', y, 20)
+    y = paragraph(pdf, 'Find the parcel holding the COMPASS and the ONE false copied note.', y, width - 86, True, 11)
+    y = paragraph(pdf, 'Recipients: Ava, Ben, Cleo, Drew. Contents: map, key, clock, compass. Each person receives one parcel; each parcel holds one item. Use each person and item exactly once.', y, width - 86, size=10.5)
+    y = paragraph(pdf, 'VERIFIED RECORDS - ALL FOUR ARE TRUE', y, width - 86, True, 11)
+    for i, clue in enumerate(puzzle['verified']):
+        y = paragraph(pdf, f'V{i + 1}. {clue}', y + 2, width - 86, size=10.5)
+    y = paragraph(pdf, 'Exactly one more means the stamp counts differ by 1.', y + 2, width - 86, size=9)
+    y = paragraph(pdf, 'COPIED NOTES - EXACTLY TWO TRUE AND ONE FALSE', y, width - 86, True, 11)
+    for label, clue in zip(['I', 'II', 'III'], puzzle['clues']):
+        y = paragraph(pdf, f'{label}. {clue}', y + 2, width - 86, size=10.5)
+    dw = width - 86
+    dh = dw * 160 / 540
+    pdf.drawImage(str(DATA / 'shared-parcel.png'), (width - dw) / 2, y - dh, width=dw, height=dh, mask='auto')
+    y -= dh + 9
+    pdf.setFillColor(PALE)
+    pdf.roundRect(43, y - 43, width - 86, 43, 6, fill=1, stroke=0)
+    pdf.setFillColor(INK)
+    pdf.setFont('Helvetica-Bold', 10)
+    pdf.drawString(55, y - 26, 'Compass in parcel: ______    False copied note (I, II or III): ______')
+    y -= 56
+    y = paragraph(pdf, 'Working notes / explain your thinking:', y, width - 86, size=9)
+    pdf.setStrokeColor(HexColor('#c6d9e0'))
+    if y > 65:
+        pdf.line(43, y, width - 43, y)
+    assert y > 50, 'Parcel answer page overlaps footer'
+    pdf.showPage()
+
+
+def parcel_reasoning(pdf, paper, width, height, puzzle):
+    y = header(pdf, width, height, 'ADULT GUIDE', 7, 7, paper)
+    y = heading(pdf, '04 / reasoning  The parcel ledger', y, 20)
+    y = paragraph(pdf, 'Answer: ' + puzzle['answer'] + '. Follow each deduction below; the verified records are all true and only one copied note is false.', y, width - 86, True, 10.5)
+    for i, step in enumerate(puzzle['steps']):
+        y = paragraph(pdf, str(i + 1) + '. ' + step['title'] + ' ' + step['text'], y, width - 86, size=10.5)
+    y = paragraph(pdf, 'THE RESTORED LEDGER', y, width - 86, True, 11)
+    pdf.setFont('Helvetica', 10.5)
+    for row in puzzle['ledger']:
+        pdf.drawString(50, y - 12, row['id'] + ' / ' + row['recipient'] + ' / ' + row['content'])
+        y -= 18
+    assert y > 50, 'Parcel reasoning overlaps footer'
+    pdf.showPage()
+
+
 def players(paper, size):
     width, height = size
     pdf = canvas.Canvas(str(OUT / f'paper-adventure-puzzles-{paper}-players.pdf'), pagesize=size, invariant=1)
     pdf.setTitle('Six Free Escape Room Puzzles - Player Sheets - ' + paper)
     pdf.setAuthor('Paper Adventure Workshop')
     for index, puzzle in enumerate(PUZZLES):
+        if index == 3:
+            parcel_players(pdf, paper, width, height, puzzle)
+            continue
         if index == 2:
             bay_players(pdf, paper, width, height, puzzle)
             continue
@@ -204,14 +252,14 @@ def guide(paper, size):
     pdf = canvas.Canvas(str(OUT / f'paper-adventure-puzzles-{paper}-guide.pdf'), pagesize=size, invariant=1)
     pdf.setTitle('Six Free Escape Room Puzzles - Adult Guide and Answers - ' + paper)
     pdf.setAuthor('Paper Adventure Workshop')
-    y = header(pdf, width, height, 'ADULT GUIDE', 1, 6, paper)
+    y = header(pdf, width, height, 'ADULT GUIDE', 1, 7, paper)
     y = heading(pdf, 'Your guide to the clue workshop', y)
     y = paragraph(pdf, 'ADULT ONLY - contains answers. Keep this guide separate from the eight player sheets.', y, width - 86, True)
     sections = [
         ('What this pack includes', 'Six independent puzzles: two codes, two logic tasks and two routes. They can be used separately or in any order. This is not a complete story-based escape room; there are no physical locks, timer or required room search.'),
-        ('Print and prepare', 'Print the eight player pages single-sided at 100% on matching ' + ('US Letter' if paper == 'Letter' else 'A4') + ' paper. One complete player set per team is a starting point. Read this six-page guide on screen, or print it once. Prepare pencils and scissors. For puzzle 3, cut the eleven crates from player page 5 and place them on player page 4. Print both at 100%; each square is 23 mm. No colour-dependent clue is used.'),
+        ('Print and prepare', 'Print the eight player pages single-sided at 100% on matching ' + ('US Letter' if paper == 'Letter' else 'A4') + ' paper. One complete player set per team is a starting point. Read this seven-page guide on screen, or print it once. Prepare pencils and scissors. For puzzle 3, cut the eleven crates from player page 5 and place them on player page 4. Print both at 100%; each square is 23 mm. No colour-dependent clue is used.'),
         ('Choose a starting point', 'The puzzles are designed for children aged 6-12 with adult help as needed. Reading and experience vary. Inspect the sheets first. Try the loading bay or forest trail first. Puzzle 1 now involves inferring a code from four old records before combining five records to reconstruct a five-stop delivery route. It uses two player pages.'),
-        ('Share the information', 'For puzzle 4, an adult can cut the three helper clues from beneath the diagram and give one to each player. Leave the parcel picture and question intact. Players tell one another their clues and agree on the parcel. With fewer players, take turns or let the adult read a clue.'),
+        ('Share the information', 'For puzzle 4, distinguish the four verified records (all true) from the three copied notes (two true, one false). Recipients and contents each occur once. Choose the compass parcel AND the false note. Keep all evidence visible. No cutting is needed. Full reasoning is on guide page 7.'),
         ('Help without giving everything away', 'Ask players to explain their thinking before checking the answer. Give one hint at a time; allow another attempt before the next hint. The last hint can be very direct. If the group wants to stop, read the explained solution together.'),
         ('How you may use these files', 'Print for your own household or the classes you teach. Retain the Paper Adventure credit. Do not resell or republish these PDF files; share the public page link instead. These are original Paper Adventure puzzle materials.'),
     ]
@@ -221,7 +269,7 @@ def guide(paper, size):
     pdf.showPage()
     groups = [[PUZZLES[0]], [PUZZLES[1]], [PUZZLES[2]], PUZZLES[3:5], [PUZZLES[5]]]
     for page, group in enumerate(groups):
-        y = header(pdf, width, height, 'ADULT GUIDE', page + 2, 6, paper)
+        y = header(pdf, width, height, 'ADULT GUIDE', page + 2, 7, paper)
         y = heading(pdf, ['The post office: two-stage solution', 'The moon-station message', 'The loading bay: explained moves', 'Evidence and trails', 'The harbour crossing'][page], y)
         for puzzle in group:
             y = paragraph(pdf, puzzle['number'] + ' - ' + puzzle['title'], y - 5, width - 86, True, 14)
@@ -251,8 +299,11 @@ def guide(paper, size):
                 y = paragraph(pdf, 'Why it works: some crates must move away and later return. X first moves left so I can travel upward, then returns right. B and C later move back to open the exit. Online hints start from the current layout; these printed moves start from player page 4.', y, width - 86, size=10.5)
             else:
                 y = paragraph(pdf, puzzle['solution'], y, width - 86, size=10.5)
+                if puzzle['id'] == 'shared-parcel':
+                    y = paragraph(pdf, 'Complete seven-step reasoning and restored ledger: guide page 7.', y, width - 86, True, 10)
             y -= 12
         pdf.showPage()
+    parcel_reasoning(pdf, paper, width, height, PUZZLES[3])
     pdf.save()
 
 
@@ -261,4 +312,4 @@ if __name__ == '__main__':
     for paper, size in [('A4', A4), ('Letter', letter)]:
         players(paper, size)
         guide(paper, size)
-    print('Built four PDFs: eight player pages and six guide pages in each paper size.')
+    print('Built four PDFs: eight player pages and seven guide pages in each paper size.')

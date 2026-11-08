@@ -9,7 +9,7 @@ const correct = {
   'stamp-code': { edition: 4, matches: ['LAMP', 'PALM', 'MAP', 'OAK'], verified: true, route: ['OAK', 'MALL', 'POOL', 'LOOM', 'PALM'], pair: [], notes: ['', '', '', ''], readClues: [] },
   'signal-shift': { edition: 4, answer: 'DOCK' },
   'parcel-queue': { edition: 3, positions: solveBay(bayStart).at(-1).positions },
-  'shared-parcel': { selected: 'C', excluded: ['A', 'B', 'D'], evidence: [0, 1, 2] },
+  'shared-parcel': { edition: 3, selected: 'A', wrongRecord: 3, excluded: [], notes: '' },
   'forest-trail': { moves: trailMoves },
   'harbour-route': { path: ['dock', 'oak', 'bell', 'beacon'] },
 };
@@ -32,11 +32,11 @@ test('Moon rescue completes with the final word alone and rejects partial or inc
  assert.equal(checkWorkshop('signal-shift',{edition:4,answer:'dock'}).ok,true);
 });
 
-test('evidence completion requires all clues, and excludes contradictory chosen/excluded state', () => {
+test('evidence completion requires both the parcel and the false record; notes are optional', () => {
   const d = correct['shared-parcel'];
-  for (const selected of ['A', 'B', 'D']) assert.equal(checkWorkshop('shared-parcel', { ...d, selected }).ok, false);
-  assert.equal(checkWorkshop('shared-parcel', { ...d, evidence: [0, 1] }).ok, false);
-  assert.equal(checkWorkshop('shared-parcel', { ...d, excluded: ['C'] }).ok, false);
+  for (const selected of ['B', 'C', 'D']) assert.equal(checkWorkshop('shared-parcel', { ...d, selected }).ok, false);
+  for (const wrongRecord of [null, 1, 2, 4]) assert.equal(checkWorkshop('shared-parcel', { ...d, wrongRecord }).ok, false);
+  assert.equal(checkWorkshop('shared-parcel', { ...d, excluded: ['A'] }).ok, false);
 });
 test('forest movement enforces bounds and complete direction history, not just a word', () => {
   assert.equal(trailInfo(['N']), null);

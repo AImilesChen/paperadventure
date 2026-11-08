@@ -95,3 +95,34 @@ test('a full solution includes all lower hint tiers, including a previously save
   const legacy = restoreCreditPreview({ version: 1, balance: 3, unlocked: [helpKey('stamp-code', 'solution')] });
   assert.equal(quoteHelp(legacy, 'stamp-code', 'hint-3').cost, 0);
 });
+
+
+test('parcel help spending is credited toward the 5-credit complete explanation', () => {
+  let wallet=freshCreditPreview();
+  for(const [kind,cost] of [['hint-1',0],['hint-2',1],['hint-3',2],['solution',2]]){
+    const before=structuredClone(wallet),quote=quoteHelp(wallet,'shared-parcel',kind);assert.equal(quote.cost,cost);assert.deepEqual(wallet,before);
+    const result=unlockPreviewHelp(wallet,'shared-parcel',kind);assert.equal(result.charged,cost);wallet=result.wallet;
+  }
+  assert.equal(wallet.balance,3);assert.equal(wallet.spentByEdition['shared-parcel@3'],5);
+  for(const kind of ['hint-1','hint-2','hint-3','solution'])assert.equal(unlockPreviewHelp(wallet,'shared-parcel',kind).charged,0);
+  assert.equal(unlockPreviewHelp(freshCreditPreview(),'shared-parcel','solution').charged,5);
+});
+
+test('parcel discount survives reload and activity truncation, with old edition unlocks kept separate', () => {
+  let wallet=unlockPreviewHelp(freshCreditPreview(),'shared-parcel','hint-2').wallet;
+  wallet=unlockPreviewHelp(wallet,'shared-parcel','hint-3').wallet;
+  for(let i=0;i<105;i++)wallet=resetDemoBalance(wallet);
+  wallet=restoreCreditPreview(JSON.parse(JSON.stringify(wallet)));
+  assert.equal(wallet.history.length,100);assert.equal(quoteHelp(wallet,'shared-parcel','solution').cost,2);
+  const old=restoreCreditPreview({version:1,balance:3,unlocked:['shared-parcel@1:solution','shared-parcel@2:solution'],spentByEdition:{'shared-parcel@2':5}});
+  assert.equal(quoteHelp(old,'shared-parcel','solution').owned,false);assert.equal(quoteHelp(old,'shared-parcel','solution').cost,5);
+});
+
+test('parcel insufficient upgrade is atomic and completion earns the full explanation free', () => {
+  let wallet=unlockPreviewHelp(freshCreditPreview(),'shared-parcel','hint-2').wallet;
+  wallet=unlockPreviewHelp(wallet,'shared-parcel','hint-3').wallet;wallet={...wallet,balance:1};
+  const before=structuredClone(wallet),failed=unlockPreviewHelp(wallet,'shared-parcel','solution');assert.equal(failed.ok,false);assert.deepEqual(failed.wallet,before);
+  const earned=unlockPreviewHelp(wallet,'shared-parcel','solution',true);assert.equal(earned.charged,0);assert.equal(earned.wallet.balance,1);assert.equal(quoteHelp(earned.wallet,'shared-parcel','hint-3').cost,0);
+  // Existing games retain their approved prices, independently of parcel spending.
+  assert.equal(quoteHelp(wallet,'signal-shift','solution').cost,5);
+});

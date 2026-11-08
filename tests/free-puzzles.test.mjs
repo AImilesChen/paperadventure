@@ -22,10 +22,12 @@ test('loading bay has a solvable eighteen-slide layout and delivery is the goal'
  const path=solveBay(bayStart);assert.equal(path.length,18);assert.equal(baySolved(path.at(-1).positions),true);assert.equal(find('parcel-queue').answer,'X reaches EXIT');
 });
 
-test('all three shared clues contribute to identifying a unique parcel', () => {
-  const constraints = [p => p.pattern === 'stripes', p => p.seal === 'triangle', p => p.stamps === 2];
-  assert.deepEqual(parcels.filter(p => constraints.every(rule => rule(p))).map(p => p.id), [find('shared-parcel').answer]);
-  for (let omit = 0; omit < constraints.length; omit++) assert.equal(parcels.filter(p => constraints.every((rule, i) => i === omit || rule(p))).length, 2);
+test('the parcel investigation presents four hidden parcels and the paired final answer', () => {
+  assert.deepEqual(parcels.map(p => [p.id, p.stamps, p.pattern, p.ribbon]), [['A',2,'stripes','blue'],['B',1,'dots','red'],['C',3,'dots','blue'],['D',4,'stripes','red']]);
+  assert.equal(find('shared-parcel').answer, 'A / note III');
+  assert.equal(find('shared-parcel').verified.length, 4);
+  assert.equal(find('shared-parcel').clues.length, 3);
+  assert.equal(find('shared-parcel').steps.length, 7);
 });
 
 test('the forest trail stays on the board and extracts exactly six letters', () => {
