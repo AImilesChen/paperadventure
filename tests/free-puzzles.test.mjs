@@ -30,25 +30,10 @@ test('the parcel investigation presents four hidden parcels and the paired final
   assert.equal(find('shared-parcel').steps.length, 7);
 });
 
-test('enumerating harbour routes gives exactly one valid three-bridge crossing', () => {
-  const paths = [];
-  function walk(at, nodes, code) {
-    if (at === 'beacon') { if (code.length === 3 && nodes.includes('bell')) paths.push({ nodes, code }); return; }
-    if (code.length >= 3) return;
-    for (const [a, b, digit] of harbourBridges) {
-      const next = a === at ? b : b === at ? a : null;
-      if (next && next !== 'mill' && !nodes.includes(next)) walk(next, [...nodes, next], code + digit);
-    }
-  }
-  walk('dock', ['dock'], '');
-  assert.deepEqual(paths, [{ nodes: ['dock', 'oak', 'bell', 'beacon'], code: '258' }]);
-  assert.equal(paths[0].code, find('harbour-route').answer);
-});
-
 test('answer checking accepts formatting variants without accepting arbitrary guesses', () => {
   for (const p of freePuzzles) {
     assert.equal(p.hints.length, 3);
-    if (['parcel-queue','forest-trail'].includes(p.id)) { assert.equal(checkPuzzleAnswer(p.id, p.answer), false); continue; }
+    if (['parcel-queue','forest-trail','harbour-route'].includes(p.id)) { assert.equal(checkPuzzleAnswer(p.id, p.answer), false); continue; }
     assert.ok(p.solution.includes(p.answer) || p.id === 'harbour-route');
     assert.ok(checkPuzzleAnswer(p.id, '  ' + p.answer.toLowerCase() + '  '));
     for (const bad of ['', null, {}, 'wrong', p.answer + 'X', '<script>']) assert.equal(checkPuzzleAnswer(p.id, bad), false);
@@ -82,7 +67,7 @@ test('all promised PDF assets exist and only valid paper/file combinations resol
 test('the resource page is indexable with a six-item collection, not a paid product offer', () => {
   const record = pageFor(puzzlePath);
   assert.equal(record.indexable, true);
-  assert.deepEqual(Object.keys(puzzleCategories).map(k => freePuzzles.filter(p => p.category === k).length), [2, 2, 2]);
+  assert.deepEqual(Object.keys(puzzleCategories).map(k => freePuzzles.filter(p => p.category === k).length), [2, 3, 1]);
   const graph = pageSchema(record, null)['@graph'];
   assert.equal(graph[0]['@type'], 'CollectionPage');
   assert.equal(graph.find(p => p['@type'] === 'ItemList').numberOfItems, 6);

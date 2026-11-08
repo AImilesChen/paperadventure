@@ -166,7 +166,7 @@ def parcel_players(pdf, paper, width, height, puzzle):
 
 
 def parcel_reasoning(pdf, paper, width, height, puzzle):
-    y = header(pdf, width, height, 'ADULT GUIDE', 7, 8, paper)
+    y = header(pdf, width, height, 'ADULT GUIDE', 7, 12, paper)
     y = heading(pdf, '04 / reasoning  The parcel ledger', y, 20)
     y = paragraph(pdf, 'Answer: ' + puzzle['answer'] + '. Follow each deduction below; the verified records are all true and only one copied note is false.', y, width - 86, True, 10.5)
     for i, step in enumerate(puzzle['steps']):
@@ -209,7 +209,7 @@ def forest_players(pdf,paper,width,height,puzzle):
 
 def forest_reasoning(pdf,paper,width,height):
     data=json.loads((DATA/'forest-rescue.json').read_text(encoding='utf-8'))
-    y=header(pdf,width,height,'ADULT GUIDE',8,8,paper)
+    y=header(pdf,width,height,'ADULT GUIDE',8, 12, paper)
     y=heading(pdf,'Forest patrol / explained route',y,size=20)
     dw=230;dh=dw*580/700
     pdf.drawImage(str(DATA/'forest-answer.png'),(width-dw)/2,y-dh,width=dw,height=dh,mask='auto');y-=dh+8
@@ -218,12 +218,41 @@ def forest_reasoning(pdf,paper,width,height):
     pdf.showPage()
 
 
+def harbour_players(pdf,paper,width,height,puzzle):
+    y=header(pdf,width,height,'PLAYER',9,9,paper)
+    y=heading(pdf,'06  '+puzzle['title'],y,size=21)
+    y=paragraph(pdf,'How to pass: restore all 36 navigation lights to ON. Each press flips its own light and its direct neighbours. Record your intended switches, then calculate their combined effects.',y,width-86,size=11)
+    dw=min(width-86,380)
+    pdf.drawImage(str(DATA/'harbour-route.png'),(width-dw)/2,y-dw,width=dw,height=dw,mask='auto');y-=dw+10
+    data=json.loads((DATA/'harbour-lights.json').read_text(encoding='utf-8'))
+    for index,rule in enumerate(data['rules']):
+        y=paragraph(pdf,str(index+1)+'. '+rule,y,width-86,size=10)
+    y=paragraph(pdf,'Working notes / explain your thinking: record switch presses and the resulting board. Two presses of the same switch cancel. No move limit.',y,width-86,size=9)
+    pdf.showPage()
+
+def harbour_reasoning(pdf,paper,width,height):
+    data=json.loads((DATA/'harbour-lights.json').read_text(encoding='utf-8'));proof=data['proof']
+    for stage in range(4):
+        y=header(pdf,width,height,'ADULT GUIDE',9+stage,12,paper)
+        y=heading(pdf,'Harbour circuit / stage '+str(stage+1)+' of 4',y,size=20)
+        y=paragraph(pdf,'Rows A-F, columns 1-6. Start from the original player board. Each stage includes all preceding presses. Brown borders identify switches pressed in this stage. ON and OFF labels show the resulting state.',y,width-86,size=9)
+        dw=210
+        pdf.drawImage(str(DATA/f'harbour-stage-{stage+1}.png'),(width-dw)/2,y-dw,width=dw,height=dw,mask='auto');y-=dw+12
+        for i in range(len(proof)*stage//4,len(proof)*(stage+1)//4):
+            step=proof[i]
+            y=paragraph(pdf,str(i+1)+'. '+', '.join(step['names'])+' / '+'press'+'. '+step['reason'],y,width-86,size=10)
+        pdf.showPage()
+
+
 def players(paper, size):
     width, height = size
     pdf = canvas.Canvas(str(OUT / f'paper-adventure-puzzles-{paper}-players.pdf'), pagesize=size, invariant=1)
     pdf.setTitle('Six Free Escape Room Puzzles - Player Sheets - ' + paper)
     pdf.setAuthor('Paper Adventure Workshop')
     for index, puzzle in enumerate(PUZZLES):
+        if index == 5:
+            harbour_players(pdf,paper,width,height,puzzle)
+            continue
         if index == 4:
             forest_players(pdf,paper,width,height,puzzle)
             continue
@@ -293,12 +322,12 @@ def guide(paper, size):
     pdf = canvas.Canvas(str(OUT / f'paper-adventure-puzzles-{paper}-guide.pdf'), pagesize=size, invariant=1)
     pdf.setTitle('Six Free Escape Room Puzzles - Adult Guide and Answers - ' + paper)
     pdf.setAuthor('Paper Adventure Workshop')
-    y = header(pdf, width, height, 'ADULT GUIDE', 1, 8, paper)
+    y = header(pdf, width, height, 'ADULT GUIDE', 1, 12, paper)
     y = heading(pdf, 'Your guide to the clue workshop', y)
     y = paragraph(pdf, 'ADULT ONLY - contains answers. Keep this guide separate from the nine player sheets.', y, width - 86, True)
     sections = [
-        ('What this pack includes', 'Six independent puzzles: two codes, two logic tasks and a rescue and a crossing. They can be used separately or in any order. This is not a complete story-based escape room; there are no physical locks, timer or required room search.'),
-        ('Print and prepare', 'Print the nine player pages single-sided at 100% on matching ' + ('US Letter' if paper == 'Letter' else 'A4') + ' paper. One complete player set per team is a starting point. Read this eight-page guide on screen, or print it once. Prepare pencils and scissors. For puzzle 3, cut the eleven crates from player page 5 and place them on player page 4. Print both at 100%; each square is 23 mm. No colour-dependent clue is used.'),
+        ('What this pack includes', 'Six independent puzzles: two codes, two logic tasks and a forest investigation and a switch circuit puzzle. They can be used separately or in any order. This is not a complete story-based escape room; there are no physical locks, timer or required room search.'),
+        ('Print and prepare', 'Print the nine player pages single-sided at 100% on matching ' + ('US Letter' if paper == 'Letter' else 'A4') + ' paper. One complete player set per team is a starting point. Read this twelve-page guide on screen, or print it once. Prepare pencils and scissors. For puzzle 3, cut the eleven crates from player page 5 and place them on player page 4. Print both at 100%; each square is 23 mm. No colour-dependent clue is used.'),
         ('Choose a starting point', 'The puzzles are designed for children aged 6-12 with adult help as needed. Reading and experience vary. Inspect the sheets first. The forest patrol is a route-planning challenge; consider adult help. Puzzle 1 now involves inferring a code from four old records before combining five records to reconstruct a five-stop delivery route. It uses two player pages.'),
         ('Share the information', 'For puzzle 4, distinguish the four verified records (all true) from the three copied notes (two true, one false). Recipients and contents each occur once. Choose the compass parcel AND the false note. Keep all evidence visible. No cutting is needed. Full reasoning is on guide page 7.'),
         ('Help without giving everything away', 'Ask players to explain their thinking before checking the answer. Give one hint at a time; allow another attempt before the next hint. The last hint can be very direct. If the group wants to stop, read the explained solution together.'),
@@ -310,8 +339,8 @@ def guide(paper, size):
     pdf.showPage()
     groups = [[PUZZLES[0]], [PUZZLES[1]], [PUZZLES[2]], PUZZLES[3:5], [PUZZLES[5]]]
     for page, group in enumerate(groups):
-        y = header(pdf, width, height, 'ADULT GUIDE', page + 2, 8, paper)
-        y = heading(pdf, ['The post office: two-stage solution', 'The moon-station message', 'The loading bay: explained moves', 'Evidence and trails', 'The harbour crossing'][page], y)
+        y = header(pdf, width, height, 'ADULT GUIDE', page + 2, 12, paper)
+        y = heading(pdf, ['The post office: two-stage solution', 'The moon-station message', 'The loading bay: explained moves', 'Evidence and trails', 'The fog harbour circuit'][page], y)
         for puzzle in group:
             y = paragraph(pdf, puzzle['number'] + ' - ' + puzzle['title'], y - 5, width - 86, True, 14)
             if puzzle['id'] == 'stamp-code':
@@ -346,6 +375,7 @@ def guide(paper, size):
         pdf.showPage()
     parcel_reasoning(pdf, paper, width, height, PUZZLES[3])
     forest_reasoning(pdf,paper,width,height)
+    harbour_reasoning(pdf,paper,width,height)
     pdf.save()
 
 
@@ -354,4 +384,4 @@ if __name__ == '__main__':
     for paper, size in [('A4', A4), ('Letter', letter)]:
         players(paper, size)
         guide(paper, size)
-    print('Built four PDFs: nine player pages and eight guide pages in each paper size.')
+    print('Built four PDFs: nine player pages and twelve guide pages in each paper size.')

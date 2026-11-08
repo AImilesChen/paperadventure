@@ -11,7 +11,7 @@ for file in sorted((ROOT / 'public/assets/free-puzzles').glob('*.pdf')):
     guide = file.stem.endswith('guide')
     letter = '-Letter-' in file.name
     expected = (612, 792) if letter else (595.28, 841.89)
-    assert len(reader.pages) == (8 if guide else 9), file.name
+    assert len(reader.pages) == (12 if guide else 9), file.name
     for page in reader.pages:
         assert abs(float(page.mediabox.width) - expected[0]) < .02
         assert abs(float(page.mediabox.height) - expected[1]) < .02
