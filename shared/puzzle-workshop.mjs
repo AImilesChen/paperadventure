@@ -1,10 +1,11 @@
+import { freshBay, cleanBay, checkBay, bayEdition } from './loading-bay.mjs';
+import { freshMoon, cleanMoon, checkMoon, moonEdition } from './moon-signal.mjs';
 import { freePuzzles, parcels, trailGrid, trailMoves, harbourBridges, puzzleSvg } from './free-puzzles.mjs';
 import { stampEdition, stampLabels, inspectStampMatches, postalWords, inspectPostalRoute, linkedPostalPair } from './stamp-investigation.mjs';
 
 export const workshopKey = 'paw-free-puzzle-workshop-v2';
 export const workshopVersion = 2;
 export const puzzleIds = freePuzzles.map(p => p.id);
-export const parcelNames = ['SUN', 'LEAF', 'STAR', 'MOON'];
 // Crop the original fixed printable diagram: same shapes, patterns and stamp counts.
 export function parcelPicture(id) {
   const index = parcels.findIndex(p => p.id === id);
@@ -14,8 +15,8 @@ export function parcelPicture(id) {
 }
 export const initialData = id => ({
   'stamp-code': { edition: stampEdition, matches: ['', '', '', ''], verified: false, route: ['', '', '', '', ''], pair: [], notes: ['', '', '', ''], readClues: [] },
-  'signal-shift': { shift: 0, words: ['', '', '', ''], star: '' },
-  'parcel-queue': { order: ['', '', '', ''] },
+  'signal-shift': freshMoon(),
+  'parcel-queue': freshBay(),
   'shared-parcel': { excluded: [], selected: '', evidence: [] },
   'forest-trail': { moves: [] },
   'harbour-route': { path: ['dock'] },
@@ -56,15 +57,8 @@ export function cleanData(id, raw) {
       route, pair: linkedPostalPair(route, d.pair) ? [...d.pair] : [], notes: [0, 1, 2, 3].map(i => letters(d.notes?.[i], 4)), readClues: subset(d.readClues, [0, 1, 2, 3, 4]) };
 
   }
-  if (id === 'signal-shift') return {
-    shift: Number.isInteger(d.shift) && d.shift >= 0 && d.shift < 26 ? d.shift : 0,
-    words: [5, 3, 3, 4].map((max, i) => letters(d.words?.[i], max)),
-    star: ['RED', 'BLUE', 'GREEN', 'GOLD'].includes(d.star) ? d.star : '',
-  };
-  if (id === 'parcel-queue') {
-    const used = new Set();
-    return { order: [0, 1, 2, 3].map(i => { const p = d.order?.[i]; if (!parcelNames.includes(p) || used.has(p)) return ''; used.add(p); return p; }) };
-  }
+  if (id === 'signal-shift') return cleanMoon(d);
+  if (id === 'parcel-queue') return cleanBay(d);
   if (id === 'shared-parcel') return { excluded: subset(d.excluded, ['A', 'B', 'C', 'D']), selected: ['A', 'B', 'C', 'D'].includes(d.selected) ? d.selected : '', evidence: subset(d.evidence, [0, 1, 2]) };
   if (id === 'forest-trail') { const moves = Array.isArray(d.moves) ? d.moves.slice(0, 6) : []; return { moves: trailInfo(moves) ? [...moves] : [] }; }
   if (id === 'harbour-route') return { path: harbourInfo(d.path) ? [...d.path] : ['dock'] };
@@ -81,19 +75,8 @@ export function checkWorkshop(id, raw) {
     const route = inspectPostalRoute(d.route);
     if (!route.ok) return route;
   }
-  if (id === 'signal-shift') {
-    if (d.shift !== 3) return no('Check the decoder alignment: the original A was sent as D.');
-    const decoded = [...'FKHFN WKH UHG VWDU'].map(c => c === ' ' ? c : String.fromCharCode(65 + (c.charCodeAt(0) - 68 + 26) % 26)).join('');
-    if (d.words.some(x => !x) || !d.star) return no('Decode all four words and select a target star before checking.');
-    if (d.words.join(' ') !== decoded) return no('The decoded message does not match the letter rows yet. Recheck one word at a time.');
-    if (d.star !== d.words[2]) return no('The selected star does not match the colour in your decoded message.');
-  }
-  if (id === 'parcel-queue') {
-    if (d.order.some(x => !x)) return no('Place all four different parcels in the queue.');
-    if (d.order[0] !== 'SUN') return no('The queue does not satisfy clue 1: SUN must leave first.');
-    if (d.order.indexOf('STAR') + 1 !== d.order.indexOf('MOON')) return no('Recheck clue 2: STAR must be immediately before MOON.');
-    if (d.order[3] === 'LEAF') return no('Recheck clue 3: LEAF cannot be last.');
-  }
+  if (id === 'signal-shift') return checkMoon(d);
+  if (id === 'parcel-queue') return checkBay(d);
   if (id === 'shared-parcel') {
     if (!d.selected) return no('Choose a parcel after comparing the clues.');
     if (d.excluded.includes(d.selected)) return no('Your chosen parcel is also marked excluded. Review that decision first.');
@@ -132,6 +115,16 @@ export function restoreWorkshop(raw) {
     // Older direct OAK lookup saves reset only this puzzle.
     if (id === 'stamp-code' && ![3, stampEdition].includes(source.data?.edition)) continue;
     const item = state.items[id];
+    if (id === 'parcel-queue' && source.data?.edition !== bayEdition) {
+      item.legacyBayCompletion = ['independent','hint','solution'].includes(source.completion) ? source.completion : null;
+      continue;
+    }
+    if (id === 'parcel-queue' && ['independent','hint','solution'].includes(source.legacyBayCompletion)) item.legacyBayCompletion = source.legacyBayCompletion;
+    if (id === 'signal-shift' && ![3, moonEdition].includes(source.data?.edition)) {
+      item.legacySignalCompletion = ['independent','hint','solution'].includes(source.completion) ? source.completion : null;
+      continue;
+    }
+    if (id === 'signal-shift') item.legacySignalCompletion = ['independent','hint','solution'].includes(source.legacySignalCompletion) ? source.legacySignalCompletion : null;
     item.data = cleanData(id, source.data);
     if (id === 'stamp-code') {
       const legacy = source.data?.edition === 3 ? { edition: 3, completion: source.data.verified && Array.isArray(source.data.letters) && inspectStampMatches(source.data.matches).ok && source.data.letters?.join('') === 'POOL' ? source.completion : null } : source.legacyCompletion;

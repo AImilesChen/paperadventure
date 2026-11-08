@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import LoadingBay, { BayWalkthrough, BayDelivered, BayRules } from './LoadingBay.jsx';
+import { bayStart, bayHints, baySolution, checkBay } from '../shared/loading-bay.mjs';
+import MoonSignal, { MoonConnected } from './MoonSignal.jsx';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ArrowCounterClockwise, Check, Lightbulb, Circle, Triangle, Square } from '@phosphor-icons/react';
 import { freePuzzles, puzzleSvg, parcels, trailGrid, trailMoves, harbourNodes, harbourBridges } from '../shared/free-puzzles.mjs';
 import CreditHelp, { useCreditPreview } from './puzzleCreditPreview.jsx';
 import { stampEdition, inspectStampMatches } from '../shared/stamp-investigation.mjs';
 import StampInvestigation from './stampInvestigation.jsx';
 import { PostalRecords, PostalHowToPlay, PostalPocketKey, PostalDelivery } from './PostalRoute.jsx';
-import { workshopKey, freshWorkshop, freshItem, restoreWorkshop, changeData, undoItem, checkWorkshop, trailInfo, harbourInfo, bridgeBetween, parcelNames, parcelPicture } from '../shared/puzzle-workshop.mjs';
+import { workshopKey, freshWorkshop, freshItem, restoreWorkshop, changeData, undoItem, checkWorkshop, trailInfo, harbourInfo, bridgeBetween, parcelPicture } from '../shared/puzzle-workshop.mjs';
 import { trackConversionEvent } from './analytics.js';
 import './puzzleWorkshop.css';
 import './puzzleFirstScreen.css';
@@ -13,52 +16,21 @@ import './stampHierarchy.css';
 import './postalRoute.css';
 import './postalVisual.css';
 import './puzzleStacked.css';
+import './moonSignal.css';
 
-const shortTitles = ['Post office', 'Moon message', 'Parcel queue', 'Parcel clues', 'Forest trail', 'Harbour route'];
-const mechanics = ['Infer a code', 'Decode a message', 'Arrange parcels', 'Compare evidence', 'Walk the trail', 'Plan a crossing'];
+const shortTitles = ['Post office', 'Moon message', 'Loading bay', 'Parcel clues', 'Forest trail', 'Harbour route'];
+const mechanics = ['Infer a code', 'Decode a message', 'Move the crates', 'Compare evidence', 'Walk the trail', 'Plan a crossing'];
 const onlineTasks = [
   'Restore the key, then reconstruct the five-stop delivery route.',
-  'Decode all four words, then select the star named in the message.',
-  'Arrange all four parcels. Every clue below must be true.',
+  'Discover the rule in three records. Decode the final message to restore contact with the rescue ship.',
+  'Slide the other crates to get red parcel X out through the right-hand exit.',
   'Choose the parcel that matches all three helper clues.',
   'Start at S. Follow the six directions and collect the letter after each move.',
   'Build a route from DOCK to BEACON using all three rules below.',
 ];
 const completionNames = { independent: 'Solved independently', hint: 'Solved with hints', solution: 'Completed after viewing solution' };
-const controls = { 'stamp-code': 'Check delivery route', 'signal-shift': 'Check message', 'parcel-queue': 'Check order', 'shared-parcel': 'Check parcel', 'forest-trail': 'Check trail', 'harbour-route': 'Check crossing' };
+const controls = { 'stamp-code': 'Check delivery route', 'signal-shift': 'Check answer', 'parcel-queue': 'Delivery complete', 'shared-parcel': 'Check parcel', 'forest-trail': 'Check trail', 'harbour-route': 'Check crossing' };
 const toggled = (list, value) => list.includes(value) ? list.filter(x => x !== value) : [...list, value];
-
-function CipherBoard({ data, edit, id }) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const [letterIndex, setLetterIndex] = useState(0);
-  return <div>
-    <p className="pw-instruction">Align the original and sent alphabets. Then decode each word yourself and select the star named in the message.</p>
-    <div className="pw-decoder-controls"><button aria-label="Move sent alphabet left" onClick={() => edit({ ...data, shift: (data.shift + 25) % 26 })}><ArrowLeft/> Left</button><output aria-live="polite">Shift {data.shift}</output><button aria-label="Move sent alphabet right" onClick={() => edit({ ...data, shift: (data.shift + 1) % 26 })}>Right <ArrowRight/></button></div>
-    <div className="pw-alphabet" aria-label="Alphabet decoder">{[0, 13].map(start => <div key={start}><span className="pw-alphabet-label">Top: original · Bottom: sent</span><div className="pw-alphabet-row">{[...alphabet.slice(start, start + 13)].map((letter, i) => <div key={letter} className={letterIndex === start + i ? 'selected' : ''}><strong>{letter}</strong><span>{alphabet[(start + i + data.shift) % 26]}</span></div>)}</div></div>)}</div>
-    <label className="pw-pair-select">Inspect a decoder pair<select value={letterIndex} onChange={e => setLetterIndex(Number(e.target.value))}>{[...alphabet].map((letter, i) => <option key={letter} value={i}>Original {letter}</option>)}</select></label>
-    <p className="pw-decoder-pair" aria-live="polite">Selected pair: {alphabet[letterIndex]} → {alphabet[(letterIndex + data.shift) % 26]}</p>
-    <div className="pw-message-words">{['FKHFN', 'WKH', 'UHG', 'VWDU'].map((word, i) => <label key={word} htmlFor={`${id}-word-${i}`}><span>Sent: {word}</span><input id={`${id}-word-${i}`} aria-label={`Decoded word ${i + 1}: ${word}`} value={data.words[i]} maxLength={word.length} autoComplete="off" spellCheck={false} autoCapitalize="characters" onChange={e => { const words = [...data.words]; words[i] = e.target.value; edit({ ...data, words }); }}/></label>)}</div>
-    <div className="pw-star-choices" role="group" aria-label="Target star">{['RED', 'BLUE', 'GREEN', 'GOLD'].map(colour => <button key={colour} aria-pressed={data.star === colour} className={data.star === colour ? 'selected' : ''} onClick={() => edit({ ...data, star: colour })}>{colour} star</button>)}</div>
-  </div>;
-}
-
-function QueueBoard({ data, edit }) {
-  const [selected, setSelected] = useState('');
-  function place(parcel, position) {
-    if (!parcelNames.includes(parcel)) return;
-    const order = data.order.map(x => x === parcel ? '' : x); order[position] = parcel; edit({ order }); setSelected('');
-  }
-  function shift(index, delta) {
-    if (index + delta < 0 || index + delta > 3) return;
-    const order = [...data.order]; [order[index], order[index + delta]] = [order[index + delta], order[index]]; edit({ order });
-  }
-  return <div>
-    <p className="pw-instruction">Select a parcel, then a numbered slot. You can also drag a parcel into a slot. Arrange all four before checking.</p>
-    <div className="pw-parcel-bank" role="group" aria-label="Available parcels">{parcelNames.map(parcel => <button key={parcel} draggable onDragStart={e => e.dataTransfer.setData('text/plain', parcel)} aria-pressed={selected === parcel} className={selected === parcel ? 'selected' : ''} onClick={() => setSelected(parcel)}><strong>{parcel}</strong><small>{data.order.includes(parcel) ? 'In queue · select to move' : 'Choose parcel'}</small></button>)}</div>
-    <ol className="pw-queue">{data.order.map((parcel, i) => <li key={i} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); place(e.dataTransfer.getData('text/plain'), i); }}><span>Position {i + 1}</span><button className="pw-queue-slot" aria-label={`Position ${i + 1}: ${parcel || 'empty'}`} onClick={() => { if (selected) place(selected, i); else if (parcel) setSelected(parcel); }}>{parcel || (selected ? 'Place here' : 'Empty')}</button><div className="pw-queue-move"><button aria-label={`Move position ${i + 1} earlier`} disabled={i === 0 || !parcel} onClick={() => shift(i, -1)}><ArrowUp size={17}/></button><button aria-label={`Move position ${i + 1} later`} disabled={i === 3 || !parcel} onClick={() => shift(i, 1)}><ArrowDown size={17}/></button><button aria-label={`Clear position ${i + 1}`} disabled={!parcel} onClick={() => edit({ order: data.order.map((x, n) => n === i ? '' : x) })}>Clear</button></div></li>)}</ol>
-    <p className="pw-small" role="status">{selected ? `${selected} selected. Choose a position.` : 'Select a parcel to place or move it.'}</p>
-  </div>;
-}
 
 function EvidenceBoard({ data, edit }) {
   const [helper, setHelper] = useState(0);
@@ -131,7 +103,7 @@ function InteractiveCard({ puzzle, index, item, active, ready, update, edit, che
 
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 701px)');
-    const fitReference = () => { if (printedReference.current) printedReference.current.open = puzzle.id !== 'stamp-code' && desktop.matches; };
+    const fitReference = () => { if (printedReference.current) printedReference.current.open = !['stamp-code','signal-shift','parcel-queue'].includes(puzzle.id) && desktop.matches; };
     fitReference(); desktop.addEventListener('change', fitReference);
     return () => desktop.removeEventListener('change', fitReference);
   }, []);
@@ -141,32 +113,41 @@ function InteractiveCard({ puzzle, index, item, active, ready, update, edit, che
   }
   const helpField = index === 0 && routePhase ? 'routeHints' : 'hints';
   const helpCount = item[helpField] || 0;
-  const helpPuzzle = helpField === 'routeHints' ? { ...puzzle, hints: puzzle.routeHints } : puzzle;
+  const helpPuzzle = index === 2 ? { ...puzzle, hints: bayHints(item.completion ? bayStart : item.data.positions), solution: baySolution(item.completion ? bayStart : item.data.positions) } : helpField === 'routeHints' ? { ...puzzle, hints: puzzle.routeHints } : puzzle;
+  function moveBay(next) {
+    if (!ready || item.completion) return;
+    const result = checkBay(next);
+    if (!item.attempted) trackConversionEvent('puzzle_attempt', { puzzle: puzzle.id });
+    if (result.ok) trackConversionEvent('puzzle_solved', { puzzle: puzzle.id, assistance: item.viewed ? 'solution' : item.hints ? 'hint' : 'none' });
+    update(current => ({ ...changeData(current, puzzle.id, next), attempted: true, completion: result.ok ? current.viewed ? 'solution' : current.hints ? 'hint' : 'independent' : null }));
+  }
+  const ToolWrapper = index === 2 ? 'aside' : Fragment;
   const sceneProps = { data: item.data, edit, notify, id: puzzle.id, locked: !ready || Boolean(item.completion) };
-  return <article className={`puzzle-card${index === 0 ? ` pw-stamp-case pw-stacked-case pw-postal-visual${routePhase ? ' pw-route-case' : ''}` : ''}`} id={puzzle.id} hidden={!active} aria-labelledby={`${puzzle.id}-title`}>
-    <div className="pw-layout"><div className="pw-brief"><header className="pw-card-heading">{index !== 0 && <span className="puzzle-number">{puzzle.number}</span>}<div>{index === 0 && <p className="pv-stage-label">GAME 01 · POST OFFICE · STAGE {routePhase ? 2 : 1} OF 2</p>}{index !== 0 && <span className="puzzle-category">{mechanics[index]} · {puzzle.level}</span>}<h2 id={`${puzzle.id}-title`} ref={heading} tabIndex={-1}>{index === 0 ? (routePhase ? 'What is the correct five-stop route?' : 'Which word matches each stamp record?') : puzzle.title}</h2></div>{index === 0 && <ol className="si-stages" aria-label="Investigation stages"><li aria-current={!routePhase ? 'step' : undefined}><button aria-label="Review first-stage records" disabled={!ready || !routePhase || Boolean(item.completion)} onClick={reviewArchive}><span>1</span> Match records{routePhase && <small>✓</small>}</button></li><li aria-current={routePhase ? 'step' : undefined}><span>2</span> Restore route</li></ol>}</header>
+  return <article className={`puzzle-card${index === 0 ? ` pw-stamp-case pw-stacked-case pw-postal-visual${routePhase ? ' pw-route-case' : ''}` : index === 1 ? ' pw-moon-case' : index === 2 ? ' pw-bay-case' : ''}`} id={puzzle.id} hidden={!active} aria-labelledby={`${puzzle.id}-title`}>
+    <div className="pw-layout"><div className="pw-brief"><header className="pw-card-heading">{index > 2 && <span className="puzzle-number">{puzzle.number}</span>}<div>{index === 2 && <p className="pv-stage-label">GAME 03 · THE BLOCKED LOADING BAY</p>}{index === 1 && <p className="pv-stage-label">GAME 02 · MOON SIGNAL RESCUE</p>}{index === 0 && <p className="pv-stage-label">GAME 01 · POST OFFICE · STAGE {routePhase ? 2 : 1} OF 2</p>}{index > 2 && <span className="puzzle-category">{mechanics[index]} · {puzzle.level}</span>}<h2 id={`${puzzle.id}-title`} ref={heading} tabIndex={-1}>{index === 0 ? (routePhase ? 'What is the correct five-stop route?' : 'Which word matches each stamp record?') : index === 1 ? 'What does the final message say?' : index === 2 ? 'Can you clear the loading bay?' : puzzle.title}</h2></div>{index === 0 && <ol className="si-stages" aria-label="Investigation stages"><li aria-current={!routePhase ? 'step' : undefined}><button aria-label="Review first-stage records" disabled={!ready || !routePhase || Boolean(item.completion)} onClick={reviewArchive}><span>1</span> Match records{routePhase && <small>✓</small>}</button></li><li aria-current={routePhase ? 'step' : undefined}><span>2</span> Restore route</li></ol>}</header>
       {index === 0 ? <><p className="si-premise">{routePhase ? 'Start at the post office. It does not count as one of the five stops. Visit each place exactly once; deliver the letter at stop 5.' : 'Each row is one of these four words written in symbols. The word labels have been shuffled.'}</p>{!routePhase && <ul className="si-core-rules" aria-label="Puzzle rules"><li><strong>One shared code:</strong> same shape, same letter; different shapes, different letters.</li><li><strong>Use each word once.</strong> Read left to right.</li></ul>}</> : <p className="pw-task">{onlineTasks[index]}</p>}
       {index === 0 && routePhase && <><PostalHowToPlay/><PostalPocketKey code={inspectStampMatches(item.data.matches).key}/><PostalRecords code={inspectStampMatches(item.data.matches).key} errorClue={Number(feedback?.match(/record (\d+)/)?.[1])}/></>}
       {puzzle.clues && <ol className="puzzle-clue-cards">{puzzle.clues.map(clue => <li key={clue}>{clue}</li>)}</ol>}
-      {index !== 0 && <><details className="pw-story"><summary>Story & mission</summary><p>{puzzle.story}</p><p>{puzzle.task}</p></details><details className="pw-reference" ref={printedReference}><summary>Printable diagram & text description</summary><div className="puzzle-board" role="img" aria-label={puzzle.transcript} dangerouslySetInnerHTML={{ __html: puzzleSvg(puzzle.id) }}/><p className="pw-small">{puzzle.transcript}</p></details></>}
+      {index > 2 && <><details className="pw-story"><summary>Story & mission</summary><p>{puzzle.story}</p><p>{puzzle.task}</p></details><details className="pw-reference" ref={printedReference}><summary>Printable diagram & text description</summary><div className="puzzle-board" role="img" aria-label={puzzle.transcript} dangerouslySetInnerHTML={{ __html: puzzleSvg(puzzle.id) }}/><p className="pw-small">{puzzle.transcript}</p></details></>}
 
     </div><div className="pw-play-area"><span className="pw-play-label">YOUR PLAY SPACE</span><fieldset className="pw-game-controls" disabled={!ready || Boolean(item.completion)}><legend className="pw-sr-only">{mechanics[index]} controls</legend>
-      {index === 0 ? <StampInvestigation {...sceneProps} showRoute={routePhase} onVerified={() => setArchiveOpen(true)} onContinue={() => { setArchiveOpen(false); notify(''); heading.current?.focus(); }} routeSelected={routeSelection} onRouteSelect={setRouteSelection} onUndo={() => update(undoItem)} canUndo={ready && Boolean(item.history.length)} onRestart={() => setResetOpen(true)}/> : index === 1 ? <CipherBoard {...sceneProps}/> : index === 2 ? <QueueBoard {...sceneProps}/> : index === 3 ? <EvidenceBoard {...sceneProps}/> : index === 4 ? <ForestBoard {...sceneProps}/> : <HarbourBoard {...sceneProps}/>}
+      {index === 0 ? <StampInvestigation {...sceneProps} showRoute={routePhase} onVerified={() => setArchiveOpen(true)} onContinue={() => { setArchiveOpen(false); notify(''); heading.current?.focus(); }} routeSelected={routeSelection} onRouteSelect={setRouteSelection} onUndo={() => update(undoItem)} canUndo={ready && Boolean(item.history.length)} onRestart={() => setResetOpen(true)}/> : index === 1 ? <MoonSignal {...sceneProps} onSubmit={check}/> : index === 2 ? <LoadingBay {...sceneProps} onMove={moveBay} nextHint={helpCount >= 3 && !item.completion}/> : index === 3 ? <EvidenceBoard {...sceneProps}/> : index === 4 ? <ForestBoard {...sceneProps}/> : <HarbourBoard {...sceneProps}/>}
     </fieldset>
+    <ToolWrapper {...(index === 2 ? {className:"lb-sidebar", "aria-label":"Rules and game tools"} : {})}>{index === 2 && <BayRules/>}
     <div className="pw-actions" hidden={index === 0 && !routePhase}>
-      <button className="pw-check" disabled={!ready || Boolean(item.completion)} onClick={check}>{item.completion ? <><Check size={18}/> Completed</> : controls[puzzle.id]}</button>
+      {index !== 2 && <button className="pw-check" disabled={!ready || Boolean(item.completion) || (index === 1 && !item.data.answer)} onClick={check}>{item.completion ? <><Check size={18}/> Completed</> : controls[puzzle.id]}</button>}
       {(index !== 0 || routePhase) && <>
-        <button disabled={!ready || !item.history.length || Boolean(item.completion)} onClick={() => update(undoItem)}><ArrowCounterClockwise size={18}/> Undo</button>
+        <button disabled={!ready || !item.history.length || (Boolean(item.completion) && index !== 2)} onClick={() => update(undoItem)}><ArrowCounterClockwise size={18}/> Undo</button>
         {index === 0 && routeSelection && item.data.route.includes(routeSelection) && <button className="pr-remove-selected" disabled={!ready || Boolean(item.completion)} onClick={removeSelected}>Remove {routeSelection}</button>}
-        {index === 0 && routePhase ? <button disabled={!ready || !item.data.route.some(Boolean)} onClick={() => setClearRouteOpen(true)}>Clear route</button> : <button disabled={!ready} onClick={() => setResetOpen(true)}>Restart puzzle</button>}
+        {index === 0 && routePhase ? <button disabled={!ready || !item.data.route.some(Boolean)} onClick={() => setClearRouteOpen(true)}>Clear route</button> : <button disabled={!ready} aria-label="Restart puzzle" onClick={() => setResetOpen(true)}>{index === 2 ? 'Restart' : 'Restart puzzle'}</button>}
       </>}
     </div>
     <p role="status" className={`pw-feedback ${item.completion ? 'success' : ''}`}>{item.completion ? `${completionNames[item.completion]}. ${puzzle.payoff}` : feedback}</p>
     {index === 0 && clearRouteOpen && <div className="pw-confirm" role="group" aria-label="Confirm clear route"><p>Clear the five route positions? Your restored key and unlocked help stay available.</p><button onClick={() => { edit({ ...item.data, route: ['', '', '', '', ''], pair: [] }); setClearRouteOpen(false); setRouteSelection(''); requestAnimationFrame(() => document.getElementById('postal-route-title')?.focus({ preventScroll: true })); }}>Clear this route</button><button onClick={() => setClearRouteOpen(false)}>Keep route</button></div>}
-    {item.completion && <div className="pw-celebration"><strong>{index === 0 ? 'Delivery recorded' : 'Discovery recorded'}</strong>{index === 0 && <PostalDelivery route={item.data.route}/>}<p>{item.completion === 'solution' ? 'You completed this puzzle after opening its explanation. Try it again later without the solution.' : 'Your actions fit the clues. Tell someone how you worked it out.'}</p><button className="pw-check" onClick={chooseNext}>{index === 5 ? 'Choose another puzzle' : 'Try the next puzzle'} <ArrowRight size={18}/></button><a href="#print-puzzles">Get the printable sheets</a></div>}
+    {item.completion && <div className="pw-celebration"><strong>{index === 0 ? 'Delivery recorded' : 'Discovery recorded'}</strong>{index === 0 && <PostalDelivery route={item.data.route}/>}{index === 1 && <MoonConnected/>}{index === 2 && <BayDelivered/>}<p>{item.completion === 'solution' ? 'You completed this puzzle after opening its explanation. Try it again later without the solution.' : 'Your actions fit the clues. Tell someone how you worked it out.'}</p><button className="pw-check" onClick={chooseNext}>{index === 5 ? 'Choose another puzzle' : 'Try the next puzzle'} <ArrowRight size={18}/></button><a href="#print-puzzles">Get the printable sheets</a></div>}
     {resetOpen && <div className="pw-confirm" role="group" aria-label="Confirm puzzle restart"><p>Clear this puzzle’s moves, hints and completion? The other five puzzles stay saved.</p><button onClick={() => { restart(); setResetOpen(false); setSolutionOpen(false); setSolutionConfirm(false); heading.current?.focus(); }}>Restart this puzzle</button><button onClick={() => setResetOpen(false)}>Keep playing</button></div>}
-    {index === 0 && <h3 className="pv-help-title">Need a hint?</h3>}
-    {creditPreview ? <CreditHelp puzzle={helpPuzzle} item={{ ...item, hints: helpCount }} credits={credits} grant={kind => {
+    {index < 3 && <h3 className="pv-help-title">Need a hint?</h3>}
+    {creditPreview ? <CreditHelp renderSolution={index === 2 ? () => <BayWalkthrough positions={item.completion ? bayStart : item.data.positions} fromStart={Boolean(item.completion)}/> : undefined} puzzle={helpPuzzle} item={{ ...item, hints: helpCount }} credits={credits} grant={kind => {
       update(current => kind === 'solution' ? { ...current, viewed: current.completion ? current.viewed : true } : { ...current, [helpField]: Math.max(current[helpField] || 0, Number(kind.split('-')[1])) });
       if (kind !== 'solution') trackConversionEvent('puzzle_hint_open', { puzzle: puzzle.id });
     }}/> : <>
@@ -174,8 +155,11 @@ function InteractiveCard({ puzzle, index, item, active, ready, update, edit, che
     {helpCount > 0 && <ol className="puzzle-hints">{helpPuzzle.hints.slice(0, helpCount).map((hint, i) => <li key={i}><strong>Hint {i + 1}</strong><p>{hint}</p></li>)}</ol>}
     {solutionConfirm && <div className="pw-confirm"><p>This reveals the answer. Completing afterwards will be marked “after viewing solution”.</p><button onClick={showSolution}>Show solution</button><button onClick={() => setSolutionConfirm(false)}>Keep solving</button></div>}
     </>}
-    <div className="puzzle-solution" id={`${puzzle.id}-solution`} hidden={!solutionOpen}><p><strong>{puzzle.answer}.</strong> {puzzle.solution}</p><p className="pw-small">The explanation does not fill or complete the puzzle for you.</p></div>
+    </ToolWrapper>
+    <div className="puzzle-solution" id={`${puzzle.id}-solution`} hidden={!solutionOpen}><p><strong>{puzzle.answer}.</strong> {helpPuzzle.solution}</p>{index === 2 && <BayWalkthrough positions={item.completion ? bayStart : item.data.positions} fromStart={Boolean(item.completion)}/>}<p className="pw-small">The explanation does not fill or complete the puzzle for you.</p></div>
     </div></div>
+    {index === 2 && item.legacyBayCompletion && <p className="pr-legacy">Your earlier result is saved separately. This harder loading-bay layout is new; your other games stay saved.</p>}
+    {index === 1 && item.legacySignalCompletion && <p className="pr-legacy">You completed an earlier Moon message. This scrambled-message investigation is new; your other saved games are kept.</p>}
     {index === 0 && item.legacyCompletion && <p className="pr-legacy">Earlier edition: completed the POOL delivery. The five-stop route is a new challenge.</p>}
   </article>;
 }
