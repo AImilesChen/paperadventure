@@ -1,3 +1,4 @@
+import { bayStart, solveBay } from '../shared/loading-bay.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -6,8 +7,8 @@ import { harbourBridges, trailMoves } from '../shared/free-puzzles.mjs';
 
 const correct = {
   'stamp-code': { edition: 4, matches: ['LAMP', 'PALM', 'MAP', 'OAK'], verified: true, route: ['OAK', 'MALL', 'POOL', 'LOOM', 'PALM'], pair: [], notes: ['', '', '', ''], readClues: [] },
-  'signal-shift': { shift: 3, words: ['CHECK', 'THE', 'RED', 'STAR'], star: 'RED' },
-  'parcel-queue': { order: ['SUN', 'LEAF', 'STAR', 'MOON'] },
+  'signal-shift': { edition: 4, answer: 'DOCK' },
+  'parcel-queue': { edition: 3, positions: solveBay(bayStart).at(-1).positions },
   'shared-parcel': { selected: 'C', excluded: ['A', 'B', 'D'], evidence: [0, 1, 2] },
   'forest-trail': { moves: trailMoves },
   'harbour-route': { path: ['dock', 'oak', 'bell', 'beacon'] },
@@ -20,16 +21,17 @@ test('six completed interactions agree with the original puzzle answers; blanks 
   }
 });
 const permutations = a => a.length ? a.flatMap((x, i) => permutations(a.filter((_, j) => i !== j)).map(b => [x, ...b])) : [[]];
-test('exactly one full queue passes out of 24 arrangements, including six with MOON last', () => {
-  const orders = permutations(['SUN', 'LEAF', 'STAR', 'MOON']);
-  assert.equal(orders.filter(order => order.at(-1) === 'MOON').length, 6);
-  assert.deepEqual(orders.filter(order => checkWorkshop('parcel-queue', { order }).ok), [correct['parcel-queue'].order]);
-  assert.equal(checkWorkshop('parcel-queue', { order: ['SUN', 'SUN', 'STAR', 'MOON'] }).ok, false);
+test('loading bay rejects the former queue answer and an undelivered layout', () => {
+ assert.equal(checkWorkshop('parcel-queue',{order:['SUN','LEAF','STAR','MOON']}).ok,false);
+ assert.equal(checkWorkshop('parcel-queue',{edition:3,positions:bayStart}).ok,false);
+ assert.equal(checkWorkshop('parcel-queue',correct['parcel-queue']).ok,true);
 });
-test('target colour alone, partial message or incorrect decoder alignment does not pass', () => {
-  const d = correct['signal-shift'];
-  for (const patch of [{ shift: 0 }, { words: ['', '', 'RED', ''] }, { star: 'BLUE' }, { words: ['CHECK', 'THE', 'RED', 'MOON'] }]) assert.equal(checkWorkshop('signal-shift', { ...d, ...patch }).ok, false);
+
+test('Moon rescue completes with the final word alone and rejects partial or incorrect answers', () => {
+ for(const answer of ['', 'DO', 'KCOD', 'FAIL']) assert.equal(checkWorkshop('signal-shift',{edition:4,answer}).ok,false);
+ assert.equal(checkWorkshop('signal-shift',{edition:4,answer:'dock'}).ok,true);
 });
+
 test('evidence completion requires all clues, and excludes contradictory chosen/excluded state', () => {
   const d = correct['shared-parcel'];
   for (const selected of ['A', 'B', 'D']) assert.equal(checkWorkshop('shared-parcel', { ...d, selected }).ok, false);

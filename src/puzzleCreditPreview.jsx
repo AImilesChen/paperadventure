@@ -36,7 +36,7 @@ export function useCreditPreview(enabled, workshopReady, workshop) {
   };
 }
 
-export default function CreditHelp({ puzzle, item, credits, grant }) {
+export default function CreditHelp({ puzzle, item, credits, grant, renderSolution }) {
   const [panel, setPanel] = useState(null);
   const [error, setError] = useState('');
   const dialog = useRef(null);
@@ -77,7 +77,7 @@ export default function CreditHelp({ puzzle, item, credits, grant }) {
         <p className="pc-error" role="status">{error}</p><div className="pc-dialog-actions"><button onClick={close}>Keep solving</button><button className="pw-check" disabled={!selectedQuote.affordable} onClick={() => reveal(panel.kind)}>{selectedQuote.cost ? `Unlock for ${creditLabel(selectedQuote.cost)}` : 'Show solution · no charge'}</button>{!selectedQuote.affordable && <button onClick={() => setPanel({ mode: 'packs' })}>About credit packs</button>}</div>
       </>}
       {panel?.mode === 'read' && <>
-        {panel.kind === 'solution' ? <><p><strong>{puzzle.answer}.</strong> {puzzle.solution}</p><p className="pc-note">Reading an explanation does not fill or complete the puzzle for you.</p></> : <ol className="puzzle-hints">{puzzle.hints.slice(0, Math.max(item.hints, Number(panel.kind.split('-')[1]))).map((hint, i) => <li key={i}><strong>Hint {i + 1}</strong><p>{hint}</p></li>)}</ol>}
+        {panel.kind === 'solution' ? <><p><strong>{puzzle.answer}.</strong> {puzzle.solution}</p>{renderSolution?.()}<p className="pc-note">Reading an explanation does not fill or complete the puzzle for you.</p></> : <ol className="puzzle-hints">{puzzle.hints.slice(0, Math.max(item.hints, Number(panel.kind.split('-')[1]))).map((hint, i) => <li key={i}><strong>Hint {i + 1}</strong><p>{hint}</p></li>)}</ol>}
         <div className="pc-dialog-actions"><button className="pw-check" onClick={close}>Return to the puzzle</button></div>
       </>}
       {panel?.mode === 'wallet' && <>

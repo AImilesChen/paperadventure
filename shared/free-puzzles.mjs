@@ -1,9 +1,9 @@
+import { bayPieces, bayStart, bayHints, baySolution, solveBay } from './loading-bay.mjs';
 // Original Paper Adventure puzzles. Shared by the website, PDF builder and solvers.
 // Design references (no upstream runtime copied): content/free-puzzles-design.md.
 import { stampRecords, stampLabels, stampShapeNames, postalStops, postalClues, postalClueText } from './stamp-investigation.mjs';
 export const puzzlePath = '/en/escape-room-puzzles/';
 export const puzzleCategories = Object.freeze({ code: 'Codes', logic: 'Logic', route: 'Routes' });
-export const parcelOrder = ['SUN', 'LEAF', 'STAR', 'MOON'];
 export const parcels = [
   { id: 'A', pattern: 'stripes', seal: 'triangle', stamps: 1 },
   { id: 'B', pattern: 'dots', seal: 'triangle', stamps: 2 },
@@ -42,25 +42,24 @@ export const freePuzzles = Object.freeze([
 
   },
   {
-    id: 'signal-shift', number: '02', category: 'code', level: 'One more step', title: 'The moon-station message',
-    story: 'The moon station has sent a short message. Every original letter was moved three places forward in the alphabet.',
-    task: 'Decode the message using the two alphabet rows. Which colour star should the crew check?',
-    format: 'A colour word', answer: 'RED',
-    transcript: 'Original letters: ABCDEFGHIJKLMNOPQRSTUVWXYZ. Sent letters: DEFGHIJKLMNOPQRSTUVWXYZABC. Message: FKHFN WKH UHG VWDU.',
-    hints: ['Find a sent letter in the lower row. Read the original letter directly above it.', 'F becomes C, K becomes H and H becomes E. The first word begins CHE.', 'Decode the whole message, then answer with only the colour it names.'],
-    solution: 'Moving each sent letter back three places gives CHECK THE RED STAR. The requested colour is RED.',
-    payoff: 'The crew knows which star marker to inspect.',
+    id: 'signal-shift', number: '02', category: 'code', level: 'Discover & decode', title: 'The moon-station message',
+    story: 'The moon station has lost contact with a rescue ship. Three old communication records survived. Discover their shared rule, then decode the final message to reveal the rescue meeting point.',
+    task: 'All records use the same method and keep the same number of letters. Compare NOON > QRRQ, SUN > QXV and STAR > UDWV. Decode NFRG to find the original four-letter word naming the rescue meeting point.',
+    format: 'One four-letter word', answer: 'DOCK',
+    transcript: 'Record 1: original NOON, received QRRQ. Record 2: original SUN, received QXV. Record 3: original STAR, received UDWV. All records use the same method; letter counts stay the same. Final received message: NFRG. Find the original four-letter word naming the rescue meeting point.',
+    hints: ['Try a simple explanation for record 1. Does it also work on record 2? Your rule must explain all three records.', 'Moving the letters in QXV back three places gives NUS. Compare its order with SUN. Does the same idea explain STAR and UDWV?', 'Move each received letter back three places, then reverse the whole word. For NFRG, the first step gives KCOD. Reverse those letters to find the meeting point.'],
+    solution: 'The sender reverses a word, then moves every letter forward three places. NOON is unchanged by reversal, so its QRRQ record alone also fits a simple shift. SUN becomes NUS, then QXV, disproving a shift alone. STAR becomes RATS, then UDWV; merely swapping its end letters would instead give UWDV. To decode NFRG, move each letter back three places: N to K, F to C, R to O and G to D. KCOD reversed is DOCK. Enter DOCK to restore communication; the rescue ship will meet you at the dock.',
+    payoff: 'Communication restored. You decoded the meeting point: the dock.'
   },
   {
-    id: 'parcel-queue', number: '03', category: 'logic', level: 'Start here', title: 'The delivery queue',
-    story: 'Four parcels need to leave in the right order. The courier remembers three clues, but the queue has become mixed up.',
-    task: 'Arrange SUN, LEAF, STAR and MOON from first to last. Which parcel goes last?',
-    format: 'A parcel name', answer: 'MOON',
-    clues: ['SUN goes first.', 'STAR is immediately before MOON.', 'LEAF is not last.'],
-    transcript: 'Available parcels: SUN, LEAF, STAR, MOON. SUN is first. STAR is immediately before MOON. LEAF is not last.',
-    hints: ['Put SUN in the first position before trying the other parcels.', 'Keep STAR and MOON together, in that order. Try the two places where that pair could fit.', 'If STAR and MOON were second and third, LEAF would be last. That breaks a clue.'],
-    solution: 'SUN must be first. STAR–MOON cannot occupy positions two and three, because that leaves LEAF last. The only order is SUN, LEAF, STAR, MOON. MOON goes last.',
-    payoff: 'The courier can load the parcels in the correct order.',
+    id: 'parcel-queue', number: '03', category: 'logic', level: 'Backtrack & plan', title: 'The blocked loading bay',
+    story: 'The delivery van is waiting, but urgent parcel X is trapped in the loading bay. Slide the crates to make a path to the right-hand exit.',
+    task: 'Horizontal crates slide left or right; vertical crates slide up or down. No turning, overlap or jumping over crates. Only X may leave, through the right-hand exit. On paper, cut out player page 5 and place the crates over the starting outlines on page 4.',
+    format: 'Move X to the right-hand exit', answer: 'X reaches EXIT',
+    transcript: 'Six by six grid. Starting rows: H H B B B C; J empty empty empty empty C; J empty X X D A; F F G G D A; empty empty I E E A; empty empty I empty empty empty. Repeated letters are one crate. X exits right from row 3. Follow each crate’s arrow. No turning, overlap or jumping.',
+    hints: bayHints(bayStart), solution: baySolution(bayStart),
+    bay: { size: 6, pieces: bayPieces, start: bayStart, solution: solveBay(bayStart) },
+    payoff: 'Delivery complete. You cleared the loading bay and sent X through the exit.'
   },
   {
     id: 'shared-parcel', number: '04', category: 'logic', level: 'Share the clues', title: 'The right parcel',
@@ -100,6 +99,7 @@ export function normalizePuzzleAnswer(value) {
   return typeof value === 'string' ? value.trim().toUpperCase().replace(/[\s-]+/g, '') : '';
 }
 export function checkPuzzleAnswer(id, value) {
+  if (id === 'parcel-queue') return false; // This puzzle is completed by legal board movement, never a typed answer.
   const puzzle = freePuzzles.find(p => p.id === id);
   return Boolean(puzzle && normalizePuzzleAnswer(value) === normalizePuzzleAnswer(puzzle.answer));
 }
@@ -141,20 +141,21 @@ export function puzzleSvg(id) {
     body += text(20, 304, 'WRITE YOUR RESTORED KEY - THEN OPEN PLAYER PAGE 2', 11, 'font-weight="bold"');
     stampShapeNames.forEach((shape, i) => { body += symbol(shape, 36 + i * 86, 330, .55) + `<line x1="${53+i*86}" y1="337" x2="${79+i*86}" y2="337" stroke="${ink}"/>`; });
   } else if (id === 'signal-shift') {
-    body = text(24, 30, 'DECODER · A WAS SENT AS D', 13, 'font-weight="bold"');
-    ['ABCDEFGHIJKLM', 'NOPQRSTUVWXYZ'].forEach((row, r) => {
-      body += text(24, 65 + r * 77, 'Original', 12) + text(24, 95 + r * 77, 'Sent', 12);
-      [...row].forEach((letter, i) => { const x = 103 + i * 32; const shifted = String.fromCharCode(65 + (letter.charCodeAt(0) - 65 + 3) % 26); body += text(x, 65 + r * 77, letter, 18, 'text-anchor="middle" font-weight="bold"') + text(x, 95 + r * 77, shifted, 18, 'text-anchor="middle"'); });
-    });
-    body += `<rect x="24" y="215" width="492" height="93" rx="8" fill="${pale}" stroke="#7997a2"/>${text(270, 250, 'FKHFN WKH', 24, 'text-anchor="middle" font-weight="bold"')}${text(270, 284, 'UHG VWDU', 24, 'text-anchor="middle" font-weight="bold"')}`;
+    body = text(24,24,'COMPARE ALL THREE COMMUNICATION RECORDS',13,'font-weight="bold"');
+    [['NOON','QRRQ'],['SUN','QXV'],['STAR','UDWV']].forEach(([original,sent],i)=>{const y=56+i*32;body+=text(24,y,String(i+1),14,'font-weight="bold"')+text(60,y,'Original: '+original,18,'font-weight="bold"')+text(300,y,'Received: '+sent,18,'font-weight="bold"');});
+    body += text(24,150,'All records use the same method. Letter counts stay the same.',13);
+    body += text(24,180,'ABCDEFGHIJKLMNOPQRSTUVWXYZ',16,'letter-spacing="2"');
+    body += `<rect x="24" y="205" width="492" height="100" rx="7" fill="${pale}" stroke="#7997a2"/>`;
+    body += text(40,230,'FINAL RECEIVED MESSAGE',13,'font-weight="bold"');
+    body += text(40,265,'NFRG',27,'font-weight="bold" letter-spacing="4"');
+    body += text(40,289,'Decode the original word to find the rescue meeting point.',12);
+    body += text(24,334,'Your rule must explain all three records.',14);
   } else if (id === 'parcel-queue') {
-    body = text(24, 30, 'PARCELS TO ARRANGE', 13, 'font-weight="bold"');
-    ['MOON', 'SUN', 'LEAF', 'STAR'].forEach((label, i) => {
-      const x = 24 + i * 128;
-      body += `<rect x="${x}" y="55" width="108" height="95" rx="7" fill="${pale}" stroke="${ink}"/><path d="M${x + 54} 56V94M${x + 1} 94H${x + 107}" stroke="#7997a2"/>${text(x + 54, 125, label, 18, 'text-anchor="middle" font-weight="bold"')}`;
-      body += `<rect x="${x}" y="220" width="108" height="65" rx="7" fill="white" stroke="${ink}" stroke-dasharray="5 4"/>${text(x + 54, 310, ['FIRST', 'SECOND', 'THIRD', 'LAST'][i], 13, 'text-anchor="middle"')}`;
-    });
-    body += text(270, 190, 'Use all three clues to fill the queue.', 17, 'text-anchor="middle"');
+    body = text(24, 25, 'SLIDE THE CRATES. GET X TO THE EXIT.', 15, 'font-weight="bold"');
+    for (let r=0;r<6;r++) for(let c=0;c<6;c++) body += `<rect x="${115+c*43}" y="${48+r*43}" width="43" height="43" fill="#faf7ef" stroke="#a7a99d"/>`;
+    bayPieces.forEach((p,i)=>{const x=115+(p.axis==='H'?bayStart[i]:p.fixed)*43,y=48+(p.axis==='H'?p.fixed:bayStart[i])*43,w=(p.axis==='H'?p.length:1)*43,h=(p.axis==='V'?p.length:1)*43;body+=`<rect x="${x+2}" y="${y+2}" width="${w-4}" height="${h-4}" rx="5" fill="${p.id==='X'?'#f7d7c9':pale}" stroke="${ink}"/>`+text(x+w/2,y+h/2+6,p.id+' '+(p.axis==='H'?'↔':'↕'),19,'font-weight="bold" text-anchor="middle"');});
+    body += text(385,160,'EXIT >',18,'font-weight="bold"');
+    body += text(270,335,'Make room, move back, then open the exit.',14,'text-anchor="middle"');
   } else if (id === 'shared-parcel') {
     parcels.forEach((p, i) => {
       const x = 38 + (i % 2) * 258, y = 20 + Math.floor(i / 2) * 170;

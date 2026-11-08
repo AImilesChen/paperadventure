@@ -1,3 +1,4 @@
+import { bayStart, solveBay, baySolved } from '../shared/loading-bay.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
@@ -13,18 +14,12 @@ function permutations(items) { return items.length === 0 ? [[]] : items.flatMap(
 test('the post office answer follows the inferred key; the message follows its printed decoder', () => {
   const lookup = Object.fromEntries(stampKey);
   assert.equal(permutations(postalWords).filter(route => postalTests.every(test => test(Object.fromEntries(route.map((word, i) => [word, i]))))).map(route => route.join(' ')).join(), find('stamp-code').answer);
-  const decoded = [...'FKHFN WKH UHG VWDU'].map(c => c === ' ' ? c : String.fromCharCode(65 + (c.charCodeAt(0) - 65 - 3 + 26) % 26)).join('');
-  assert.equal(decoded, 'CHECK THE RED STAR');
-  assert.equal(decoded.split(' ')[2], find('signal-shift').answer);
+  const decoded = 'NFRG'.split(' ').map(w => [...w].map(c => String.fromCharCode(65 + (c.charCodeAt(0) - 65 - 3 + 26) % 26)).reverse().join('')).join(' ');
+  assert.equal(decoded, find('signal-shift').answer);
 });
 
-test('all queue arrangements yield exactly one order, with every clue necessary', () => {
-  const constraints = [a => a[0] === 'SUN', a => a.indexOf('STAR') + 1 === a.indexOf('MOON'), a => a[3] !== 'LEAF'];
-  const possible = permutations(['SUN', 'LEAF', 'STAR', 'MOON']);
-  const valid = possible.filter(a => constraints.every(rule => rule(a)));
-  assert.deepEqual(valid, [['SUN', 'LEAF', 'STAR', 'MOON']]);
-  assert.equal(valid[0][3], find('parcel-queue').answer);
-  for (let omit = 0; omit < constraints.length; omit++) assert.ok(possible.filter(a => constraints.every((rule, i) => i === omit || rule(a))).length > 1);
+test('loading bay has a solvable eighteen-slide layout and delivery is the goal', () => {
+ const path=solveBay(bayStart);assert.equal(path.length,18);assert.equal(baySolved(path.at(-1).positions),true);assert.equal(find('parcel-queue').answer,'X reaches EXIT');
 });
 
 test('all three shared clues contribute to identifying a unique parcel', () => {
@@ -61,6 +56,7 @@ test('enumerating harbour routes gives exactly one valid three-bridge crossing',
 test('answer checking accepts formatting variants without accepting arbitrary guesses', () => {
   for (const p of freePuzzles) {
     assert.equal(p.hints.length, 3);
+    if (p.id === 'parcel-queue') { assert.equal(checkPuzzleAnswer(p.id, p.answer), false); continue; }
     assert.ok(p.solution.includes(p.answer) || p.id === 'harbour-route');
     assert.ok(checkPuzzleAnswer(p.id, '  ' + p.answer.toLowerCase() + '  '));
     for (const bad of ['', null, {}, 'wrong', p.answer + 'X', '<script>']) assert.equal(checkPuzzleAnswer(p.id, bad), false);

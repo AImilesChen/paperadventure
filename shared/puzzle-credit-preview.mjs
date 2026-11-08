@@ -1,5 +1,6 @@
 // Local UX prototype only. Real balances and entitlements must live on the server.
 import { freePuzzles } from './free-puzzles.mjs';
+import { bayEdition } from './loading-bay.mjs';
 import { stampEdition } from './stamp-investigation.mjs';
 export const creditPreviewKey = 'paw-puzzle-credit-preview-v1';
 export const previewStartingBalance = 8;
@@ -8,7 +9,7 @@ const ids = freePuzzles.map(p => p.id);
 export const helpName = kind => kind === 'solution' ? 'Full solution' : `Hint ${kind.split('-')[1]}`;
 export function helpKey(id, kind) {
   if (!ids.includes(id) || !Object.hasOwn(helpPrices, kind)) return null;
-  return `${id}@${id === 'stamp-code' ? stampEdition : 1}:${kind}`;
+  return `${id}@${id === 'stamp-code' ? stampEdition : id === 'parcel-queue' ? bayEdition : 1}:${kind}`;
 }
 const allowedKeys = new Set(ids.flatMap(id => Object.keys(helpPrices).map(kind => helpKey(id, kind))));
 export function freshCreditPreview() { return { version: 1, balance: previewStartingBalance, unlocked: [], history: [], sequence: 0 }; }

@@ -1,0 +1,49 @@
+.pw-entry-workshop .puzzle-card.pw-bay-case{padding:20px}
+.pw-bay-case .pw-card-heading{margin-bottom:5px!important}
+.pw-entry-workshop .pw-bay-case .pw-task{margin:6px 0 16px}
+.pw-bay-case .pw-play-area{display:grid!important;grid-template-columns:minmax(0,1fr) 252px;gap:24px;align-items:start}
+.pw-bay-case .pw-game-controls{min-width:0;margin:0;padding:0;border:0}
+.lb-sidebar{padding:16px;background:#f2f6f6;border:1px solid #c5d5d9;border-radius:12px;min-width:0}
+.lb-howto h3{font:900 19px/1.3 'Nunito Sans',sans-serif;margin:0 0 12px}
+.lb-howto .lb-difficulty{display:inline-block;background:#e9e2f4;color:#56416f;font:900 11px/1.3 'Nunito Sans',sans-serif;letter-spacing:.05em;border-radius:5px;padding:5px 7px;margin:0 0 10px}
+.lb-howto ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.lb-howto li{font-size:15px;line-height:1.4;border-left:3px solid #a8bfc6;padding-left:9px}
+.lb-howto strong{display:block;color:#173f52}
+.lb-help-instruction{font-size:15px;line-height:1.45;margin:14px 0 0}
+.lb-patience{font-size:13px;line-height:1.4;color:#50666e;margin:10px 0 0}
+.lb-mobile-rules{display:none}
+.lb-frame{width:min(100%,clamp(400px,calc(100dvh - 250px),540px));grid-template-columns:minmax(0,1fr) 36px;gap:7px;margin:0 auto}
+.lb-grid{background-size:calc(100% / 6) calc(100% / 6);border-radius:6px}
+.pw-workshop button.lb-crate,.lb-still{font-size:25px;gap:8px;flex-direction:row}
+.pw-workshop .lb-crate.lb-A,.pw-workshop .lb-crate.lb-B,.pw-workshop .lb-crate.lb-C,.pw-workshop .lb-crate.lb-E,.pw-workshop .lb-crate.lb-F,.pw-workshop .lb-crate.lb-G,.lb-still.lb-A,.lb-still.lb-B,.lb-still.lb-C,.lb-still.lb-E,.lb-still.lb-F,.lb-still.lb-G{background-color:#dce7ee;flex-direction:row}
+.pw-workshop .lb-crate.lb-B,.lb-still.lb-B{background-color:#eedcb9}
+.pw-workshop .lb-crate.lb-E,.pw-workshop .lb-crate.lb-F,.pw-workshop .lb-crate.lb-H,.lb-still.lb-E,.lb-still.lb-F,.lb-still.lb-H{background-color:#d5e6df}
+.pw-workshop .lb-crate.lb-vertical,.lb-still.lb-vertical{flex-direction:column;gap:6px}
+.lb-exit{display:block;isolation:isolate}
+.lb-exit:before{top:calc(100% / 3);height:calc(100% / 6)}
+.lb-exit span{position:absolute;top:calc(100% * 5 / 12 - 13px);width:100%;text-align:center;font-size:11px}
+.lb-exit svg{position:absolute;top:calc(100% * 5 / 12 + 2px);left:6px}
+.pw-workshop button.lb-landing{width:calc(100% / 6);height:calc(100% / 6);font-size:18px}
+.lb-status{margin:12px 0 0;line-height:1.45}
+.lb-sidebar .pw-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 0!important;padding:14px 0 0!important;border-top:1px solid #bdcfd3}
+.lb-sidebar .pw-actions button{padding:9px 6px;font-size:14px;min-height:44px}
+.lb-sidebar .pv-help-title{font-size:18px;margin:18px 0 8px}
+.lb-sidebar .pw-help,.lb-sidebar .pc-help{display:grid;grid-template-columns:1fr;gap:8px;margin:0;padding:0;border:0}
+.lb-sidebar .pc-help>.pc-balance{padding:6px 9px;min-height:35px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:5px}
+.lb-sidebar .pc-help>button,.lb-sidebar .pw-help>button{width:100%;min-height:40px;font-size:14px}
+.lb-sidebar .puzzle-hints{padding-left:20px;font-size:15px;line-height:1.4}
+.pw-bay-case>.pw-layout>.pw-play-area>.puzzle-solution{grid-column:1/-1}
+.lb-frame.lb-example{width:min(100%,340px);max-width:340px}
+.lb-still{font-size:19px}
+.lb-delivered{gap:8px;padding:12px}.lb-delivered p{font-size:15px}.lb-delivery-arrow{display:none}
+.pw-bay-case .lb-sidebar .lb-howto li{font-size:15px;line-height:1.4;border:0;padding:0}
+.pw-bay-case .lb-sidebar .lb-howto ul{gap:7px}
+.pw-bay-case .lb-sidebar .lb-help-instruction{font-size:14px;line-height:1.4;margin:12px 0 0}
+.pw-bay-case .lb-sidebar .lb-shortcuts,.pw-bay-case .lb-sidebar .lb-patience{font-size:13px;line-height:1.4;margin:7px 0 0}
+.pw-bay-case .lb-sidebar .pw-actions{margin-top:12px!important;padding-top:12px!important}
+.pw-bay-case .lb-sidebar .pv-help-title{font-size:17px;margin:14px 0 7px}
+.pw-bay-case .lb-sidebar .pc-help,.pw-bay-case .lb-sidebar .pw-help{grid-template-columns:1fr 1fr;margin:0;padding:0;border:0;gap:7px}
+.pw-bay-case .lb-sidebar .pc-help>.pc-balance,.pw-bay-case .lb-sidebar .pc-help>.pc-read{grid-column:1/-1}
+.pw-bay-case .lb-sidebar .pc-help>button,.pw-bay-case .lb-sidebar .pw-help>button{font-size:13px;padding:7px 5px}
+@media(max-width:900px){.pw-bay-case .pw-play-area{display:block!important}.lb-sidebar{margin-top:16px;padding:12px}.lb-sidebar .lb-howto{display:none}.lb-mobile-rules{display:block;margin-bottom:16px}.lb-mobile-rules .lb-difficulty,.lb-mobile-rules h3,.lb-mobile-rules .lb-patience{display:none}.lb-mobile-rules ul{gap:6px}.lb-mobile-rules li{font-size:15px}.lb-mobile-rules strong{display:inline}.lb-help-instruction{margin-top:9px}.lb-frame{width:min(100%,480px)}.lb-sidebar .pw-actions{margin:0!important;padding:0!important;border:0}.lb-sidebar .pc-help,.lb-sidebar .pw-help{grid-template-columns:1fr 1fr}.lb-sidebar .pc-help>.pc-balance,.lb-sidebar .pc-help>.pc-read{grid-column:1/-1}.lb-sidebar .pv-help-title{margin-top:12px}}
+@media(max-width:619px){.pw-entry-workshop .puzzle-card.pw-bay-case{padding:12px}.pw-entry-workshop .pw-bay-case .pw-task{font-size:16px!important;margin-bottom:12px}.lb-frame{grid-template-columns:minmax(0,1fr) 23px;gap:3px}.pw-workshop button.lb-crate,.lb-still{font-size:18px;gap:4px;border-width:2px;padding:3px}.pw-workshop .lb-crate.lb-vertical,.lb-still.lb-vertical{gap:4px}.lb-exit span{font-size:9px}.lb-exit svg{width:21px;left:1px}.pw-workshop button.lb-landing{font-size:13px}.lb-status{text-align:left}}
