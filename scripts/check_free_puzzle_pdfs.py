@@ -11,7 +11,7 @@ for file in sorted((ROOT / 'public/assets/free-puzzles').glob('*.pdf')):
     guide = file.stem.endswith('guide')
     letter = '-Letter-' in file.name
     expected = (612, 792) if letter else (595.28, 841.89)
-    assert len(reader.pages) == (7 if guide else 8), file.name
+    assert len(reader.pages) == (8 if guide else 9), file.name
     for page in reader.pages:
         assert abs(float(page.mediabox.width) - expected[0]) < .02
         assert abs(float(page.mediabox.height) - expected[1]) < .02
@@ -24,7 +24,7 @@ for file in sorted((ROOT / 'public/assets/free-puzzles').glob('*.pdf')):
     else:
         assert 'Answer:' not in text
         assert 'Hint 1:' not in text
-        for page, puzzle in zip([reader.pages[i] for i in [0,2,3,5,6,7]], PUZZLES):
+        for page, puzzle in zip([reader.pages[i] for i in [0,2,3,5,6,8]], PUZZLES):
             assert puzzle['title'] in page.extract_text()
             if puzzle['id'] == 'parcel-queue':
                 assert len(page.images) == 0

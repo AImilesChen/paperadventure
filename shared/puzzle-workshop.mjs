@@ -1,3 +1,4 @@
+import { freshForest,cleanForest,checkForest,forestEdition } from './forest-loop.mjs';
 import { freshParcel, cleanParcel, checkParcel, parcelEdition, parcelSvg } from './parcel-evidence.mjs';
 import { freshBay, cleanBay, checkBay, bayEdition } from './loading-bay.mjs';
 import { freshMoon, cleanMoon, checkMoon, moonEdition } from './moon-signal.mjs';
@@ -13,7 +14,7 @@ export const initialData = id => ({
   'signal-shift': freshMoon(),
   'parcel-queue': freshBay(),
   'shared-parcel': freshParcel(),
-  'forest-trail': { moves: [] },
+  'forest-trail': freshForest(),
   'harbour-route': { path: ['dock'] },
 }[id]);
 const letters = (v, max) => typeof v === 'string' ? v.toUpperCase().replace(/[^A-Z]/g, '').slice(0, max) : '';
@@ -55,7 +56,7 @@ export function cleanData(id, raw) {
   if (id === 'signal-shift') return cleanMoon(d);
   if (id === 'parcel-queue') return cleanBay(d);
   if (id === 'shared-parcel') return cleanParcel(d);
-  if (id === 'forest-trail') { const moves = Array.isArray(d.moves) ? d.moves.slice(0, 6) : []; return { moves: trailInfo(moves) ? [...moves] : [] }; }
+  if (id === 'forest-trail') return cleanForest(d);
   if (id === 'harbour-route') return { path: harbourInfo(d.path) ? [...d.path] : ['dock'] };
   return null;
 }
@@ -73,12 +74,7 @@ export function checkWorkshop(id, raw) {
   if (id === 'signal-shift') return checkMoon(d);
   if (id === 'parcel-queue') return checkBay(d);
   if (id === 'shared-parcel') return checkParcel(d);
-  if (id === 'forest-trail') {
-    if (d.moves.length !== 6) return no('Complete six moves, collecting one letter after each move.');
-    const firstWrong = d.moves.findIndex((x, i) => x !== trailMoves[i]);
-    if (firstWrong !== -1) return no(`Recheck direction ${firstWrong + 1}. Use Undo to return to that part of the trail.`);
-    if (trailInfo(d.moves).letters !== freePuzzles.find(p => p.id === id).answer) return no('Recheck the letters collected after each move.');
-  }
+  if (id === 'forest-trail') return checkForest(d);
   if (id === 'harbour-route') {
     const route = harbourInfo(d.path);
     if (route.current !== 'beacon') return no('Your route must finish at BEACON.');
@@ -89,7 +85,7 @@ export function checkWorkshop(id, raw) {
   }
   return { ok: true, message: freePuzzles.find(p => p.id === id).payoff };
 }
-export function freshItem(id) { return { data: initialData(id), history: [], hints: 0, viewed: false, completion: null, attempted: false, ...(id === 'stamp-code' ? { routeHints: 0, legacyCompletion: null } : {}) }; }
+export function freshItem(id) { return { data: initialData(id), history: [], hints: 0, viewed: false, completion: null, attempted: false, ...(id === 'forest-trail' ? {redo:[],legacyForestCompletion:null,startedAt:null,finishedAt:null} : {}), ...(id === 'stamp-code' ? { routeHints: 0, legacyCompletion: null } : {}) }; }
 export function freshWorkshop() { return { version: workshopVersion, active: puzzleIds[0], items: Object.fromEntries(puzzleIds.map(id => [id, freshItem(id)])) }; }
 export function restoreWorkshop(raw) {
   const state = freshWorkshop();
@@ -102,6 +98,17 @@ export function restoreWorkshop(raw) {
     // Older direct OAK lookup saves reset only this puzzle.
     if (id === 'stamp-code' && ![3, stampEdition].includes(source.data?.edition)) continue;
     const item = state.items[id];
+    if (id === 'forest-trail') {
+      item.legacyForestCompletion = ['independent','hint','solution'].includes(source.legacyForestCompletion) ? source.legacyForestCompletion : null;
+      if(source.data?.edition !== forestEdition) {
+        item.legacyForestCompletion = ['independent','hint','solution'].includes(source.completion) ? source.completion : item.legacyForestCompletion;
+        continue;
+      }
+      item.startedAt = Number.isFinite(source.startedAt) && source.startedAt > 0 && source.startedAt <= Date.now() ? source.startedAt : null;
+      item.finishedAt = Number.isFinite(source.finishedAt) && source.finishedAt >= item.startedAt && source.finishedAt <= Date.now() && source.completion ? source.finishedAt : null;
+      item.redo = Array.isArray(source.redo) ? source.redo.slice(-128).map(cleanForest) : [];
+    }
+
     if (id === 'shared-parcel' && source.data?.edition !== parcelEdition) {
       item.legacyParcelCompletion = ['independent', 'hint', 'solution'].includes(source.completion) ? source.completion : ['independent', 'hint', 'solution'].includes(source.legacyParcelCompletion) ? source.legacyParcelCompletion : null;
       continue;
@@ -124,7 +131,7 @@ export function restoreWorkshop(raw) {
       item.legacyCompletion = legacy?.edition === 3 && ['independent', 'hint', 'solution'].includes(legacy.completion) ? { edition: 3, completion: legacy.completion } : null;
       item.routeHints = source.data?.edition === stampEdition && Number.isInteger(source.routeHints) ? Math.max(0, Math.min(3, source.routeHints)) : 0;
     }
-    item.history = Array.isArray(source.history) ? source.history.slice(-32).map(d => cleanData(id, d)) : [];
+    item.history = Array.isArray(source.history) ? source.history.slice(id === 'forest-trail' ? -128 : -32).map(d => cleanData(id, d)) : [];
     item.hints = Number.isInteger(source.hints) ? Math.max(0, Math.min(3, source.hints)) : 0;
     item.viewed = source.viewed === true;
     item.attempted = source.attempted === true;
@@ -133,7 +140,7 @@ export function restoreWorkshop(raw) {
   return state;
 }
 export function changeData(item, id, data) {
-  return { ...item, data: cleanData(id, data), history: [...item.history, item.data].slice(-32), completion: null };
+  return { ...item, data: cleanData(id, data), history: [...item.history, item.data].slice(id === 'forest-trail' ? -128 : -32), ...(id === 'forest-trail' ? {redo:[]} : {}), completion: null };
 }
 export function undoItem(item) {
   return item.history.length ? { ...item, data: item.history.at(-1), history: item.history.slice(0, -1), completion: null } : item;

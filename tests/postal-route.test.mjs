@@ -46,7 +46,7 @@ test('card swaps and all linked-pair moves retain exactly the same stops without
 test('edition-3 migration retains archive, key and legacy completion, not the obsolete final answer', () => {
   const source = freshWorkshop();
   source.items['stamp-code'] = { data: { edition: 3, matches: solved.matches, verified: true, letters: ['P','O','O','L'] }, history: [], hints: 1, viewed: false, completion: 'independent' };
-  source.items['forest-trail'].data.moves = ['E'];
+  source.items['forest-trail'].data.path = ['S','A'];
   const loaded = restoreWorkshop(source), item = loaded.items['stamp-code'];
   assert.equal(item.data.edition, 4); assert.deepEqual(item.data.matches, solved.matches); assert.equal(item.data.verified, true);
   assert.equal(item.completion, null); assert.equal(item.routeHints, 0); assert.equal(item.hints, 1);

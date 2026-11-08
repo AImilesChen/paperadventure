@@ -1,3 +1,4 @@
+import { forestRules,forestTranscript,forestSvg } from './forest-loop.mjs';
 import { bayPieces, bayStart, bayHints, baySolution, solveBay } from './loading-bay.mjs';
 // Original Paper Adventure puzzles. Shared by the website, PDF builder and solvers.
 // Design references (no upstream runtime copied): content/free-puzzles-design.md.
@@ -69,14 +70,13 @@ export const freePuzzles = Object.freeze([
     payoff: 'The compass is in parcel A, for Ava. Copied note III is false.',
   },
   {
-    id: 'forest-trail', number: '05', category: 'route', level: 'Start here', title: 'The forest trail',
-    story: 'A ranger left a six-step trail to a meeting place. Every square visited after the start contributes one letter.',
-    task: 'Start at S in the top-left square. Move one square per arrow: east, east, south, west, south, east. What place do the six letters spell?',
-    format: 'A six-letter word', answer: 'BRIDGE',
-    transcript: 'Four rows, left to right: S B R F / H D I A / N G E T / L P U M. Start at the top-left S. Move E, E, S, W, S, E. Collect the letter after each move; do not collect S.',
-    hints: ['East is right, south is down and west is left. Each move travels exactly one square.', 'Your first two moves land on B and R. Write those down in that order.', 'After B and R, move down, left, down and right. Keep one letter from every landing square.'],
-    solution: 'The six landing squares give B, R, I, D, G and E. They spell BRIDGE. The starting S is not part of the message.',
-    payoff: 'The ranger’s meeting place is the bridge.',
+    id:'forest-trail',number:'05',category:'route',level:'Think deeper',title:'The missing ranger footprints',
+    story:'The ranger’s log is lost. A boot sample, torn sketches and a camera frame survive. Use these recovered materials to reconstruct the journey and rescue.',
+    task:'Start at S and finish at E without revisiting a place. You do not have to visit every place. Use all recovered evidence.',
+    format:'Write the route that explains all evidence.',answer:'S B R A X C D T Z W E',transcript:forestTranscript(),
+    hints:['Observe the boot sample depth and map terrain badges.','Match the sketch landmarks; use the absence of grass in the complete sample.','The map and evidence together identify terrain order, consecutive sketches and a bridge crossing after rescue.'],
+    solution:'S B R A X C D T Z W E. Match the traces to the map, interpret the sketches and identify the photographed bridge. Full reasoning follows.',
+    payoff:'Route restored. Your journey explains all four exhibits and follows every road rule.',
   },
   {
     id: 'harbour-route', number: '06', category: 'route', level: 'One more step', title: 'The harbour crossing',
@@ -95,7 +95,7 @@ export function normalizePuzzleAnswer(value) {
   return typeof value === 'string' ? value.trim().toUpperCase().replace(/[\s-]+/g, '') : '';
 }
 export function checkPuzzleAnswer(id, value) {
-  if (id === 'parcel-queue') return false; // This puzzle is completed by legal board movement, never a typed answer.
+  if (['parcel-queue','forest-trail'].includes(id)) return false; // This puzzle is completed by legal board movement, never a typed answer.
   const puzzle = freePuzzles.find(p => p.id === id);
   return Boolean(puzzle && normalizePuzzleAnswer(value) === normalizePuzzleAnswer(puzzle.answer));
 }
@@ -155,9 +155,7 @@ export function puzzleSvg(id) {
   } else if (id === 'shared-parcel') {
     return parcelSheetSvg();
   } else if (id === 'forest-trail') {
-    body = text(28, 31, 'ONE SQUARE PER MOVE', 13, 'font-weight="bold"');
-    trailGrid.forEach((row, r) => row.forEach((letter, c) => { const x = 27 + c * 67, y = 48 + r * 67; body += `<rect x="${x}" y="${y}" width="67" height="67" fill="${r === 0 && c === 0 ? '#d5e8dd' : 'white'}" stroke="#7997a2"/>${text(x + 33.5, y + 43, letter, 26, 'text-anchor="middle" font-weight="bold"')}`; }));
-    body += text(326, 78, 'START AT S', 17, 'font-weight="bold"') + text(326, 115, 'N = up', 17) + text(326, 145, 'E = right', 17) + text(326, 175, 'S = down', 17) + text(326, 205, 'W = left', 17) + text(326, 257, 'E  E  S', 24, 'font-weight="bold"') + text(326, 293, 'W  S  E', 24, 'font-weight="bold"');
+    return forestSvg();
   } else if (id === 'harbour-route') {
     harbourBridges.forEach(([a, b, n]) => {
       const from = harbourNodes.find(p => p.id === a), to = harbourNodes.find(p => p.id === b);

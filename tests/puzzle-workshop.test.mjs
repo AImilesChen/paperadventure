@@ -1,3 +1,4 @@
+import {answerRoute,forestEdition} from '../shared/forest-loop.mjs';
 import { bayStart, solveBay } from '../shared/loading-bay.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -10,7 +11,7 @@ const correct = {
   'signal-shift': { edition: 4, answer: 'DOCK' },
   'parcel-queue': { edition: 3, positions: solveBay(bayStart).at(-1).positions },
   'shared-parcel': { edition: 3, selected: 'A', wrongRecord: 3, excluded: [], notes: '' },
-  'forest-trail': { moves: trailMoves },
+  'forest-trail': { edition:forestEdition, path:answerRoute },
   'harbour-route': { path: ['dock', 'oak', 'bell', 'beacon'] },
 };
 test('six completed interactions agree with the original puzzle answers; blanks and final-answer-only guesses cannot pass', () => {
@@ -37,13 +38,6 @@ test('evidence completion requires both the parcel and the false record; notes a
   for (const selected of ['B', 'C', 'D']) assert.equal(checkWorkshop('shared-parcel', { ...d, selected }).ok, false);
   for (const wrongRecord of [null, 1, 2, 4]) assert.equal(checkWorkshop('shared-parcel', { ...d, wrongRecord }).ok, false);
   assert.equal(checkWorkshop('shared-parcel', { ...d, excluded: ['A'] }).ok, false);
-});
-test('forest movement enforces bounds and complete direction history, not just a word', () => {
-  assert.equal(trailInfo(['N']), null);
-  assert.equal(trailInfo(['W']), null);
-  assert.equal(trailInfo(['E', 'E', 'E', 'E']), null);
-  assert.equal(trailInfo(trailMoves).letters, 'BRIDGE');
-  assert.equal(checkWorkshop('forest-trail', { moves: ['S', 'E', 'E', 'S', 'W', 'N'], answer: 'BRIDGE' }).ok, false);
 });
 test('harbour checks every connected path up to six bridges; only the printed route can pass', () => {
   const accepted = [];
