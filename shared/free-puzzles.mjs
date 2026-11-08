@@ -1,5 +1,6 @@
 // Original Paper Adventure puzzles. Shared by the website, PDF builder and solvers.
 // Design references (no upstream runtime copied): content/free-puzzles-design.md.
+import { stampRecords, stampLabels, stampShapeNames, postalStops, postalClues, postalClueText } from './stamp-investigation.mjs';
 export const puzzlePath = '/en/escape-room-puzzles/';
 export const puzzleCategories = Object.freeze({ code: 'Codes', logic: 'Logic', route: 'Routes' });
 export const parcelOrder = ['SUN', 'LEAF', 'STAR', 'MOON'];
@@ -28,14 +29,17 @@ export const stampKey = [['circle', 'O'], ['triangle', 'A'], ['square', 'K'], ['
 
 export const freePuzzles = Object.freeze([
   {
-    id: 'stamp-code', number: '01', category: 'code', level: 'Start here', title: 'The secret stamp',
-    story: 'A travelling post office has one parcel without an address. Its three stamps name the tree where it belongs.',
-    task: 'Use the stamp key. Read the three large symbols from left to right. Which tree is the delivery point?',
-    format: 'A three-letter word', answer: 'OAK',
-    transcript: 'Key: circle = O; triangle = A; square = K; diamond = L; star = M; cross = P. Message: circle, triangle, square.',
-    hints: ['Each shape stands for one letter. All the letters you need are in the key.', 'Match the circle first, then the triangle, then the square.', 'Write the three matching letters in the same order as the large stamps.'],
-    solution: 'The circle gives O, the triangle A and the square K. Together they spell OAK: the parcel belongs at the oak tree.',
-    payoff: 'The parcel finally has a delivery point: the oak tree.',
+    id: 'stamp-code', number: '01', category: 'code', level: 'Investigate & decode', title: 'The rain-soaked post office',
+    story: 'Rain has damaged the post office key and scrambled the delivery log. Restore the code, then reconstruct the five-stop route to deliver the last letter.',
+    task: 'Match the four labels to records A-D. Each row is one label encoded with one shared code; use each label once and read left to right. Then use the restored key and all five route records to order the five stops. The final stop receives the letter.',
+    format: 'All five stops in order, then the final destination', answer: 'OAK MALL POOL LOOM PALM',
+    transcript: 'Record A: diamond, triangle, star, cross. B: cross, triangle, diamond, star. C: star, triangle, cross. D: circle, triangle, square. Loose labels: PALM, OAK, LAMP, MAP. Each label is used once; same shape, same letter; different shapes, different letters. After restoring the key, use the second player page to reconstruct the five-stop route.',
+    hints: ['Compare lengths first: a three-shape record needs a three-letter label; a four-shape record needs four letters.', 'Try a label on A, then use the same shape-letter matches to read B. Does B become one of the other labels?', 'If A were PALM, B would read MAPL, which is not a label. Try the other four-letter label, then restore the key.'],
+    routeHints: ['Find the two stops that must be consecutive. Keep them together when trying different orders; then test PALM two positions before or after POOL.', 'PALM cannot be two positions before POOL while satisfying records 1 and 4. The continuous group is POOL, LOOM, PALM.', 'The three-stop group must occupy positions 3-5. Compare OAK and MALL in positions 1-2 with record 5 to choose their direction.'],
+    routeClues: postalClues.map(postalClueText),
+    solution: 'Stage 1: A=LAMP, B=PALM, C=MAP, D=OAK. If A were PALM, B would read MAPL, which is not a label. The restored key is diamond=L, triangle=A, star=M, cross=P, circle=O, square=K. Stage 2: record 1 decodes to MALL before PALM; record 3 says POOL immediately before LOOM. Combine POOL-LOOM with record 2. If PALM is two positions before POOL, records 1 and 4 cannot both hold. Therefore the group is POOL-LOOM-PALM. It cannot occupy positions 1-3 because MALL must precede PALM, nor positions 2-4 because OAK and MALL could not be neighbours. It occupies positions 3-5. Record 5 excludes MALL-OAK-POOL-LOOM-PALM. The only route is OAK MALL POOL LOOM PALM. Deliver the final letter to PALM.',
+    payoff: 'You reconstructed OAK → MALL → POOL → LOOM → PALM. The courier reaches the palm garden and delivers the last letter.',
+
   },
   {
     id: 'signal-shift', number: '02', category: 'code', level: 'One more step', title: 'The moon-station message',
@@ -97,7 +101,7 @@ export function normalizePuzzleAnswer(value) {
 }
 export function checkPuzzleAnswer(id, value) {
   const puzzle = freePuzzles.find(p => p.id === id);
-  return Boolean(puzzle && normalizePuzzleAnswer(value) === puzzle.answer);
+  return Boolean(puzzle && normalizePuzzleAnswer(value) === normalizePuzzleAnswer(puzzle.answer));
 }
 export function puzzlePdfPath(paper, kind) {
   if (!['A4', 'Letter'].includes(paper) || !['players', 'guide'].includes(kind)) return null;
@@ -122,14 +126,20 @@ function symbol(name, x, y, scale = 1) {
 export function puzzleSvg(id) {
   let body = '';
   if (id === 'stamp-code') {
-    body = text(24, 30, 'STAMP KEY', 13, 'font-weight="bold"');
-    stampKey.forEach(([shape, letter], i) => {
-      const x = 53 + i * 86;
-      body += `<rect x="${x - 29}" y="44" width="58" height="94" rx="6" fill="white" stroke="#7997a2"/>${symbol(shape, x, 74)}${text(x, 119, letter, 23, 'text-anchor="middle" font-weight="bold"')}`;
+    body = text(20, 22, 'OLD RECORDS - MATCH EACH LOOSE LABEL', 13, 'font-weight="bold"');
+    stampRecords.forEach((record, i) => {
+      const y = 52 + i * 45;
+      body += text(24, y + 5, record.id, 16, 'font-weight="bold"');
+      record.shapes.forEach((shape, j) => { body += symbol(shape, 82 + j * 56, y, .78); });
+      body += `<rect x="323" y="${y - 15}" width="188" height="31" rx="5" fill="white" stroke="#7997a2" stroke-dasharray="4 3"/>`;
     });
-    body += text(24, 183, 'DELIVERY STAMPS · READ LEFT TO RIGHT', 13, 'font-weight="bold"');
-    ['circle', 'triangle', 'square'].forEach((shape, i) => { const x = 163 + i * 110; body += `<rect x="${x - 37}" y="205" width="74" height="74" rx="8" fill="${pale}" stroke="${ink}" stroke-dasharray="4 3"/>${symbol(shape, x, 242, 1.25)}`; });
-    body += text(270, 322, 'Which tree is the delivery point?', 17, 'text-anchor="middle"');
+    body += text(20, 229, 'LOOSE LABELS - USE EACH ONCE', 12, 'font-weight="bold"');
+    stampLabels.forEach(({word, meaning}, i) => {
+      const x = 21 + i * 128;
+      body += `<rect x="${x}" y="237" width="111" height="47" rx="5" fill="${pale}" stroke="#7997a2"/>${text(x + 55, 258, word, 17, 'text-anchor="middle" font-weight="bold"')}${text(x + 55, 276, meaning === 'a drawing of places' ? 'places drawing' : meaning, 11, 'text-anchor="middle"')}`;
+    });
+    body += text(20, 304, 'WRITE YOUR RESTORED KEY - THEN OPEN PLAYER PAGE 2', 11, 'font-weight="bold"');
+    stampShapeNames.forEach((shape, i) => { body += symbol(shape, 36 + i * 86, 330, .55) + `<line x1="${53+i*86}" y1="337" x2="${79+i*86}" y2="337" stroke="${ink}"/>`; });
   } else if (id === 'signal-shift') {
     body = text(24, 30, 'DECODER · A WAS SENT AS D', 13, 'font-weight="bold"');
     ['ABCDEFGHIJKLM', 'NOPQRSTUVWXYZ'].forEach((row, r) => {
@@ -167,4 +177,21 @@ export function puzzleSvg(id) {
     body += text(270, 332, 'Only named stops are junctions.', 15, 'text-anchor="middle"');
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="540" height="350" viewBox="0 0 540 350">${body}</svg>`;
+}
+
+// Separate print evidence: no plaintext translations for encrypted records 1 and 3.
+export function postalRouteSvg() {
+  const shapes = Object.fromEntries(stampKey.map(([shape, letter]) => [letter, shape]));
+  const coded = (word, x, y) => [...word].map((letter, i) => symbol(shapes[letter], x + i * 25, y, .52)).join('');
+  let body = text(20, 25, 'FIVE STOPS - EACH ONCE', 16, 'font-weight="bold"');
+  postalStops.forEach((stop, i) => { const x=20+i*104; body += `<rect x="${x}" y="40" width="96" height="54" rx="5" fill="${pale}" stroke="#7997a2"/>`+text(x+48,63,stop.word,16,'text-anchor="middle" font-weight="bold"')+text(x+48,82,['Weaving room','Swimming pool','Old oak tree','Palm garden','Shopping arcade'][i],10,'text-anchor="middle"'); });
+  const rows = [
+    coded('MALL',65,139)+text(170,144,'before',16)+coded('PALM',270,139)+text(42,173,'Not necessarily immediately before.',14),
+    text(42,218,'Exactly one stop between PALM and POOL.',16)+text(42,246,'Either could come first.',14),
+    text(42,290,'Immediately after',15)+coded('POOL',205,285)+text(304,290,', visit',15)+coded('LOOM',376,285),
+    text(42,362,'OAK and MALL were next to each other.',16)+text(42,390,'Either could come first.',14),
+    text(42,438,'POOL was not immediately after OAK.',16),
+  ];
+  rows.forEach((row,i)=>{const y=[139,214,285,358,434][i];body+=text(20,y+5,String(i+1),16,'font-weight="bold"')+row;});
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="540" height="470" viewBox="0 0 540 470"><rect width="540" height="470" rx="9" fill="#fffdf8"/>${body}</svg>`;
 }

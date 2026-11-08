@@ -1,0 +1,59 @@
+/* The postal task follows one reading order: task, evidence, arrangement, check. */
+.pw-entry-workshop .pw-stacked-case .pw-layout{display:block}
+.pw-entry-workshop .pw-stacked-case .pw-brief{display:block;position:static}
+.pw-entry-workshop .pw-stacked-case .pw-card-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:0 0 6px!important;padding:0;border:0}
+.pw-entry-workshop .pw-stacked-case .pw-card-heading>div{flex:1;min-width:0}
+.pw-entry-workshop .pw-stacked-case .pw-card-heading h2{font:900 28px/1.2 'Nunito Sans',sans-serif;margin:0}
+.pw-entry-workshop .pw-stacked-case .si-premise{font-size:17px;line-height:1.5;margin:0 0 12px!important}
+.pw-entry-workshop .pw-stacked-case .si-core-rules{display:grid;grid-template-columns:1.5fr 1fr;gap:20px;margin:12px 0 18px}
+.pw-entry-workshop .pw-stacked-case .si-core-rules li{font-size:16px;line-height:1.5}
+.pw-entry-workshop .pw-stacked-case .si-stages{display:flex;gap:14px;flex-shrink:0;margin:0;list-style:none;padding:0}
+.pw-entry-workshop .pw-stacked-case .si-stages li{display:flex;align-items:center;gap:6px;border:0;padding:0;font-size:14px;line-height:1.35;white-space:nowrap;color:#4c6672}
+.pw-entry-workshop .pw-stacked-case .si-stages li[aria-current]{color:#153e54;font-weight:900}
+.pw-entry-workshop .pw-stacked-case .si-stages li>span,.pw-entry-workshop .pw-stacked-case .si-stages button>span{width:22px;height:22px;border:1px solid #9fbcc5;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:transparent;color:inherit}
+.pw-entry-workshop .pw-stacked-case .si-stages li[aria-current]>span,.pw-entry-workshop .pw-stacked-case .si-stages li[aria-current] button>span{background:#153e54;color:#fff}
+.pw-entry-workshop .pw-stacked-case .si-stages button{border:0;padding:0;min-height:44px;background:transparent;font-size:14px;font-weight:700;gap:6px}
+.pw-entry-workshop .pw-stacked-case .si-stages button:disabled{opacity:1}
+.pw-entry-workshop .pw-stacked-case .si-stages small{font-size:14px;color:#2d6256}
+.pw-entry-workshop .pw-stacked-case .pw-play-area{position:static;align-self:auto;padding:0;margin-top:12px;border:0;border-radius:0;background:transparent}
+.pw-entry-workshop .pw-stacked-case .pw-play-label{display:none}
+.pw-entry-workshop .pw-stacked-case .si-investigation .pw-instruction{font-size:16px;margin:0 0 10px}
+.pw-entry-workshop .pw-stacked-case .si-label-bank{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-width:720px}
+.pw-entry-workshop .pw-stacked-case .si-label-bank button{min-height:48px}
+.pw-entry-workshop .pw-stacked-case .si-records{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.pw-entry-workshop .pw-stacked-case .si-record{grid-template-columns:22px minmax(0,1fr) 112px 44px;min-height:60px;padding:6px 8px;gap:8px}
+.pw-entry-workshop .pw-stacked-case .si-record .si-symbols{grid-column:auto;gap:10px}
+.pw-entry-workshop .pw-stacked-case .si-record .si-symbols svg{flex-basis:27px;max-width:27px}
+.pw-entry-workshop .pw-stacked-case .si-record-slot{grid-column:auto;font-size:14px!important;min-height:44px}
+.pw-entry-workshop .pw-stacked-case .si-remove{grid-column:auto;grid-row:auto;font-size:14px!important}
+.si-archive-actions{display:flex;align-items:center;gap:10px;margin-top:14px}
+.pw-entry-workshop .pw-stacked-case .si-verify{width:auto;flex:1;max-width:440px;margin:0;font-size:16px;min-height:46px}
+.pw-entry-workshop .pw-stacked-case .si-archive-actions>button{font-size:14px}
+.pw-entry-workshop .pw-stacked-case .pw-actions{padding-top:8px;margin-top:0;gap:8px;border-top:1px solid #d2e0e3;display:flex;align-items:center;flex-wrap:wrap}
+.pw-entry-workshop .pw-stacked-case .pw-actions>.pw-check{flex:1;min-height:46px;font-size:16px;max-width:440px}
+.pw-entry-workshop .pw-stacked-case .pw-actions>button{font-size:14px}
+.pw-entry-workshop .pw-stacked-case .pw-feedback:empty{display:none}
+.pw-entry-workshop .pw-stacked-case .pw-feedback{font-size:14px;line-height:1.5;margin:8px 0}
+.pw-entry-workshop .pc-help,.pw-entry-workshop .pw-help{gap:10px;align-items:center;margin:12px 0 0;padding:10px 0 0;border-top:1px dashed #bbd0d6}
+.pw-entry-workshop .pc-help>button,.pw-entry-workshop .pw-help>button{font-size:14px;padding:8px 10px;min-height:44px}
+.pw-entry-workshop .pc-balance{background:transparent!important;flex-direction:row!important;align-items:center!important;gap:8px!important;border:0}
+.pw-entry-workshop .pc-balance strong{font-size:14px}
+.pw-entry-workshop .pc-balance small{font-size:12px}
+@media(max-width:1100px){
+ .pw-entry-workshop .pw-stacked-case .pw-card-heading{display:block}
+ .pw-entry-workshop .pw-stacked-case .si-stages{margin-top:6px;gap:20px}
+ .pw-entry-workshop .pw-stacked-case .si-records{grid-template-columns:1fr}
+}
+@media(max-width:619px){
+ .pw-entry-workshop .pw-stacked-case .pw-card-heading h2{font-size:26px}
+ .pw-entry-workshop .pw-stacked-case .si-core-rules{grid-template-columns:1fr;gap:10px}
+ .pw-entry-workshop .pw-stacked-case .si-record{grid-template-columns:18px minmax(0,1fr) 84px 44px;gap:4px;padding:4px}
+ .pw-entry-workshop .pw-stacked-case .si-record .si-symbols{gap:4px}
+ .pw-entry-workshop .pw-stacked-case .si-record .si-symbols svg{flex-basis:23px;max-width:23px}
+ .pw-entry-workshop .pw-stacked-case .si-record-slot{padding:5px!important}
+ .si-archive-actions{flex-wrap:wrap}
+ .pw-entry-workshop .pw-stacked-case .si-archive-actions .si-verify{flex:1 0 100%;max-width:none}
+ .pw-entry-workshop .pw-stacked-case .pw-actions>.pw-check{flex:1 0 100%;max-width:none}
+ .pw-entry-workshop .pc-help>button{flex:initial;min-width:0;font-size:14px}
+ .pw-entry-workshop .pc-balance{flex-basis:100%!important;justify-content:flex-start}
+}

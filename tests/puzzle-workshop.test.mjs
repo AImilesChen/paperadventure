@@ -5,7 +5,7 @@ import { checkWorkshop, initialData, freshWorkshop, freshItem, restoreWorkshop, 
 import { harbourBridges, trailMoves } from '../shared/free-puzzles.mjs';
 
 const correct = {
-  'stamp-code': { letters: ['O', 'A', 'K'] },
+  'stamp-code': { edition: 4, matches: ['LAMP', 'PALM', 'MAP', 'OAK'], verified: true, route: ['OAK', 'MALL', 'POOL', 'LOOM', 'PALM'], pair: [], notes: ['', '', '', ''], readClues: [] },
   'signal-shift': { shift: 3, words: ['CHECK', 'THE', 'RED', 'STAR'], star: 'RED' },
   'parcel-queue': { order: ['SUN', 'LEAF', 'STAR', 'MOON'] },
   'shared-parcel': { selected: 'C', excluded: ['A', 'B', 'D'], evidence: [0, 1, 2] },
@@ -86,8 +86,37 @@ test('malformed local saves are bounded and do not crash the page', () => {
 });
 test('server-rendered page retains all six indexable puzzle definitions and separate hidden explanations', async () => {
   const html = await readFile('dist/client/en/escape-room-puzzles/index.html', 'utf8');
-  assert.equal((html.match(/class="puzzle-card"/g) || []).length, 6);
+  assert.equal((html.match(/class="puzzle-card(?: [^"]*)?"/g) || []).length, 6);
   assert.match(html, /Six puzzles. Six ways to solve/);
   assert.match(html, /Clear saved progress/);
   for (const id of Object.keys(correct)) assert.ok(html.includes(`id="${id}-solution" hidden=""`));
+});
+
+
+test('delivery route requires a checked consistent archive and all five stops', () => {
+  const data = correct['stamp-code'];
+  for (const patch of [
+    { matches: ['PALM', 'LAMP', 'MAP', 'OAK'] },
+    { matches: ['LAMP', 'PALM', '', 'OAK'] },
+    { matches: ['LAMP', 'PALM', 'MAP', 'MAP'] },
+    { verified: false }, { route: ['OAK', 'MALL', 'POOL', 'LOOM', ''] }, { route: ['MALL', 'OAK', 'POOL', 'LOOM', 'PALM'] }, { edition: 2 },
+  ]) assert.equal(checkWorkshop('stamp-code', { ...data, ...patch }).ok, false);
+  assert.equal(checkWorkshop('stamp-code', { letters: ['P', 'O', 'O', 'L'] }).ok, false);
+  assert.match(checkWorkshop('stamp-code', { ...data, matches: ['MAP', 'PALM', 'LAMP', 'OAK'] }).message, /Record A has 4 shapes/);
+  assert.match(checkWorkshop('stamp-code', { ...data, matches: ['PALM', 'LAMP', 'MAP', 'OAK'] }).message, /different letters/);
+});
+
+test('upgrading the first puzzle resets its obsolete OAK result and keeps the other five saves exactly', () => {
+  const old = freshWorkshop(); old.active = 'shared-parcel';
+  for (const [id, data] of Object.entries(correct)) old.items[id] = { ...freshItem(id), data, completion: 'independent', hints: 1, viewed: true, attempted: true, history: [initialData(id)] };
+  old.items['stamp-code'] = { data: { letters: ['O', 'A', 'K'] }, completion: 'independent', hints: 3, viewed: true, attempted: true, history: [] };
+  const next = restoreWorkshop(old);
+  assert.deepEqual(next.items['stamp-code'], freshItem('stamp-code'));
+  assert.equal(next.active, 'shared-parcel');
+  for (const id of Object.keys(correct).filter(id => id !== 'stamp-code')) {
+    assert.deepEqual(next.items[id].data, old.items[id].data);
+    assert.deepEqual(next.items[id].history, old.items[id].history);
+    assert.equal(next.items[id].completion, 'solution');
+    assert.equal(next.items[id].hints, 1); assert.equal(next.items[id].viewed, true);
+  }
 });
