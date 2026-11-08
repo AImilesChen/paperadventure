@@ -1,0 +1,75 @@
+/* First case: question, premise, rules, then the playing surface. */
+.pw-entry-workshop .pw-stamp-case .pw-layout{grid-template-columns:minmax(300px,.85fr) minmax(0,1.7fr);gap:28px}
+.pw-entry-workshop .pw-stamp-case .pw-card-heading{gap:12px;border:0;padding:0;margin-bottom:16px!important}
+.pw-entry-workshop .pw-stamp-case .puzzle-category{font-size:14px;line-height:1.4;letter-spacing:0;text-transform:none;color:#486575;font-weight:700}
+.pw-entry-workshop .pw-stamp-case .pw-card-heading h2{font-family:'Nunito Sans',sans-serif;font-size:28px;line-height:1.18;font-weight:900;margin:9px 0 0}
+.pw-entry-workshop .pw-stamp-case .si-premise{font-size:17px;line-height:1.55;margin:0 0 20px}
+.si-core-rules{list-style:none;padding:0;margin:0;display:grid;gap:14px}
+.si-core-rules li{font-size:16px;line-height:1.5;border-left:3px solid #a9c5ce;padding-left:12px}
+.pw-entry-workshop .pw-stamp-case .si-brief-tools{margin-top:24px}
+.pw-entry-workshop .pw-stamp-case .si-brief-tools button{font-size:14px}
+.pw-entry-workshop .pw-stamp-case .pw-play-area{padding:16px}
+.pw-entry-workshop .pw-stamp-case .si-stages{margin-bottom:14px}
+.pw-entry-workshop .pw-stamp-case .si-stages li{font-size:14px;line-height:1.4}
+.pw-entry-workshop .pw-stamp-case .pw-instruction{font-size:16px;line-height:1.5;margin:0 0 12px}
+.pw-entry-workshop .pw-stamp-case .si-label-bank button{min-height:48px;align-items:center!important;justify-content:center;padding:8px!important}
+.pw-entry-workshop .pw-stamp-case .si-label-bank strong{font-size:22px;letter-spacing:.03em}
+.pw-entry-workshop .pw-stamp-case .si-selection{font-size:14px;line-height:1.4;position:static;border:0;padding:0;margin:7px 0;min-height:20px}
+.pw-entry-workshop .pw-stamp-case .si-record{grid-template-columns:22px minmax(0,1fr) 112px 44px;min-height:52px;gap:8px;padding:3px 8px}
+.pw-entry-workshop .pw-stamp-case .si-record-slot{font-size:14px!important;min-height:44px;padding:6px!important}
+.pw-entry-workshop .pw-stamp-case .si-remove{font-size:14px!important;min-width:44px}
+.pw-entry-workshop .pw-stamp-case .si-verify,.pw-entry-workshop .pw-stamp-case .pw-actions>.pw-check{font-size:16px;min-height:46px}
+.pw-entry-workshop .pw-stamp-case .pw-feedback{font-size:14px;line-height:1.5}
+.pw-entry-workshop .pw-stamp-case .pc-help{margin-top:12px;padding-top:12px;gap:8px}
+.pw-entry-workshop .pw-stamp-case .pc-help>button{font-size:14px;padding:8px}
+.pw-entry-workshop .pw-stamp-case .pc-balance strong{font-size:14px}
+.pw-entry-workshop .pw-stamp-case .pc-balance small{font-size:12px}
+.pw-entry-workshop .pw-stamp-case .pw-stamp-key dt{font-size:12px}
+.pw-entry-workshop .pw-stamp-case .pw-stamp-key dd{font-size:22px}
+.pw-entry-workshop .pw-stamp-case .si-mail>span{font-size:12px}
+.pw-entry-workshop .pw-stamp-case .si-mail p,.pw-entry-workshop .pw-stamp-case .si-answer-label{font-size:14px;line-height:1.5}
+.pw-entry-workshop .pw-stamp-case .pw-text-button,.pw-entry-workshop .pw-stamp-case .si-review{font-size:14px!important}
+@media(min-width:901px) and (max-width:1100px){
+ .pw-entry-workshop .pw-stamp-case .pw-layout{grid-template-columns:minmax(260px,.9fr) minmax(0,1.7fr);gap:20px}
+ .pw-entry-workshop .pw-stamp-case .si-record{grid-template-columns:18px minmax(0,1fr) 90px 44px;gap:4px;padding:3px 4px}
+}
+@media(max-width:900px){
+ .pw-entry-workshop .pw-stamp-case .pw-layout{display:flex;flex-direction:column;gap:20px}
+ .pw-entry-workshop .pw-stamp-case .pw-brief{display:block}
+ .pw-entry-workshop .pw-stamp-case .si-premise{margin-bottom:14px}
+ .pw-entry-workshop .pw-stamp-case .si-core-rules{gap:8px}
+ .pw-entry-workshop .pw-stamp-case .si-brief-tools{margin-top:14px}
+ .pw-entry-workshop .pw-stamp-case .si-label-bank{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+ .pw-entry-workshop .pw-stamp-case .si-record .si-symbols{grid-column:auto;gap:8px}
+ .pw-entry-workshop .pw-stamp-case .si-record-slot{grid-column:auto}
+ .pw-entry-workshop .pw-stamp-case .si-remove{grid-column:auto;grid-row:auto}
+ .pw-entry-workshop .pw-stamp-case .si-review{width:auto;margin-left:8px}
+}
+@media(max-width:440px){
+ .pw-entry-workshop .pw-stamp-case .pw-play-area{padding:12px}
+ .pw-entry-workshop .pw-stamp-case .pw-card-heading h2{font-size:26px}
+ .pw-entry-workshop .pw-stamp-case .si-label-bank strong{font-size:20px}
+ .pw-entry-workshop .pw-stamp-case .si-record{grid-template-columns:18px minmax(0,1fr) 44px;gap:4px 6px;padding:6px}
+ .pw-entry-workshop .pw-stamp-case .si-record .si-symbols{grid-column:2 / span 2;gap:12px}
+ .pw-entry-workshop .pw-stamp-case .si-record-slot{grid-column:2}
+ .pw-entry-workshop .pw-stamp-case .si-remove{grid-column:3;grid-row:2}
+ .pw-entry-workshop .pw-stamp-case .pc-help>button{flex:auto;min-width:0;font-size:14px}
+}
+
+@media(min-width:620px) and (max-width:900px){
+ .pw-entry-workshop .pw-stamp-case .pw-layout{display:grid;grid-template-columns:minmax(210px,.85fr) minmax(0,1.3fr);gap:16px}
+ .pw-entry-workshop .pw-stamp-case .pw-play-area{padding:12px}
+ .pw-entry-workshop .pw-stamp-case .si-record{grid-template-columns:18px minmax(0,1fr) 44px;gap:4px 6px;padding:5px}
+ .pw-entry-workshop .pw-stamp-case .si-record .si-symbols{grid-column:2 / span 2;gap:12px}
+ .pw-entry-workshop .pw-stamp-case .si-record-slot{grid-column:2}
+ .pw-entry-workshop .pw-stamp-case .si-remove{grid-column:3;grid-row:2}
+ .pw-entry-workshop .pw-stamp-case .pc-help>button{flex:auto;min-width:0;font-size:14px}
+}
+@media(min-width:660px) and (max-width:900px){
+ .pw-entry-workshop .pw-stamp-case .si-record{grid-template-columns:18px minmax(0,1fr) 96px 44px;gap:4px;padding:3px 4px}
+ .pw-entry-workshop .pw-stamp-case .si-record .si-symbols{grid-column:auto;gap:4px}
+ .pw-entry-workshop .pw-stamp-case .si-record .si-symbols svg{flex-basis:23px;max-width:23px}
+ .pw-entry-workshop .pw-stamp-case .si-record-slot,.pw-entry-workshop .pw-stamp-case .si-remove{grid-column:auto;grid-row:auto}
+}
+
+.pw-entry-workshop .pw-stamp-case .si-records{margin-top:12px}

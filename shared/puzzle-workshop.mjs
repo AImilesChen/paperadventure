@@ -1,4 +1,5 @@
-import { freePuzzles, stampKey, parcels, trailGrid, trailMoves, harbourBridges, puzzleSvg } from './free-puzzles.mjs';
+import { freePuzzles, parcels, trailGrid, trailMoves, harbourBridges, puzzleSvg } from './free-puzzles.mjs';
+import { stampEdition, stampLabels, inspectStampMatches, postalWords, inspectPostalRoute, linkedPostalPair } from './stamp-investigation.mjs';
 
 export const workshopKey = 'paw-free-puzzle-workshop-v2';
 export const workshopVersion = 2;
@@ -12,7 +13,7 @@ export function parcelPicture(id) {
   return puzzleSvg('shared-parcel').replace('width="540" height="350" viewBox="0 0 540 350"', `width="216" height="147" viewBox="${x} ${y} 216 147"`);
 }
 export const initialData = id => ({
-  'stamp-code': { letters: ['', '', ''] },
+  'stamp-code': { edition: stampEdition, matches: ['', '', '', ''], verified: false, route: ['', '', '', '', ''], pair: [], notes: ['', '', '', ''], readClues: [] },
   'signal-shift': { shift: 0, words: ['', '', '', ''], star: '' },
   'parcel-queue': { order: ['', '', '', ''] },
   'shared-parcel': { excluded: [], selected: '', evidence: [] },
@@ -46,7 +47,15 @@ export function harbourInfo(path) {
 }
 export function cleanData(id, raw) {
   const d = raw && typeof raw === 'object' ? raw : {};
-  if (id === 'stamp-code') return { letters: [0, 1, 2].map(i => letters(d.letters?.[i], 1)) };
+  if (id === 'stamp-code') {
+    if (![3, stampEdition].includes(d.edition)) return initialData(id);
+    const matches = [0, 1, 2, 3].map(i => stampLabels.some(label => label.word === d.matches?.[i]) ? d.matches[i] : '');
+    const used = new Set();
+    const route = [0, 1, 2, 3, 4].map(i => { const word = d.edition === stampEdition ? d.route?.[i] : ''; if (!postalWords.includes(word) || used.has(word)) return ''; used.add(word); return word; });
+    return { edition: stampEdition, matches, verified: d.verified === true && inspectStampMatches(matches).ok,
+      route, pair: linkedPostalPair(route, d.pair) ? [...d.pair] : [], notes: [0, 1, 2, 3].map(i => letters(d.notes?.[i], 4)), readClues: subset(d.readClues, [0, 1, 2, 3, 4]) };
+
+  }
   if (id === 'signal-shift') return {
     shift: Number.isInteger(d.shift) && d.shift >= 0 && d.shift < 26 ? d.shift : 0,
     words: [5, 3, 3, 4].map((max, i) => letters(d.words?.[i], max)),
@@ -66,9 +75,11 @@ export function checkWorkshop(id, raw) {
   const d = cleanData(id, raw);
   if (!d) return no('Choose a puzzle first.');
   if (id === 'stamp-code') {
-    if (d.letters.some(x => !x)) return no('Fill all three stamp slots before checking.');
-    const key = Object.fromEntries(stampKey);
-    if (d.letters.join('') !== ['circle', 'triangle', 'square'].map(s => key[s]).join('')) return no('One or more stamps do not match the key. Compare each shape with its letter.');
+    const records = inspectStampMatches(d.matches);
+    if (!records.ok) return records;
+    if (!d.verified) return no('Check your record matches before starting the delivery route.');
+    const route = inspectPostalRoute(d.route);
+    if (!route.ok) return route;
   }
   if (id === 'signal-shift') {
     if (d.shift !== 3) return no('Check the decoder alignment: the original A was sent as D.');
@@ -108,7 +119,7 @@ export function checkWorkshop(id, raw) {
   }
   return { ok: true, message: freePuzzles.find(p => p.id === id).payoff };
 }
-export function freshItem(id) { return { data: initialData(id), history: [], hints: 0, viewed: false, completion: null, attempted: false }; }
+export function freshItem(id) { return { data: initialData(id), history: [], hints: 0, viewed: false, completion: null, attempted: false, ...(id === 'stamp-code' ? { routeHints: 0, legacyCompletion: null } : {}) }; }
 export function freshWorkshop() { return { version: workshopVersion, active: puzzleIds[0], items: Object.fromEntries(puzzleIds.map(id => [id, freshItem(id)])) }; }
 export function restoreWorkshop(raw) {
   const state = freshWorkshop();
@@ -117,13 +128,21 @@ export function restoreWorkshop(raw) {
   for (const id of puzzleIds) {
     const source = raw.items?.[id];
     if (!source || typeof source !== 'object') continue;
+    // Edition 3 keeps its archive/key; its old POOL completion is separate.
+    // Older direct OAK lookup saves reset only this puzzle.
+    if (id === 'stamp-code' && ![3, stampEdition].includes(source.data?.edition)) continue;
     const item = state.items[id];
     item.data = cleanData(id, source.data);
+    if (id === 'stamp-code') {
+      const legacy = source.data?.edition === 3 ? { edition: 3, completion: source.data.verified && Array.isArray(source.data.letters) && inspectStampMatches(source.data.matches).ok && source.data.letters?.join('') === 'POOL' ? source.completion : null } : source.legacyCompletion;
+      item.legacyCompletion = legacy?.edition === 3 && ['independent', 'hint', 'solution'].includes(legacy.completion) ? { edition: 3, completion: legacy.completion } : null;
+      item.routeHints = source.data?.edition === stampEdition && Number.isInteger(source.routeHints) ? Math.max(0, Math.min(3, source.routeHints)) : 0;
+    }
     item.history = Array.isArray(source.history) ? source.history.slice(-32).map(d => cleanData(id, d)) : [];
     item.hints = Number.isInteger(source.hints) ? Math.max(0, Math.min(3, source.hints)) : 0;
     item.viewed = source.viewed === true;
     item.attempted = source.attempted === true;
-    if (source.completion && checkWorkshop(id, item.data).ok) item.completion = item.viewed ? 'solution' : item.hints ? 'hint' : 'independent';
+    if (source.completion && checkWorkshop(id, item.data).ok) item.completion = item.viewed ? 'solution' : (item.hints || item.routeHints) ? 'hint' : 'independent';
   }
   return state;
 }

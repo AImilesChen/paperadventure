@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
 import { checkPuzzleAnswer, freePuzzles, harbourBridges, normalizePuzzleAnswer, parcels, puzzleCategories, puzzlePath, puzzlePdfPath, stampKey, trailGrid, trailMoves } from '../shared/free-puzzles.mjs';
+import { stampRecords, stampLabels, postalWords, postalTests, stampShapeNames, stampLetters, inspectStampMatches } from '../shared/stamp-investigation.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
 import { pageSchema } from '../shared/seo.mjs';
 import { conversionProperties } from '../src/conversionEvents.mjs';
@@ -9,9 +10,9 @@ import { conversionProperties } from '../src/conversionEvents.mjs';
 const find = id => freePuzzles.find(p => p.id === id);
 function permutations(items) { return items.length === 0 ? [[]] : items.flatMap((item, i) => permutations(items.filter((_, n) => n !== i)).map(rest => [item, ...rest])); }
 
-test('the two cipher answers follow the printed keys', () => {
+test('the post office answer follows the inferred key; the message follows its printed decoder', () => {
   const lookup = Object.fromEntries(stampKey);
-  assert.equal(['circle', 'triangle', 'square'].map(s => lookup[s]).join(''), find('stamp-code').answer);
+  assert.equal(permutations(postalWords).filter(route => postalTests.every(test => test(Object.fromEntries(route.map((word, i) => [word, i]))))).map(route => route.join(' ')).join(), find('stamp-code').answer);
   const decoded = [...'FKHFN WKH UHG VWDU'].map(c => c === ' ' ? c : String.fromCharCode(65 + (c.charCodeAt(0) - 65 - 3 + 26) % 26)).join('');
   assert.equal(decoded, 'CHECK THE RED STAR');
   assert.equal(decoded.split(' ')[2], find('signal-shift').answer);
@@ -104,7 +105,7 @@ test('built search HTML contains every puzzle, download destination and contextu
   const html = await readFile('dist/client' + puzzlePath + 'index.html', 'utf8');
   assert.match(html, /<title>Free Escape Room Puzzles for Kids \| Paper Adventure<\/title>/);
   assert.ok(html.includes('href="https://paperadventure.app' + puzzlePath + '"'));
-  assert.equal((html.match(/class="puzzle-card"/g) || []).length, 6);
+  assert.equal((html.match(/class="puzzle-card(?: [^"]*)?"/g) || []).length, 6);
   for (const p of freePuzzles) {
     assert.ok(html.includes(`id="${p.id}"`));
     assert.ok(html.includes(p.title));
@@ -118,4 +119,17 @@ test('built search HTML contains every puzzle, download destination and contextu
   for (const route of ['/en/', '/en/guides/', '/en/samples/home/', '/en/samples/classroom/', '/en/for-home/']) {
     assert.ok((await readFile('dist/client' + route + 'index.html', 'utf8')).includes('href="' + puzzlePath + '"'), route);
   }
+});
+
+
+test('all 720 letter bijections and 24 label arrangements yield one consistent post office key', () => {
+  const valid = permutations(stampLetters).map(letters => Object.fromEntries(stampShapeNames.map((shape, i) => [shape, letters[i]]))).filter(key => {
+    const words = stampRecords.map(record => record.shapes.map(shape => key[shape]).join(''));
+    return new Set(words).size === 4 && words.every(word => stampLabels.some(label => label.word === word));
+  });
+  assert.equal(valid.length, 1);
+  assert.equal(['cross', 'circle', 'circle', 'diamond'].map(shape => valid[0][shape]).join(''), 'POOL'); // The old message remains a valid use of the same restored key.
+  const validMatches = permutations(stampLabels.map(label => label.word)).filter(matches => inspectStampMatches(matches).ok);
+  assert.deepEqual(validMatches, [['LAMP', 'PALM', 'MAP', 'OAK']]);
+  assert.deepEqual(inspectStampMatches(validMatches[0]).key, Object.fromEntries(stampKey));
 });

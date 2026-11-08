@@ -1,0 +1,109 @@
+.pw-workshop .pw-game-stack>.pw-stamp-case{padding:16px 20px;scroll-margin-top:12px}
+.pw-stamp-case .pw-card-heading{padding-bottom:10px;margin-bottom:12px!important;gap:12px}
+.pw-stamp-case .puzzle-number{font-size:1.2rem;padding:6px 10px}
+.pw-stamp-case .puzzle-category{font-size:.6rem}
+.pw-stamp-case .pw-card-heading h3{font-size:1.3rem;margin-top:4px}
+.pw-stamp-case .pw-layout{grid-template-columns:minmax(255px,.72fr) minmax(0,1.7fr);gap:22px}
+.pw-stamp-case .pw-brief{position:static}
+.pw-stamp-case .pw-brief>.pw-task{font-size:.85rem;line-height:1.5;margin:0 0 10px}
+.pw-stamp-case .si-brief-story{font-size:.79rem!important;line-height:1.5;margin:0 0 12px}
+.pw-stamp-case .pw-brief .si-rules{margin:12px 0;gap:10px}
+.pw-stamp-case .si-rules li{font-size:.77rem;line-height:1.5;padding:0 0 0 10px}
+.pw-stamp-case .si-rules li:before{font-size:.57rem;margin-bottom:3px}
+.si-text-clues{border-top:1px dashed #b4cad2;padding-top:10px;margin-top:12px}
+.si-text-clues h4{font-size:.82rem;margin:0 0 8px;font-weight:900}
+.si-text-clues dl{margin:0}
+.si-text-clues dl>div{display:grid;grid-template-columns:18px minmax(0,1fr);gap:6px;margin:0 0 7px}
+.si-text-clues dt{font-size:.77rem;font-weight:900}
+.si-text-clues dd{font-size:.75rem;line-height:1.5;margin:0;text-transform:capitalize}
+.si-text-clues dd strong{display:block;font-size:.73rem}
+.si-text-clues>p{font-size:.72rem;line-height:1.5;margin:8px 0 0}
+.si-brief-tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pw-workshop .si-brief-tools button{font-size:.73rem;padding:8px 12px}
+.pw-stamp-case .pw-play-area{padding:12px 14px}
+.pw-stamp-case .pw-play-label{display:none}
+.pw-stamp-case .si-stages{margin:0 0 8px;gap:10px}
+.pw-stamp-case .si-stages li{font-size:.72rem;padding-bottom:7px;border-bottom-width:2px}
+.pw-stamp-case .si-stages li>span{width:22px;height:22px}
+.si-phase-title{position:absolute;width:1px;height:1px;margin:-1px!important;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.pw-stamp-case .si-investigation .pw-instruction{font-size:.77rem;line-height:1.5;margin:0 0 8px}
+.pw-stamp-case .si-label-bank{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.pw-stamp-case .si-label-bank button{padding:8px!important;gap:3px!important;min-height:56px}
+.pw-stamp-case .si-label-bank strong{font-size:.93rem;letter-spacing:.03em}
+.pw-stamp-case .si-label-bank span{font-size:.67rem;line-height:1.3}
+.pw-stamp-case .si-selection{font-size:.72rem;line-height:1.4;min-height:0;margin:6px 0 8px;padding:0;border:0;position:static}
+.pw-stamp-case .si-records{gap:6px}
+.pw-stamp-case .si-record{grid-template-columns:22px minmax(0,1fr) 120px 44px;padding:1px 7px;gap:7px;min-height:46px}
+.pw-stamp-case .si-record .si-symbols{gap:10px;grid-column:auto}
+.pw-stamp-case .si-record .si-symbols svg{flex-basis:26px;max-width:26px}
+.pw-stamp-case .si-record-slot{grid-column:auto;font-size:.73rem!important;padding:7px!important}
+.pw-stamp-case .si-remove{grid-column:auto;grid-row:auto;font-size:.63rem!important;min-width:44px;min-height:44px}
+.pw-stamp-case .si-verify{margin-top:8px;min-height:44px;padding:8px 12px;font-size:.8rem}
+.pw-stamp-case .si-sealed{font-size:.68rem;line-height:1.4;border:0;padding:0;margin:5px 0 0}
+.pw-stamp-case .pw-actions{margin-top:8px;padding-top:8px;gap:8px}
+.pw-stamp-case .pw-actions>.pw-check{font-size:.8rem;padding:8px 12px;min-height:44px}
+.pw-stamp-case .pw-feedback{font-size:.76rem;line-height:1.45;min-height:0;margin:6px 0}
+.pw-stamp-case .pw-feedback:empty{display:none}
+.pw-stamp-case .pw-help{margin-top:8px;padding-top:8px;gap:8px}
+.pw-stamp-case .pw-help button{font-size:.74rem;padding:8px 10px}
+.pw-stamp-case .si-restored{font-size:.77rem;line-height:1.4;margin:6px 0}
+.pw-stamp-case .pw-stamp-key{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:8px 0}
+.pw-stamp-case .pw-stamp-key>div{padding:6px 3px}
+.pw-stamp-case .pw-stamp-key dt{font-size:.62rem;gap:3px}
+.pw-stamp-case .pw-stamp-key dt svg{width:17px;height:17px}
+.pw-stamp-case .pw-stamp-key dd{font-size:1rem;margin:2px 0 0}
+.pw-stamp-case .si-mail{display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px 10px;padding:10px 12px;margin:8px 0}
+.pw-stamp-case .si-mail>span{font-size:.6rem;letter-spacing:.03em}
+.pw-stamp-case .si-mail .si-symbols{grid-column:2;grid-row:1 / span 2;gap:10px;margin:0}
+.pw-stamp-case .si-mail .si-symbols svg{max-width:32px;flex-basis:32px}
+.pw-stamp-case .si-mail p{font-size:.72rem;text-align:left}
+.pw-stamp-case .si-answer-label{font-size:.75rem;margin:8px 0 6px}
+.pw-stamp-case .si-answer-slots button{min-height:64px!important;padding:6px 4px!important;gap:4px!important}
+.pw-stamp-case .si-answer-slots strong{font-size:1.5rem!important}
+.pw-stamp-case .si-answer-slots span{font-size:.62rem!important}
+.pw-stamp-case .pw-letter-bank{margin:8px 0 4px;gap:7px}
+.pw-stamp-case .pw-letter-bank button{font-size:1rem;min-height:44px;padding:6px}
+.si-answer-instruction{font-size:.72rem;line-height:1.4;margin:5px 0}
+.pw-stamp-case .si-review{display:inline-flex!important;width:auto;margin:3px 0 0 10px;font-size:.69rem!important;min-height:44px;padding:7px 10px}
+.pw-stamp-case .pw-text-button{font-size:.7rem;min-height:44px;padding:7px 0}
+@media(max-width:1000px){
+ .pw-stamp-case .pw-layout{grid-template-columns:minmax(220px,.7fr) minmax(0,1.3fr);gap:16px}
+ .pw-stamp-case .si-record{grid-template-columns:20px minmax(0,1fr) 95px 44px;gap:5px;padding:1px 5px}
+ .pw-stamp-case .si-record .si-symbols{gap:6px}
+ .pw-stamp-case .si-record .si-symbols svg{flex-basis:23px;max-width:23px}
+ .pw-stamp-case .pc-help>button{font-size:.67rem;padding:6px}
+ .pw-stamp-case .pw-brief .si-rules{grid-template-columns:1fr!important}
+}
+@media(max-width:800px){
+ .pw-stamp-case .pw-layout{display:grid;grid-template-columns:1fr}
+ .pw-stamp-case .pw-brief{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+ .pw-stamp-case .pw-brief>.pw-task,.pw-stamp-case .si-brief-story{grid-column:1}
+ .pw-stamp-case .si-rules{grid-column:1;grid-row:3}
+ .pw-stamp-case .si-text-clues{grid-column:2;grid-row:1 / span 3;border-top:0;margin-top:0;padding-top:0}
+ .pw-stamp-case .si-brief-tools{grid-column:1 / span 2;margin-top:0}
+}
+@media(max-width:700px){
+ .pw-workshop .pw-game-stack>.pw-stamp-case{padding:14px;scroll-margin-top:12px}
+ .pw-stamp-case .pw-card-heading .pw-choose{flex-basis:auto;margin-left:auto;margin-top:0}
+ .pw-stamp-case .pw-card-heading h3{font-size:1.15rem}
+ .pw-stamp-case .pw-brief{display:block}
+ .pw-stamp-case .si-text-clues{border-top:1px dashed #b4cad2;margin-top:12px;padding-top:10px}
+ .pw-stamp-case .si-text-clues dl{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+ .pw-stamp-case .si-text-clues dd{font-size:.73rem}
+ .pw-stamp-case .pw-play-area{padding:12px}
+ .pw-stamp-case .si-label-bank{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .pw-stamp-case .si-label-bank button{min-height:54px}
+ .pw-stamp-case .si-selection{position:sticky;top:6px;z-index:2;padding:7px;background:#f2f8f8;border:1px solid #bed3da;border-radius:5px}
+ .pw-stamp-case .si-record{grid-template-columns:18px minmax(0,1fr) 44px;padding:4px 7px;gap:4px 7px}
+ .pw-stamp-case .si-record .si-symbols{grid-column:2 / span 2;gap:12px}
+ .pw-stamp-case .si-record .si-symbols svg{flex-basis:26px;max-width:26px}
+ .pw-stamp-case .si-record-slot{grid-column:2;font-size:.75rem!important}
+ .pw-stamp-case .si-remove{grid-column:3;grid-row:2}
+ .pw-stamp-case .pw-stamp-key{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .pw-stamp-case .si-mail{display:block}
+ .pw-stamp-case .si-mail .si-symbols{justify-content:center;margin:12px 0}
+ .pw-stamp-case .si-mail p{text-align:center}
+ .pw-stamp-case .si-review{margin-left:0;width:100%}
+ .pw-stamp-case .pw-letter-bank{grid-template-columns:repeat(6,minmax(0,1fr))}
+ .pw-stamp-case .si-brief-tools{margin-top:10px}
+}

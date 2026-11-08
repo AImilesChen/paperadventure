@@ -3,7 +3,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { freePuzzles, puzzleSvg } from '../shared/free-puzzles.mjs';
+import { freePuzzles, puzzleSvg, postalRouteSvg } from '../shared/free-puzzles.mjs';
 const require = createRequire(import.meta.url);
 const sharp = require(process.argv[2] || 'sharp');
 const out = path.resolve('tmp/free-puzzles-build');
@@ -13,3 +13,5 @@ for (const puzzle of freePuzzles) {
   await sharp(Buffer.from(puzzleSvg(puzzle.id)), { density: 288 }).png().toFile(path.join(out, puzzle.id + '.png'));
 }
 console.log('Prepared six shared puzzle diagrams and content.');
+
+await sharp(Buffer.from(postalRouteSvg()), { density: 288 }).png().toFile(path.join(out, 'postal-route.png'));
