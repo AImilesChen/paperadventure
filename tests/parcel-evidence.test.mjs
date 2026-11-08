@@ -36,7 +36,7 @@ test('all 12 submitted pairs have one answer and wrong pairs give identical feed
 
 test('upgrading either old parcel edition resets only that puzzle and preserves earlier completion', () => {
   for(const oldData of [{selected:'C',evidence:[0,1,2]}, {edition:2,selected:'C',wrongRecord:2,excluded:[]}]){
-    const old=restoreWorkshop(freshWorkshop());old.active='shared-parcel';old.items['signal-shift'].data.answer='DO';old.items['forest-trail'].data.moves=['E'];
+    const old=restoreWorkshop(freshWorkshop());old.active='shared-parcel';old.items['signal-shift'].data.answer='DO';old.items['forest-trail'].data.path=['S','A'];
     old.items['shared-parcel']={data:oldData,history:[],hints:3,viewed:true,completion:'solution'};
     const restored=restoreWorkshop(old);
     assert.deepEqual(restored.items['shared-parcel'].data,freshParcel());assert.equal(restored.items['shared-parcel'].completion,null);assert.equal(restored.items['shared-parcel'].legacyParcelCompletion,'solution');assert.equal(restored.items['shared-parcel'].hints,0);assert.equal(restored.items['shared-parcel'].viewed,false);

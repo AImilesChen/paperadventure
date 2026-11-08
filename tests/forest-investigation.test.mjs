@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {enumerateRescues,answerRoute,forestEdition,routeTests,checkForest,moveForest,freshForest,roads} from '../shared/forest-rescue.mjs';
+import {freshWorkshop,restoreWorkshop} from '../shared/puzzle-workshop.mjs';
+test('all complete routes enumerated: one solution, every alternate rejected',()=>{let r=enumerateRescues();assert.equal(r.candidates.length,1064);assert.deepEqual(r.solutions,[answerRoute]);for(const p of r.candidates)assert.equal(checkForest({edition:forestEdition,path:p}).ok,p.join()==answerRoute.join());});
+test('planning does not reveal semantic errors; repeats and disconnected moves rejected',()=>{let d=freshForest();assert(moveForest(d,'A').ok);assert(!moveForest(d,'T').ok);assert(!moveForest(d,'S').ok);assert(!checkForest({edition:forestEdition,path:['S','A']}).ok);assert(roads.every(r=>!Object.hasOwn(r,'cost')));});
+test('clock and draft survive reload; old fifth game resets without changing other games',()=>{let w=freshWorkshop();let other=structuredClone(w.items['harbour-route']);w.items['forest-trail']={...w.items['forest-trail'],startedAt:Date.now()-9000,data:{edition:forestEdition,path:['S','B']}};let r=restoreWorkshop(w);assert.equal(r.items['forest-trail'].startedAt,w.items['forest-trail'].startedAt);assert.deepEqual(r.items['forest-trail'].data.path,['S','B']);w.items['forest-trail'].data={edition:3,path:['S','A']};r=restoreWorkshop(w);assert.deepEqual(r.items['forest-trail'].data,freshForest());assert.deepEqual(r.items['harbour-route'],other);});
+
+test('each recovered evidence component matters; early exit is not enough',()=>{let {candidates}=enumerateRescues();for(let i of [0,1,2,3])assert(candidates.filter(p=>routeTests(p).every((v,j)=>j===i||v)).length>1);assert(!checkForest({edition:forestEdition,path:['S','B','D','E']}).ok);assert(!answerRoute.includes('Y'));});

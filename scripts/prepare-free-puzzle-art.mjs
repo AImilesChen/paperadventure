@@ -15,3 +15,10 @@ for (const puzzle of freePuzzles) {
 console.log('Prepared six shared puzzle diagrams and content.');
 
 await sharp(Buffer.from(postalRouteSvg()), { density: 288 }).png().toFile(path.join(out, 'postal-route.png'));
+
+const {forestSvg,answerRoute,explanation,forestRules,evidence,terrain}=await import('../shared/forest-rescue.mjs');
+await writeFile(path.join(out,'forest-rescue.json'),JSON.stringify({answerRoute,explanation,forestRules,evidence,terrain}));
+await sharp(Buffer.from(forestSvg(answerRoute)),{density:288}).png().toFile(path.join(out,'forest-answer.png'));
+
+const {evidenceSvg}=await import('../shared/forest-evidence-art.mjs');
+for(const e of evidence)await sharp(Buffer.from(evidenceSvg(e.art)),{density:288}).png().toFile(path.join(out,`forest-evidence-${e.id}.png`));

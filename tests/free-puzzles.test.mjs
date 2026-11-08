@@ -30,16 +30,6 @@ test('the parcel investigation presents four hidden parcels and the paired final
   assert.equal(find('shared-parcel').steps.length, 7);
 });
 
-test('the forest trail stays on the board and extracts exactly six letters', () => {
-  let x = 0, y = 0, letters = '';
-  for (const move of trailMoves) {
-    if (move === 'E') x++; if (move === 'W') x--; if (move === 'S') y++; if (move === 'N') y--;
-    assert.ok(x >= 0 && x < 4 && y >= 0 && y < 4);
-    letters += trailGrid[y][x];
-  }
-  assert.equal(letters, find('forest-trail').answer);
-});
-
 test('enumerating harbour routes gives exactly one valid three-bridge crossing', () => {
   const paths = [];
   function walk(at, nodes, code) {
@@ -58,7 +48,7 @@ test('enumerating harbour routes gives exactly one valid three-bridge crossing',
 test('answer checking accepts formatting variants without accepting arbitrary guesses', () => {
   for (const p of freePuzzles) {
     assert.equal(p.hints.length, 3);
-    if (p.id === 'parcel-queue') { assert.equal(checkPuzzleAnswer(p.id, p.answer), false); continue; }
+    if (['parcel-queue','forest-trail'].includes(p.id)) { assert.equal(checkPuzzleAnswer(p.id, p.answer), false); continue; }
     assert.ok(p.solution.includes(p.answer) || p.id === 'harbour-route');
     assert.ok(checkPuzzleAnswer(p.id, '  ' + p.answer.toLowerCase() + '  '));
     for (const bad of ['', null, {}, 'wrong', p.answer + 'X', '<script>']) assert.equal(checkPuzzleAnswer(p.id, bad), false);

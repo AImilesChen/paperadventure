@@ -45,5 +45,8 @@ test('public train previews are only selected images, with complete private file
   const page = await readFile('dist/client/en/escape-room-games/the-missing-seventh-carriage/index.html', 'utf8');
   for (const [, id] of page.matchAll(/href="#([^\"]+)"/g)) assert.ok(page.includes(`id="${id}"`), id);
   assert.ok(page.includes('https://paperadventure.app/en/escape-room-games/the-missing-seventh-carriage/'));
-  assert.doesNotMatch(page, /<iframe|\.pdf"|companion\.html|K7|Moonbay|21:36/);
+  // Generated bundle fingerprints can coincidentally contain a short answer token.
+  // Keep the privacy assertion on all page content, excluding only hashed asset URLs.
+  const content = page.replace(/\/assets\/index-[A-Za-z0-9_-]+\.(?:css|js)/g, '/assets/build-file');
+  assert.doesNotMatch(content, /<iframe|\.pdf"|companion\.html|K7|Moonbay|21:36/);
 });
