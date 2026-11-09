@@ -23,6 +23,7 @@ import { BirthdayOccasion } from './birthdayOccasion.jsx';
 import { ChristmasOccasion } from './christmasOccasion.jsx';
 import FreePuzzles from './freePuzzles.jsx';
 import Sudoku from './sudoku.jsx';
+import SudokuLevels from './sudokuLevels.jsx';
 import {retiredWeeklyTarget} from '../shared/sudoku-retirement.mjs';
 import { EscapeGamesHub, LighthouseDetail, LighthousePlay } from './lighthouseGame.jsx';
 import { HomeSamples, HomeCustomStory, HomeGuides } from './homeSections.jsx';
@@ -331,7 +332,8 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
   else if (['/en/sudoku/how-to-play/','/en/sudoku/techniques/'].includes(route)) page = <SudokuLessons key={route} route={route}/>;
-  else if (['/en/sudoku/','/en/sudoku/play/','/en/sudoku/levels/','/en/sudoku/leaderboard/'].includes(route)) page = <Sudoku key={routeLocation} Link={Link} route={route}/>;
+  else if (route === '/en/sudoku/levels/') page = <SudokuLevels key={routeLocation} route={route}/>;
+  else if (['/en/sudoku/','/en/sudoku/play/','/en/sudoku/leaderboard/'].includes(route)) page = <Sudoku key={routeLocation} Link={Link} route={route}/>;
   else if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;
   else if (route === '/en/escape-room-games/the-secret-of-fold-city/') page = <EscapeFoldCityDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;
   else if (route === '/en/escape-room-games/the-last-letter-before-the-storm/') page = <EscapeLetterDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;
