@@ -182,6 +182,7 @@ export default function PuzzleWorkshop() {
   const activePuzzle = freePuzzles[activeIndex];
   return <section id="try-puzzles" className="pw-workshop pw-entry-workshop puzzle-shell" aria-labelledby="pw-title">
     <div className="lobby-intro"><span className="lobby-tag">SIX FREE CHALLENGES · NO ACCOUNT NEEDED</span><h1 id="pw-title">Free escape room puzzles</h1><p>Six puzzles. Six ways to solve. Decode messages, move crates, investigate evidence or restore a circuit. Choose any challenge; your progress saves in this browser.</p>{ready&&resume&&<div className="lobby-resume">Last played: <strong>{shortTitles[freePuzzles.findIndex(p=>p.id===resume)]}</strong><button onClick={()=>select(resume,true)}>Continue last game</button></div>}</div>
+    <p className="sd-lobby-link"><a href="/en/sudoku/">New: Sudoku adventure · 100 levels, thinking hints and a leaderboard →</a></p>
     <section id="puzzle-directory" className="lobby-directory" aria-labelledby="lobby-title"><div className="lobby-heading"><div><h2 id="lobby-title">Choose your challenge</h2><p>All six games are independent. Explore them in any order.</p></div><span>{completed} of 6 completed</span></div><div className="lobby-grid">{freePuzzles.map((p,i)=>gameCard(p,i))}</div></section>
     <div id="puzzle-play" hidden={!playing}>
     <header className="pw-entry-toolbar" ref={title} tabIndex={-1}>

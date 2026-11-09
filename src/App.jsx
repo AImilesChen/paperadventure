@@ -1,3 +1,5 @@
+import{clearDeviceCopies}from'./sudoku-device.mjs';
+import{SudokuHomeEntry}from'./sudokuEntry.jsx';
 import {EscapeFoldCityDetail} from './escapeFoldCity.jsx';
 import {EscapeLetterDetail} from './escapeLetter.jsx';
 import {EscapeClockDetail} from './escapeClock.jsx';
@@ -17,6 +19,7 @@ import { GuidesHub, GuideArticle, HalloweenOccasion } from './guides.jsx';
 import { BirthdayOccasion } from './birthdayOccasion.jsx';
 import { ChristmasOccasion } from './christmasOccasion.jsx';
 import FreePuzzles from './freePuzzles.jsx';
+import Sudoku from './sudoku.jsx';
 import { EscapeGamesHub, LighthouseDetail, LighthousePlay } from './lighthouseGame.jsx';
 import { HomeSamples, HomeCustomStory, HomeGuides } from './homeSections.jsx';
 import { analyticsAvailable } from './analytics.js';
@@ -70,7 +73,7 @@ function Header({ route }) {
   async function signOut() {
     try {
       const response = await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin' });
-      if (response.ok) { setAuthenticated(false);setAdministrator(false); setOpen(false);setAccountOpen(false); navigate('/en/'); }
+      if (response.ok) { clearDeviceCopies();setAuthenticated(false);setAdministrator(false); setOpen(false);setAccountOpen(false); navigate('/en/'); }
     } catch { /* Keep the current session visible if sign-out could not be confirmed. */ }
   }
   useEffect(() => {
@@ -100,6 +103,7 @@ function Header({ route }) {
         </div>
       </div>
       <Link to="/en/for-classroom/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-classroom") || /^\/en\/themes\/[^/]+\/classroom\/$/.test(route)) ? "page" : undefined}>For classrooms</Link>
+      <Link to="/en/sudoku/" className="nav-primary-link" aria-current={route.startsWith('/en/sudoku/')?'page':undefined}>Sudoku adventure</Link>
       <Link to="/en/create/" className="nav-primary-link" aria-current={route.startsWith("/en/create") ? "page" : undefined}>AI custom adventure</Link>
       <Link to="/en/how-it-works/" className="nav-primary-link" aria-current={route.startsWith("/en/how-it-works") ? "page" : undefined}>How it works</Link>
       <Link to="/en/guides/" className="nav-primary-link" aria-current={route.startsWith("/en/guides/") ? "page" : undefined}>Guides</Link>
@@ -112,6 +116,7 @@ function Header({ route }) {
           <UserCircle size={22} aria-hidden="true"/><span>Account</span><CaretDown size={13} aria-hidden="true"/>
         </button>
         {accountOpen&&<nav id="account-navigation" className="header-account-panel" aria-label="Account navigation" onClick={event=>{if(event.target.closest('a'))setAccountOpen(false);}}>
+          <Link to="/en/sudoku/">Continue Sudoku <ArrowUpRight size={16} aria-hidden="true"/></Link>
           <Link to="/en/my-adventures/">My adventures <ArrowUpRight size={16} aria-hidden="true"/></Link>
           {administrator&&<a href="/admin/">管理后台 <ArrowUpRight size={16} aria-hidden="true"/></a>}
           <button type="button" className="header-account-signout" onClick={signOut}>Sign out</button>
@@ -208,6 +213,7 @@ function Home({ sampleReady = false }) { return <main className="home-funnel">
   <ThemeGallery sampleReady={sampleReady} />
   <HomeSamples Link={Link} sampleReady={sampleReady} />
   <HomeProductGuide Link={Link} sampleReady={sampleReady} />
+  <SudokuHomeEntry/>
   <HomeCustomStory Link={Link} />
   <HomeGuides Link={Link} />
   <section className="faq-preview"><div><span className="eyebrow">A FEW GOOD QUESTIONS</span><h2>Wondering how it works?</h2></div><div className="faq-list">{faq.slice(0, 4).map(([q,a]) => <FaqItem key={q} q={q} a={a} />)}<Link to="/en/help/" className="text-link">More questions <ArrowRight size={18} /></Link></div></section><section className="last-cta"><Sparkle size={27} weight="fill" /><h2>Every great adventure starts with a little idea.</h2><Link to="/en/create/" className="button button-large">Create My Adventure <ArrowUpRight size={22} /></Link></section>
@@ -317,6 +323,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/themes')) page = <WorldsOverview Link={Link} catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
+  else if (['/en/sudoku/','/en/sudoku/play/','/en/sudoku/leaderboard/'].includes(route)) page = <Sudoku Link={Link} route={route}/>;
   else if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;
   else if (route === '/en/escape-room-games/the-secret-of-fold-city/') page = <EscapeFoldCityDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;
   else if (route === '/en/escape-room-games/the-last-letter-before-the-storm/') page = <EscapeLetterDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;

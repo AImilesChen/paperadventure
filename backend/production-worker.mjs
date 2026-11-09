@@ -1,3 +1,4 @@
+import {sudokuApi} from './sudoku/api.mjs';
 import {escapeProducts,escapeProduct} from '../shared/escape-products.mjs';
 import {serveEscapeExtra} from './escape-extras.mjs';
 import {promotionQuote,setupOwnerPromotion} from './checkout-promotions.mjs';
@@ -1307,6 +1308,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
   try {
     const url = new URL(request.url);
     const path = url.pathname;
+    if(path.startsWith('/api/v1/sudoku/'))return sudokuApi(request,env,{authenticate:authenticatedEmailHash});
     if(path==='/api/v1/admin'||path.startsWith('/api/v1/admin/'))return await handleAdminApi(request,env,context);
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);
@@ -2040,6 +2042,5 @@ export default {
     for (const item of remakes.results || []) await env.GENERATION_QUEUE.send({ type: 'pack_remake', orderId: item.order_id });
   },
 };
-
 
 

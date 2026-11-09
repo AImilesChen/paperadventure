@@ -1,0 +1,116 @@
+.sd-page{background:#edf3f2;color:#193f48;min-height:85vh;padding:28px 0 60px;--sd-line:#bfd0cc}.sd-shell{max-width:1140px;margin:auto;padding:0 24px}.sd-header{display:flex;justify-content:space-between;align-items:center;gap:25px;padding:10px 0 25px}.sd-header h1{font-size:34px;margin:5px 0;font-family:'Bree Serif',serif}.sd-header p{margin:0;color:#647a7c}.sd-header nav{display:flex;gap:17px;flex-wrap:wrap;font-size:14px;font-weight:750}.sd-header a{color:#23525c}.sd-eyebrow{font-size:10px;letter-spacing:1.7px;font-weight:850;color:#668079}.sd-progress{display:flex;gap:24px;flex-wrap:wrap;padding:16px 22px;border:1px solid var(--sd-line);border-radius:12px;background:#fffdf7;margin-bottom:22px;font-size:13px;align-items:center}.sd-progress b{font-size:20px;color:#1b554b}.sd-progress>span:last-child{margin-left:auto;color:#697d7a;font-size:12px}.sd-hero{display:grid;grid-template-columns:1.5fr 1fr;gap:40px;background:#234e4b;color:#fffcf1;padding:36px 40px;border-radius:20px;margin:0 0 28px}.sd-hero h2{font-family:'Bree Serif',serif;font-size:42px;line-height:1.15;margin:12px 0 17px;color:inherit}.sd-hero p{line-height:1.7;max-width:520px;font-size:15px}.sd-hero .sd-eyebrow{color:#bbd6c8}.sd-chapter-badge{border:1px solid #7eaaa1;border-radius:50%;aspect-ratio:1;max-width:260px;justify-self:center;align-self:center;display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;background:#2e5a55}.sd-chapter-badge strong{font-size:88px;font-family:'Bree Serif',serif;line-height:1}.sd-chapter-badge span{font-size:9px;letter-spacing:1.5px;margin:14px 0 0}.sd-chapter-badge p{font-size:12px;margin:7px 0}.sd-page button{min-height:42px;border:1px solid #adc3bd;background:#fffdf7;color:#204f4d;border-radius:8px;padding:10px 15px;cursor:pointer;font-size:13px;font-weight:750}.sd-page button:disabled{opacity:.5;cursor:default}.sd-page button:focus-visible,.sd-page input:focus-visible,.sd-page select:focus-visible{outline:3px solid #bc6b2f;outline-offset:2px}.sd-page button.sd-primary{background:#e3af59;color:#233e35;border-color:#e3af59;padding:13px 22px}.sd-map{display:grid;gap:12px;margin-bottom:28px}.sd-map details{background:#fffdf7;border:1px solid var(--sd-line);border-radius:12px;padding:0 20px}.sd-map summary{padding:19px 0;cursor:pointer;font-weight:800;font-size:17px}.sd-map summary span{float:right;font-weight:500;font-size:12px;margin-top:4px}.sd-level-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:9px;padding:0 0 20px}.sd-page .sd-level-grid button{aspect-ratio:.85;padding:10px 3px;display:grid;align-content:center;gap:7px;background:#eef2ed}.sd-level-grid span{font-size:23px;font-weight:800}.sd-level-grid small{font-size:9px}.sd-page .sd-level-grid .available{background:#e6b765;border-color:#a97832;color:#264841}.sd-page .sd-level-grid .cleared{background:#d4e5d8;color:#245749}.sd-panel{background:#fffdf7;border:1px solid var(--sd-line);border-radius:14px;padding:23px;margin-bottom:22px}.sd-panel h2{font-size:24px;margin:5px 0 14px}.sd-panel h3{font-size:22px;line-height:1.25;margin:9px 0 13px}.sd-panel p{font-size:13px;line-height:1.7}.sd-game-heading{display:flex;gap:20px;align-items:center;margin:25px 0 17px}.sd-game-heading h2{font-size:31px;margin:3px 0}.sd-clock{margin-left:auto;font-size:24px;font-weight:800}.sd-clock small{display:block;font-size:10px;font-weight:500}.sd-game-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}.sd-board-panel{background:#fffdf7;border:1px solid var(--sd-line);padding:18px;border-radius:14px}.sd-instruction{font-size:13px;margin:0 0 15px;line-height:1.5}.sd-board{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));border:2px solid #28544f;background:#b6c8c1;gap:1px}.sd-page .sd-cell{border:0;border-radius:0;aspect-ratio:1;padding:0;min-height:0;min-width:0;font-size:28px;font-weight:600;background:#fffdf7;color:#286c98;position:relative}.sd-page .sd-cell.given{color:#243f3a;font-weight:850}.sd-page .sd-cell.peer{background:#edf4ef}.sd-page .sd-cell.same{background:#d7e8df}.sd-page .sd-cell.selected{background:#b5d5cb;box-shadow:inset 0 0 0 2px #376c61}.sd-page .sd-cell.conflict{color:#a23024;background:#ffe3d8;text-decoration:underline}.sd-page .sd-cell.hinted{box-shadow:inset 0 0 0 2px #c5792f}.sd-page .sd-cell.box-right{border-right:2px solid #28544f}.sd-page .sd-cell.box-bottom{border-bottom:2px solid #28544f}.sd-page .sd-cell:disabled{opacity:1}.sd-notes{display:grid;grid-template-columns:repeat(3,1fr);padding:3px;width:100%;height:100%;box-sizing:border-box}.sd-notes small{font-size:10px;font-weight:500;color:#637a75;display:flex;justify-content:center;align-items:center;line-height:1}.sd-numbers{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:5px;margin-top:15px}.sd-page .sd-numbers button{padding:10px 0;font-size:23px;background:#edf3ee;min-width:0}.sd-tools{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}.sd-page button[aria-pressed=true]{background:#28564f;color:white}.sd-save{font-size:11px;color:#667c75;margin:8px 0}.sd-small{font-size:11px!important;line-height:1.6}.sd-assist>button{width:100%;margin:5px 0}.sd-assist label{display:block;font-size:12px;line-height:1.5}.sd-page select,.sd-page input:not([type=checkbox]){width:100%;border:1px solid #aec5bc;border-radius:6px;padding:10px;background:white;color:#204b43;box-sizing:border-box;margin-top:7px}.sd-page input[type=checkbox]{margin-right:7px}.sd-hint-buy{padding:12px;background:#eaf2ec;border-radius:9px;margin:10px 0}.sd-hint{background:#fff0d3;border-left:3px solid #b47936;padding:12px;margin:14px 0}.sd-hint h4{margin:0 0 8px;font-size:14px}.sd-hint small{font-size:10px}.sd-assist hr{border:0;border-top:1px dashed #c1d0c9;margin:20px 0}.sd-result{padding:25px;background:#dcebdc;border:1px solid #b1c9ad;border-radius:14px;margin:20px 0}.sd-result h3{font-size:28px;margin:8px 0}.sd-result button{margin-right:10px}.sd-tabs{display:flex;gap:10px}.sd-page table{width:100%;border-collapse:collapse;margin:20px 0}.sd-page th,.sd-page td{text-align:left;border-bottom:1px solid #d7e1db;padding:13px;font-size:14px}.sd-profile{display:flex;flex-direction:column;gap:12px;max-width:430px}.sd-profile label{font-size:13px}.sd-callout{background:#e8f1e9;border-radius:10px;padding:14px;margin:15px 0}.sd-callout button{margin:5px}.sd-error{background:#ffe7dc;border:1px solid #d3a68d;padding:15px;margin:12px 0;border-radius:8px;font-size:14px}.sd-error button{margin-left:10px}.sd-local{font-size:11px;background:#fff0ca;padding:10px;border-radius:7px}.sd-practice{margin-top:25px;display:grid;grid-template-columns:1fr 1fr;gap:20px}.sd-practice details{border-top:1px solid #cad8ce;padding:14px 0}.sd-practice summary{cursor:pointer;font-size:14px;font-weight:750}.sd-mini-board{display:grid;grid-template-columns:repeat(9,1fr);max-width:320px;border:1px solid #52766b;margin:12px 0}.sd-mini-board span{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border:1px solid #c4d1c8;font-size:14px}.sd-mini-board span.target{background:#efc173;border:2px solid #b17b34}.sd-rules{margin-top:25px}.sd-practice label{font-size:12px;display:block;max-width:150px}.sd-practice button{margin-top:10px}@media(max-width:850px){.sd-game-layout{grid-template-columns:minmax(0,1fr)}.sd-assist{margin-top:0}.sd-board-panel{max-width:620px;width:100%;box-sizing:border-box;margin:auto}.sd-hero{gap:20px;padding:25px}.sd-level-grid{grid-template-columns:repeat(5,1fr)}.sd-chapter-badge strong{font-size:65px}}@media(max-width:600px){.sd-shell{padding:0 12px}.sd-page{padding-top:12px}.sd-header{display:block}.sd-header h1{font-size:29px}.sd-header nav{margin-top:18px;font-size:12px}.sd-progress{gap:12px;padding:13px;font-size:11px}.sd-progress>span:last-child{margin-left:0;flex-basis:100%}.sd-hero{grid-template-columns:1fr;padding:25px}.sd-hero h2{font-size:33px}.sd-chapter-badge{display:none}.sd-map details{padding:0 12px}.sd-level-grid{gap:7px}.sd-page .sd-level-grid button{aspect-ratio:.95}.sd-game-heading{gap:10px;flex-wrap:wrap}.sd-game-heading h2{font-size:25px}.sd-clock{font-size:21px}.sd-board-panel{padding:9px}.sd-page .sd-cell{font-size:23px}.sd-notes{padding:1px}.sd-notes small{font-size:8px}.sd-page .sd-numbers button{font-size:20px;min-height:43px}.sd-tools{gap:5px}.sd-tools button{padding:9px;font-size:11px}.sd-panel{padding:18px}.sd-practice{grid-template-columns:1fr}.sd-game-heading>button{font-size:11px;padding:9px}.sd-eyebrow{font-size:9px}.sd-result button{margin-top:10px}}
+.sd-board-panel{max-width:570px;width:100%;box-sizing:border-box}.sd-game-layout{grid-template-columns:minmax(0,570px) minmax(260px,1fr)}@media(max-width:850px){.sd-game-layout{grid-template-columns:minmax(0,1fr)}}
+
+/* Game-first entry: concise toolbar, current board before supporting content. */
+.sd-page{padding-top:10px}.sd-header{padding:0 0 10px}.sd-header h1{font-size:27px;margin:3px 0}.sd-header .sd-eyebrow{font-size:9px}.sd-header nav button{background:none;border:0;padding:0;min-height:36px;font-size:14px}.sd-progress{padding:9px 14px;margin-bottom:10px;gap:20px}.sd-progress b{font-size:17px}.sd-game-heading{margin:9px 0 10px;gap:14px}.sd-game-heading h2{font-size:25px}.sd-clock{font-size:20px}.sd-game-layout{grid-template-columns:minmax(0,450px) minmax(260px,1fr);gap:20px}.sd-board-panel{padding:10px;max-width:min(100%,calc(100dvh - 290px));justify-self:center}.sd-game-layout .sd-board-panel{min-width:330px}.sd-instruction{margin-bottom:8px;font-size:12px}.sd-page .sd-cell{font-size:25px}.sd-numbers{margin-top:9px;gap:4px}.sd-page .sd-numbers button{font-size:20px;padding:6px 0}.sd-tools{margin:8px 0;gap:5px}.sd-tools button{font-size:11px;padding:8px}.sd-assist{padding:18px}.sd-assist h3{font-size:21px}.sd-assist>p{font-size:12px}.sd-local{font-size:10px;margin-top:20px} .sd-page [hidden]{display:none!important}
+@media(max-width:850px){.sd-game-layout{grid-template-columns:1fr}.sd-board-panel{max-width:470px}.sd-game-layout .sd-board-panel{min-width:0}.sd-header h1{font-size:25px}}
+@media(max-width:600px){.sd-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.sd-header h1{font-size:23px}.sd-header nav{gap:13px;margin-top:2px;width:100%;font-size:11px}.sd-header nav button{font-size:11px;min-height:30px}.sd-header .sd-eyebrow{font-size:8px}.sd-progress{gap:12px;margin-bottom:8px;padding:7px 10px}.sd-progress>span:last-child{display:none}.sd-game-heading{margin:7px 0;gap:8px;flex-wrap:nowrap}.sd-game-heading>button{display:none}.sd-game-heading h2{font-size:22px}.sd-clock{font-size:17px}.sd-clock small{font-size:8px}.sd-game-heading .sd-eyebrow{font-size:8px}.sd-board-panel{padding:7px;max-width:100%}.sd-page .sd-cell{font-size:22px}.sd-instruction{font-size:11px}.sd-tools button{padding:7px;font-size:10px}.sd-header nav a:last-child{margin-left:auto}.sd-game-layout{gap:15px}.sd-page .sd-numbers button{min-height:42px}.sd-save{margin:6px 0}.sd-board-panel>.sd-small{display:none}}
+.sd-header .sd-eyebrow{display:none}.sd-header h1{font-size:25px}.sd-header{min-height:42px;padding-bottom:6px}.sd-game-heading{margin:7px 0}.sd-game-heading h2{font-size:23px}.sd-board-panel{max-width:min(100%,calc(100dvh - 360px))}.sd-progress{padding:7px 12px;margin-bottom:7px}@media(max-width:850px){.sd-board-panel{max-width:430px}}@media(max-width:600px){.sd-board-panel{max-width:100%}.sd-header{min-height:0}.sd-header h1{font-size:22px}.sd-header nav{margin-top:0}.sd-game-heading h2{font-size:21px}}
+.sd-merge fieldset{border:1px solid #b9cec1;border-radius:10px;margin:16px 0;padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:20px}.sd-merge legend{font-size:18px;font-weight:800}.sd-merge label{font-size:13px;line-height:1.6}.sd-merge input{margin-right:8px}.sd-merge .sd-mini-board{max-width:240px}.sd-tutorial{position:fixed;z-index:1000;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,calc(100vw - 32px));max-height:85dvh;overflow:auto;box-shadow:0 0 0 100vmax #142a2477,0 15px 70px #1235;box-sizing:border-box}.sd-rule-example{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;background:#b7ccc1;border:2px solid #385e50}.sd-rule-example>*{background:#f8fcf7;padding:12px 0;text-align:center;font-size:20px}.sd-rule-example>b{background:#efd197}.sd-page button.sd-how-inline{font-size:10px;padding:3px 6px;min-height:25px;margin-left:4px}.sd-progress a{font-size:11px;color:#285e53}.sd-network{background:#fff0d1;border:1px solid #d8bd8d;border-radius:8px;padding:10px;font-size:12px}@media(max-width:600px){.sd-merge fieldset{grid-template-columns:1fr}.sd-rule-example>*{font-size:17px;padding:8px 0}.sd-page button.sd-how-inline{font-size:9px;padding:3px}.sd-progress>span:last-child:has(a){display:block;flex-basis:100%}}
+
+/* Board is the primary task; assistance stays a compact secondary column. */
+.sd-game-layout{grid-template-columns:minmax(0,552px) 300px;gap:28px;justify-content:center}
+.sd-game-layout .sd-board-panel{width:100%;max-width:552px;min-width:0;justify-self:center}
+.sd-assist{padding:18px;background:#f5f8f3}
+.sd-assist h3{font-size:18px;line-height:1.35;margin:8px 0 10px}
+.sd-assist .sd-eyebrow{font-size:9px;letter-spacing:1.2px}
+.sd-assist>p{font-size:12px;line-height:1.6}
+.sd-assist>button{font-size:12px;min-height:40px;padding:9px 12px}
+.sd-assist>button.sd-primary{padding:10px 12px}
+.sd-assist hr{margin:16px 0}
+.sd-page .sd-cell{font-size:29px}
+
+@media(max-width:1000px) and (min-width:851px){.sd-game-layout{grid-template-columns:minmax(0,1fr) 270px;gap:22px}}
+@media(max-width:850px){.sd-game-layout{grid-template-columns:minmax(0,1fr);gap:18px}.sd-game-layout .sd-board-panel{max-width:552px}.sd-assist{width:100%;max-width:552px;box-sizing:border-box;justify-self:center}}
+@media(max-width:600px){.sd-page .sd-cell{font-size:22px}.sd-game-layout .sd-board-panel{max-width:100%}.sd-assist{padding:16px}}
+
+
+/* Reading content follows the game; short groups and examples keep it scannable. */
+.sd-guide{margin:40px auto 0;max-width:1000px}
+.sd-guide h2{font-size:26px;line-height:1.3;margin:0 0 16px}
+.sd-guide h3{font-size:18px;line-height:1.4;margin:8px 0}
+.sd-guide p,.sd-guide li{font-size:14px;line-height:1.85;color:#365653}
+.sd-guide p{max-width:76ch;margin:10px 0}
+.sd-guide-intro{padding:0 0 28px}.sd-guide-intro h2{margin-top:10px}
+.sd-guide nav{display:flex;gap:10px 22px;flex-wrap:wrap;margin-top:20px}
+.sd-guide a{color:#235e54;font-size:13px;text-underline-offset:4px}
+.sd-guide-section{border-top:1px solid #bfd0cc;padding:30px 0;scroll-margin-top:24px}
+.sd-guide-columns{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:30px}
+.sd-guide ol{padding-left:20px;margin:12px 0}.sd-guide li+li{margin-top:10px}
+.sd-guide-example{background:#fffdf7;border:1px solid #bfd0cc;border-radius:12px;padding:20px;align-self:start}
+.sd-guide-example small{font-size:11px;color:#60796f}
+.sd-guide-row{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));border:1px solid #315e52;margin:18px 0}
+.sd-guide-row span{text-align:center;padding:9px 0;font-size:17px;border-right:1px solid #c6d4cc}.sd-guide-row span:last-child{background:#ecd29d;border:0;font-weight:800}
+.sd-guide-bands{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:22px 0}
+.sd-guide-bands>div{border-left:3px solid #7faaa0;background:#f8fbf6;padding:16px}
+.sd-guide-bands span{font-size:10px;letter-spacing:1px;font-weight:800;color:#567c70}.sd-guide-bands h3{font-size:16px}.sd-guide-bands p{font-size:13px}
+.sd-guide-techniques{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sd-guide-techniques>section{background:#fffdf7;border:1px solid #c7d6cd;border-radius:12px;padding:22px}
+.sd-guide-step{font-size:12px;font-weight:800;color:#537f70}
+.sd-guide .sd-guide-tip{background:#edf4ed;padding:12px 14px;border-radius:7px;font-size:13px;margin-top:16px}
+.sd-guide-checklist{max-width:78ch}
+.sd-guide-faq details{border-bottom:1px solid #cad8d1;padding:17px 0}.sd-guide-faq summary{font-size:15px;font-weight:750;cursor:pointer;line-height:1.6}.sd-guide-faq details p{padding-left:18px;margin-bottom:0}
+.sd-guide-more{padding:24px;background:#dfece4;border-radius:12px;display:flex;flex-wrap:wrap;gap:15px 26px}.sd-guide-more>div{flex-basis:100%}.sd-guide-more h2{font-size:22px;margin:0}.sd-guide-more p{margin-bottom:0}
+@media(max-width:850px){.sd-guide-bands{grid-template-columns:1fr 1fr}.sd-guide-columns{grid-template-columns:1fr}.sd-guide-example{max-width:420px}}
+@media(max-width:600px){.sd-guide{margin-top:30px}.sd-guide h2{font-size:23px}.sd-guide-section{padding:25px 0}.sd-guide-techniques{grid-template-columns:1fr}.sd-guide-techniques>section{padding:18px}.sd-guide-bands{gap:10px}.sd-guide-bands>div{padding:12px}.sd-guide-bands h3{font-size:15px}.sd-guide nav{gap:12px 18px}.sd-guide p,.sd-guide li{font-size:14px}.sd-guide-more{padding:18px}}
+
+/* One shared alignment axis for the game, practice and reading sections. */
+.sd-shell{width:100%;max-width:928px;box-sizing:border-box;padding:0 24px}
+.sd-guide{max-width:none;width:100%;margin:32px 0 0}
+.sd-game-layout{grid-template-columns:minmax(0,552px) 300px;gap:28px}
+.sd-game-layout .sd-board-panel{justify-self:stretch}
+.sd-practice{display:block;margin:24px 0 0;padding:20px}
+.sd-practice-entry{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:16px;align-items:center}
+.sd-practice-entry h2{font-size:19px;line-height:1.35;margin:0 0 5px}
+.sd-practice-entry p{font-size:12px;line-height:1.7;margin:0;max-width:52ch}
+.sd-practice-entry button{display:flex;gap:9px;align-items:center;margin:0;white-space:nowrap}
+.sd-practice-body{border-top:1px solid #cad8ce;padding-top:12px;margin-top:20px}
+.sd-practice-body details{max-width:100%}
+.sd-practice-body details:first-child{border-top:0}
+.sd-offline-status{display:flex;align-items:center;gap:5px;font-size:10px;line-height:1.6;margin-top:5px;color:#527466}
+.sd-offline-status svg{flex-shrink:0}
+.sd-section-title{display:flex;align-items:center;gap:12px}
+.sd-section-icon{display:inline-flex;align-items:center;justify-content:center;background:#e0ece3;color:#2a6654;border:1px solid #c5d9cc;border-radius:10px;width:42px;height:42px;flex-shrink:0}
+.sd-guide .sd-section-title{font-size:24px;margin:0 0 18px}
+.sd-guide-intro{padding-bottom:26px}.sd-guide-intro>p{max-width:76ch}
+.sd-guide nav{padding:14px 0 0;border-top:1px solid #cad8d1;margin-top:22px}
+.sd-guide nav a{padding:4px 0;font-weight:650}
+.sd-guide-example{background:#fff7e7;border-color:#ddcda9}
+.sd-guide-bands{gap:0;background:#f7faf6;border:1px solid #cadbd0;border-radius:10px;overflow:hidden}
+.sd-guide-bands>div{border-left:0;border-top:3px solid #699981;background:transparent;padding:17px}
+.sd-guide-bands>div+div{border-left:1px solid #cadbd0}
+.sd-guide-step{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#e0ece3;color:#2a6654;margin-bottom:5px}
+.sd-guide .sd-guide-tip{background:#fff3db;border-left:3px solid #ccaa62;border-radius:0 6px 6px 0}
+.sd-guide-checklist{list-style:none;counter-reset:sd-check;padding-left:0!important;max-width:none}
+.sd-guide-checklist li{position:relative;counter-increment:sd-check;padding-left:38px;max-width:75ch}
+.sd-guide-checklist li::before{content:counter(sd-check);position:absolute;left:0;top:4px;width:24px;height:24px;background:#dcebe0;border-radius:50%;text-align:center;line-height:24px;font-size:12px;font-weight:750;color:#2a6654}
+.sd-guide-faq summary::marker{color:#3d7861}
+.sd-guide-more .sd-section-title{font-size:22px}
+@media(max-width:850px){.sd-shell{max-width:600px}.sd-game-layout{grid-template-columns:minmax(0,1fr);gap:18px}.sd-assist{max-width:none}.sd-practice-entry{grid-template-columns:38px minmax(0,1fr);gap:12px}.sd-practice-entry button{grid-column:2;justify-self:start}.sd-guide-columns{gap:20px}.sd-guide-example{max-width:none}.sd-guide-bands>div:nth-child(3){border-left:0}.sd-guide-bands>div:nth-child(n+3){border-top:1px solid #cadbd0}.sd-guide-techniques{grid-template-columns:1fr}}
+@media(max-width:600px){.sd-shell{padding:0 12px}.sd-practice{padding:16px;margin-top:18px}.sd-practice-entry h2{font-size:18px}.sd-practice-entry .sd-section-icon{width:36px;height:36px}.sd-guide .sd-section-title{font-size:22px;gap:10px;align-items:flex-start}.sd-section-icon{width:36px;height:36px;border-radius:8px}.sd-section-title>span:last-child{padding-top:3px}.sd-guide-bands>div{padding:13px}.sd-guide-more .sd-section-title{font-size:20px}}
+
+/* Wide desktop canvas, with colour reserved for content markers. */
+.sd-shell{max-width:1188px}
+.sd-game-layout{grid-template-columns:minmax(0,1fr) 320px}
+.sd-game-layout .sd-board-panel{max-width:none;padding:16px 20px}
+.sd-board-panel>.sd-board,.sd-board-panel>.sd-numbers,.sd-board-panel>.sd-tools,.sd-board-panel>.sd-save,.sd-board-panel>.sd-small,.sd-board-panel>.sd-instruction{max-width:580px;margin-left:auto;margin-right:auto}
+.sd-board-panel>.sd-tools{justify-content:flex-start}
+.sd-section-icon{color:var(--sd-marker,#27664c);background:var(--sd-marker-bg,#e1f0e5);border-color:var(--sd-marker-border,#bbd8c4)}
+#sd-rules-guide{--sd-marker:#2863a3;--sd-marker-bg:#e5effc;--sd-marker-border:#bdd2ed}
+#sd-difficulty{--sd-marker:#7351a4;--sd-marker-bg:#eee8fa;--sd-marker-border:#d4c5eb}
+#sd-strategies{--sd-marker:#946009;--sd-marker-bg:#fff0cc;--sd-marker-border:#e8d093}
+#sd-stuck{--sd-marker:#ae531c;--sd-marker-bg:#ffeadb;--sd-marker-border:#ebc8b0}
+#sd-faq{--sd-marker:#187482;--sd-marker-bg:#def2f4;--sd-marker-border:#b2dbe0}
+.sd-guide-bands{border-color:#d4c5eb}.sd-guide-bands>div{border-top-color:#9273bb}.sd-guide-bands span{color:#7351a4}
+.sd-guide-step{color:#946009;background:#fff0cc}
+.sd-guide-checklist li::before{color:#ae531c;background:#ffeadb}
+.sd-guide-faq summary::marker{color:#187482}
+.sd-guide-more{--sd-marker:#50657f;--sd-marker-bg:#e9eef6;--sd-marker-border:#c9d3e3}
+@media(min-width:851px) and (min-height:1000px){.sd-board-panel>.sd-board,.sd-board-panel>.sd-numbers,.sd-board-panel>.sd-tools,.sd-board-panel>.sd-save,.sd-board-panel>.sd-small,.sd-board-panel>.sd-instruction{max-width:620px}}
+@media(min-width:851px) and (max-height:800px){.sd-board-panel>.sd-board,.sd-board-panel>.sd-numbers,.sd-board-panel>.sd-tools,.sd-board-panel>.sd-save,.sd-board-panel>.sd-small,.sd-board-panel>.sd-instruction{max-width:480px}}
+@media(max-width:1000px) and (min-width:851px){.sd-game-layout{grid-template-columns:minmax(0,1fr) 300px;gap:22px}.sd-game-layout .sd-board-panel{padding:10px}}
+@media(max-width:850px){.sd-shell{max-width:760px}.sd-game-layout{grid-template-columns:minmax(0,1fr);gap:18px}.sd-game-layout .sd-board-panel{padding:16px}.sd-board-panel>.sd-board,.sd-board-panel>.sd-numbers,.sd-board-panel>.sd-tools,.sd-board-panel>.sd-save,.sd-board-panel>.sd-small,.sd-board-panel>.sd-instruction{max-width:580px}}
+@media(max-width:600px){.sd-game-layout .sd-board-panel{padding:7px}}
+/* Cap desktop board growth according to height while preserving its visual priority. */
+@media(min-width:851px){.sd-board-panel>.sd-board,.sd-board-panel>.sd-numbers,.sd-board-panel>.sd-tools,.sd-board-panel>.sd-save,.sd-board-panel>.sd-small,.sd-board-panel>.sd-instruction{max-width:clamp(480px,calc(100dvh - 400px),620px)}}
+
