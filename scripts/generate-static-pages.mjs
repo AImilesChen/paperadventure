@@ -7,12 +7,17 @@ import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { createServer } from 'vite';
 import { publicPages } from '../shared/page-manifest.mjs';
+import {catalogSummary} from '../shared/sudoku/catalog.mjs';
 import { publicRelease, publicReleaseData, readPublicRelease, htmlJson } from '../shared/public-release.mjs';
 import { pageSchema } from '../shared/seo.mjs';
 import { siteIdentity, pageDocumentTitle } from '../shared/site-identity.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
+// A newly published bank gets a fresh offline shell and discards obsolete build
+// assets, without ever caching account/API responses.
+const sudokuSw=await readFile(path.join(root,'public/en/sudoku/sw.js'),'utf8');
+await writeFile(path.join(out,'en/sudoku/sw.js'),sudokuSw.replace('paw-sudoku-shell-v40-1',`paw-sudoku-shell-v40-1-${catalogSummary.version}`));
 const origin = process.env.SITE_ORIGIN || 'https://paperadventure.app';
 if (!/^https:\/\/[^/]+$/.test(origin)) throw new Error('SITE_ORIGIN must be an HTTPS origin without a path');
 

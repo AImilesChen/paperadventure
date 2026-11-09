@@ -1,0 +1,96 @@
+name: Maintain verified Sudoku stock
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/sudoku-bank-maintenance.yml]
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Inspect stock without changing or deploying it'
+        type: boolean
+        default: true
+permissions:
+  contents: write
+concurrency:
+  group: sudoku-bank-maintenance
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: vars.SUDOKU_BANK_AUTOMATION != 'disabled' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+      source_ref: ${{ steps.commit.outputs.source_ref }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: frontend-prd-v13-2026-10-08
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Generate and independently validate stock before appending a batch
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+        run: |
+          if [ "$DRY_RUN" = true ]; then npm run sudoku:bank:plan; else npm run sudoku:bank; fi
+          npm run sudoku:bank:verify
+      - run: npm run build
+      - run: npm run test:static
+      - run: npm run test:backend
+      - run: npm run test:sites
+      - run: npm run test:release
+      - name: Commit only verified bank artifacts, retaining an exact deployment ref
+        id: commit
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+        run: |
+          if [ "$DRY_RUN" = true ]; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git diff --quiet -- backend/sudoku/puzzles.json backend/sudoku/bank-stock.json shared/sudoku/catalog.mjs; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -- backend/sudoku/puzzles.json backend/sudoku/bank-stock.json shared/sudoku/catalog.mjs
+            git commit -m 'Append verified Sudoku stock and published catalogue'
+          # A rejected fast-forward push is a safe failure: never overwrite work
+          # committed by another release while this generator was running.
+            git push origin HEAD:frontend-prd-v13-2026-10-08
+          fi
+          # Retry a committed batch after an earlier API deployment failure.
+          # Reserve-only updates need no new API bundle.
+          publish_changed=$(node scripts/check-sudoku-bank-upgrade.mjs --needs-deploy)
+          echo "source_ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "changed=$publish_changed" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: sudoku-stock-failure-${{ github.run_id }}
+          path: |
+            backend/sudoku/bank-policy.json
+            backend/sudoku/bank-candidates.json
+          if-no-files-found: ignore
+          retention-days: 7
+  deploy-api:
+    needs: prepare
+    if: needs.prepare.outputs.changed == 'true'
+    permissions:
+      contents: read
+    uses: AImilesChen/paperadventure/.github/workflows/deploy-sudoku.yml@frontend-prd-v13-2026-10-08
+    with:
+      source_ref: ${{ needs.prepare.outputs.source_ref }}
+    secrets: inherit
+  deploy-site:
+    needs: [prepare, deploy-api]
+    if: needs.prepare.outputs.changed == 'true'
+    permissions:
+      contents: read
+    uses: AImilesChen/paperadventure/.github/workflows/deploy-preview.yml@frontend-prd-v13-2026-10-08
+    with:
+      source_ref: ${{ needs.prepare.outputs.source_ref }}
+    secrets: inherit

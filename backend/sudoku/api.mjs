@@ -1,3 +1,4 @@
+import {publicCatalog,catalogSummary} from '../../shared/sudoku/catalog.mjs';
 import {unassistedClears,rankingStatus} from '../../shared/sudoku/ranking.mjs';
 import{mergeConflicts,mergeAccounts}from'./merge.mjs';
 import {applyAction,freshAccount,publicState,puzzles,SudokuError}from'./service.mjs';
@@ -12,25 +13,17 @@ export class D1SudokuStore{
  async get(owner){const row=await query(this.db,'SELECT * FROM sudoku_accounts WHERE owner=?',owner).first();return row?{...row,state:JSON.parse(row.state_json)}:null;}
  async cas(row,state,profile={},at=Date.now()){const r=await query(this.db,'UPDATE sudoku_accounts SET state_json=?,revision=revision+1,highest=?,independent=?,assisted=?,nickname=?,listed=?,updated_at=? WHERE owner=? AND revision=?',JSON.stringify(state),state.highest,unassistedClears(state),Object.values(state.completions).filter(c=>c.assisted).length,profile.nickname??row.nickname,profile.listed??row.listed,Date.now(),row.owner,row.revision).run();return Number(r.meta?.changes)===1;}
  async ranks(mode,owner){
-  // Derive legacy scores on read: old prefix counters never exclude later first clears.
-  // No rewriting of historical completion records or production data migration.
-  const score=mode==='independent'?'unassisted':'highest';
-  const sql=`WITH scores AS (
-   SELECT owner,nickname,highest,
-    (SELECT COUNT(*) FROM json_each(sudoku_accounts.state_json,'$.completions') c
-     WHERE CAST(c.key AS INTEGER) BETWEEN 1 AND MIN(highest,100)
-      AND json_extract(c.value,'$.assisted')=0) AS unassisted
-   FROM sudoku_accounts WHERE version='v1' AND verified=1 AND listed=1
-  ), eligible AS (SELECT *,${score} AS score FROM scores WHERE ${score}>0),
-  ranked AS (SELECT *,DENSE_RANK() OVER(ORDER BY score DESC) AS rank,
+  const sql=`WITH eligible AS (
+   SELECT owner,nickname,highest,highest AS score FROM sudoku_accounts
+   WHERE version='v1' AND verified=1 AND listed=1 AND highest>0
+  ), ranked AS (SELECT *,DENSE_RANK() OVER(ORDER BY score DESC) AS rank,
    ROW_NUMBER() OVER(ORDER BY score DESC,nickname COLLATE NOCASE,owner) AS position,
    COUNT(*) OVER(PARTITION BY score) AS tied FROM eligible)
   SELECT * FROM ranked WHERE position<=50 OR owner=? ORDER BY position`;
   const records=(await query(this.db,sql,owner).all()).results;
-  const present=r=>({nickname:r.nickname,score:r.score,highest:r.highest,unassisted:r.unassisted,rank:r.rank,tied:r.tied>1,mine:r.owner===owner});
+  const present=r=>({nickname:r.nickname,score:r.score,highest:r.highest,rank:r.rank,tied:r.tied>1,mine:r.owner===owner});
   const mine=records.find(r=>r.owner===owner),account=await this.get(owner);
-  const personal={highest:account?.state.highest||0,unassisted:unassistedClears(account?.state),status:rankingStatus(account,mode)};
-  return {rows:records.filter(r=>r.position<=50).map(present),mine:mine?present(mine):null,personal,limit:50};
+  return {rows:records.filter(r=>r.position<=50).map(present),mine:mine?present(mine):null,personal:{highest:account?.state.highest||0,status:rankingStatus(account,'all')},limit:50,catalog:catalogSummary};
  }
 
 
@@ -40,10 +33,12 @@ const practiceSet=Array.from({length:3},(_,i)=>{const solved=Array.from({length:
 
 export async function sudokuApi(request,env,{authenticate=async()=>null,store=env.DB?new D1SudokuStore(env.DB):null,clock=()=>Date.now()}={}){
  const url=new URL(request.url),path=url.pathname.replace('/api/v1/sudoku','');if(/^\/weekly(?:\/|$)/.test(path))return response({error:{code:'WEEKLY_RETIRED',message:'The weekly challenge has closed. Your points and saved progress are kept.'},continueUrl:'/en/sudoku/'},410);if(!store)return response({error:{code:'SUDOKU_NOT_CONFIGURED',message:'Sudoku is not available on this server yet.'}},503);
+ if(path==='/catalog'&&request.method==='GET')return response({catalog:publicCatalog});
+ if(path==='/leaderboard'&&url.searchParams.get('mode')==='independent')return response({error:{code:'SCORING_RETIRED',message:'The hint-free leaderboard has closed. All first clears count equally on the main leaderboard.'}},410);
  const receivedAt=clock();
  let cookie;
  try{
- if(path==='/health'&&request.method==='GET'){await store.get('health-probe');return response({ready:true,release:'sudoku-v30',weeklyVersion:0,weeklyRetired:true,leaderboardVersion:2});}
+ if(path==='/health'&&request.method==='GET'){await store.get('health-probe');return response({ready:true,release:'sudoku-v40',weeklyVersion:0,weeklyRetired:true,leaderboardVersion:3,catalog:catalogSummary});}
  if(!['GET','POST','PUT'].includes(request.method))throw new SudokuError(405,'METHOD_NOT_ALLOWED','Unsupported method.');
  if(request.method!=='GET'&&request.headers.get('origin')!==new URL(env.PUBLIC_ORIGIN||request.url).origin)throw new SudokuError(403,'ORIGIN_DENIED','This request origin is not allowed.');
  let token=request.headers.get('cookie')?.split(';').map(s=>s.trim()).find(s=>s.startsWith('paw_sudoku='))?.slice(11);if(!/^[a-f0-9]{64}$/.test(token||'')){token=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');cookie=`paw_sudoku=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000${url.protocol==='https:'?'; Secure':''}`;}
@@ -64,9 +59,9 @@ export async function sudokuApi(request,env,{authenticate=async()=>null,store=en
 
  const storageKey=await sha256('sudoku-cache:'+owner);
  const profile=()=>({storageKey,nickname:row.nickname,listed:Boolean(row.listed),authenticated:Boolean(hash)});
- if(request.method==='GET'&&path==='/progress')return response({state:publicState(row.state),profile:profile(),mergePending:pendingMerge,local:env.SUDOKU_LOCAL==='true'},200,cookie);
+ if(request.method==='GET'&&path==='/progress')return response({state:publicState(row.state),catalog:publicCatalog,profile:profile(),mergePending:pendingMerge,local:env.SUDOKU_LOCAL==='true'},200,cookie);
  if(path==='/merge'&&request.method==='POST')return response({state:publicState(row.state),profile:profile(),mergeCompleted:mergeDone},200,cookie);
- if(request.method==='GET'&&path==='/leaderboard'){const mode=url.searchParams.get('mode')==='independent'?'independent':'all';return response({...await store.ranks(mode,owner),mode,profile:profile()},200,cookie);}
+ if(request.method==='GET'&&path==='/leaderboard'){const mode='all';return response({...await store.ranks(mode,owner),mode,profile:profile()},200,cookie);}
  if(request.method==='GET'&&path==='/practice')return response({challenges:practiceSet.map(({digit,reason,...p})=>({...p,claimed:row.state.practiceClaims.includes(new Date().toISOString().slice(0,10)+':'+p.id)}))},200,cookie);
  if(!request.headers.get('content-type')?.includes('application/json'))throw new SudokuError(415,'JSON_REQUIRED','Send JSON.');const text=await request.text();if(text.length>24000)throw new SudokuError(413,'TOO_LARGE','Request too large.');let input;try{input=JSON.parse(text);}catch{throw new SudokuError(400,'JSON_INVALID','Invalid JSON.');}
  if(input.ownerKey&&input.ownerKey!==storageKey)throw new SudokuError(409,'OWNER_CHANGED','The signed-in account changed. Reload the current account; your earlier device copy is kept separately.');

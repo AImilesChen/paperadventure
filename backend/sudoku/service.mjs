@@ -1,12 +1,14 @@
 import {unassistedClears} from '../../shared/sudoku/ranking.mjs';
 import {board,validComplete,nextHint,name}from'../../shared/sudoku/engine.mjs';
 import puzzles from './puzzles.json' with {type:'json'};
+import {catalogSummary} from '../../shared/sudoku/catalog.mjs';
 export {puzzles};
+if(puzzles.length!==catalogSummary.publishedCount)throw Error('Sudoku catalogue and private bank differ');
 export class SudokuError extends Error{constructor(status,code,message){super(message);Object.assign(this,{status,code});}}
 const fail=(code,message,status=400)=>{throw new SudokuError(status,code,message);};
 export const freshAccount=()=>({version:'v1',balance:15,highest:0,independent:0,current:1,sessions:{},completions:{},seen:{},ledger:[{id:'welcome',delta:15,reason:'Welcome points'}],practiceClaims:[]});
 export function sanitiseBoard(raw,givens){let b;try{b=board(raw);}catch{fail('BOARD_INVALID','Send 81 digits.');}if(board(givens).some((n,i)=>n&&b[i]!==n))fail('GIVENS_CHANGED','Original digits cannot be changed.');return b;}
-export function publicState(a){return{version:a.version,balance:a.balance,highest:a.highest,independent:unassistedClears(a),current:a.current,completions:a.completions,ledger:a.ledger.slice(-30),sessions:Object.fromEntries(Object.entries(a.sessions).map(([id,s])=>[id,{...s,hints:undefined}]))};}
+export function publicState(a){return{version:a.version,balance:a.balance,highest:a.highest,independent:unassistedClears(a),current:a.completions[a.current]&&a.current===a.highest?Math.min(a.highest+1,puzzles.length):a.current,catalog:catalogSummary,completions:a.completions,ledger:a.ledger.slice(-30),sessions:Object.fromEntries(Object.entries(a.sessions).filter(([,s])=>s.level===a.current).map(([id,s])=>[id,{...s,hints:undefined}]))};}
 export function applyAction(account,action,input,now=Date.now(),{bank=puzzles,reward=null}={}){
  const a=structuredClone(account);a.independent=unassistedClears(a);if(action==='start'){const level=Number(input.level);if(!Number.isInteger(level)||level<1||level>bank.length||level>a.highest+1)fail('LEVEL_LOCKED','Complete earlier levels first.',403);const p=bank[level-1];a.current=level;a.sessions[p.id]??={id:p.id,level,board:board(p.givens),notes:Array.from({length:81},()=>[]),startedAt:null,finishedAt:null,savedAt:now,revision:0,hints:[],lastHints:[],completed:false,practice:false};return {account:a,result:{session:a.sessions[p.id],puzzle:{id:p.id,level,givens:p.givens,chapter:p.chapter,rank:p.rank,techniques:p.techniques},state:publicState(a)}};}
  const s=a.sessions[input.sessionId];if(!s)fail('SESSION_NOT_FOUND','Open this level first.',404);const p=bank[s.level-1];

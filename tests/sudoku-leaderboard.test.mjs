@@ -25,7 +25,7 @@ test('SQLite ranks old accounts from real records, excludes private/guest/zero s
   await insert(f,'account:alice',historical(20,[1,4,9,12,18]),{nickname:'Alice'});await insert(f,'account:bob',historical(20,[2,5,10,13,19]),{nickname:'Bob'});await insert(f,'account:carol',historical(18),{nickname:'Carol'});
   await insert(f,'private-secret',historical(100),{listed:0});await insert(f,'guest-secret',historical(100),{verified:0});await insert(f,'zero',historical(0));
   let r=await f.store.ranks('all','account:alice');assert.deepEqual(r.rows.map(x=>[x.nickname,x.rank,x.score]),[['Alice',1,20],['Bob',1,20],['Carol',2,18]]);assert.equal(r.mine.tied,true);
-  r=await f.store.ranks('independent','account:alice');assert.deepEqual(r.rows.map(x=>[x.nickname,x.rank,x.score]),[['Carol',1,18],['Alice',2,15],['Bob',2,15]]);assert.equal(r.personal.unassisted,15);assert(!JSON.stringify(r).includes('account:'));assert(!JSON.stringify(r).includes('secret'));
+  r=await f.store.ranks('all','account:alice');assert.deepEqual(r.rows.map(x=>[x.nickname,x.rank,x.score]),[['Alice',1,20],['Bob',1,20],['Carol',2,18]]);assert.equal(r.personal.unassisted,undefined);assert(!JSON.stringify(r).includes('account:'));assert(!JSON.stringify(r).includes('secret'));
   assert.equal((await f.store.get('account:alice')).state.independent,0,'read compatibility does not rewrite stored history');
  }finally{f.db.close();}
 });
@@ -35,8 +35,8 @@ test('personal rank remains accurate outside the top 50, including a tie crossin
   r=await f.store.ranks('all','account:53');assert.equal(r.mine.rank,1);assert.equal(r.mine.tied,true);assert.equal(r.rows.length,50);
  }finally{f.db.close();}
 });
-test('entry statuses distinguish guest, private, no first clear, no hint-free clear and eligible',async()=>{
- const f=await fixture();try{for(const [owner,a,options,status]of [['guest',historical(2),{verified:0},'guest'],['private',historical(2),{listed:0},'private'],['new',historical(0),{},'no_clears'],['assisted',historical(2,[1,2]),{},'no_unassisted'],['eligible',historical(2,[1]),{},'ranked']]){await insert(f,owner,a,options);const r=await f.store.ranks('independent',owner);assert.equal(r.personal.status,status);assert.equal(Boolean(r.mine),status==='ranked');}}finally{f.db.close();}
+test('entry statuses admit hinted clears equally and distinguish guest, private and no clear',async()=>{
+ const f=await fixture();try{for(const [owner,a,options,status]of [['guest',historical(2),{verified:0},'guest'],['private',historical(2),{listed:0},'private'],['new',historical(0),{},'no_clears'],['assisted',historical(2,[1,2]),{},'ranked'],['eligible',historical(2,[1]),{},'ranked']]){await insert(f,owner,a,options);const r=await f.store.ranks('all',owner);assert.equal(r.personal.status,status);assert.equal(Boolean(r.mine),status==='ranked');}}finally{f.db.close();}
 });
 test('writes and account linking recalculate legacy scores while keeping assisted first clears',async()=>{
  const f=await fixture();try{const a=historical(4,[1]);await insert(f,'account:old',a);const row=await f.store.get('account:old');assert(await f.store.cas(row,row.state));assert.equal(f.db.prepare('SELECT independent FROM sudoku_accounts WHERE owner=?').get('account:old').independent,3);
@@ -44,10 +44,21 @@ test('writes and account linking recalculate legacy scores while keeping assiste
  }finally{f.db.close();}
 });
 test('API gives guests useful personal progress without exposing their scores publicly',async()=>{
- const f=await fixture();try{const r=await sudokuApi(new Request('https://test.local/api/v1/sudoku/leaderboard?mode=independent'),{PUBLIC_ORIGIN:'https://test.local'},{store:f.store});assert.equal(r.status,200);const d=await r.json();assert.equal(d.mode,'independent');assert.equal(d.personal.status,'guest');assert.equal(d.limit,50);assert.deepEqual(d.rows,[]);assert.equal(d.mine,null);assert.match(r.headers.get('cache-control'),/no-store/);}finally{f.db.close();}
+ const f=await fixture();try{const r=await sudokuApi(new Request('https://test.local/api/v1/sudoku/leaderboard'),{PUBLIC_ORIGIN:'https://test.local'},{store:f.store});assert.equal(r.status,200);const d=await r.json();assert.equal(d.mode,'all');assert.equal(d.personal.status,'guest');assert.equal(d.limit,50);assert.deepEqual(d.rows,[]);assert.equal(d.mine,null);assert.match(r.headers.get('cache-control'),/no-store/);}finally{f.db.close();}
 });
 
 test('linking progress cannot retroactively mark a hint-free first clear assisted by a later replay hint',()=>{
  const a=historical(2),g=historical(2);a.seen[1]=true;const m=mergeAccounts(a,g,'guest-replay');assert.equal(m.completions[1].assisted,false);assert.equal(m.independent,2);assert.equal(m.seen[1],true);
  g.completions[1].assisted=true;const conservative=mergeAccounts(a,g,'guest-assisted');assert.equal(conservative.completions[1].assisted,true);assert.equal(conservative.independent,1);
+});
+
+
+test('total ranks count levels beyond 100 equally for hinted and unaided players',async()=>{
+ const f=await fixture();try{
+  await insert(f,'account:hinted',historical(150,Array.from({length:150},(_,i)=>i+1)),{nickname:'HintsWelcome'});
+  await insert(f,'account:unaided',historical(150),{nickname:'Unaided'});
+  const r=await f.store.ranks('all','account:hinted');assert.equal(r.rows.length,2);
+  assert(r.rows.every(row=>row.score===150&&row.rank===1&&row.tied));
+  assert(!JSON.stringify(r).includes('unassisted'));assert.equal(r.personal.status,'ranked');
+ }finally{f.db.close();}
 });
