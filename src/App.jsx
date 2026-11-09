@@ -1,4 +1,3 @@
-import SudokuWeekly from './sudokuWeekly.jsx';
 import {SudokuDisclosure} from './sudokuNavigation.jsx';
 import SudokuLessons from './sudokuLessons.jsx';
 import {prepareSudokuLeave} from './sudoku-leave.mjs';
@@ -24,6 +23,7 @@ import { BirthdayOccasion } from './birthdayOccasion.jsx';
 import { ChristmasOccasion } from './christmasOccasion.jsx';
 import FreePuzzles from './freePuzzles.jsx';
 import Sudoku from './sudoku.jsx';
+import {retiredWeeklyTarget} from '../shared/sudoku-retirement.mjs';
 import { EscapeGamesHub, LighthouseDetail, LighthousePlay } from './lighthouseGame.jsx';
 import { HomeSamples, HomeCustomStory, HomeGuides } from './homeSections.jsx';
 import { analyticsAvailable } from './analytics.js';
@@ -245,6 +245,8 @@ function MyAdventuresPage() { const draft = initialDraft(); return <main><PageIn
 function OrderPage() { const [state, setState] = useState(0); const states = [['Proposal selected','Your story direction is chosen. In the real product, payment would be a separate confirmed step.'],['Payment pending','A production checkout would clearly show the final price and terms before charging.'],['Creating adventure','After successful payment, the adventure would be generated and checked.'],['Files ready','Player materials and an organiser guide would become available once verified.']]; return <main><PageIntro eyebrow="ORDER FLOW DEMO" title="What happens after you choose." body="Explore the planned order states. This is a visual demonstration; there is no payment, generation, or download." /><div className="order-demo"><div className="order-progress">{states.map(([name],i) => <button key={name} onClick={() => setState(i)} className={state === i ? 'active' : ''}><span>{i + 1}</span>{name}</button>)}</div><div className="order-status"><span className="eyebrow">DEMO STATE {state + 1} OF 4</span><h2>{states[state][0]}</h2><p>{states[state][1]}</p><div className="prototype-notice"><DownloadSimple size={22} /><div><strong>Preview only</strong><p>No real order or printable file exists in this prototype.</p></div></div><button className="button" onClick={() => setState((state + 1) % 4)}>Next state <ArrowRight size={18} /></button></div></div></main>; }
 function LegalPage({ kind }) { const title = { privacy:'Privacy Policy', terms:'Terms of Use', cookies:'Cookie Notice', refunds:'Refund Policy' }[kind] || 'Legal information'; return <main><PageIntro eyebrow="LEGAL INFORMATION" title={title} body="This policy is under legal review and is not yet published for production use." /><div className="legal-notice"><h2>Policy in preparation</h2><p>The site’s legal and compliance draft exists separately for review. This prototype intentionally does not display unfinished policy text as final terms.</p><Link className="text-link" to="/en/help/">Visit Help <ArrowRight size={18} /></Link></div></main>; }
 
+function RetiredWeekly({route}){const target=retiredWeeklyTarget(route);useEffect(()=>{window.location.replace(target);},[target]);return <main className="sd-page"><div className="sd-shell"><h1>Continue your Sudoku adventure</h1><p>The weekly challenge has closed. Your points and saved progress are kept.</p><a href={target}>Continue to Sudoku</a></div></main>;}
+
 export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   const [routeLocation, setRouteLocation] = useState(() => `${path()}${window.location.search}`);
   const [queryReady, setQueryReady] = useState(false);
@@ -321,13 +323,13 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   const conflictDialogRef = useModalFocus(Boolean(conflictTo), dismissConflict);
   useEffect(() => { const show = () => setConflictTo(pendingNavigation); window.addEventListener('draft-conflict', show); return () => window.removeEventListener('draft-conflict', show); }, []);
   let page;
-  if (route !== '/' && !pageFor(route) && !isPrivateOrderRoute(route)) page = <NotFoundPage />;
+  if (retiredWeeklyTarget(route)) page = <RetiredWeekly route={route}/>;
+  else if (route !== '/' && !pageFor(route) && !isPrivateOrderRoute(route)) page = <NotFoundPage />;
   else if (route === '/en/' || route === '/') page = <Home sampleReady={Boolean(runtime?.sample)} />;
   else if (route.startsWith('/en/themes/') && route !== '/en/themes/') page = <ThemeDetailPage Link={Link} themeId={route.split('/')[3]} selectedSetting={['home', 'classroom'].includes(route.split('/')[4]) ? route.split('/')[4] : queryReady ? new URLSearchParams(routeLocation.split('?')[1] || '').get('setting') : null} catalog={runtimeCatalog} runtime={runtime} />;
   else if (route.startsWith('/en/themes')) page = <WorldsOverview Link={Link} catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
-  else if (['/en/sudoku/weekly/','/en/sudoku/weekly/play/','/en/sudoku/weekly/leaderboard/'].includes(route)) page = <SudokuWeekly key={routeLocation} route={route} Link={Link}/>;
   else if (['/en/sudoku/how-to-play/','/en/sudoku/techniques/'].includes(route)) page = <SudokuLessons key={route} route={route}/>;
   else if (['/en/sudoku/','/en/sudoku/play/','/en/sudoku/levels/','/en/sudoku/leaderboard/'].includes(route)) page = <Sudoku key={routeLocation} Link={Link} route={route}/>;
   else if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;

@@ -4,9 +4,6 @@ import { guides } from './guides.mjs';
 const page = (path, title, description, indexable = true) => ({ path, title, description, indexable });
 
 export const publicPages = Object.freeze([
-  page('/en/sudoku/weekly/', 'Weekly Sudoku Challenge | Ten New Puzzles', 'Play ten new Sudoku puzzles each week, save your progress and compare weekly first clears.', false),
-  page('/en/sudoku/weekly/play/', 'Play Weekly Sudoku', 'Continue your saved weekly Sudoku puzzle.', false),
-  page('/en/sudoku/weekly/leaderboard/', 'Weekly Sudoku Leaderboard', 'Compare weekly first clears and hint-free progress. Equal scores share a rank.', false),
   page('/en/sudoku/', 'Online Sudoku | 100 Levels & Solving Tips', 'Play 100 Sudoku levels with saved progress and thinking hints. Learn the rules, singles, locked candidates and pairs as you build your solving skills.'),
   page('/en/sudoku/levels/', 'Sudoku Level Map | 100 Progressive Puzzles', 'View your ten-chapter Sudoku trail, resume your saved level and revisit completed puzzles.', false),
   page('/en/sudoku/how-to-play/', 'How to Play Sudoku | Rules & Controls', 'Learn Sudoku rules with row, column and box diagrams, a separate placement example, controls and clear completion requirements.'),
