@@ -1,3 +1,6 @@
+import {SudokuDisclosure} from './sudokuNavigation.jsx';
+import SudokuLessons from './sudokuLessons.jsx';
+import {prepareSudokuLeave} from './sudoku-leave.mjs';
 import{clearDeviceCopies}from'./sudoku-device.mjs';
 import{SudokuHomeEntry}from'./sudokuEntry.jsx';
 import {EscapeFoldCityDetail} from './escapeFoldCity.jsx';
@@ -49,7 +52,7 @@ const faq = [
 function path() { return window.location.pathname; }
 const isPrivateOrderRoute = route => /^\/en\/orders\/[A-Za-z0-9-]+\/?$/.test(route) && !/^\/en\/orders\/demo\/?$/.test(route);
 let pendingNavigation = '';
-function navigate(to, approved = false) { const target = new URL(to, window.location.origin); if (!approved && target.pathname === '/en/create/' && (target.searchParams.has('theme') || target.searchParams.has('custom'))) { const saved = initialDraft(); const incoming = target.searchParams.get('theme') || ''; if ((saved.theme || saved.idea) && (target.searchParams.has('custom') || saved.theme !== incoming || Boolean(saved.custom))) { pendingNavigation = to; window.dispatchEvent(new Event('draft-conflict')); return; } } if (analyticsAvailable() && crossesAnalyticsBoundary(window.location.pathname, target.pathname)) { window.location.assign(target.href); return; } window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')); window.scrollTo({ top: 0, behavior: 'instant' }); }
+async function navigate(to, approved = false) { if(!await prepareSudokuLeave())return; const target = new URL(to, window.location.origin); if (!approved && target.pathname === '/en/create/' && (target.searchParams.has('theme') || target.searchParams.has('custom'))) { const saved = initialDraft(); const incoming = target.searchParams.get('theme') || ''; if ((saved.theme || saved.idea) && (target.searchParams.has('custom') || saved.theme !== incoming || Boolean(saved.custom))) { pendingNavigation = to; window.dispatchEvent(new Event('draft-conflict')); return; } } if (analyticsAvailable() && crossesAnalyticsBoundary(window.location.pathname, target.pathname)) { window.location.assign(target.href); return; } window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')); window.scrollTo({ top: 0, behavior: 'instant' }); }
 function Link({ to, children, className = '', ...props }) { return <a href={to} className={className} onClick={e => { if (!e.defaultPrevented && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); navigate(to); } }} {...props}>{children}</a>; }
 function Brand() { return <Link to="/en/" className="brand"><span className="brand-mark"><img src="/icon.svg" alt="" width="38" height="38" /></span><span>Paper Adventure<br /><strong>Workshop</strong></span></Link>; }
 
@@ -92,7 +95,7 @@ function Header({ route }) {
   return <header className={route === '/en/' ? 'site-header home-header' : 'site-header'}><div className="nav-shell"><Brand />
     <nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label="Main navigation" onClick={event=>{if(event.target.closest('a')){setOpen(false);setHomeOpen(false);}}}>
       <div className="header-home-nav" ref={homeRef} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHomeOpen(false);}}>
-        <button type="button" className="nav-primary-link header-home-trigger" ref={homeTrigger} aria-expanded={homeOpen} aria-controls="home-navigation" data-active={route.startsWith('/en/for-home') || /^\/en\/themes\/[^/]+\/home\/$/.test(route) || route === '/en/samples/home/' || route.startsWith('/en/occasions/') || undefined} onClick={()=>{setHomeOpen(value=>!value);setAccountOpen(false);}}>For home <CaretDown size={13} aria-hidden="true"/></button>
+        <button type="button" className="nav-primary-link header-home-trigger" ref={homeTrigger} aria-expanded={homeOpen} aria-controls="home-navigation" data-active={route.startsWith('/en/for-home') || /^\/en\/themes\/[^/]+\/home\/$/.test(route) || route === '/en/samples/home/' || route.startsWith('/en/occasions/') || undefined} onClick={()=>{setHomeOpen(value=>!value);setAccountOpen(false);window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>For home <CaretDown size={13} aria-hidden="true"/></button>
         <div id="home-navigation" className="header-home-panel" hidden={!homeOpen}>
           <Link to="/en/for-home/" aria-current={route === '/en/for-home/' ? 'page' : undefined}><strong>Home adventures</strong><span>Browse all Home stories</span></Link>
           <Link to="/en/occasions/birthday/" aria-current={route === '/en/occasions/birthday/' ? 'page' : undefined}><strong>Birthday party games</strong><span>A free story &amp; party preparation</span></Link>
@@ -103,7 +106,7 @@ function Header({ route }) {
         </div>
       </div>
       <Link to="/en/for-classroom/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-classroom") || /^\/en\/themes\/[^/]+\/classroom\/$/.test(route)) ? "page" : undefined}>For classrooms</Link>
-      <Link to="/en/sudoku/" className="nav-primary-link" aria-current={route.startsWith('/en/sudoku/')?'page':undefined}>Sudoku adventure</Link>
+      <SudokuDisclosure route={route} global onOpen={()=>{setHomeOpen(false);setAccountOpen(false);}}/>
       <Link to="/en/create/" className="nav-primary-link" aria-current={route.startsWith("/en/create") ? "page" : undefined}>AI custom adventure</Link>
       <Link to="/en/how-it-works/" className="nav-primary-link" aria-current={route.startsWith("/en/how-it-works") ? "page" : undefined}>How it works</Link>
       <Link to="/en/guides/" className="nav-primary-link" aria-current={route.startsWith("/en/guides/") ? "page" : undefined}>Guides</Link>
@@ -112,11 +115,11 @@ function Header({ route }) {
     </nav>
     <div className="nav-actions">
       {authenticated ? <div className="header-account" ref={accountRef} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setAccountOpen(false);}}>
-        <button type="button" className="header-account-trigger" ref={accountTrigger} aria-label="Account" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={()=>{setAccountOpen(value=>!value);setOpen(false);setHomeOpen(false);}}>
+        <button type="button" className="header-account-trigger" ref={accountTrigger} aria-label="Account" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={()=>{setAccountOpen(value=>!value);setOpen(false);setHomeOpen(false);window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>
           <UserCircle size={22} aria-hidden="true"/><span>Account</span><CaretDown size={13} aria-hidden="true"/>
         </button>
         {accountOpen&&<nav id="account-navigation" className="header-account-panel" aria-label="Account navigation" onClick={event=>{if(event.target.closest('a'))setAccountOpen(false);}}>
-          <Link to="/en/sudoku/">Continue Sudoku <ArrowUpRight size={16} aria-hidden="true"/></Link>
+          <Link to="/en/my-adventures/#my-sudoku">My Sudoku <ArrowUpRight size={16} aria-hidden="true"/></Link>
           <Link to="/en/my-adventures/">My adventures <ArrowUpRight size={16} aria-hidden="true"/></Link>
           {administrator&&<a href="/admin/">管理后台 <ArrowUpRight size={16} aria-hidden="true"/></a>}
           <button type="button" className="header-account-signout" onClick={signOut}>Sign out</button>
@@ -124,7 +127,7 @@ function Header({ route }) {
       </div> : <Link className="header-signin" to="/en/account/">{authenticated===null?'Account':'Sign in'}</Link>}
       <Link className={route === '/en/' ? 'header-create-secondary' : 'button button-small'} to="/en/create/">Create with AI <ArrowUpRight size={16} /></Link>
     </div>
-    <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);setHomeOpen(false);}}>{open ? <X size={25} /> : <List size={25} />}</button>
+    <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);setHomeOpen(false);window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>{open ? <X size={25} /> : <List size={25} />}</button>
   </div></header>;
 }
 function Footer({ runtime }) { return <footer className="site-footer"><div className="footer-main"><div><Brand /><p>Made for curious minds and the people who bring them together.</p></div><div className="footer-links"><div><strong>Explore</strong><Link to="/en/for-home/">Home adventures</Link><Link to="/en/for-classroom/">Classroom adventures</Link><Link to="/en/themes/">All themes</Link><Link to="/en/create/">AI custom adventures</Link><Link to="/en/pricing/">Pricing</Link></div><div><strong>Support</strong><Link to="/en/guides/">Preparation guides</Link><Link to="/en/help/">Help</Link><Link to="/en/samples/home/">Free sample</Link><Link to="/en/account/">Sign in</Link></div><div><strong>Legal</strong><Link to="/en/privacy/">Privacy</Link><Link to="/en/terms/">Terms</Link><Link to="/en/cookies/">Cookies</Link><Link to="/en/refunds/">Refunds</Link><span id="privacy-choices-slot" /></div></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Paper Adventure Workshop {runtime?.checkout ? '' : runtime?.sample ? '· Free trial available' : '· Design preview'}</span><span>For grown-ups planning playful adventures.</span></div></footer>; }
@@ -271,7 +274,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
       .finally(() => clearTimeout(timeout));
     return () => { cancelled = true; clearTimeout(timeout); controller.abort(); };
   }, [catalogAttempt]);
-  useEffect(() => { const sync = () => setRouteLocation(`${path()}${window.location.search}`); window.addEventListener('popstate', sync); return () => window.removeEventListener('popstate', sync); }, []);
+  useEffect(() => { const sync = async () => {if(await prepareSudokuLeave())setRouteLocation(`${path()}${window.location.search}`);else window.history.pushState({},'',routeLocation);}; window.addEventListener('popstate', sync); return () => window.removeEventListener('popstate', sync); }, [routeLocation]);
   useEffect(() => {
     const page = pageFor(route);
     const indexableHere = ['paperadventure.app', 'localhost', '127.0.0.1'].includes(window.location.hostname) && Boolean(page?.indexable);
@@ -323,7 +326,8 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/themes')) page = <WorldsOverview Link={Link} catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
-  else if (['/en/sudoku/','/en/sudoku/play/','/en/sudoku/leaderboard/'].includes(route)) page = <Sudoku Link={Link} route={route}/>;
+  else if (['/en/sudoku/how-to-play/','/en/sudoku/techniques/'].includes(route)) page = <SudokuLessons key={route} route={route}/>;
+  else if (['/en/sudoku/','/en/sudoku/play/','/en/sudoku/levels/','/en/sudoku/leaderboard/'].includes(route)) page = <Sudoku key={routeLocation} Link={Link} route={route}/>;
   else if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;
   else if (route === '/en/escape-room-games/the-secret-of-fold-city/') page = <EscapeFoldCityDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;
   else if (route === '/en/escape-room-games/the-last-letter-before-the-storm/') page = <EscapeLetterDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;
