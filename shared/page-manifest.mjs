@@ -4,12 +4,15 @@ import { guides } from './guides.mjs';
 const page = (path, title, description, indexable = true) => ({ path, title, description, indexable });
 
 export const publicPages = Object.freeze([
+  page('/en/sudoku/weekly/', 'Weekly Sudoku Challenge | Ten New Puzzles', 'Play ten new Sudoku puzzles each week, save your progress and compare weekly first clears.', false),
+  page('/en/sudoku/weekly/play/', 'Play Weekly Sudoku', 'Continue your saved weekly Sudoku puzzle.', false),
+  page('/en/sudoku/weekly/leaderboard/', 'Weekly Sudoku Leaderboard', 'Compare weekly first clears and hint-free progress. Equal scores share a rank.', false),
   page('/en/sudoku/', 'Online Sudoku | 100 Levels & Solving Tips', 'Play 100 Sudoku levels with saved progress and thinking hints. Learn the rules, singles, locked candidates and pairs as you build your solving skills.'),
   page('/en/sudoku/levels/', 'Sudoku Level Map | 100 Progressive Puzzles', 'View your ten-chapter Sudoku trail, resume your saved level and revisit completed puzzles.', false),
   page('/en/sudoku/how-to-play/', 'How to Play Sudoku | Rules & Controls', 'Learn Sudoku rules with row, column and box diagrams, a separate placement example, controls and clear completion requirements.'),
   page('/en/sudoku/techniques/', 'Sudoku Solving Techniques | Illustrated Guide', 'Learn singles, hidden singles, locked candidates and naked pairs with separate candidate diagrams and step-by-step explanations.'),
   page('/en/sudoku/play/', 'Play Sudoku Adventure', 'Continue your Sudoku adventure.', false),
-  page('/en/sudoku/leaderboard/', 'Sudoku Adventure Leaderboard', 'Compare verified consecutive Sudoku level clears.', false),
+  page('/en/sudoku/leaderboard/', 'Sudoku Adventure Leaderboard', 'Compare Sudoku first clears and hint-free progress. Join the public leaderboard when you choose.', false),
   page('/en/', 'Printable Adventure Games: Try Free', 'Start with a complete free printable adventure for ages 6–12. Get player PDFs and an adult guide for home or class. No account needed.'),
   page('/en/themes/', 'Home and Classroom Printable Adventure Worlds', 'Compare six Home adventures with six Classroom adventures. Celebration is the shared free world; the five other story worlds in each collection are different.'),
   page('/en/for-home/', 'Printable Adventure Games for Kids at Home', 'Explore print-at-home story adventures for ages 6–12. Try the free Celebration game, browse themed Home packs, or create a custom story.'),
