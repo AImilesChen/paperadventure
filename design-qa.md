@@ -1,72 +1,61 @@
-# Product Design QA — Paper Adventure Workshop
+# Sudoku levels v39 — scoped design QA
 
 final result: passed
 
-**Comparison target and evidence**
+## Source and accepted change
+- Source visual truth: ../sudoku-levels-v38/tmp/qa/product-design-audit/01-entry.png, 02-chapter-footer.png, 05-learning-cards.png.
+- Target: preserve this existing site and apply the user-approved audit recommendations: right-aligned teal chapter action before a quieter future notice; remove duplicate action copy; reduce supporting reading card weight while retaining technique examples.
+- This is a scoped revision of the captured site, not a pixel clone of the old layout. No new visual direction, template, raster asset or icon replacement.
+- Implementation: tmp/qa/entry.png, chapter-footer.png, chapters-expanded.png, teaching-examples.png, learning-hierarchy.png, mobile-chapters.png.
+- Captures: 1265 x 712 pixels for source and desktop implementation, same browser viewport/density; no image rescaling before comparison. Content shell measured 1140 CSS px. Responsive frames measured 390 and 320 CSS px; not device emulation.
 
-- Source visual truth: `G:\CodexHome\generated_images\01a1142f-51ed-7330-af90-10673476a1ac\exec-b72db694-32d2-4a8c-8441-84005d505adb.png` (selected concept 3; 1209 × 1300 pixels).
-- Rendered implementation: `http://localhost:4173/en/` in the Codex in-app browser; final screenshot `qa-impl-matched.png` (1209 × 1300 pixels).
-- Same-input full-view comparison: `qa-comparison.png` (source at left, implementation at right; 2418 × 1300 pixels).
-- Focused card comparison: `qa-cards-comparison.png` (source cards at left, implementation cards at right; 2418 × 385 pixels). This was needed to inspect small titles, descriptions, and action links.
-- Desktop browser viewport override: 1224 × 1316 CSS pixels; browser content capture 1209 × 1300 pixels after browser scrollbars. Source and implementation were compared at equal pixel dimensions and approximately 1× density, with no rescaling.
-- State: English homepage, first gallery position, no active hover/focus state. The source is a static concept, so deeper pages and mobile states were checked against the PRD rather than treated as pixel matches to that concept.
-- Mobile evidence: `qa-impl-mobile.png` and `qa-impl-mobile-gallery.png` (375 × 812 captured pixels from a 390 × 844 CSS viewport override). No horizontal document overflow was observed.
+## Combined visual evidence
+- Full-view side-by-side: tmp/qa/entry-comparison.png, footer-comparison.png, learning-comparison.png.
+- Focused, aligned content crops: tmp/qa/footer-detail-comparison.png, examples-detail-comparison.png, support-detail-comparison.png.
+- Teaching screenshots include different document scroll positions due to changed section heights. Aligned component crops compare the same collapsed example state; do not infer exact pixel fidelity from the full-view learning sheet.
+- Source footer has keyboard focus visible; final pointer capture does not. Keyboard focus was separately checked and remains visible. This is an interaction-state difference, not a palette difference.
+- Entry content pixels remain identical outside scrollbar gutter (difference bbox 1248,136 to1264,152).
 
-**Findings**
+## Findings and five fidelity surfaces
+- Fonts/typography: existing font families and core game typography retained. Supporting headings reduced to21px, example captions increased12px and narrow candidate notes11px. No observed clipping in representative states.
+- Spacing/layout: core 1140px edge retained, action right edge matches card edge,44px height,12px list-to-action gap; future notice after action. Final expanded chapter spans full row. Mobile full-width action and stacked supporting sections checked.
+- Colours/tokens: collapsed #2f6b5d/white contrast6.21:1; expanded #e3eee7/#285e53 contrast6.27:1. Gold game action unchanged. Future notice retains a quieter purple cue.
+- Image/asset fidelity: existing logo, Phosphor icons and shared teaching diagrams retained. No raster image substitutions or custom decorative assets introduced.
+- Copy/content: quantity-free View all chapters/Show fewer chapters; duplicated helper removed. Actual technique names replace repeated stage title plus redundant technique-label line. All descriptions,100levels,independent diagrams,rules,saving,FAQ and real destinations retained.
 
-No actionable P0, P1, or P2 issues remain in the compared homepage state. The hierarchy, light-blue and vermilion palette, papercraft hero, four visible theme cards with a partial next card, custom-world link, and card actions are present. All featured illustrations are individual raster assets in the selected art direction.
+## Interaction checks
+- Five visible chapters by default; ten after expand.
+- First newly shown chapter receives focus; Enter collapse returns to five; focus-visible outline works.
+- Locked level100 remains aria-disabled when inspected.
+- Desktop last chapter spans1140px; collapsed action right edge1202.5 matches shell edge.
+- 390/320 content widths have no horizontal overflow, collapsed or expanded. Mobile button296px x44px at320width; candidate example262px wide/260px scrollWidth, deduction opens.
+- Narrow supporting sections stack with no left border and296px content width.
+- First-row bottom717.95px unchanged. Console errors observed at final desktop check:0.
 
-- [P3] The live navigation contains additional product routes and the logo is typeset more compactly than the concept. This supports the requested multi-page prototype and does not displace the hero or theme gallery.
-- [P3] The hero image has a faint rectangular blue background edge. It remains visually subordinate to the collage and does not obscure text. Further art retouching would be optional polish.
-- [P3] Card titles use world names rather than the concept's longer example story titles. This follows the PRD's world-level gallery model and avoids implying finished saleable packs.
+## Comparison history
+- Initial implementation comparison: no actionable P0/P1/P2 differences from the approved scope. No visual fixes were made in response to this comparison. Earlier work in v38 is source evidence, not claimed as a QA iteration.
+- Local test harness body-key and cross-frame DOM access were unsupported; frame-scoped locators and documented browser scrolling completed the narrow checks. These were automation limitations, not product defects.
 
-**Required fidelity surfaces**
+## Implementation checklist
+- [x] Capture and compare source/current in the same visual inputs.
+- [x] Apply approved position, order, colour and hierarchy changes.
+- [x] Verify responsive interaction and visible focus.
+- [x] Production build75routes/46sitemap/bootstrap parity and217static checks pass.
+- [x] Public HTTP matches builtHTML, public content and canonical retained.
+- [x] Local progress, wallet and first-clear records preserved; no fixture rewards or production writes.
 
-- Fonts/typography: Nunito Sans creates the same heavy, friendly sans hierarchy; Bree Serif is limited to card world names. Desktop hero wraps to three lines, matching the concept's density. Small card actions remain legible in the focused comparison.
-- Spacing/layout: Hero CTA and theme heading align closely with the source's vertical rhythm. At the matched viewport, four cards and a sliver of the next appear. Mobile cards expose a partial next card and do not trap vertical scrolling.
-- Colors/tokens: pale blue base (`#d8f0fc`), navy text, vermilion primary actions, cream cards, and muted support text follow the selected direction.
-- Image quality/assets: generated papercraft hero and six 4:3 theme images load without broken-image states; cards retain readable live text outside the images. The assets are not fabricated with CSS, inline SVG, or placeholder blocks.
-- Copy/content: homepage retains the selected concept's core promise while using copy that avoids unverified prices, reviews, sample downloads, and immediate generation claims. Prototype and pending-production states are named explicitly where relevant.
+## Limits / follow-up polish
+- No full screen-reader,200%zoom,real-device,independent player or traffic/indexing outcome audit claimed.
+- No remaining observed P0/P1/P2 issue in the scoped revision. Additional user aesthetic feedback can guide a later pass.
+- Local only; not published. Preview5629 now serves v39, API5632. Weekly remains retired.
 
-**Comparison history**
 
-1. Initial desktop inspection (`qa-impl-desktop.png`, 1265 × 712) found an oval crop around the hero, white theme section, fewer than four visible cards, and a low gallery start. The hero mask was removed, the blue palette aligned, card width and height adjusted, and the gallery moved into the selected composition.
-2. The first matched-size comparison found a four-line hero headline, CTA and cards below the source positions, and no explicit card action. Headline size/letter spacing, hero content position, gallery top spacing, and card anatomy were revised. The post-fix evidence is `qa-comparison.png` and `qa-cards-comparison.png`.
-3. Mobile inspection found an unwanted horizontal scrollbar in the four-step progress control. Its labels were redistributed across four compact columns. Post-fix evidence is the mobile browser capture and `qa-impl-mobile.png`.
+## Sudoku bank phase 1 v40 — local only
 
-**Interaction and build checks**
+Preserved the released v39 layout and board emphasis. Added a compact collection selector above the existing chapter map, with ranges derived from published metadata. Each collection keeps the existing current-chapter-first layout and chapter toggle; future additions do not append an unbounded list. Later chapters have distinct descriptive titles and honest candidate-pair practice labels.
 
-- Gallery right arrow changed the track scroll position; a theme card opened `/en/create/?theme=space` with the world preselected and no home/classroom setting silently chosen.
-- The creator rejected missing setup and missing story direction, then displayed the selected classroom setup and direction in review.
-- A saved draft triggers an in-page choice before replacing it. “Keep my draft” leaves the current page and draft intact; “Use new world” opens the requested prefilled world.
-- All nine inspected routes rendered the expected heading, with no broken images or document-width overflow at the mobile breakpoint. The fresh in-app browser tab showed no console errors.
-- `npm run build` and `npm run test:sites` passed (4 tests).
+Observed desktop collection switching, locked later levels, current-collection return and total-only leaderboard. A separate local QA database verified actual level 100 completion, automatic transition to101, a one-point hint purchase on101, a verified101 clear and total rank101 after opt-in. No synthetic scores remain in the delivery database. The original two-account logical snapshot was restored exactly after local identity-link cleanup.
 
-**Open questions / product limitations**
+At measured usable widths390 and320, content had matching client/scroll widths with no horizontal overflow. Both native collection selectors worked. This visual inspection preceded shortening their option labels; the final desktop screenshot and12 final UI tests use the shorter labels. App console errors:0. Screenshots: tmp/qa/levels-final-preview.png, leaderboard-hinted-clear.png and levels-390-320.png.
 
-- Final pricing, real sample packs, payment, generated PDFs, account recovery, and reviewed legal policies are outside this frontend design prototype. Those pages identify their pending state rather than claiming live functionality.
-
-**Implementation checklist**
-
-- [x] Match selected desktop hero and immediate theme gallery.
-- [x] Validate responsive gallery and four-step creator.
-- [x] Check navigation, draft conflict, placeholders, and demo order states.
-- [x] Run production build and available worker tests.
-
-**Extended PRD-flow QA — 2026-10-07**
-
-The original image comparison above remains the homepage fidelity check. The additional routes below were reviewed against the PRD's screen and state requirements, because the selected concept image has no equivalents for these pages.
-
-- Theme explorer: category and setting filters, text search, empty search result, clear action, and custom-world entry are present. Searching for `pirates` showed the empty state; clearing restored all six cards.
-- Sample Home/Classroom: each page shows the intended story, player, and organiser anatomy, while identifying the content as a layout preview. No playable pack or PDF is falsely offered.
-- Creator: Home/Classroom choice, required classroom group count, optional reading/print/space preferences, two selectable story directions, review, and checkout preview are connected. Changing upstream setup clears a previously selected direction.
-- Order and delivery: confirming, preparing, checking, ready, revising, and problem/refund states are switchable. The ready state separates player materials from the organiser guide; unavailable downloads are disabled.
-- Shelf, pricing, help, checkout, account, and privacy/terms/cookies/refunds review layouts are connected. The site makes unfinished prices, policies, payment, account verification, email delivery, and file generation explicit.
-- At 390 × 844 CSS pixels, fourteen extended routes loaded their expected headings with no broken images or document-level horizontal overflow. The same checks covered order and legal pages at 1200 × 800; browser error/warning logs were empty.
-- The account preview's create-account mode displayed its local-only verification notice after entry. The order-recovery preview similarly stated that no email was sent.
-- Evidence: `qa-extended-order-desktop.png`, `qa-extended-legal-desktop.png`, `qa-extended-checkout-mobile.png`, and `qa-extended-account-mobile.png`.
-- Final validation: `npm run build` passed; `npm run test:sites` passed all four tests.
-
-**Remaining production work**
-
-This is a design prototype, not a launch-ready service. Tested sample games, generation and checking, Stripe payment, adult account/email flows, verified file delivery, final prices, and legally reviewed terms still require product implementation and approvals.
+230 static/431 backend/4 Sites/13 readiness checks,300+100 independent stock validation,75-route build/46 sitemap/bootstrap parity and API/site Wrangler4.149.0 dry-run bundles passed. The public browser bundle contains no published or reserve givens/solutions. No live deployment or remote scheduler activation was performed.

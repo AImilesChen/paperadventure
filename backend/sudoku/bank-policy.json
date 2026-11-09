@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "frozenCount": 100,
+  "frozenSha256": "9d2dc80296781890898185b3a01b4a906a674265941c2c8e6872ff5870b9b16e",
+  "collectionSize": 100,
+  "chapterSize": 10,
+  "initialPublished": 300,
+  "reserveTarget": 100,
+  "refillBelow": 50,
+  "generationBatch": 50,
+  "weeklyRelease": 20,
+  "minRank": 4,
+  "minScore": 233
+}

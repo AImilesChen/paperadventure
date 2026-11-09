@@ -1,3 +1,4 @@
+import {catalogSummary} from '../shared/sudoku/catalog.mjs';
 import assert from 'node:assert/strict';
 const origin='https://paperadventure.app';
 let cookie='';
@@ -9,7 +10,7 @@ async function call(path,body,method='POST'){
  return response.json();
 }
 let ready=false;
-for(let i=0;i<24;i++){try{const h=await call('/health');assert.equal(h.release,'sudoku-v30');assert.equal(h.weeklyVersion,0);assert.equal(h.weeklyRetired,true);assert.equal(h.leaderboardVersion,2);ready=true;break;}catch{await new Promise(r=>setTimeout(r,5000));}}
+for(let i=0;i<24;i++){try{const h=await call('/health');assert.equal(h.release,'sudoku-v40');assert.equal(h.catalog?.version,catalogSummary.version);assert.equal(h.weeklyVersion,0);assert.equal(h.weeklyRetired,true);assert.equal(h.leaderboardVersion,3);ready=true;break;}catch{await new Promise(r=>setTimeout(r,5000));}}
 assert.ok(ready,'Matching Sudoku backend not ready');
 const progress=await call('/progress');assert.equal(progress.state.highest,0);assert.equal(progress.state.balance,15);assert.equal(progress.profile.authenticated,false);
 const game=await call('/sessions',{level:1});assert.equal(game.puzzle.level,1);assert.ok(!('solution'in game.puzzle));
@@ -19,7 +20,7 @@ assert.equal(saved.session.revision,game.session.revision+1);
 const resumed=await call('/sessions',{level:1});assert.deepEqual(resumed.session.board,board);
 const final=await call('/progress');assert.equal(final.state.balance,15);assert.equal(final.state.highest,0);
 const ranks=await call('/leaderboard');assert.ok(Array.isArray(ranks.rows));assert.ok(!JSON.stringify(ranks.rows).includes('account:'));
-console.log('Verified Sudoku v30: guest session, persistent save/resume, balance, leaderboard and no-store. No paid action or public score created.');
+console.log('Verified Sudoku v40: guest session, persistent save/resume, balance, leaderboard and no-store. No paid action or public score created.');
 
 for(const path of ['/weekly','/weekly/2026-11-09/progress','/weekly/2026-11-09/sessions','/weekly/2026-11-09/leaderboard']){
  const r=await fetch(origin+'/api/v1/sudoku'+path,{signal:AbortSignal.timeout(20000)});assert.equal(r.status,410);const d=await r.json();assert.equal(d.error.code,'WEEKLY_RETIRED');assert.equal(r.headers.get('set-cookie'),null);
@@ -28,3 +29,11 @@ for(const [path,target]of [['/en/sudoku/weekly/','/en/sudoku/'],['/en/sudoku/wee
  const r=await fetch(origin+path,{redirect:'manual',signal:AbortSignal.timeout(20000)});assert.equal(r.status,308);assert.equal(r.headers.get('location'),origin+target);
 }
 console.log('Verified retired weekly APIs return410 without creating progress; old URLs redirect to campaign and total leaderboard.');
+
+const catalogueResponse=await fetch(origin+'/api/v1/sudoku/catalog',{signal:AbortSignal.timeout(20000)});
+assert.equal(catalogueResponse.status,200);assert.equal(catalogueResponse.headers.get('set-cookie'),null);
+const catalogue=(await catalogueResponse.json()).catalog;assert.equal(catalogue.version,catalogSummary.version);assert.equal(catalogue.publishedCount,catalogSummary.publishedCount);
+assert.ok(catalogue.levels.every(p=>!('givens'in p)&&!('solution'in p)));
+const retiredScoring=await fetch(origin+'/api/v1/sudoku/leaderboard?mode=independent',{signal:AbortSignal.timeout(20000)});
+assert.equal(retiredScoring.status,410);assert.equal(retiredScoring.headers.get('set-cookie'),null);
+console.log('Verified public catalogue, private puzzle boundary and retired hint-free scoring.');

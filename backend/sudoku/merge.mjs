@@ -1,4 +1,5 @@
 import {unassistedClears} from '../../shared/sudoku/ranking.mjs';
+import {catalogSummary} from '../../shared/sudoku/catalog.mjs';
 import {SudokuError} from './service.mjs';
 function progressConflicts(account,guest){return Object.keys(guest.sessions||{}).filter(id=>{const g=guest.sessions[id],a=account.sessions?.[id];return a&&!a.completed&&!g.completed&&(a.startedAt||a.notes.some(n=>n.length))&&(g.startedAt||g.notes.some(n=>n.length))&&(a.board.join('')!==g.board.join('')||JSON.stringify(a.notes)!==JSON.stringify(g.notes));}).map(id=>{const snapshot=s=>({board:s.board,notes:s.notes,savedAt:s.savedAt,level:s.level});return{id,level:guest.sessions[id].level,guest:snapshot(guest.sessions[id]),account:snapshot(account.sessions[id])};});}
 export function mergeConflicts(account,guest){return progressConflicts(account,guest);}
@@ -10,7 +11,7 @@ function mergeProgress(account,guest,choices){const a=structuredClone(account);a
   for(const h of[...(old.hints||[]),...(g.hints||[])]){const prev=hints.get(h.board);if(!prev||prev.tier<h.tier)hints.set(h.board,h);}
   a.sessions[id]={...structuredClone(selected),hints:[...hints.values()],revision:Math.max(old.revision,g.revision)+1};
  }
- a.highest=0;while(a.completions[a.highest+1])a.highest++;a.independent=unassistedClears(a);a.current=Math.min(a.highest+1,100);
+ a.highest=0;while(a.completions[a.highest+1])a.highest++;a.independent=unassistedClears(a);a.current=Math.min(a.highest+1,catalogSummary.publishedCount);
  return a;
 }
 export function mergeAccounts(account,guest,guestId,choices={}){const conflicts=mergeConflicts(account,guest);if(conflicts.some(c=>!['guest','account'].includes(choices[c.id])))throw new SudokuError(409,'MERGE_CHOICE_REQUIRED','Choose which unfinished board to keep for each conflicting level.');if(account.imported?.includes(guestId))return structuredClone(account);

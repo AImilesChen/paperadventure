@@ -77,3 +77,6 @@
 .sd-levels-route .sd-levels-support p{font-size:13px;line-height:1.8}
 @media(max-width:850px){.sd-levels-route .sd-levels-info-grid{gap:24px}.sd-levels-route .sd-levels-support+section{padding:24px 0 0;border-left:0;border-top:1px solid #c8d8ce}}
 @media(max-width:600px){.sd-levels-route #sd-levels-explained{padding-top:22px}.sd-levels-route .sd-levels-info-grid{margin-bottom:24px}.sd-levels-route .sd-levels-support h2{font-size:21px}}
+
+.sd-collection-browser{display:flex;align-items:center;gap:18px;padding:18px 20px;margin:0 0 18px;border:1px solid #bed1cb;border-radius:12px;background:#fffdf5}.sd-collection-browser>div{flex:0 1 330px;min-width:0}.sd-collection-browser label{display:block;font-size:12px;font-weight:800;margin-bottom:7px}.sd-collection-browser select{width:100%;min-height:44px;padding:8px 10px;border:1px solid #8daea3;border-radius:7px;background:#fff;color:#143e49;font:inherit;font-size:13px}.sd-collection-browser p{margin:0;max-width:470px;font-size:12px;line-height:1.7}.sd-collection-browser button{margin-left:auto;min-height:44px}.sd-collection-browser select:focus-visible{outline:3px solid #bc6b2f;outline-offset:3px}
+@media(max-width:600px){.sd-collection-browser{display:block;padding:14px}.sd-collection-browser p{margin-top:10px}.sd-collection-browser button{margin-top:10px;width:100%}}
