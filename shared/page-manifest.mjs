@@ -4,6 +4,9 @@ import { guides } from './guides.mjs';
 const page = (path, title, description, indexable = true) => ({ path, title, description, indexable });
 
 export const publicPages = Object.freeze([
+  page('/en/sudoku/', 'Online Sudoku | 100 Levels & Solving Tips', 'Play 100 Sudoku levels with saved progress and thinking hints. Learn the rules, singles, locked candidates and pairs as you build your solving skills.'),
+  page('/en/sudoku/play/', 'Play Sudoku Adventure', 'Continue your Sudoku adventure.', false),
+  page('/en/sudoku/leaderboard/', 'Sudoku Adventure Leaderboard', 'Compare verified consecutive Sudoku level clears.', false),
   page('/en/', 'Printable Adventure Games: Try Free', 'Start with a complete free printable adventure for ages 6–12. Get player PDFs and an adult guide for home or class. No account needed.'),
   page('/en/themes/', 'Home and Classroom Printable Adventure Worlds', 'Compare six Home adventures with six Classroom adventures. Celebration is the shared free world; the five other story worlds in each collection are different.'),
   page('/en/for-home/', 'Printable Adventure Games for Kids at Home', 'Explore print-at-home story adventures for ages 6–12. Try the free Celebration game, browse themed Home packs, or create a custom story.'),

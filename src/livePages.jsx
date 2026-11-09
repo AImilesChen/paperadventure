@@ -1,3 +1,5 @@
+import{accountReturnPath}from'../shared/account-return.mjs';
+import{SudokuAccountEntry}from'./sudokuEntry.jsx';
 import OrderSupport from './orderSupport.jsx';
 import {clearRemovedLocalDraft} from './libraryArchive.mjs';
 import {fromCloudDraft} from './creatorDraft.mjs';
@@ -84,7 +86,7 @@ export function LiveAccount({ Link }) {
       try {
         setLoading(true); setError('');
         const requested = new URLSearchParams(window.location.search).get('returnTo');
-        const destination = requested && /^\/en\/(create\/|checkout\/|themes\/|orders\/|my-adventures\/)/.test(requested) && !requested.includes('\\') ? requested : '/en/my-adventures/';
+        const destination = accountReturnPath(requested);
         const session = await api('/api/v1/auth/session');
         if (cancelled) return;
         if (session.authenticated) { window.location.replace(destination); return; }
@@ -112,6 +114,7 @@ export function LiveAccount({ Link }) {
     return () => { cancelled = true;signIn?.stop();window.removeEventListener('focus',resume);document.removeEventListener('visibilitychange',resume); };
   }, [retry]);
   return <main className="extended-page live-page account-page">
+    <SudokuAccountEntry/>
     <section className="account-entry" aria-labelledby="account-title">
       <div className="account-benefits">
         <span className="eyebrow">YOUR ADVENTURE ACCOUNT</span>
@@ -187,7 +190,7 @@ export function LiveShelf({ Link }) {
     <section className="shelf-shell">
       {needsLogin ? <div className="live-panel"><h2>Sign in to your library</h2><Link className="button" to={'/en/account/?returnTo='+encodeURIComponent(libraryPath(helpIntent))}>Sign in with Google <ArrowRight size={18} /></Link></div> : orders === null ? <p role="status">Loading your library…</p> : <>
         <nav className="shelf-tabs" aria-label="Your adventure library">{[['games','My games',games.length],['making','In progress',making.length],['drafts','My drafts',draft ? 1 : 0],['orders','Order history',paidOrders.length],['archived','Archived',archived.length+oldDrafts.length]].map(([id,title,count]) => <button type="button" key={id} aria-pressed={section === id} className={section === id ? 'active' : ''} onClick={() => setSection(id)}>{title}<span>{count}</span></button>)}</nav>
-        <div className="shelf-toolbar"><p>{section === 'archived' ? 'Records removed from your everyday library. Restore them at any time; paid orders still have order details and refund help.' : section === 'games' ? 'Completed games with downloadable PDFs appear here.' : section === 'making' ? 'Your paid custom orders stay here until delivery, including any that need recovery.' : section === 'drafts' ? 'Saved ideas are not purchases and have not been charged.' : 'Paid purchases are listed separately from unfinished checkout attempts.'}</p><button type="button" className="button-quiet" onClick={refresh}>Refresh</button></div>
+        <SudokuAccountEntry/><div className="shelf-toolbar"><p>{section === 'archived' ? 'Records removed from your everyday library. Restore them at any time; paid orders still have order details and refund help.' : section === 'games' ? 'Completed games with downloadable PDFs appear here.' : section === 'making' ? 'Your paid custom orders stay here until delivery, including any that need recovery.' : section === 'drafts' ? 'Saved ideas are not purchases and have not been charged.' : 'Paid purchases are listed separately from unfinished checkout attempts.'}</p><button type="button" className="button-quiet" onClick={refresh}>Refresh</button></div>
         {section === 'orders' && <div className="creator-source-choice"><button type="button" aria-pressed={historyKind==='paid'} onClick={()=>setHistoryKind('paid')}>Paid orders ({paidOrders.length})</button><button type="button" aria-pressed={historyKind==='unpaid'} onClick={()=>setHistoryKind('unpaid')}>Unfinished checkouts ({unpaidOrders.length})</button></div>}
         {helpIntent.support&&section!=='archived'&&<p className="live-panel" role="status">{helpIntent.support==='refund'?'Choose a paid order below and select Request a refund.':'Choose a paid order below and select Get help with this order.'} Your request will be linked to that purchase.</p>}
         {error && <Alert>{error}</Alert>}
