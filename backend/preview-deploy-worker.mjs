@@ -1,5 +1,6 @@
 import { handleApi } from './worker.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
+import {retiredWeeklyTarget} from '../shared/sudoku-retirement.mjs';
 
 const publicHost = 'paperadventure.app';
 const publicIconPaths = new Set(['/favicon.ico', '/icon.svg', '/icon-512.png', '/apple-touch-icon.png', '/favicon-16.png', '/favicon-32.png']);
@@ -13,6 +14,8 @@ export default {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/')) return env.BACKEND_STAGE?.fetch ? env.BACKEND_STAGE.fetch(request) : handleApi(request);
     const isPublicHost = url.hostname === publicHost;
+    const retired=retiredWeeklyTarget(url.pathname);
+    if(retired){const target=new URL(retired,url.origin);return new Response(null,{status:308,headers:{location:target.href,'cache-control':'no-cache','x-robots-tag':'noindex'}});}
     if (url.pathname === '/robots.txt') return new Response(isPublicHost ? publicRobots : previewRobots, {
       headers: {
         'content-type': 'text/plain; charset=utf-8',

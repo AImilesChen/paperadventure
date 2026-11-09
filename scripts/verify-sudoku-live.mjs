@@ -9,7 +9,7 @@ async function call(path,body,method='POST'){
  return response.json();
 }
 let ready=false;
-for(let i=0;i<24;i++){try{const h=await call('/health');assert.equal(h.release,'sudoku-v30');assert.equal(h.weeklyVersion,1);assert.equal(h.leaderboardVersion,2);ready=true;break;}catch{await new Promise(r=>setTimeout(r,5000));}}
+for(let i=0;i<24;i++){try{const h=await call('/health');assert.equal(h.release,'sudoku-v30');assert.equal(h.weeklyVersion,0);assert.equal(h.weeklyRetired,true);assert.equal(h.leaderboardVersion,2);ready=true;break;}catch{await new Promise(r=>setTimeout(r,5000));}}
 assert.ok(ready,'Matching Sudoku backend not ready');
 const progress=await call('/progress');assert.equal(progress.state.highest,0);assert.equal(progress.state.balance,15);assert.equal(progress.profile.authenticated,false);
 const game=await call('/sessions',{level:1});assert.equal(game.puzzle.level,1);assert.ok(!('solution'in game.puzzle));
@@ -21,11 +21,10 @@ const final=await call('/progress');assert.equal(final.state.balance,15);assert.
 const ranks=await call('/leaderboard');assert.ok(Array.isArray(ranks.rows));assert.ok(!JSON.stringify(ranks.rows).includes('account:'));
 console.log('Verified Sudoku v30: guest session, persistent save/resume, balance, leaderboard and no-store. No paid action or public score created.');
 
-const weekly=await call('/weekly');assert.equal(weekly.profile.authenticated,false);assert.ok(weekly.week,'Prepared current weekly challenge required');assert.equal(weekly.catalog.length,10);
-const weekPath='/weekly/'+weekly.week.id;
-const weeklyGame=await call(weekPath+'/sessions',{level:1});assert.ok(!('solution'in weeklyGame.puzzle));
-const weeklySaved=await call(weekPath+'/sessions/'+weeklyGame.session.id+'/save',{board:weeklyGame.session.board,notes:weeklyGame.session.notes,revision:weeklyGame.session.revision},'PUT');assert.equal(weeklySaved.session.revision,weeklyGame.session.revision+1);
-const weeklyResumed=await call(weekPath+'/sessions',{level:1});assert.deepEqual(weeklyResumed.session.board,weeklyGame.session.board);
-for(const mode of ['all','independent']){const list=await call(weekPath+'/leaderboard?mode='+mode);assert.ok(Array.isArray(list.rows));assert.equal(list.mine,null);assert.ok(!JSON.stringify(list.rows).includes('account:'));}
-assert.equal((await call('/progress')).state.balance,15);assert.equal((await call('/progress')).state.highest,0);
-console.log('Verified weekly routes, private guest progress, save/resume and both weekly boards. No hints purchased, reward claimed or public score created.');
+for(const path of ['/weekly','/weekly/2026-11-09/progress','/weekly/2026-11-09/sessions','/weekly/2026-11-09/leaderboard']){
+ const r=await fetch(origin+'/api/v1/sudoku'+path,{signal:AbortSignal.timeout(20000)});assert.equal(r.status,410);const d=await r.json();assert.equal(d.error.code,'WEEKLY_RETIRED');assert.equal(r.headers.get('set-cookie'),null);
+}
+for(const [path,target]of [['/en/sudoku/weekly/','/en/sudoku/'],['/en/sudoku/weekly/play/?week=2026-11-09&level=9','/en/sudoku/'],['/en/sudoku/weekly/leaderboard/?week=2026-11-09','/en/sudoku/leaderboard/']]){
+ const r=await fetch(origin+path,{redirect:'manual',signal:AbortSignal.timeout(20000)});assert.equal(r.status,308);assert.equal(r.headers.get('location'),origin+target);
+}
+console.log('Verified retired weekly APIs return410 without creating progress; old URLs redirect to campaign and total leaderboard.');

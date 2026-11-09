@@ -1,8 +1,8 @@
 import {useEffect,useRef,useState} from 'react';
-import {CaretDown,Play,SquaresFour,Trophy,CalendarDots,BookOpen,Lightbulb} from '@phosphor-icons/react';
+import {CaretDown,Play,SquaresFour,Trophy,BookOpen,Lightbulb} from '@phosphor-icons/react';
 import {sudokuLinks,sudokuSection} from '../shared/sudoku-navigation.mjs';
 import './sudoku-navigation.css';
-const icons={play:Play,levels:SquaresFour,ranks:Trophy,weekly:CalendarDots,rules:BookOpen,techniques:Lightbulb};
+const icons={play:Play,levels:SquaresFour,ranks:Trophy,rules:BookOpen,techniques:Lightbulb};
 export function SudokuDisclosure({route,global=false,onOpen=()=>{}}){
  const[open,setOpen]=useState(false),root=useRef(null),trigger=useRef(null);
  const current=sudokuSection(route),id=global?'sudoku-global-links':'sudoku-learning-links';
@@ -17,4 +17,4 @@ export function SudokuDisclosure({route,global=false,onOpen=()=>{}}){
   </div>
  </div>;
 }
-export function SudokuSectionHeader({route,title='Sudoku adventure'}){const current=sudokuSection(route);return <header className="sd-header sd-section-header"><h1>{title}</h1><nav aria-label="Sudoku navigation">{sudokuLinks.filter(l=>l.group==='Play').map(l=><a key={l.id} href={l.href} aria-current={current===l.id?'page':undefined}>{l.id==='play'?'Play':l.id==='levels'?'Levels':l.id==='weekly'?'Weekly':l.title}</a>)}<SudokuDisclosure route={route}/></nav></header>;}
+export function SudokuSectionHeader({route,title='Sudoku adventure'}){const current=sudokuSection(route);return <header className="sd-header sd-section-header"><h1>{title}</h1><nav aria-label="Sudoku navigation">{sudokuLinks.filter(l=>l.group==='Play').map(l=><a key={l.id} href={l.href} aria-current={current===l.id?'page':undefined}>{l.id==='play'?'Play':l.id==='levels'?'Levels':l.title}</a>)}<SudokuDisclosure route={route}/></nav></header>;}
