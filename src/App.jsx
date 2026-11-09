@@ -1,3 +1,4 @@
+import SudokuWeekly from './sudokuWeekly.jsx';
 import {SudokuDisclosure} from './sudokuNavigation.jsx';
 import SudokuLessons from './sudokuLessons.jsx';
 import {prepareSudokuLeave} from './sudoku-leave.mjs';
@@ -326,6 +327,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/themes')) page = <WorldsOverview Link={Link} catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
+  else if (['/en/sudoku/weekly/','/en/sudoku/weekly/play/','/en/sudoku/weekly/leaderboard/'].includes(route)) page = <SudokuWeekly key={routeLocation} route={route} Link={Link}/>;
   else if (['/en/sudoku/how-to-play/','/en/sudoku/techniques/'].includes(route)) page = <SudokuLessons key={route} route={route}/>;
   else if (['/en/sudoku/','/en/sudoku/play/','/en/sudoku/levels/','/en/sudoku/leaderboard/'].includes(route)) page = <Sudoku key={routeLocation} Link={Link} route={route}/>;
   else if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;
