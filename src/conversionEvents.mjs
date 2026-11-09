@@ -2,7 +2,7 @@
 export const conversionGoalNames = Object.freeze([
   'home_sample_click', 'sample_download_success',
   'sample_browse_themes', 'product_checkout_click',
-  'puzzle_attempt', 'puzzle_solved', 'puzzle_hint_open', 'puzzle_pdf_download', 'puzzle_game_click',
+  'puzzle_select', 'puzzle_attempt', 'puzzle_solved', 'puzzle_hint_open', 'puzzle_pdf_download', 'puzzle_game_click',
   'escape_start_click', 'escape_game_start', 'escape_stage_complete', 'escape_hint_open', 'escape_game_complete', 'escape_pdf_download',
 ]);
 

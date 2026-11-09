@@ -9,7 +9,8 @@ test('the base resource HTML starts with the playable workshop before its promot
   const main = html.slice(html.indexOf('<main'), html.indexOf('</main>'));
   const game = main.indexOf('id="try-puzzles"');
   assert.ok(game > 0);
-  assert.ok(game < main.indexOf('puzzle-after-play'));
+  assert.ok(main.indexOf('id="puzzle-directory"') < main.indexOf('id="puzzle-play"'));
+  assert.equal((main.match(/id="pick-/g)||[]).length,6);
   assert.ok(game < main.indexOf('id="print-puzzles"'));
   assert.equal((main.match(/<h1\b/g) || []).length, 1);
   assert.match(main, /<h1 id="pw-title">Free escape room puzzles<\/h1>/);
@@ -36,6 +37,6 @@ test('all cases, visible first-puzzle premise and separate hidden solutions rema
   }
   assert.match(html, /<p class="si-premise">Each row is one of these four words written in symbols\. The word labels have been shuffled\.<\/p>/);
   assert.match(html, /Which word matches each stamp record\?/);
-  assert.match(html, /Six puzzles\. Six ways to solve\./);
+  assert.match(html, /Choose your challenge/);
   assert.match(html, /https:\/\/paperadventure.app\/en\/escape-room-puzzles\//);
 });
