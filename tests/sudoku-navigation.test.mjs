@@ -21,7 +21,7 @@ test('an obsolete board cleanup cannot remove the latest navigation guard',async
 });
 test('new lesson HTML contains readable separate diagrams without requiring progress',async()=>{
  for(const [route,phrase]of [['how-to-play','Every group contains 1–9 exactly once'],['techniques','Naked pair']]){
-  const html=await readFile('dist/client/en/sudoku/'+route+'/index.html','utf8');assert.ok(html.includes(phrase));assert.ok(html.includes(route==='techniques'?'tt-board':'sd-rule-board'));assert.ok(html.includes('Paper Adventure Workshop'));assert.ok(!html.includes('Loading your adventure'));
+  const html=await readFile('dist/client/en/sudoku/'+route+'/index.html','utf8');assert.ok(html.includes(phrase));assert.ok(html.includes(route==='techniques'?'tt-board':'sr-board'));assert.ok(html.includes('Paper Adventure Workshop'));assert.ok(!html.includes('Loading your adventure'));
   for(const [,href]of html.matchAll(/href="(#[^"]+)"/g))assert.ok(html.includes('id="'+href.slice(1)+'"'),href);
  }
 });
