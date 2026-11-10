@@ -11,6 +11,10 @@ export function pageSchema(page, release, origin = 'https://paperadventure.app')
   if (!page.indexable) return { '@context': 'https://schema.org', '@graph': graph };
   const crumbs = [{ name: 'Home', url: origin + '/en/' }];
   const guide = guideFor(page.path);
+  if (page.path === '/en/sudoku/how-to-play/') {
+    crumbs.push({name:'Sudoku',url:origin+'/en/sudoku/'});
+    graph.push({'@type':'Article','@id':url+'#article',headline:page.title,description:page.description,author:{'@id':publisher['@id']},publisher:{'@id':publisher['@id']},mainEntityOfPage:{'@id':url+'#page'},inLanguage:'en',isAccessibleForFree:true});
+  }
   if (page.path.startsWith('/en/sudoku/techniques/')) {
     crumbs.push({name:'Sudoku',url:origin+'/en/sudoku/'});
     if(page.path==='/en/sudoku/techniques/') {
