@@ -1,1 +1,1 @@
-sudoku-v42 speed-v1 / trigger-inclusive D1 CAS / additive0050 retained
+sudoku-ranking-v44-first-clear-time-and-ordinal-total-ranks

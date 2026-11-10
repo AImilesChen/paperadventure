@@ -19,7 +19,7 @@ export async function checkUpgrade(origin='https://paperadventure.app',fetcher=f
   return{needsDeployment:true};
  }
  assert.equal(health.release,'sudoku-v40','Unexpected API release; review before changing the bank');
- assert.equal(health.leaderboardVersion,3);assert.equal(health.ready,true);
+ assert.ok([3,4].includes(health.leaderboardVersion),'Unexpected leaderboard protocol; deployment stopped');assert.equal(health.ready,true);
  const r=await fetcher(origin+'/api/v1/sudoku/catalog',{signal:AbortSignal.timeout(20000),headers:{'cache-control':'no-cache'}});
  assert(r.ok,'Existing catalogue could not be checked; deployment stopped');
  const {catalog}=await r.json();assertAppendOnlyUpgrade(catalog,publicCatalog);

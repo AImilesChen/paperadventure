@@ -1,3 +1,4 @@
+import {firstClearCtes,firstClearTiming} from '../../shared/sudoku/first-clear-ranking.mjs';
 import {publicCatalog,catalogSummary} from '../../shared/sudoku/catalog.mjs';
 import {unassistedClears,rankingStatus} from '../../shared/sudoku/ranking.mjs';
 import{mergeConflicts,mergeAccounts}from'./merge.mjs';
@@ -33,18 +34,25 @@ export class D1SudokuStore{
  query(this.db,'INSERT INTO sudoku_speed_reviews(attempt_id,operator,status,reason,at) SELECT id,?,?,?,? FROM sudoku_speed_attempts WHERE id=? AND reviewed_at=?',operator,status,reason,at,id,at)
  ]);}
 
+ async firstClearPersonal(account,speed){
+  const state=structuredClone(account?.state||{});
+  if(speed&&account){
+   const attempts=(await query(this.db,`SELECT id,level,finished_at,status FROM sudoku_speed_attempts WHERE owner=? OR owner IN(SELECT value FROM json_each(?,'$.imported'))`,account.owner,account.state_json||JSON.stringify(state)).all()).results;
+   for(const [level,c] of Object.entries(state.completions||{})){
+    const attempt=attempts.find(t=>c.timingAttemptId?t.id===c.timingAttemptId:t.level===Number(level)&&t.finished_at===c.at);
+    if(attempt)c.timingStatus=attempt.status;
+   }
+  }
+  return firstClearTiming(state);
+ }
  async ranks(mode,owner){
-  const sql=`WITH eligible AS (
-   SELECT owner,nickname,highest,highest AS score FROM sudoku_accounts
-   WHERE version='v1' AND verified=1 AND listed=1 AND highest>0
-  ), ranked AS (SELECT *,DENSE_RANK() OVER(ORDER BY score DESC) AS rank,
-   ROW_NUMBER() OVER(ORDER BY score DESC,nickname COLLATE NOCASE,owner) AS position,
-   COUNT(*) OVER(PARTITION BY score) AS tied FROM eligible)
-  SELECT * FROM ranked WHERE position<=50 OR owner=? ORDER BY position`;
+  const speed=await this.speedReady();
+  const ctes=firstClearCtes(speed);
+  const sql=`WITH ${ctes} SELECT * FROM ranked WHERE rank<=50 OR owner=? ORDER BY rank`;
   const records=(await query(this.db,sql,owner).all()).results;
-  const present=r=>({nickname:r.nickname,score:r.score,highest:r.highest,rank:r.rank,tied:r.tied>1,mine:r.owner===owner});
+  const present=r=>({nickname:r.nickname,score:r.score,highest:r.highest,rank:r.rank,tied:false,elapsedMs:r.elapsedMs,timedClears:r.timedClears,reachedAt:r.reachedAt,mine:r.owner===owner});
   const mine=records.find(r=>r.owner===owner),account=await this.get(owner);
-  return {rows:records.filter(r=>r.position<=50).map(present),mine:mine?present(mine):null,personal:{highest:account?.state.highest||0,status:rankingStatus(account,'all')},limit:50,catalog:catalogSummary};
+  return {rows:records.filter(r=>r.rank<=50).map(present),mine:mine?present(mine):null,participants:records[0]?.total||0,personal:{highest:account?.state.highest||0,status:rankingStatus(account,'all'),...await this.firstClearPersonal(account,speed)},limit:50,scoring:'clears-time-v1',catalog:catalogSummary};
  }
 
 
@@ -60,7 +68,7 @@ export async function sudokuApi(request,env,{authenticate=async()=>null,store=en
  const speedEnabled=env.SUDOKU_SPEED_ENABLED==='true'&&await store.speedReady?.();
  let cookie;
  try{
- if(path==='/health'&&request.method==='GET'){await store.get('health-probe');return response({ready:true,release:'sudoku-v40',weeklyVersion:0,weeklyRetired:true,leaderboardVersion:3,speedVersion:speedEnabled?1:0,catalog:catalogSummary});}
+ if(path==='/health'&&request.method==='GET'){await store.get('health-probe');return response({ready:true,release:'sudoku-v40',weeklyVersion:0,weeklyRetired:true,leaderboardVersion:4,speedVersion:speedEnabled?1:0,catalog:catalogSummary});}
  if(!['GET','POST','PUT'].includes(request.method))throw new SudokuError(405,'METHOD_NOT_ALLOWED','Unsupported method.');
  if(request.method!=='GET'&&request.headers.get('origin')!==new URL(env.PUBLIC_ORIGIN||request.url).origin)throw new SudokuError(403,'ORIGIN_DENIED','This request origin is not allowed.');
  let token=request.headers.get('cookie')?.split(';').map(s=>s.trim()).find(s=>s.startsWith('paw_sudoku='))?.slice(11);if(!/^[a-f0-9]{64}$/.test(token||'')){token=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');cookie=`paw_sudoku=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000${url.protocol==='https:'?'; Secure':''}`;}

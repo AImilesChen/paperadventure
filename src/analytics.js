@@ -1,6 +1,6 @@
 import { pageFor } from '../shared/page-manifest.mjs';
 import { analyticsConfig } from './analytics-config.js';
-import { isAnalyticsPage } from './analytics-route.mjs';
+import { isAnalyticsPage,isPublicSudokuPage } from './analytics-route.mjs';
 import { conversionProperties } from './conversionEvents.mjs';
 
 // Cookieless traffic measurement starts on eligible public pages unless opted out.
@@ -31,12 +31,16 @@ export function analyticsAvailable() {
 
 export function analyticsProviderNames(group = 'all') {
   const names={ga4:'Google Analytics 4',clarity:'Microsoft Clarity',ahrefs:'Ahrefs Web Analytics',plausible:'Plausible'};
-  return Object.entries(enabledAnalyticsProviders).filter(([name,enabled])=>enabled && (group==='all'||(group==='basic'?['ahrefs','plausible']:['ga4','clarity']).includes(name))).map(([name])=>names[name]);
+  return Object.entries(enabledAnalyticsProviders).filter(([name,enabled])=>enabled && !(typeof window!=='undefined'&&isPublicSudokuPage(window.location.pathname)&&['clarity','ahrefs'].includes(name)) && (group==='all'||(group==='basic'?['ahrefs','plausible']:['ga4','clarity']).includes(name))).map(([name])=>names[name]);
 }
 
 function safeMeasurementUrl(url) {
   // Ahrefs includes URL parameters. Only known non-personal campaign/setting
   // values are eligible; never send arbitrary tokens, emails or URL fragments.
+  if(isPublicSudokuPage(url.pathname)){
+    if(url.hash&&!new Set(['#ranking-rules','#ranking-join','#ranking-faq','#my-results','#speed-practice','#technique-single','#technique-hidden','#technique-locked','#technique-pair','#sd-levels-explained']).has(url.hash))return false;
+    return [...url.searchParams].every(([key,value])=>key==='mode'?['all','speed'].includes(value):key==='level'?/^[1-9][0-9]{0,5}$/.test(value):key==='profile'?value==='1':/^utm_(source|medium|campaign|term|content|id)$/.test(key)&&/^[a-z0-9_-]{1,80}$/i.test(value));
+  }
   if(url.hash)return false;
   return [...url.searchParams].every(([key,value])=>key==='setting'
     ? /^(home|classroom)$/.test(value)
@@ -102,7 +106,7 @@ export function startAnalytics() {
   if (!analyticsAvailable() || !analyticsLocationAllowed()) return;
   if(!basicStarted&&basicAnalyticsAllowed()){
     basicStarted=true;
-    if(enabledAnalyticsProviders.ahrefs)loadScript('https://analytics.ahrefs.com/analytics.js', { 'data-key': ahrefsKey });
+    if(enabledAnalyticsProviders.ahrefs&&!isPublicSudokuPage(window.location.pathname))loadScript('https://analytics.ahrefs.com/analytics.js', { 'data-key': ahrefsKey });
     if(enabledAnalyticsProviders.plausible){
       // Preserve actions made before the existing async tracker has loaded.
       window.plausible = window.plausible || function plausible() { (window.plausible.q = window.plausible.q || []).push(arguments); };
@@ -120,7 +124,7 @@ export function startAnalytics() {
     window.gtag('config', gaId, { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false });
     loadScript(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaId)}`);
   }
-  if(enabledAnalyticsProviders.clarity){
+  if(enabledAnalyticsProviders.clarity&&!isPublicSudokuPage(window.location.pathname)){
     window.clarity = window.clarity || function clarity() { (window.clarity.q = window.clarity.q || []).push(arguments); };
     window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' });
     loadScript(`https://www.clarity.ms/tag/${encodeURIComponent(clarityId)}`);
@@ -143,10 +147,11 @@ export function trackPageView() {
 
 export function trackEvent(name, properties = {}) {
   if (!enhancedStarted || analyticsChoice()!=='granted' || !analyticsLocationAllowed() || !/^[a-z][a-z0-9_]{1,39}$/.test(name)) return;
+  if(isPublicSudokuPage(window.location.pathname)){const permitted=name.startsWith('sudoku_')&&conversionProperties(name,properties);if(!permitted)return;properties=permitted;}
   const safe = Object.fromEntries(Object.entries(properties).filter(([key, value]) =>
     /^[a-z_]+$/.test(key) && typeof value === 'string' && /^[a-z0-9_-]{1,40}$/i.test(value)));
   if(enabledAnalyticsProviders.ga4)window.gtag?.('event', name, { ...safe, page_path: window.location.pathname });
-  if(enabledAnalyticsProviders.clarity)window.clarity?.('event', name);
+  if(enabledAnalyticsProviders.clarity&&!isPublicSudokuPage(window.location.pathname))window.clarity?.('event', name);
 }
 
 export function wireAnalyticsEvents() {
@@ -156,6 +161,12 @@ export function wireAnalyticsEvents() {
     const target = event.target instanceof Element ? event.target : null;
     if (!target) return;
     const anchor = target.closest('a[href]');
+    if(isPublicSudokuPage(window.location.pathname)){
+      const action=target.closest('[data-sudoku-event]');
+      const mode=new URLSearchParams(window.location.search).get('mode')==='speed'?'speed':'all';
+      if(action){trackConversionEvent(action.getAttribute('data-sudoku-event'),{mode:action.getAttribute('data-board-mode')||mode});return;}
+      if(anchor){const u=new URL(anchor.href,window.location.origin);const destination={'/en/sudoku/techniques/':'techniques','/en/sudoku/how-to-play/':'rules','/en/sudoku/levels/':'levels'}[u.pathname];if(u.origin===window.location.origin&&destination)trackConversionEvent('sudoku_learning_click',{destination});}
+    }
     if (anchor) {
       const url = new URL(anchor.href, window.location.origin);
       if (url.origin !== window.location.origin) return;

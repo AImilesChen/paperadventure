@@ -93,7 +93,7 @@ jobs:
         run: |
           for attempt in {1..120}; do
             if curl --fail --silent --show-error --max-time 10 https://paperadventure.app/api/v1/sudoku/health > "$RUNNER_TEMP/sudoku-health.json" &&
-              node --input-type=module -e "import {catalogSummary} from './shared/sudoku/catalog.mjs';import fs from 'node:fs';const h=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/sudoku-health.json','utf8'));if(h.release!=='sudoku-v40'||h.ready!==true||h.weeklyVersion!==0||h.weeklyRetired!==true||h.leaderboardVersion!==3||h.speedVersion!==1||h.catalog?.version!==catalogSummary.version)process.exit(1)"; then exit 0; fi
+              node --input-type=module -e "import {catalogSummary} from './shared/sudoku/catalog.mjs';import fs from 'node:fs';const h=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/sudoku-health.json','utf8'));if(h.release!=='sudoku-v40'||h.ready!==true||h.weeklyVersion!==0||h.weeklyRetired!==true||h.leaderboardVersion!==4||h.speedVersion!==1||h.catalog?.version!==catalogSummary.version)process.exit(1)"; then exit 0; fi
             sleep 5
           done
           echo "::error::Matching Sudoku API is not ready; current site retained."
