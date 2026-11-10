@@ -7,3 +7,5 @@ test('static assets can be cached while mutations and external URLs remain untou
 
 
 test('offline lessons prefer their own public shell instead of hydrating the game as a tutorial',async()=>{const{events,saved}=setup(async()=>{throw Error('offline');});saved.set('/en/sudoku/','game shell');saved.set('/en/sudoku/techniques/','techniques shell');let pending;events.fetch({request:{method:'GET',url:'https://test.local/en/sudoku/techniques/?from=menu',mode:'navigate'},respondWith:p=>pending=p});assert.equal(await pending,'techniques shell');});
+
+test('each complete tutorial restores its own offline shell',async()=>{for(const slug of ['single-candidate','hidden-single','locked-candidates','naked-pair']){const path='/en/sudoku/techniques/'+slug+'/';const{events,saved}=setup(async()=>{throw Error('offline');});saved.set('/en/sudoku/','game shell');saved.set(path,slug+' tutorial');let pending;events.fetch({request:{method:'GET',url:'https://test.local'+path,mode:'navigate'},respondWith:p=>pending=p});assert.equal(await pending,slug+' tutorial');assert.ok(source.includes(path));}});
