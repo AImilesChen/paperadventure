@@ -5,7 +5,7 @@ function progressConflicts(account,guest){return Object.keys(guest.sessions||{})
 export function mergeConflicts(account,guest){return progressConflicts(account,guest);}
 function mergeProgress(account,guest,choices){const a=structuredClone(account);a.seen={...guest.seen,...a.seen};
  for(const[level,c]of Object.entries(guest.completions)){
-  a.completions[level]??=structuredClone(c);if(c.assisted)a.completions[level].assisted=true;
+  const old=a.completions[level];if(!old||(Number.isSafeInteger(c.at)&&c.at>0&&(!Number.isSafeInteger(old.at)||old.at<=0||c.at<old.at)))a.completions[level]=structuredClone(c);if(c.assisted||old?.assisted)a.completions[level].assisted=true;
  }
  for(const[id,g]of Object.entries(guest.sessions)){const old=a.sessions[id];if(!old){a.sessions[id]=structuredClone(g);continue;}const selected=g.completed&&!old.completed?g:choices[id]==='guest'?g:old,hints=new Map();
   for(const h of[...(old.hints||[]),...(g.hints||[])]){const prev=hints.get(h.board);if(!prev||prev.tier<h.tier)hints.set(h.board,h);}

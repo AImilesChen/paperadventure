@@ -10,7 +10,7 @@ async function call(path,body,method='POST'){
  return response.json();
 }
 let ready=false;
-for(let i=0;i<24;i++){try{const h=await call('/health');assert.equal(h.release,'sudoku-v40');assert.equal(h.catalog?.version,catalogSummary.version);assert.equal(h.weeklyVersion,0);assert.equal(h.weeklyRetired,true);assert.equal(h.leaderboardVersion,3);assert.equal(h.speedVersion,1);ready=true;break;}catch{await new Promise(r=>setTimeout(r,5000));}}
+for(let i=0;i<24;i++){try{const h=await call('/health');assert.equal(h.release,'sudoku-v40');assert.equal(h.catalog?.version,catalogSummary.version);assert.equal(h.weeklyVersion,0);assert.equal(h.weeklyRetired,true);assert.equal(h.leaderboardVersion,4);assert.equal(h.speedVersion,1);ready=true;break;}catch{await new Promise(r=>setTimeout(r,5000));}}
 assert.ok(ready,'Matching Sudoku backend not ready');
 const progress=await call('/progress');assert.equal(progress.state.highest,0);assert.equal(progress.state.balance,15);assert.equal(progress.profile.authenticated,false);
 assert.equal(progress.speedEnabled,true);
@@ -24,6 +24,8 @@ const speed=await call('/leaderboard?mode=speed&level=1');assert.ok(Array.isArra
 const deniedReview=await fetch(origin+'/api/v1/sudoku/speed/reviews',{signal:AbortSignal.timeout(20000)});assert.equal(deniedReview.status,403);
 const final=await call('/progress');assert.equal(final.state.balance,15);assert.equal(final.state.highest,0);
 const ranks=await call('/leaderboard');assert.ok(Array.isArray(ranks.rows));assert.ok(!JSON.stringify(ranks.rows).includes('account:'));
+assert.equal(ranks.scoring,'clears-time-v1');assert.equal(ranks.personal.elapsedMs,null);assert.equal(ranks.personal.timedClears,0);assert.equal(ranks.limit,50);assert(ranks.participants>=ranks.rows.length);assert.deepEqual(ranks.rows.map(r=>r.rank),ranks.rows.map((_,i)=>i+1));assert(ranks.rows.every(r=>r.tied===false&&(r.elapsedMs===null||Number.isSafeInteger(r.elapsedMs)&&r.elapsedMs>0)));
+console.log('Verified total ranking contract clears-time-v1, unique positions, personal timing and public count.');
 console.log('Verified Sudoku speed-v1: board-hidden ready, server-timed start/resume, persistent save, speed queries, admin denial, balance and no-store. No paid action or public score created.');
 
 for(const path of ['/weekly','/weekly/2026-11-09/progress','/weekly/2026-11-09/sessions','/weekly/2026-11-09/leaderboard']){

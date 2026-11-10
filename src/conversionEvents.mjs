@@ -1,5 +1,6 @@
 // Public funnel actions only. Values come from catalog/UI enums, never user text.
 export const conversionGoalNames = Object.freeze([
+  'sudoku_board_switch', 'sudoku_board_play', 'sudoku_board_signin', 'sudoku_learning_click',
   'home_sample_click', 'sample_download_success',
   'sample_browse_themes', 'product_checkout_click',
   'puzzle_select', 'puzzle_attempt', 'puzzle_solved', 'puzzle_hint_open', 'puzzle_pdf_download', 'puzzle_game_click',
@@ -8,6 +9,10 @@ export const conversionGoalNames = Object.freeze([
 
 export function conversionProperties(name, properties = {}) {
   if (!conversionGoalNames.includes(name)) return null;
+  if(name.startsWith('sudoku_')){
+    if(name==='sudoku_learning_click')return ['techniques','rules','levels'].includes(properties.destination)?{destination:properties.destination}:null;
+    return ['all','speed'].includes(properties.mode)?{mode:properties.mode}:null;
+  }
   if (name.startsWith('escape_')) {
     if (properties.game !== 'sleeping-lighthouse') return null;
     const game = properties.game;

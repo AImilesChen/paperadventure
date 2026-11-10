@@ -158,3 +158,11 @@ test('first release recognises the original read-only health without hitting its
  });assert.equal(calls,1);assert.equal(result.needsDeployment,true);
  await assert.rejects(checkUpgrade('https://test.local',async()=>Response.json({ready:true,release:'unknown',leaderboardVersion:3})),/Unexpected API/);
 });
+
+
+test('bank maintenance accepts the ordinal-ranking API and still rejects unknown protocols',async()=>{
+ const {checkUpgrade}=await import('../scripts/check-sudoku-bank-upgrade.mjs');
+ const fetcher=version=>async url=>url.endsWith('/health')?Response.json({ready:true,release:'sudoku-v40',leaderboardVersion:version}):Response.json({catalog:publicCatalog});
+ assert.equal((await checkUpgrade('https://test.local',fetcher(4))).needsDeployment,false);
+ await assert.rejects(checkUpgrade('https://test.local',fetcher(99)),/Unexpected leaderboard protocol/);
+});

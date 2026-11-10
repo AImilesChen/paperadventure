@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { crossesAnalyticsBoundary, isAnalyticsPage } from '../src/analytics-route.mjs';
+import { crossesAnalyticsBoundary, isAnalyticsPage,isPublicSudokuPage } from '../src/analytics-route.mjs';
 
 test('analytics stays on public information pages and off private flows', () => {
   for (const route of ['/en/', '/en/themes/', '/en/themes/celebration/', '/en/pricing/', '/en/help/']) assert.equal(isAnalyticsPage(route), true, route);
@@ -8,6 +8,10 @@ test('analytics stays on public information pages and off private flows', () => 
   assert.equal(crossesAnalyticsBoundary('/en/pricing/', '/en/checkout/'), true);
   assert.equal(crossesAnalyticsBoundary('/en/orders/order-secret/', '/en/themes/'), true);
   assert.equal(crossesAnalyticsBoundary('/en/themes/', '/en/pricing/'), false);
+  for(const route of ['/en/sudoku/leaderboard/','/en/sudoku/levels/','/en/sudoku/how-to-play/','/en/sudoku/techniques/'])assert.equal(isAnalyticsPage(route),true);
+  for(const route of ['/en/sudoku/','/en/sudoku/play/','/en/sudoku/private/'])assert.equal(isAnalyticsPage(route),false);
+  assert.equal(crossesAnalyticsBoundary('/en/themes/','/en/sudoku/leaderboard/'),true,'unload recording scripts when entering Sudoku public pages');
+  assert.equal(crossesAnalyticsBoundary('/en/sudoku/levels/','/en/sudoku/leaderboard/'),false);
 });
 
 test('released analytics separates cookieless statistics from consent-based measurement', async t => {
@@ -40,6 +44,21 @@ test('released analytics separates cookieless statistics from consent-based meas
         assert.equal(f.analytics.analyticsChoice(),null);f.analytics.startAnalytics();assertBasic(f);
         assert.deepEqual([...f.analytics.analyticsProviderNames('enhanced')],['Google Analytics 4','Microsoft Clarity']);
       }
+    });
+    await t.test('public Sudoku has canonical limited measurement, no recordings or Ahrefs, and honors both preferences',async()=>{
+      const f=await browser({pathname:'/en/sudoku/leaderboard/',search:'?mode=speed&level=201&profile=1',hash:'#my-results',saved:grant});
+      f.analytics.startAnalytics();
+      assert.deepEqual(sources(f),['https://plausible.shipsolo.io/js/script.js','https://www.googletagmanager.com/gtag/js?id=G-0KQ8D1T7XJ']);
+      assert.equal(window.clarity,undefined);
+      f.analytics.trackConversionEvent('sudoku_board_play',{mode:'speed',nickname:'Alice',level:'201',balance:'15'});
+      assert.deepEqual(Array.from(window.plausible.q[0]),['sudoku_board_play',{props:{mode:'speed'}}]);
+      const view=window.dataLayer.find(args=>args[1]==='page_view');assert.equal(view[2].page_location,'https://paperadventure.app/en/sudoku/leaderboard/');
+      const n=window.dataLayer.length;f.analytics.trackPageView();assert.equal(window.dataLayer.length,n,'polling and mode changes do not duplicate page views');
+      f.analytics.trackEvent('theme_open',{nickname:'Alice'});assert.equal(window.dataLayer.length,n);
+      f.analytics.trackConversionEvent('sudoku_board_switch',{mode:'private-name'});assert.equal(window.dataLayer.length,n);
+      for(const search of ['?mode=speed&token=private','?level=alice','?mode=private','?profile=secret']){const bad=await browser({pathname:'/en/sudoku/leaderboard/',search,saved:grant});bad.analytics.startAnalytics();assert.equal(bad.scripts.length,0);}
+      const fromGame=await browser({pathname:'/en/sudoku/leaderboard/',referrer:'https://paperadventure.app/en/sudoku/play/?level=1',saved:grant});fromGame.analytics.startAnalytics();assert.equal(fromGame.scripts.length,0);
+      const denied=await browser({pathname:'/en/sudoku/levels/',saved:{...optout,'paw-analytics-choice-v3':'denied'}});denied.analytics.startAnalytics();assert.equal(denied.scripts.length,0);
     });
     await t.test('a current grant adds exactly GA4 and Clarity without duplicating basic scripts',async()=>{
       const f=await browser();f.analytics.startAnalytics();f.analytics.saveAnalyticsChoice('granted');

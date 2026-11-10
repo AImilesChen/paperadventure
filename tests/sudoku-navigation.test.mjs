@@ -25,3 +25,22 @@ test('new lesson HTML contains readable separate diagrams without requiring prog
   for(const [,href]of html.matchAll(/href="(#[^"]+)"/g))assert.ok(html.includes('id="'+href.slice(1)+'"'),href);
  }
 });
+
+import {rankingContext,rankingPath,rankingSignIn,participation} from '../shared/sudoku/leaderboard-context.mjs';
+import {accountReturnPath} from '../shared/account-return.mjs';
+test('ranking sign-in preserves selected mode and level using a bounded local return target',()=>{
+ const path=rankingPath({mode:'speed',level:201,profile:true});assert.equal(path,'/en/sudoku/leaderboard/?mode=speed&level=201&profile=1#my-results');
+ const href=rankingSignIn({mode:'speed',level:201});const target=new URL(href,'https://local.invalid').searchParams.get('returnTo');assert.equal(accountReturnPath(target),path);
+ assert.deepEqual(rankingContext('?mode=speed&level=1.2&token=private'),{mode:'speed',level:1,profile:false});
+ assert.equal(rankingPath({mode:'https://evil.test',level:99999,profile:true}),'/en/sudoku/leaderboard/?profile=1#my-results');
+});
+test('participation distinguishes saved private results, review and locked states without changing consent',()=>{
+ const guest={authenticated:false,listed:false},privateUser={authenticated:true,listed:false},publicUser={authenticated:true,listed:true};
+ assert.equal(participation({profile:guest,highest:2}).id,'guest-result');
+ assert.equal(participation({profile:guest,highest:2,speedLevel:1,best:null}).id,'guest');
+ assert.equal(participation({profile:privateUser,highest:2,speedLevel:1,best:85}).id,'private');
+ assert.equal(participation({profile:publicUser,speedLevel:1,best:null}).id,'no-result');
+ assert.equal(participation({profile:publicUser,speedLevel:1,best:85,latest:{status:'pending'}}).id,'pending');
+ assert.equal(participation({profile:publicUser,speedLevel:201,best:null,locked:true}).id,'locked');
+ assert.equal(publicUser.listed,true);assert.equal(privateUser.listed,false);
+});
