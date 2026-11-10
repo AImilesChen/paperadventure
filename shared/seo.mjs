@@ -11,6 +11,16 @@ export function pageSchema(page, release, origin = 'https://paperadventure.app')
   if (!page.indexable) return { '@context': 'https://schema.org', '@graph': graph };
   const crumbs = [{ name: 'Home', url: origin + '/en/' }];
   const guide = guideFor(page.path);
+  if (page.path.startsWith('/en/sudoku/techniques/')) {
+    crumbs.push({name:'Sudoku',url:origin+'/en/sudoku/'});
+    if(page.path==='/en/sudoku/techniques/') {
+      graph[0]['@type']='CollectionPage';
+      graph.push({'@type':'ItemList',name:'Sudoku solving tutorials',itemListElement:[['single-candidate','Single candidate'],['hidden-single','Hidden single'],['locked-candidates','Locked candidates'],['naked-pair','Naked pair']].map(([slug,name],i)=>({'@type':'ListItem',position:i+1,name,url:url+slug+'/'}))});
+    } else {
+      crumbs.push({name:'Solving techniques',url:origin+'/en/sudoku/techniques/'});
+      graph.push({'@type':'Article','@id':url+'#article',headline:page.title,description:page.description,author:{'@id':publisher['@id']},publisher:{'@id':publisher['@id']},mainEntityOfPage:{'@id':url+'#page'},inLanguage:'en',isAccessibleForFree:true});
+    }
+  }
   if (page.path === lighthouse.hub) {
     graph[0]['@type'] = 'CollectionPage';
     graph[0].mainEntity = { '@id': url + '#adventures' };
