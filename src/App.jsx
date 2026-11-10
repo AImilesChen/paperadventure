@@ -1,3 +1,4 @@
+import HeaderDiscovery from './headerDiscovery.jsx';
 import {SudokuDisclosure} from './sudokuNavigation.jsx';
 import SudokuLessons from './sudokuLessons.jsx';
 import {prepareSudokuLeave} from './sudoku-leave.mjs';
@@ -35,7 +36,7 @@ import { LiveCreate } from './liveCreate.jsx';
 import { CreatorGuide } from './creatorGuide.jsx';
 import './creatorWorkspace.css';
 import './funnel.css';
-import './headerHomeNav.css';
+import './header-navigation.css';
 import { PricingGuide } from './pricingGuide.jsx';
 import { HowItWorksPage } from './howItWorks.jsx';
 import { HomeProductGuide } from './homeProductGuide.jsx';
@@ -63,12 +64,9 @@ function Header({ route }) {
   const [authenticated, setAuthenticated] = useState(null);
   const [administrator,setAdministrator]=useState(false);
   const [accountOpen,setAccountOpen]=useState(false);
-  const [homeOpen,setHomeOpen]=useState(false);
-  const homeRef=useRef(null);
-  const homeTrigger=useRef(null);
   const accountRef=useRef(null);
   const accountTrigger=useRef(null);
-  useEffect(() => {setOpen(false);setAccountOpen(false);setHomeOpen(false);}, [route]);
+  useEffect(() => {setOpen(false);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));}, [route]);
   useEffect(() => {
     let active = true;
     fetch('/api/v1/auth/session', { credentials: 'same-origin' }).then(response => response.ok ? response.json() : null)
@@ -84,40 +82,28 @@ function Header({ route }) {
   useEffect(() => {
     const closeOnEscape = event => {
       if(event.key==='Escape'){
-        if(homeOpen){setHomeOpen(false);homeTrigger.current?.focus();}
-        else if(accountOpen){setAccountOpen(false);accountTrigger.current?.focus();}
+        if(accountOpen){setAccountOpen(false);accountTrigger.current?.focus();}
         else if(open){setOpen(false);document.querySelector('.menu-toggle')?.focus();}
       }
     };
-    const closeOutside=event=>{if(!accountRef.current?.contains(event.target))setAccountOpen(false);if(!homeRef.current?.contains(event.target))setHomeOpen(false);};
+    const closeOutside=event=>{if(!accountRef.current?.contains(event.target))setAccountOpen(false);if(open&&!event.target.closest('.site-header')){setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}};
     window.addEventListener('keydown', closeOnEscape);
     window.addEventListener('pointerdown',closeOutside);
     return () => {window.removeEventListener('keydown', closeOnEscape);window.removeEventListener('pointerdown',closeOutside);};
-  }, [accountOpen,open,homeOpen]);
-  return <header className={route === '/en/' ? 'site-header home-header' : 'site-header'}><div className="nav-shell"><Brand />
-    <nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label="Main navigation" onClick={event=>{if(event.target.closest('a')){setOpen(false);setHomeOpen(false);}}}>
-      <div className="header-home-nav" ref={homeRef} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHomeOpen(false);}}>
-        <button type="button" className="nav-primary-link header-home-trigger" ref={homeTrigger} aria-expanded={homeOpen} aria-controls="home-navigation" data-active={route.startsWith('/en/for-home') || /^\/en\/themes\/[^/]+\/home\/$/.test(route) || route === '/en/samples/home/' || route.startsWith('/en/occasions/') || undefined} onClick={()=>{setHomeOpen(value=>!value);setAccountOpen(false);window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>For home <CaretDown size={13} aria-hidden="true"/></button>
-        <div id="home-navigation" className="header-home-panel" hidden={!homeOpen}>
-          <Link to="/en/for-home/" aria-current={route === '/en/for-home/' ? 'page' : undefined}><strong>Home adventures</strong><span>Browse all Home stories</span></Link>
-          <Link to="/en/occasions/birthday/" aria-current={route === '/en/occasions/birthday/' ? 'page' : undefined}><strong>Birthday party games</strong><span>A free story &amp; party preparation</span></Link>
-          <Link to="/en/occasions/christmas/" aria-current={route === '/en/occasions/christmas/' ? 'page' : undefined}><strong>Christmas games</strong><span>A paper gift workshop to share</span></Link>
-          <Link to="/en/samples/home/" aria-current={route === '/en/samples/home/' ? 'page' : undefined}><strong>Free Home game</strong><span>Player Pack &amp; Host Guide</span></Link>
-          <Link to="/en/escape-room-puzzles/" aria-current={route === '/en/escape-room-puzzles/' ? 'page' : undefined}><strong>Free puzzles</strong><span>Codes, logic &amp; printable clues</span></Link>
-          <Link to="/en/escape-room-games/" aria-current={route.startsWith('/en/escape-room-games/') ? 'page' : undefined}><strong>Escape adventures</strong><span>Complete stories to print &amp; play</span></Link>
-        </div>
-      </div>
+  }, [accountOpen,open]);
+  return <header className={route === '/en/' ? 'site-header home-header' : 'site-header'} onClick={event=>{if(event.target.closest('a.brand')){setOpen(false);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}}><div className="nav-shell header-nav-shell"><Brand />
+    <nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label="Main navigation" onClick={event=>{if(event.target.closest('a')){setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));}}}>
+      <HeaderDiscovery kind="home" route={route} LinkComponent={Link} onOpen={()=>setAccountOpen(false)}/>
       <Link to="/en/for-classroom/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-classroom") || /^\/en\/themes\/[^/]+\/classroom\/$/.test(route)) ? "page" : undefined}>For classrooms</Link>
-      <SudokuDisclosure route={route} global onOpen={()=>{setHomeOpen(false);setAccountOpen(false);}}/>
-      <Link to="/en/create/" className="nav-primary-link" aria-current={route.startsWith("/en/create") ? "page" : undefined}>AI custom adventure</Link>
+      <SudokuDisclosure route={route} global onOpen={()=>{window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));setAccountOpen(false);}}/>
       <Link to="/en/how-it-works/" className="nav-primary-link" aria-current={route.startsWith("/en/how-it-works") ? "page" : undefined}>How it works</Link>
-      <Link to="/en/guides/" className="nav-primary-link" aria-current={route.startsWith("/en/guides/") ? "page" : undefined}>Guides</Link>
+      <HeaderDiscovery kind="resources" route={route} LinkComponent={Link} onOpen={()=>setAccountOpen(false)}/>
       <Link to="/en/pricing/" className="nav-primary-link" aria-current={route.startsWith("/en/pricing") ? "page" : undefined}>Pricing</Link>
       <Link className="nav-create-mobile" to="/en/create/">Create with AI <ArrowUpRight size={16} /></Link>
     </nav>
     <div className="nav-actions">
       {authenticated ? <div className="header-account" ref={accountRef} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setAccountOpen(false);}}>
-        <button type="button" className="header-account-trigger" ref={accountTrigger} aria-label="Account" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={()=>{setAccountOpen(value=>!value);setOpen(false);setHomeOpen(false);window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>
+        <button type="button" className="header-account-trigger" ref={accountTrigger} aria-label="Account" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={()=>{setAccountOpen(value=>!value);setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>
           <UserCircle size={22} aria-hidden="true"/><span>Account</span><CaretDown size={13} aria-hidden="true"/>
         </button>
         {accountOpen&&<nav id="account-navigation" className="header-account-panel" aria-label="Account navigation" onClick={event=>{if(event.target.closest('a'))setAccountOpen(false);}}>
@@ -129,7 +115,7 @@ function Header({ route }) {
       </div> : <Link className="header-signin" to="/en/account/">{authenticated===null?'Account':'Sign in'}</Link>}
       <Link className={route === '/en/' ? 'header-create-secondary' : 'button button-small'} to="/en/create/">Create with AI <ArrowUpRight size={16} /></Link>
     </div>
-    <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);setHomeOpen(false);window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>{open ? <X size={25} /> : <List size={25} />}</button>
+    <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>{open ? <X size={25} /> : <List size={25} />}</button>
   </div></header>;
 }
 function Footer({ runtime }) { return <footer className="site-footer"><div className="footer-main"><div><Brand /><p>Made for curious minds and the people who bring them together.</p></div><div className="footer-links"><div><strong>Explore</strong><Link to="/en/for-home/">Home adventures</Link><Link to="/en/for-classroom/">Classroom adventures</Link><Link to="/en/themes/">All themes</Link><Link to="/en/create/">AI custom adventures</Link><Link to="/en/pricing/">Pricing</Link></div><div><strong>Support</strong><Link to="/en/guides/">Preparation guides</Link><Link to="/en/help/">Help</Link><Link to="/en/samples/home/">Free sample</Link><Link to="/en/account/">Sign in</Link></div><div><strong>Legal</strong><Link to="/en/privacy/">Privacy</Link><Link to="/en/terms/">Terms</Link><Link to="/en/cookies/">Cookies</Link><Link to="/en/refunds/">Refunds</Link><span id="privacy-choices-slot" /></div></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Paper Adventure Workshop {runtime?.checkout ? '' : runtime?.sample ? '· Free trial available' : '· Design preview'}</span><span>For grown-ups planning playful adventures.</span></div></footer>; }
