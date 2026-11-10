@@ -11,7 +11,7 @@ export class D1SudokuStore{
  constructor(db){this.db=db;}
  async ensure(owner,verified){const name='Player-'+(await sha256(owner)).slice(0,6);await query(this.db,'INSERT OR IGNORE INTO sudoku_accounts(owner,state_json,nickname,verified,updated_at) VALUES(?,?,?,?,?)',owner,JSON.stringify(freshAccount()),name,verified?1:0,Date.now()).run();return this.get(owner);}
  async get(owner){const row=await query(this.db,'SELECT * FROM sudoku_accounts WHERE owner=?',owner).first();return row?{...row,state:JSON.parse(row.state_json)}:null;}
- async cas(row,state,profile={},at=Date.now()){const r=await query(this.db,'UPDATE sudoku_accounts SET state_json=?,revision=revision+1,highest=?,independent=?,assisted=?,nickname=?,listed=?,updated_at=? WHERE owner=? AND revision=?',JSON.stringify(state),state.highest,unassistedClears(state),Object.values(state.completions).filter(c=>c.assisted).length,profile.nickname??row.nickname,profile.listed??row.listed,Date.now(),row.owner,row.revision).run();return Number(r.meta?.changes)===1;}
+ async cas(row,state,profile={},at=Date.now()){const r=await query(this.db,'UPDATE sudoku_accounts SET state_json=?,revision=revision+1,highest=?,independent=?,assisted=?,nickname=?,listed=?,updated_at=? WHERE owner=? AND revision=?',JSON.stringify(state),state.highest,unassistedClears(state),Object.values(state.completions).filter(c=>c.assisted).length,profile.nickname??row.nickname,profile.listed??row.listed,Date.now(),row.owner,row.revision).run();return Number(r.meta?.changes)>0;}
  async speedReady(){return Boolean(await query(this.db,"SELECT name FROM sqlite_master WHERE type='table' AND name='sudoku_speed_attempts'").first());}
  async speedRanks(level,puzzleVersion,owner){
  const sql=`WITH owned AS (

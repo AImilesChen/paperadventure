@@ -1,1 +1,1 @@
-sudoku-v41 speed-v1 / additive0050 / server timing and speed leaderboard
+sudoku-v42 speed-v1 / trigger-inclusive D1 CAS / additive0050 retained
