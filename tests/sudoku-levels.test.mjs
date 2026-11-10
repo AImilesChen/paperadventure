@@ -33,12 +33,12 @@ test('public initial HTML is indexable, complete, and independent of account loa
  assert.equal((html.match(/class="sd-stage sd-tone-/g)||[]).length,4);
  for(const [,hash]of html.matchAll(/href="(#[^"]+)"/g))assert.ok(html.includes('id="'+hash.slice(1)+'"'),hash);
  assert.match(await readFile('dist/client/sitemap.xml','utf8'),/<loc>https:\/\/paperadventure.app\/en\/sudoku\/levels\/<\/loc>/);
- for(const route of ['play','leaderboard'])assert.equal(pageFor('/en/sudoku/'+route+'/').indexable,false,route);
+ for(const route of ['play'])assert.equal(pageFor('/en/sudoku/'+route+'/').indexable,false,route);
 });
 
 test('only the canonical host exposes levels to indexing; previews and personal game routes stay noindex',async()=>{
  const env={ASSETS:{fetch:async()=>new Response('<html>public shell</html>',{headers:{'content-type':'text/html','x-robots-tag':'noindex'}})}};
- for(const[host,path,indexable]of [['paperadventure.app','levels',true],['preview.test','levels',false],['paperadventure.app','play',false],['paperadventure.app','leaderboard',false]]){
+ for(const[host,path,indexable]of [['paperadventure.app','levels',true],['preview.test','levels',false],['paperadventure.app','play',false],['paperadventure.app','leaderboard',true]]){
   const r=await publicWorker.fetch(new Request(`https://${host}/en/sudoku/${path}/`),env);
   assert.equal(r.headers.has('x-robots-tag'),!indexable,host+'/'+path);
  }
