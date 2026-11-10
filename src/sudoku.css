@@ -114,3 +114,7 @@
 /* Cap desktop board growth according to height while preserving its visual priority. */
 @media(min-width:851px){.sd-board-panel>.sd-board,.sd-board-panel>.sd-numbers,.sd-board-panel>.sd-tools,.sd-board-panel>.sd-save,.sd-board-panel>.sd-small,.sd-board-panel>.sd-instruction{max-width:clamp(480px,calc(100dvh - 400px),620px)}}
 
+
+.sd-ready{max-width:740px;margin:20px auto;text-align:center}.sd-ready-grid{display:grid;grid-template-columns:repeat(9,1fr);aspect-ratio:1;max-width:400px;margin:20px auto;border:2px solid #285a51}.sd-ready-grid span{border:1px solid #c4d6ce;background:#edf3ef}.sd-ready-grid span:nth-child(3n){border-right:2px solid #285a51}.sd-speed-controls{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:20px 0}.sd-speed-controls select,.sd-speed-controls input{max-width:100%;min-height:44px;padding:8px}.sd-speed-stats{display:flex;gap:25px;flex-wrap:wrap;padding:18px;background:#e6efe9;border-radius:12px;margin:18px 0}.sd-speed-table-wrap{overflow:auto}.sd-speed-table-wrap table{width:100%;border-collapse:collapse}.sd-speed-table-wrap td,.sd-speed-table-wrap th{text-align:left;padding:14px;border-bottom:1px solid #c9d8d0}.sd-speed-controls input{width:95px}
+
+@media(max-width:600px){.sd-speed-table-wrap td,.sd-speed-table-wrap th{padding:10px 6px;font-size:12px}.sd-speed-table-wrap td:nth-child(2){overflow-wrap:anywhere}}

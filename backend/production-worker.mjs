@@ -1308,7 +1308,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
   try {
     const url = new URL(request.url);
     const path = url.pathname;
-    if(path.startsWith('/api/v1/sudoku/'))return sudokuApi(request,env,{authenticate:authenticatedEmailHash});
+    if(path.startsWith('/api/v1/sudoku/'))return sudokuApi(request,env,{authenticate:authenticatedEmailHash,authorizeAdmin:adminIdentity});
     if(path==='/api/v1/admin'||path.startsWith('/api/v1/admin/'))return await handleAdminApi(request,env,context);
     if (request.method === 'GET' && path === '/api/v1/health') {
       const legal = await publishedLegal(env);

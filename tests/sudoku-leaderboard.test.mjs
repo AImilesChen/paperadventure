@@ -6,8 +6,34 @@ import {freshAccount,applyAction,publicState,puzzles} from '../backend/sudoku/se
 import {mergeAccounts} from '../backend/sudoku/merge.mjs';
 import {D1SudokuStore,sudokuApi} from '../backend/sudoku/api.mjs';
 import {unassistedClears} from '../shared/sudoku/ranking.mjs';
+import {pageFor} from '../shared/page-manifest.mjs';
+import publicWorker from '../backend/preview-deploy-worker.mjs';
 
 function complete(account,level,assisted=false){let a=applyAction(account,'start',{level}).account;const sessionId=puzzles[level-1].id;if(assisted)a=applyAction(a,'hints',{sessionId,tier:1,requestId:'hint-level-'+level}).account;a.sessions[sessionId].board=[...puzzles[level-1].solution].map(Number);return applyAction(a,'complete',{sessionId,requestId:'clear-level-'+level}).account;}
+
+test('public leaderboard content is available before account loading and has one indexable canonical landing page',async()=>{
+ const html=await readFile('dist/client/en/sudoku/leaderboard/index.html','utf8');
+ assert.equal(pageFor('/en/sudoku/leaderboard/').indexable,true);
+ assert.doesNotMatch(html,/<meta name="robots" content="noindex"/);
+ assert.match(html,/<link rel="canonical" href="https:\/\/paperadventure.app\/en\/sudoku\/leaderboard\/"/);
+ assert.equal((html.match(/<h1[ >]/g)||[]).length,1);
+ for(const text of ['Every clear. A new personal best.','Two ways to move up the leaderboard','From first puzzle to public score','Improve your Sudoku solving speed','Can I use points for hints and still rank?','Time away, pauses, offline time and connection delays count.','Can I keep my progress private?'])assert.ok(html.includes(text),text);
+ assert.doesNotMatch(html,/Manage public profile<\/button>|Public nickname<\/label>|Player-[a-f0-9]{6}/);
+ const sitemap=await readFile('dist/client/sitemap.xml','utf8');
+ assert.equal((sitemap.match(/https:\/\/paperadventure.app\/en\/sudoku\/leaderboard\//g)||[]).length,1);
+ assert.doesNotMatch(sitemap,/mode=speed|level=1/);
+ for(const[,hash]of html.matchAll(/href="(#[^"]+)"/g))assert.ok(html.includes('id="'+hash.slice(1)+'"'),hash);
+});
+
+test('leaderboard filters share the public canonical while preview hosts and private gameplay stay noindex',async()=>{
+ const html=await readFile('dist/client/en/sudoku/leaderboard/index.html','utf8');
+ const env={ASSETS:{fetch:async()=>new Response(html,{headers:{'content-type':'text/html','x-robots-tag':'noindex'}})}};
+ for(const [host,path,indexable] of [['paperadventure.app','leaderboard/',true],['paperadventure.app','leaderboard/?mode=speed&level=201',true],['preview.test','leaderboard/?mode=speed&level=201',false],['paperadventure.app','play/',false]]){
+  const response=await publicWorker.fetch(new Request('https://'+host+'/en/sudoku/'+path),env);
+  assert.equal(response.headers.has('x-robots-tag'),!indexable,host+'/'+path);
+  if(indexable)assert.match(await response.text(),/<link rel="canonical" href="https:\/\/paperadventure.app\/en\/sudoku\/leaderboard\/"/);
+ }
+});
 async function fixture(){const db=new DatabaseSync(':memory:');db.exec(await readFile('backend/migrations/0049_sudoku.sql','utf8'));const d1={prepare(sql){return{bind(...args){return{async first(){return db.prepare(sql).get(...args)||null;},async all(){return{results:db.prepare(sql).all(...args)};},async run(){return{meta:{changes:db.prepare(sql).run(...args).changes}};}};}};}};return{db,store:new D1SudokuStore(d1)};}
 function historical(highest,assisted=[]){const a=freshAccount();a.highest=highest;a.independent=0;for(let i=1;i<=highest;i++)a.completions[i]={assisted:assisted.includes(i),elapsed:1000,at:i};return a;}
 async function insert(f,owner,a,{listed=1,verified=1,nickname=owner}={}){await f.store.ensure(owner,Boolean(verified));f.db.prepare('UPDATE sudoku_accounts SET state_json=?,highest=?,independent=0,listed=?,verified=?,nickname=? WHERE owner=?').run(JSON.stringify(a),a.highest,listed,verified,nickname,owner);}

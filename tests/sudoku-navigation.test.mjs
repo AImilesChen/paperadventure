@@ -8,8 +8,8 @@ import {pageFor} from '../shared/page-manifest.mjs';
 test('Sudoku navigation resolves real routes and separates private progress from public lessons',()=>{
  for(const link of sudokuLinks)assert.ok(pageFor(link.href),link.href);
  assert.equal(sudokuSection('/en/sudoku/play/'),'play');assert.equal(sudokuSection('/en/sudoku/levels/'),'levels');
- for(const p of ['/en/sudoku/leaderboard/','/en/sudoku/play/'])assert.equal(pageFor(p).indexable,false);
- for(const p of ['/en/sudoku/levels/','/en/sudoku/how-to-play/','/en/sudoku/techniques/'])assert.equal(pageFor(p).indexable,true);
+ for(const p of ['/en/sudoku/play/'])assert.equal(pageFor(p).indexable,false);
+ for(const p of ['/en/sudoku/leaderboard/','/en/sudoku/levels/','/en/sudoku/how-to-play/','/en/sudoku/techniques/'])assert.equal(pageFor(p).indexable,true);
 });
 test('navigation waits for saved edits and a failed save keeps the player on their board',async()=>{
  let finish;const saved=new Promise(r=>finish=r);const clean=registerSudokuLeave(async()=>{await saved;return true;});let moved=false;const navigate=prepareSudokuLeave().then(ok=>moved=ok);

@@ -9,7 +9,7 @@ export const publicPages = Object.freeze([
   page('/en/sudoku/how-to-play/', 'How to Play Sudoku | Rules & Controls', 'Learn Sudoku rules with row, column and box diagrams, a separate placement example, controls and clear completion requirements.'),
   page('/en/sudoku/techniques/', 'Sudoku Solving Techniques | Illustrated Guide', 'Learn singles, hidden singles, locked candidates and naked pairs with separate candidate diagrams and step-by-step explanations.'),
   page('/en/sudoku/play/', 'Play Sudoku Adventure', 'Continue your Sudoku adventure.', false),
-  page('/en/sudoku/leaderboard/', 'Sudoku Adventure Leaderboard', 'Compare total Sudoku levels cleared, with hints welcome. Join the public leaderboard when you choose.', false),
+  page('/en/sudoku/leaderboard/', 'Sudoku Leaderboard: Levels Cleared & Best Times', 'Compare Sudoku levels cleared and single-level best times. Learn how rankings work, record a personal best and choose to share your progress.', true),
   page('/en/', 'Printable Adventure Games: Try Free', 'Start with a complete free printable adventure for ages 6–12. Get player PDFs and an adult guide for home or class. No account needed.'),
   page('/en/themes/', 'Home and Classroom Printable Adventure Worlds', 'Compare six Home adventures with six Classroom adventures. Celebration is the shared free world; the five other story worlds in each collection are different.'),
   page('/en/for-home/', 'Printable Adventure Games for Kids at Home', 'Explore print-at-home story adventures for ages 6–12. Try the free Celebration game, browse themed Home packs, or create a custom story.'),

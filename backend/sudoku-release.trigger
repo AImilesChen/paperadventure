@@ -1,1 +1,1 @@
-sudoku-v40 / bank-1e94838725ba7147 / append-only campaign and total-clears leaderboard
+sudoku-v41 speed-v1 / additive0050 / server timing and speed leaderboard
