@@ -65,12 +65,12 @@ test('reload preserves independent/hint/solution completion but rejects forged c
 test('malformed local saves are bounded and do not crash the page', () => {
   for (const raw of [null, [], 'oops', {}, { version: 2, active: '<script>', items: { 'forest-trail': { data: { moves: ['BAD'] }, history: ['bad'], hints: Infinity }, 'harbour-route': { data: { path: 'oops' } }, 'shared-parcel': { data: { selected: null, evidence: ['evil'] } } } }]) assert.doesNotThrow(() => restoreWorkshop(raw));
 });
-test('server-rendered page retains all six indexable puzzle definitions and separate hidden explanations', async () => {
+test('server-rendered page retains all six indexable puzzle definitions and credit-gated explanations', async () => {
   const html = await readFile('dist/client/en/escape-room-puzzles/index.html', 'utf8');
   assert.equal((html.match(/class="puzzle-card(?: [^"]*)?"/g) || []).length, 6);
   assert.match(html, /Six puzzles. Six ways to solve/);
   assert.match(html, /Clear saved progress/);
-  for (const id of Object.keys(correct)) assert.ok(html.includes(`id="${id}-solution" hidden=""`));
+  for (const id of Object.keys(correct)) assert.ok(!html.includes(`id="${id}-solution" hidden=""`));
 });
 
 

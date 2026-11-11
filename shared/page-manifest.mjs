@@ -4,8 +4,9 @@ import { guides } from './guides.mjs';
 const page = (path, title, description, indexable = true) => ({ path, title, description, indexable });
 
 export const publicPages = Object.freeze([
-  page('/en/sudoku/points/', 'Sudoku Points & Hints | One-Time Points Packs', 'Learn how Sudoku hint points work, compare one-time points packs and keep a free route forward with daily practice. Sign in to manage purchases and your wallet.'),
-  page('/en/account/billing/', 'Billing & Sudoku Points', 'View your private Sudoku points purchases and wallet activity.', false),
+  page('/en/credits/', 'AI Credits | One Wallet for Sudoku & Online Puzzle Help', 'Buy shared AI credits for Sudoku and six online escape puzzles. Compare one-time packs, see help costs and manage one account wallet.'),
+  page('/en/sudoku/points/', 'AI Credits', 'Continue to the shared AI credits wallet.', false),
+  page('/en/account/billing/', 'Billing & AI Credits', 'View your private shared AI credits purchases, usage and wallet activity.', false),
   page('/en/sudoku/', 'Online Sudoku | Progressive Levels & Solving Tips', 'Play progressive Sudoku levels with saved progress and thinking hints. Learn the rules, singles, locked candidates and pairs as you build your solving skills.'),
   page('/en/sudoku/levels/', 'Sudoku Levels: Progressive Puzzle Collections', 'Explore Sudoku puzzle collections with progressive levels. Progress from singles to candidate pairs, learn the difficulty stages and continue your next unlocked puzzle.', true),
   page('/en/sudoku/how-to-play/', 'How to Play Sudoku: Rules for Beginners & Practice', 'Learn Sudoku rules with a full-board first move, row-column-box conflict examples and three free beginner exercises. Understand notes, controls and verified completion.'),

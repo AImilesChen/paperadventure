@@ -170,7 +170,7 @@ test('reviewed policy draft explains applicable cancellation rights and privacy 
 test('owner-authorized formal policies have an effective date and preserve draft refusal',()=>{
   assert.deepEqual(policyReleaseProblems(),[]);
   for(const doc of Object.values(createPolicyDocuments())){
-    assert.equal(doc.publicationStatus,'approved');assert.equal(doc.effectiveAt,'2026-11-10');
+    assert.equal(doc.publicationStatus,'approved');assert.equal(doc.effectiveAt,'2026-11-11');
   }
   assert.doesNotThrow(()=>policyReleaseSql(legalProfile,{publish:true}));
   assert.throws(()=>policyReleaseSql(draftProfile,{publish:true}),/owner approval/);

@@ -43,3 +43,5 @@ assert.ok(catalogue.levels.every(p=>!('givens'in p)&&!('solution'in p)));
 const retiredScoring=await fetch(origin+'/api/v1/sudoku/leaderboard?mode=independent',{signal:AbortSignal.timeout(20000)});
 assert.equal(retiredScoring.status,410);assert.equal(retiredScoring.headers.get('set-cookie'),null);
 console.log('Verified public catalogue, private puzzle boundary and retired hint-free scoring.');
+
+const creditsHealthResponse=await fetch('https://paperadventure.app/api/v1/credits/health');const sharedCredits=await creditsHealthResponse.json();if(!creditsHealthResponse.ok||sharedCredits.version!==1||sharedCredits.ready!==true||sharedCredits.scope!=='site-wide')throw Error('Shared AI credits backend is not ready');

@@ -1,4 +1,4 @@
-name: Verify approved Sudoku point products
+name: Verify owner-provided AI credit Prices
 on:
   push:
     branches: [frontend-prd-v13-2026-10-08]
@@ -26,12 +26,12 @@ jobs:
         run: node scripts/write-stage-wrangler.mjs
       - name: Read bounded setup status without customer records or secrets
         run: |
-          for attempt in {1..36}; do
-            npx --yes wrangler@4.149.0 d1 execute paper-adventure-stage-db --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT status,stage,error_code,attempts FROM sudoku_point_setup WHERE id='v49-20261111';" --json > "$RUNNER_TEMP/points-status.json"
+          for attempt in {1..60}; do
+            npx --yes wrangler@4.149.0 d1 execute paper-adventure-stage-db --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT status,stage,error_code,attempts FROM sudoku_point_setup WHERE id='v50-manual-20261111';" --json > "$RUNNER_TEMP/points-status.json"
             status=$(node -e "const d=require(process.env.RUNNER_TEMP+'/points-status.json');console.log(d[0]?.results?.[0]?.status||'pending')")
             if [ "$status" = verified ]; then
-              echo 'Both approved Stripe products were independently read and verified.'
-              npx --yes wrangler@4.149.0 d1 execute paper-adventure-stage-db --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT mode,sku,product_id,price_id,amount,points,currency FROM sudoku_point_products ORDER BY sku;" --json
+              echo 'Both owner-provided live Stripe Prices passed GET-only verification. No payment was made.'
+              npx --yes wrangler@4.149.0 d1 execute paper-adventure-stage-db --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT mode,sku,product_id,price_id,amount,points,currency FROM sudoku_point_products WHERE sku IN ('ai_credits_100','ai_credits_300') ORDER BY sku;" --json
               exit 0
             fi
             if [ "$status" = needs_review ]; then

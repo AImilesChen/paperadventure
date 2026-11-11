@@ -108,6 +108,8 @@ function Header({ route }) {
           <UserCircle size={22} aria-hidden="true"/><span>Account</span><CaretDown size={13} aria-hidden="true"/>
         </button>
         {accountOpen&&<nav id="account-navigation" className="header-account-panel" aria-label="Account navigation" onClick={event=>{if(event.target.closest('a'))setAccountOpen(false);}}>
+          <Link to="/en/credits/">AI credits</Link>
+          <Link to="/en/account/billing/">Billing &amp; AI credits</Link>
           <Link to="/en/my-adventures/#my-sudoku">My Sudoku <ArrowUpRight size={16} aria-hidden="true"/></Link>
           <Link to="/en/my-adventures/">My adventures <ArrowUpRight size={16} aria-hidden="true"/></Link>
           {administrator&&<a href="/admin/">管理后台 <ArrowUpRight size={16} aria-hidden="true"/></a>}
@@ -318,7 +320,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/themes')) page = <WorldsOverview Link={Link} catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
-  else if (route==='/en/sudoku/points/') page=<SudokuPoints key={routeLocation} route={route}/>;
+  else if (['/en/credits/','/en/sudoku/points/'].includes(route)) page=<SudokuPoints key={routeLocation} route={route}/>;
   else if (route==='/en/account/billing/') page=<SudokuBilling key={routeLocation} route={route}/>;
   else if ((['/en/sudoku/how-to-play/','/en/sudoku/techniques/'].includes(route)||(route.startsWith('/en/sudoku/techniques/')&&pageFor(route)))) page = <SudokuLessons key={route} route={route}/>;
   else if (route === '/en/sudoku/levels/') page = <SudokuLevels key={routeLocation} route={route}/>;

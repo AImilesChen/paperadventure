@@ -49,13 +49,13 @@ jobs:
       - name: Apply only the additive Sudoku migration and deploy existing API
         run: |
           mkdir -p backend/sudoku-migrations
-          cp backend/migrations/0049_sudoku.sql backend/migrations/0050_sudoku_speed.sql backend/migrations/0051_sudoku_points.sql backend/migrations/0052_sudoku_point_products.sql backend/sudoku-migrations/
+          cp backend/migrations/0049_sudoku.sql backend/migrations/0050_sudoku_speed.sql backend/migrations/0051_sudoku_points.sql backend/migrations/0052_sudoku_point_products.sql backend/migrations/0053_ai_credit_help.sql backend/sudoku-migrations/
           node --input-type=module -e "import fs from 'node:fs';const p='backend/wrangler.stage.generated.jsonc';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.d1_databases[0].migrations_dir='./sudoku-migrations';c.vars={...c.vars,SUDOKU_SPEED_ENABLED:'true'};fs.writeFileSync(p,JSON.stringify(c,null,2));"
           npx --yes wrangler@4.149.0 d1 migrations apply paper-adventure-stage-db --remote --config backend/wrangler.stage.generated.jsonc
           node scripts/prepare-legal-release.mjs --published
           node --input-type=module -e "import fs from 'node:fs';const p='output/legal/publish-policies.sql';fs.writeFileSync(p,fs.readFileSync(p,'utf8').replaceAll('INSERT INTO legal_documents','INSERT OR IGNORE INTO legal_documents'));"
           npx --yes wrangler@4.149.0 d1 execute paper-adventure-stage-db --remote --config backend/wrangler.stage.generated.jsonc --file output/legal/publish-policies.sql
-          npx --yes wrangler@4.149.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var SUDOKU_POINTS_TERMS_VERSION:sudoku-points-2026-11-10-v1 --var SUDOKU_POINTS_PROVISION:v49-20261111
+          npx --yes wrangler@4.149.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var AI_CREDITS_TERMS_VERSION:ai-credits-2026-11-11-v1 --var SUDOKU_POINTS_PROVISION:off --var AI_CREDITS_PRICE_REVIEW:true --var AI_CREDITS_ENABLED:false --var AI_CREDITS_OWNER_TEST:true
       - name: Verify public Sudoku API before releasing its interface
         run: node scripts/verify-sudoku-live.mjs
       - uses: actions/upload-artifact@v7

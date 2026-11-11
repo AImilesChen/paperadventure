@@ -4,6 +4,6 @@ export const sudokuLinks=Object.freeze([
  {id:'ranks',href:'/en/sudoku/leaderboard/',title:'Leaderboard',description:'Compare levels cleared and best times',icon:'ranks',group:'Play'},
  {id:'rules',href:'/en/sudoku/how-to-play/',title:'How to play',description:'Rules, controls and a clear finish',icon:'rules',group:'Learn'},
  {id:'techniques',href:'/en/sudoku/techniques/',title:'Solving techniques',description:'Four logical ways to find your next step',icon:'techniques',group:'Learn'},
- {id:'points',href:'/en/sudoku/points/',title:'Points & hints',description:'One-time packs and free ways to earn points',icon:'points',group:'Learn'},
+ {id:'points',href:'/en/credits/',title:'AI credits',description:'One shared wallet for Sudoku and six online games',icon:'points',group:'Learn'},
 ]);
 export function sudokuSection(path){if(path==='/en/sudoku/'||path==='/en/sudoku/play/')return'play';if(path.startsWith('/en/sudoku/techniques/'))return'techniques';return sudokuLinks.find(l=>l.href===path)?.id||null;}
