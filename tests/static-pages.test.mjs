@@ -9,6 +9,14 @@ import {pointsProducts,pointsMoney} from '../shared/credits/products.mjs';
 import { themeDetailContent } from '../src/themeDetailContent.js';
 import { updateDraftField } from '../src/creatorDraft.mjs';
 import { pageDocumentTitle } from '../shared/site-identity.mjs';
+import {accountSections} from '../shared/account-center.mjs';
+import {isAnalyticsPage} from '../src/analytics-route.mjs';
+
+test('every account-center section is privately rendered and absent from search and analytics',async()=>{
+ const sitemap=await read('sitemap.xml');
+ for(const section of accountSections){const html=await read(section.path.slice(1)+'index.html');assert.match(html,/<meta name="robots" content="noindex"/);assert.ok(!sitemap.includes(section.path));assert.equal(isAnalyticsPage(section.path),false);assert.ok(html.includes('Loading your account'));assert.doesNotMatch(html,/preview@local\.invalid|LocalExplorer|53000000-|Sample ·/);}
+ const old=await read('en/my-adventures/index.html');assert.ok(old.includes('Account center'));assert.ok(!old.includes('Your games, ready to play.'));
+});
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');

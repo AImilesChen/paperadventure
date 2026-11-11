@@ -1,7 +1,9 @@
+import AccountCenter from './accountCenter.jsx';
+import {accountSection} from '../shared/account-center.mjs';
 import HeaderDiscovery from './headerDiscovery.jsx';
 import {SudokuDisclosure} from './sudokuNavigation.jsx';
 import SudokuLessons from './sudokuLessons.jsx';
-import SudokuPoints,{SudokuBilling} from './sudokuPoints.jsx';
+import SudokuPoints from './sudokuPoints.jsx';
 import {prepareSudokuLeave} from './sudoku-leave.mjs';
 import{clearDeviceCopies}from'./sudoku-device.mjs';
 import{SudokuHomeEntry}from'./sudokuEntry.jsx';
@@ -14,7 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 import AdminConsole from './adminConsole.jsx';
 import FeedbackWidget from './feedbackWidget.jsx';
 import { ArrowRight, ArrowLeft, ArrowUpRight, CaretDown, Check, Compass, DownloadSimple, List, Minus, PencilSimple, Plus, Printer, Sparkle, UsersThree, Pause, Play, UserCircle, X } from '@phosphor-icons/react';
-import { AdventuresShelf, CheckoutPreview, HelpExperience, LegalExperience, OrderExperience, PricingExperience, SamplesExperience, ThemesExplorer } from './extended.jsx';
+import { CheckoutPreview, HelpExperience, LegalExperience, OrderExperience, PricingExperience, SamplesExperience, ThemesExplorer } from './extended.jsx';
 import { themes, formatUsd } from '../shared/catalog.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
 import { readPublicRelease } from '../shared/public-release.mjs';
@@ -32,7 +34,7 @@ import { HomeSamples, HomeCustomStory, HomeGuides } from './homeSections.jsx';
 import { analyticsAvailable } from './analytics.js';
 import { crossesAnalyticsBoundary } from './analytics-route.mjs';
 import { CatalogPage, ThemeDetailPage, WorldsOverview } from './productPages.jsx';
-import { LiveAccount, LiveShelf, LiveOrder, LiveSamples, LiveCheckout, LiveLegal } from './livePages.jsx';
+import { LiveAccount, LiveOrder, LiveSamples, LiveCheckout, LiveLegal } from './livePages.jsx';
 import { LiveCreate } from './liveCreate.jsx';
 import { CreatorGuide } from './creatorGuide.jsx';
 import './creatorWorkspace.css';
@@ -109,10 +111,7 @@ function Header({ route }) {
           <UserCircle size={22} aria-hidden="true"/><span>Account</span><CaretDown size={13} aria-hidden="true"/>
         </button>
         {accountOpen&&<nav id="account-navigation" className="header-account-panel" aria-label="Account navigation" onClick={event=>{if(event.target.closest('a'))setAccountOpen(false);}}>
-          <Link to="/en/credits/">AI credits</Link>
-          <Link to="/en/account/billing/">Billing &amp; AI credits</Link>
-          <Link to="/en/my-adventures/#my-sudoku">My Sudoku <ArrowUpRight size={16} aria-hidden="true"/></Link>
-          <Link to="/en/my-adventures/">My adventures <ArrowUpRight size={16} aria-hidden="true"/></Link>
+          <Link to="/en/account/overview/">Account center <ArrowUpRight size={16} aria-hidden="true"/></Link>
           {administrator&&<a href="/admin/">管理后台 <ArrowUpRight size={16} aria-hidden="true"/></a>}
           <button type="button" className="header-account-signout" onClick={signOut}>Sign out</button>
         </nav>}
@@ -322,7 +321,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
   else if (['/en/credits/','/en/sudoku/points/'].includes(route)) page=<SudokuPoints key={routeLocation} route={route}/>;
-  else if (route==='/en/account/billing/') page=<SudokuBilling key={routeLocation} route={route}/>;
+  else if (accountSection(route)) page=<AccountCenter key={routeLocation} route={route} Link={Link}/>;
   else if ((['/en/sudoku/how-to-play/','/en/sudoku/techniques/'].includes(route)||(route.startsWith('/en/sudoku/techniques/')&&pageFor(route)))) page = <SudokuLessons key={route} route={route}/>;
   else if (route === '/en/sudoku/levels/') page = <SudokuLevels key={routeLocation} route={route}/>;
   else if (['/en/sudoku/','/en/sudoku/play/','/en/sudoku/leaderboard/'].includes(route)) page = <Sudoku key={routeLocation} Link={Link} route={route}/>;
@@ -346,7 +345,7 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/samples')) page = runtimeCatalog?.themes.find(theme => theme.id === 'celebration')?.home.freeSample ? <LiveSamples Link={Link} catalog={runtimeCatalog} /> : <SamplesExperience Link={Link} />;
   else if (route.startsWith('/en/pricing')) page = <PricingGuide Link={Link} catalog={runtimeCatalog} checkoutMode={runtime?.checkoutMode} checkoutReady={runtime?.checkout} />;
   else if (route.startsWith('/en/help')) page = <HelpExperience Link={Link} topic={route.split('/')[3] || ''} />;
-  else if (route.startsWith('/en/my-adventures')) page = runtime?.account ? <LiveShelf Link={Link} /> : <AdventuresShelf Link={Link} />;
+  else if (route.startsWith('/en/my-adventures')) page = <AccountCenter key={routeLocation} route={route} Link={Link}/>;
   else if (route.startsWith('/en/checkout')) page = runtime?.checkout ? <LiveCheckout Link={Link} catalog={runtimeCatalog} checkoutMode={runtime.checkoutMode} /> : <CheckoutPreview key={routeLocation} Link={Link} />;
   else if (isPrivateOrderRoute(route)) page = <LiveOrder Link={Link} orderId={route.split('/')[3]} />;
   else if (route === '/en/orders/demo/') page = <OrderExperience Link={Link} />;

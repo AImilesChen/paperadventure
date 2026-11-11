@@ -98,6 +98,9 @@ try {
     ['/en/checkout/demo/', '?kind=ready&theme=celebration&setting=home'],
     ['/en/checkout/demo/', '?kind=ready&theme=space&setting=classroom'],
     ['/en/my-adventures/', ''],
+    ['/en/my-adventures/', '?support=refund'],
+    ['/en/my-adventures/', '?view=orders'],
+    ['/en/account/billing/', '?order=53000000-0000-4000-8000-000000000001'],
   ]) {
     assert.equal(renderPreview(pathname, search, savedDraft), markupByPath.get(pathname), pathname);
   }
