@@ -1,0 +1,26 @@
+import {useEffect,useRef} from 'react';
+import {PencilSimple,Eraser,ArrowCounterClockwise,ArrowClockwise,Pause,Play,CheckCircle,Keyboard,FloppyDisk} from '@phosphor-icons/react';
+import {peers,name} from '../shared/sudoku/engine.mjs';
+
+export default function SudokuPlayBoard({values,notes,givens,selected,bad,same,hint,paused,busy,finished,offline,pencil,historySize,redoSize,saveStatus,offlineReady,pendingVerification,cells,canResume,onSelect,onKey,onDigit,onPencil,onUndo,onRedo,onPause,onResume,onTutorial,onVerify}){
+ const resume=useRef(null),disabled=paused||finished||busy;
+ useEffect(()=>{if(!paused)return;const focus=()=>{if(!document.hidden&&canResume&&!document.querySelector('[role="dialog"][aria-modal="true"]')){const fromTools=Boolean(document.activeElement?.closest('.sd-tools'));resume.current?.focus({preventScroll:true});if(fromTools)resume.current?.scrollIntoView({block:'center',behavior:'instant'});}};focus();document.addEventListener('visibilitychange',focus);return()=>document.removeEventListener('visibilitychange',focus);},[paused,canResume]);
+ return <div className="sd-board-panel sd-play-board-panel">
+  <div className="sd-instruction"><span>Rows, columns and 3��3 boxes: 1�C9 once each.</span><button className="sd-how-inline" onClick={onTutorial}>How to play</button></div>
+  <div className={'sd-board-stage'+(paused?' is-paused':'')}>
+   <div className="sd-board" role="group" aria-label="Sudoku board, rows A to I and columns 1 to 9" aria-hidden={paused||undefined}>{values.map((n,i)=><button key={i} ref={el=>cells.current[i]=el} tabIndex={i===selected?0:-1} disabled={disabled} onFocus={()=>onSelect(i)} onClick={()=>onSelect(i)} onKeyDown={e=>onKey(e,i)} aria-label={`${name(i)}, ${n||'empty'}${givens[i]?', original digit':''}${notes[i]?.length?', notes '+notes[i].join(', '):''}${bad.includes(i)?', rule conflict':''}`} className={`sd-cell ${givens[i]?'given':''} ${selected===i?'selected':''} ${selected>=0&&peers[selected].includes(i)?'peer':''} ${n&&n===same?'same':''} ${bad.includes(i)?'conflict':''} ${hint?.board===values.join('')&&hint.cells.includes(i)?'hinted':''} ${i%9===2||i%9===5?'box-right':''} ${Math.floor(i/9)===2||Math.floor(i/9)===5?'box-bottom':''}`}>{paused?'':n||<span className="sd-notes">{Array.from({length:9},(_,d)=><small key={d}>{notes[i]?.includes(d+1)?d+1:''}</small>)}</span>}</button>)}</div>
+   {paused&&<div className="sd-pause-cover"><div className="sd-pause-card"><span className="sd-pause-icon"><Pause size={30} weight="fill" aria-hidden="true"/></span><h3>{canResume?'Game paused':'Your session changed'}</h3><p role="status">{canResume?'Your numbers and notes are still here. Nothing has been cleared.':'Your board is still here. Resolve the account message above before continuing.'}</p>{canResume&&<button className="sd-resume-primary" ref={resume} onClick={onResume}><Play size={19} weight="fill" aria-hidden="true"/>Resume game</button>}<small>Elapsed time continues while paused or away.</small></div></div>}
+  </div>
+  <div className="sd-numbers" role="group" aria-label="Number input">{Array.from({length:9},(_,i)=><button disabled={disabled} key={i} onClick={()=>onDigit(i+1)}>{i+1}</button>)}</div>
+  <div className="sd-tools" role="group" aria-label="Board editing tools">
+   <button className="sd-tool-notes" disabled={disabled} aria-pressed={pencil} aria-label={'Pencil notes '+(pencil?'ON':'OFF')} onClick={onPencil}><PencilSimple size={20} aria-hidden="true"/><span>Notes <small>{pencil?'ON':'OFF'}</small></span></button>
+   <button className="sd-tool-erase" disabled={disabled} onClick={()=>onDigit(0)}><Eraser size={20} aria-hidden="true"/><span>Erase</span></button>
+   <button className="sd-tool-history" disabled={!historySize||disabled} title={!historySize?'No earlier move to undo':'Undo the last edit'} onClick={onUndo}><ArrowCounterClockwise size={20} aria-hidden="true"/><span>Undo</span></button>
+   <button className="sd-tool-history" disabled={!redoSize||disabled} title={!redoSize?'No undone move to redo':'Restore the undone edit'} onClick={onRedo}><ArrowClockwise size={20} aria-hidden="true"/><span>Redo</span></button>
+   <button className="sd-tool-pause" disabled={busy||finished||(paused&&!canResume)} onClick={paused?onResume:onPause}>{paused?<Play size={20} aria-hidden="true"/>:<Pause size={20} aria-hidden="true"/>}<span>{paused?'Resume':'Pause'}</span></button>
+  </div>
+  {pendingVerification&&<div className="sd-callout" role="status">Your grid is filled. Reconnect and verify it to record the result.<button disabled={busy||offline} onClick={onVerify}>Verify saved board</button></div>}
+  <div className="sd-save-status"><p role="status" className="sd-save"><FloppyDisk size={17} aria-hidden="true"/>{saveStatus}</p>{offlineReady&&<p className="sd-offline-status"><CheckCircle size={16} aria-hidden="true"/>Offline page ready �� results need a connection.</p>}</div>
+  <details className="sd-keyboard-help"><summary><Keyboard size={18} aria-hidden="true"/>Keyboard shortcuts &amp; board colours</summary><p>Arrow keys select cells; 1�C9 enter digits; N toggles notes; Delete erases an entry. Red marks a repeated digit in a row, column or box. It does not identify every wrong assumption.</p></details>
+ </div>;
+}
