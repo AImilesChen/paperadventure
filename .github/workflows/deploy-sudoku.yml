@@ -45,14 +45,17 @@ jobs:
         run: |
           node scripts/write-stage-wrangler.mjs
           npx --yes wrangler@4.149.0 d1 time-travel info paper-adventure-stage-db --config backend/wrangler.stage.generated.jsonc --json > "$RUNNER_TEMP/sudoku-recovery-bookmark.json"
-          echo 'Recovery bookmark recorded. Rollback keeps the additive Sudoku table and reverts code; restoring the whole database is not a normal rollback.'
+          echo 'Recovery bookmark recorded. After any points payment, retain the wallet-aware API and additive tables; close new checkouts and roll back only the interface. Do not restore the whole database or deploy a pre-wallet API.'
       - name: Apply only the additive Sudoku migration and deploy existing API
         run: |
           mkdir -p backend/sudoku-migrations
-          cp backend/migrations/0049_sudoku.sql backend/migrations/0050_sudoku_speed.sql backend/sudoku-migrations/
+          cp backend/migrations/0049_sudoku.sql backend/migrations/0050_sudoku_speed.sql backend/migrations/0051_sudoku_points.sql backend/migrations/0052_sudoku_point_products.sql backend/sudoku-migrations/
           node --input-type=module -e "import fs from 'node:fs';const p='backend/wrangler.stage.generated.jsonc';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.d1_databases[0].migrations_dir='./sudoku-migrations';c.vars={...c.vars,SUDOKU_SPEED_ENABLED:'true'};fs.writeFileSync(p,JSON.stringify(c,null,2));"
           npx --yes wrangler@4.149.0 d1 migrations apply paper-adventure-stage-db --remote --config backend/wrangler.stage.generated.jsonc
-          npx --yes wrangler@4.149.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
+          node scripts/prepare-legal-release.mjs --published
+          node --input-type=module -e "import fs from 'node:fs';const p='output/legal/publish-policies.sql';fs.writeFileSync(p,fs.readFileSync(p,'utf8').replaceAll('INSERT INTO legal_documents','INSERT OR IGNORE INTO legal_documents'));"
+          npx --yes wrangler@4.149.0 d1 execute paper-adventure-stage-db --remote --config backend/wrangler.stage.generated.jsonc --file output/legal/publish-policies.sql
+          npx --yes wrangler@4.149.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var SUDOKU_POINTS_TERMS_VERSION:sudoku-points-2026-11-10-v1 --var SUDOKU_POINTS_PROVISION:v49-20261111
       - name: Verify public Sudoku API before releasing its interface
         run: node scripts/verify-sudoku-live.mjs
       - uses: actions/upload-artifact@v7

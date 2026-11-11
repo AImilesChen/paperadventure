@@ -1,3 +1,4 @@
+import {PointsStore} from './points.mjs';
 import {firstClearCtes,firstClearTiming} from '../../shared/sudoku/first-clear-ranking.mjs';
 import {publicCatalog,catalogSummary} from '../../shared/sudoku/catalog.mjs';
 import {unassistedClears,rankingStatus} from '../../shared/sudoku/ranking.mjs';
@@ -68,7 +69,7 @@ export async function sudokuApi(request,env,{authenticate=async()=>null,store=en
  const speedEnabled=env.SUDOKU_SPEED_ENABLED==='true'&&await store.speedReady?.();
  let cookie;
  try{
- if(path==='/health'&&request.method==='GET'){await store.get('health-probe');return response({ready:true,release:'sudoku-v40',weeklyVersion:0,weeklyRetired:true,leaderboardVersion:4,speedVersion:speedEnabled?1:0,catalog:catalogSummary});}
+ if(path==='/health'&&request.method==='GET'){await store.get('health-probe');return response({ready:true,release:'sudoku-v40',weeklyVersion:0,weeklyRetired:true,leaderboardVersion:4,speedVersion:speedEnabled?1:0,pointsVersion:await new PointsStore(env.DB).ready()?1:0,catalog:catalogSummary});}
  if(!['GET','POST','PUT'].includes(request.method))throw new SudokuError(405,'METHOD_NOT_ALLOWED','Unsupported method.');
  if(request.method!=='GET'&&request.headers.get('origin')!==new URL(env.PUBLIC_ORIGIN||request.url).origin)throw new SudokuError(403,'ORIGIN_DENIED','This request origin is not allowed.');
  let token=request.headers.get('cookie')?.split(';').map(s=>s.trim()).find(s=>s.startsWith('paw_sudoku='))?.slice(11);if(!/^[a-f0-9]{64}$/.test(token||'')){token=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');cookie=`paw_sudoku=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000${url.protocol==='https:'?'; Secure':''}`;}

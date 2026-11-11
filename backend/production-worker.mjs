@@ -1,4 +1,6 @@
-import {sudokuApi} from './sudoku/api.mjs';
+import {sudokuApi,D1SudokuStore} from './sudoku/api.mjs';
+import {pointsApi,pointsWebhook,retryPointPayments} from './sudoku/points.mjs';
+import {runPointsProductSetup} from './sudoku/point-setup.mjs';
 import {escapeProducts,escapeProduct} from '../shared/escape-products.mjs';
 import {serveEscapeExtra} from './escape-extras.mjs';
 import {promotionQuote,setupOwnerPromotion} from './checkout-promotions.mjs';
@@ -154,6 +156,7 @@ async function publishedLegal(env) {
   for (const item of result.results || []) if (!byKind.has(item.kind)) byKind.set(item.kind, item);
   return byKind;
 }
+async function pointsLegalEnvironment(env){try{const legal=await publishedLegal(env),ready=legal?.get('terms')?.sections_json.includes('Sudoku points')&&legal?.get('refunds')?.sections_json.includes('Sudoku points')&&legal?.get('privacy')?.sections_json.includes('Sudoku billing and points records');return {...env,SUDOKU_POINTS_LEGAL_READY:ready?'true':'false',SUDOKU_POINTS_POLICY_VERSIONS:JSON.stringify(Object.fromEntries(['terms','refunds','privacy'].map(k=>[k,legal?.get(k)?.version||null])))};}catch{return{...env,SUDOKU_POINTS_LEGAL_READY:'false'};}}
 const testCheckoutReady = env => Boolean(env.TEST_CHECKOUT_ENABLED === 'true' && env.STAGE_PREVIEW === 'true' &&
   env.DB && env.PRIVATE_FILES && emailReady(env) && accountReady(env) &&
   stripeKeyMode(env.STRIPE_SECRET_KEY) === 'test' && env.STRIPE_WEBHOOK_SECRET?.startsWith('whsec_') &&
@@ -1308,6 +1311,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
   try {
     const url = new URL(request.url);
     const path = url.pathname;
+    if(path.startsWith('/api/v1/sudoku/points/'))return pointsApi(request,await pointsLegalEnvironment(env),{authenticate:authenticatedEmailHash,authorizeAdmin:adminIdentity,ensureAccount:async(owner,merge,original)=>{await new D1SudokuStore(env.DB).ensure(owner,true);if(merge){const url=new URL(original.url);url.pathname='/api/v1/sudoku/progress';const response=await sudokuApi(new Request(url,{headers:original.headers}),env,{authenticate:authenticatedEmailHash});if(!response.ok)throw new ApiError(409,'PROGRESS_RETRY','Your saved progress could not be linked. Please retry.');return response.json();}}});
     if(path.startsWith('/api/v1/sudoku/'))return sudokuApi(request,env,{authenticate:authenticatedEmailHash,authorizeAdmin:adminIdentity});
     if(path==='/api/v1/admin'||path.startsWith('/api/v1/admin/'))return await handleAdminApi(request,env,context);
     if (request.method === 'GET' && path === '/api/v1/health') {
@@ -1341,7 +1345,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
     }
     if(request.method==='POST'&&path==='/api/v1/checkout-promotion'){requireSameOrigin(request,env);const promotion=await promotionQuote(request,await requestBody(request),env);if(!promotion)throw new ApiError(400,'PROMOTION_INVALID','Enter a promotion code.');return json(promotion);}
     if (request.method === 'POST' && path === '/api/v1/checkout-intents') return await checkout(request, env);
-    if (request.method === 'POST' && path === '/api/v1/stripe/webhook') return await webhook(request, env, context);
+    if (request.method === 'POST' && path === '/api/v1/stripe/webhook') {try{const points=await pointsWebhook(request,env);if(points)return points;}catch(e){throw new ApiError(e.status||503,e.code||'POINTS_RETRY',e.code?e.message:'Points notification will be retried.');}return await webhook(request, env, context);}
     if (request.method === 'POST' && path === '/api/v1/proposals') return await proposals(request, env);
     if (request.method === 'GET' && path === '/api/v1/proposals') return await previewAllowance(request,env);
     if (request.method === 'POST' && path === '/api/v1/access-links') return await requestAccessLink(request, env);
@@ -2005,6 +2009,8 @@ export default {
     env = paymentEnvironment(env);
     if (!env.DB) return;
     if (await runLivePricePreflight(env)) return;
+    await runPointsProductSetup(env).catch(()=>console.error('Points product setup deferred',{code:'POINTS_SETUP_RETRY'}));
+    await retryPointPayments(env).catch(()=>console.error('Points reconciliation deferred',{code:'POINTS_RETRY'}));
     await setupOwnerPromotion(env).catch(()=>console.error('Owner coupon setup deferred',{code:'COUPON_SETUP_DEFERRED'}));
     await resumeAdminReplies(env).catch(()=>console.error('Admin reply deferred',{code:'ADMIN_REPLY_DEFERRED'}));
     await resumeFeedbackNotifications(env).catch(()=>console.error('Feedback notification deferred',{code:'FEEDBACK_EMAIL_DEFERRED'}));

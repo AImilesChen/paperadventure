@@ -32,7 +32,7 @@ export function applyAction(account,action,input,now=Date.now(),{bank=puzzles,re
  if(action==='hints'){
  if(s.completed)fail('ALREADY_COMPLETED','This level is already complete.',409);const tier=Number(input.tier);if(![1,2,3].includes(tier))fail('TIER_INVALID','Choose hint layer 1, 2 or 3.');const fingerprint=s.board.join('');let h=s.hints.find(x=>x.board===fingerprint);if(!h){const hint=nextHint(s.board,board(p.solution));if(hint.technique==='finished')fail('READY_TO_CHECK','The board is ready. Choose Check board.');h={id:crypto.randomUUID(),board:fingerprint,tier:0,...hint};}
  const prices=[0,1,3,5],cost=Math.max(0,prices[tier]-prices[h.tier]);if(a.balance<cost)fail('INSUFFICIENT_POINTS','Not enough points. Earn points in the technique practice.',402);
- a.balance-=cost;h.tier=Math.max(h.tier,tier);if(!s.hints.some(x=>x.id===h.id))s.hints.push(h);a.seen[s.level]=true;s.lastHints=[h.id];a.ledger.push({id:input.requestId,delta:-cost,reason:`Level ${s.level} hint layer ${tier}`,hintId:h.id,at:now});return{account:a,result:{hint:{id:h.id,tier:h.tier,texts:h.texts.slice(0,h.tier),cells:h.cells,board:h.board},state:publicState(a)}};
+ const free=a.balance-(a.paidBalance||0);a.paidBalance=Math.max(0,(a.paidBalance||0)-Math.max(0,cost-free));a.balance-=cost;h.tier=Math.max(h.tier,tier);if(!s.hints.some(x=>x.id===h.id))s.hints.push(h);a.seen[s.level]=true;s.lastHints=[h.id];a.ledger.push({id:input.requestId,delta:-cost,kind:'hint',reason:`Level ${s.level} hint layer ${tier}`,hintId:h.id,at:now});return{account:a,result:{hint:{id:h.id,tier:h.tier,texts:h.texts.slice(0,h.tier),cells:h.cells,board:h.board},state:publicState(a)}};
  }
  fail('UNKNOWN_ACTION','Unknown action.',404);
 }
