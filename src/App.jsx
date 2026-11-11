@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import AdminConsole from './adminConsole.jsx';
 import FeedbackWidget from './feedbackWidget.jsx';
 import { ArrowRight, ArrowLeft, ArrowUpRight, CaretDown, Check, Compass, DownloadSimple, List, Minus, PencilSimple, Plus, Printer, Sparkle, UsersThree, Pause, Play, UserCircle, X } from '@phosphor-icons/react';
-import { AccountPreview, AdventuresShelf, CheckoutPreview, HelpExperience, LegalExperience, OrderExperience, PricingExperience, SamplesExperience, ThemesExplorer } from './extended.jsx';
+import { AdventuresShelf, CheckoutPreview, HelpExperience, LegalExperience, OrderExperience, PricingExperience, SamplesExperience, ThemesExplorer } from './extended.jsx';
 import { themes, formatUsd } from '../shared/catalog.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
 import { readPublicRelease } from '../shared/public-release.mjs';
@@ -92,6 +92,7 @@ function Header({ route }) {
     window.addEventListener('pointerdown',closeOutside);
     return () => {window.removeEventListener('keydown', closeOnEscape);window.removeEventListener('pointerdown',closeOutside);};
   }, [accountOpen,open]);
+  if(route==='/en/account/')return <header className="site-header account-header"><div className="nav-shell header-nav-shell"><Brand/><Link className="account-header-help" to="/en/help/">Need help? <ArrowUpRight size={16} aria-hidden="true"/></Link></div></header>;
   return <header className={route === '/en/' ? 'site-header home-header' : 'site-header'} onClick={event=>{if(event.target.closest('a.brand')){setOpen(false);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}}><div className="nav-shell header-nav-shell"><Brand />
     <nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label="Main navigation" onClick={event=>{if(event.target.closest('a')){setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));}}}>
       <HeaderDiscovery kind="home" route={route} LinkComponent={Link} onOpen={()=>setAccountOpen(false)}/>
@@ -349,11 +350,11 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/checkout')) page = runtime?.checkout ? <LiveCheckout Link={Link} catalog={runtimeCatalog} checkoutMode={runtime.checkoutMode} /> : <CheckoutPreview key={routeLocation} Link={Link} />;
   else if (isPrivateOrderRoute(route)) page = <LiveOrder Link={Link} orderId={route.split('/')[3]} />;
   else if (route === '/en/orders/demo/') page = <OrderExperience Link={Link} />;
-  else if (route.startsWith('/en/account')) page = runtime?.account ? <LiveAccount Link={Link} /> : <AccountPreview Link={Link} />;
+  else if (route.startsWith('/en/account')) page = <LiveAccount key={routeLocation} Link={Link} />;
   else if (route === '/en/privacy/') page = runtime?.legal ? <LiveLegal key="privacy" kind="privacy" /> : <CurrentPrivacyNotice />;
    else if (['/en/terms/', '/en/cookies/', '/en/refunds/'].includes(route)) page = runtime?.legal ? <LiveLegal key={route} kind={route.split('/')[2]} /> : <LegalExperience Link={Link} kind={route.split('/')[2]} />;
   else page = <NotFoundPage />;
   if(route==='/admin'||route.startsWith('/admin/'))return <AdminConsole/>;
-  return <><Header route={route} />{page}<Footer runtime={runtime} /><FeedbackWidget enabled={runtime?.feedback===true&&runtime?.feedbackNotice===true} Link={Link}/>{conflictTo && <div className="modal-backdrop" role="presentation"><div ref={conflictDialogRef} tabIndex={-1} className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="draft-dialog-title"><span className="eyebrow">SAVED DRAFT</span><h2 id="draft-dialog-title">Start a new adventure?</h2><p>You already have an idea saved in this browser. Choosing the new world will replace that draft.</p><div className="modal-actions"><button className="button-quiet" onClick={dismissConflict}>Keep my draft</button><button className="button" onClick={() => { const to = conflictTo; pendingNavigation = ''; setConflictTo(''); navigate(to, true); }}>Use new world <ArrowRight size={18} /></button></div></div></div>}</>;
+  return <><Header route={route} />{page}<Footer runtime={runtime} />{route!=='/en/account/'&&<FeedbackWidget enabled={runtime?.feedback===true&&runtime?.feedbackNotice===true} Link={Link}/>}{conflictTo && <div className="modal-backdrop" role="presentation"><div ref={conflictDialogRef} tabIndex={-1} className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="draft-dialog-title"><span className="eyebrow">SAVED DRAFT</span><h2 id="draft-dialog-title">Start a new adventure?</h2><p>You already have an idea saved in this browser. Choosing the new world will replace that draft.</p><div className="modal-actions"><button className="button-quiet" onClick={dismissConflict}>Keep my draft</button><button className="button" onClick={() => { const to = conflictTo; pendingNavigation = ''; setConflictTo(''); navigate(to, true); }}>Use new world <ArrowRight size={18} /></button></div></div></div>}</>;
 }
 
