@@ -1,0 +1,44 @@
+name: Verify approved Sudoku point products
+on:
+  push:
+    branches: [frontend-prd-v13-2026-10-08]
+    paths: [backend/sudoku-point-products.trigger]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v7
+        with: {node-version: '22', cache: npm}
+      - run: npm ci
+      - name: Resolve the existing wallet database
+        run: |
+          npx --yes wrangler@4.149.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/db.json"
+          node -e "const fs=require('node:fs'),d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/db.json','utf8')),id=d.uuid||d.result?.uuid||d.database?.uuid;if(!/^[0-9a-f-]{36}$/i.test(id||''))throw Error('D1 UUID missing');fs.appendFileSync(process.env.GITHUB_ENV,'PAPER_ADVENTURE_STAGE_D1_ID='+id+'\n')"
+          node scripts/write-stage-wrangler.mjs
+      - name: Read bounded setup status without customer records or secrets
+        run: |
+          for attempt in {1..36}; do
+            npx --yes wrangler@4.149.0 d1 execute paper-adventure-stage-db --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT status,stage,error_code,attempts FROM sudoku_point_setup WHERE id='v49-20261111';" --json > "$RUNNER_TEMP/points-status.json"
+            status=$(node -e "const d=require(process.env.RUNNER_TEMP+'/points-status.json');console.log(d[0]?.results?.[0]?.status||'pending')")
+            if [ "$status" = verified ]; then
+              echo 'Both approved Stripe products were independently read and verified.'
+              npx --yes wrangler@4.149.0 d1 execute paper-adventure-stage-db --remote --config backend/wrangler.stage.generated.jsonc --command "SELECT mode,sku,product_id,price_id,amount,points,currency FROM sudoku_point_products ORDER BY sku;" --json
+              exit 0
+            fi
+            if [ "$status" = needs_review ]; then
+              node -e "const d=require(process.env.RUNNER_TEMP+'/points-status.json');console.log(JSON.stringify(d[0]?.results?.[0]));"
+              echo '::error::Product configuration requires provider access review. Existing game checkout is unchanged; new points checkout remains closed.'
+              exit 1
+            fi
+            sleep 10
+          done
+          echo '::error::Product configuration did not complete within the bounded verification window.'
+          exit 1
