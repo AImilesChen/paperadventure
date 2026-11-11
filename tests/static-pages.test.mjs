@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { publicPages } from '../shared/page-manifest.mjs';
 import { productRights, themes } from '../shared/catalog.mjs';
+import {pointsProducts,pointsMoney} from '../shared/credits/products.mjs';
 import { themeDetailContent } from '../src/themeDetailContent.js';
 import { updateDraftField } from '../src/creatorDraft.mjs';
 import { pageDocumentTitle } from '../shared/site-identity.mjs';
@@ -225,6 +226,19 @@ test('pricing explains all three choices and confirmed Home and Classroom rights
   assert.match(pricing, /one purchasing teacher’s own classes/);
   assert.match(pricing, /reasonable reprinting for those classes/);
   assert.match(pricing, /from confirmed payment/);
+  const creditSection = pricing.match(/<section id="pricing-credits"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(creditSection, 'credits must be visible in initial HTML');
+  for (const product of pointsProducts) {
+    const card = [...creditSection.matchAll(/<article\b[\s\S]*?<\/article>/g)].map(m=>m[0]).find(html=>html.includes(`/en/credits/?pack=${product.sku}`));
+    assert.ok(card, `purchase link must preselect ${product.sku}`);
+    const visible = card.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ');
+    assert.ok(visible.includes(pointsMoney(product.unitAmount)), `displayed price must match server product ${product.sku}`);
+    assert.match(visible, new RegExp(`${product.points} AI credits`));
+  }
+  assert.match(pricing, /href="#pricing-games"/);
+  assert.match(pricing, /href="#pricing-credits"/);
+  assert.match(pricing, /id="pricing-games"/);
+  assert.ok(pricing.indexOf('id="pricing-credits"') < pricing.indexOf('pricing-guide-compare-title'));
   assert.match(pricing, /Choose your game/);
   assert.match(pricing, /Celebration adventure/);
   assert.match(pricing, /Choose a ready-made game/);
