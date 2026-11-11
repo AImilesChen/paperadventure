@@ -22,7 +22,8 @@ jobs:
         run: |
           npx --yes wrangler@4.149.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/db.json"
           node -e "const fs=require('node:fs'),d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/db.json','utf8')),id=d.uuid||d.result?.uuid||d.database?.uuid;if(!/^[0-9a-f-]{36}$/i.test(id||''))throw Error('D1 UUID missing');fs.appendFileSync(process.env.GITHUB_ENV,'PAPER_ADVENTURE_STAGE_D1_ID='+id+'\n')"
-          node scripts/write-stage-wrangler.mjs
+      - name: Generate runtime config after the database environment is loaded
+        run: node scripts/write-stage-wrangler.mjs
       - name: Read bounded setup status without customer records or secrets
         run: |
           for attempt in {1..36}; do
