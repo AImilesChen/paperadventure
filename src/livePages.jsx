@@ -1,3 +1,4 @@
+import AccountEntry from './accountEntry.jsx';
 import{accountReturnPath}from'../shared/account-return.mjs';
 import{SudokuAccountEntry}from'./sudokuEntry.jsx';
 import OrderSupport from './orderSupport.jsx';
@@ -78,17 +79,22 @@ export function LiveAccount({ Link }) {
   const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
   const [error, setError] = useState('');
+  const [returnTo,setReturnTo]=useState(null);
+  const [localPreview,setLocalPreview]=useState(false);
   useEffect(() => {
     let cancelled = false;
-    let signIn=null;
+    let signIn=null,buttonObserver=null,lastButtonWidth=0,buttonRendered=false;
+    const renderGoogle=()=>{if(cancelled||!button.current)return;lastButtonWidth=Math.max(200,Math.min(360,Math.floor(button.current.clientWidth||280)));button.current.replaceChildren();window.google.accounts.id.renderButton(button.current,{theme:'outline',size:'large',shape:'rectangular',text:'signin_with',width:lastButtonWidth});buttonRendered=true;};
     const resume=()=>{if(document.visibilityState!=='hidden')signIn?.refreshIfStale();};
     async function prepare() {
       try {
         setLoading(true); setError('');
         const requested = new URLSearchParams(window.location.search).get('returnTo');
         const destination = accountReturnPath(requested);
+        setReturnTo(destination);
         const session = await api('/api/v1/auth/session');
         if (cancelled) return;
+        setLocalPreview(session.localPreview===true);
         if (session.authenticated) { window.location.replace(destination); return; }
         if (!window.google?.accounts?.id) {
           await new Promise((resolve, reject) => {
@@ -103,57 +109,18 @@ export function LiveAccount({ Link }) {
         if (cancelled || !button.current) return;
         signIn=googleSignInController({api,
           initialize:options=>window.google.accounts.id.initialize(options),
-          render:()=>{button.current.replaceChildren();window.google.accounts.id.renderButton(button.current,{theme:'outline',size:'large',shape:'rectangular',text:'signin_with',width:Math.min(360,button.current.clientWidth||280)});},
+          render:renderGoogle,
           redirect:()=>window.location.assign(destination),onReady:ready=>setLoading(!ready),onBusy:setBusy,onError:setError,
         });
         window.addEventListener('focus',resume);document.addEventListener('visibilitychange',resume);
         await signIn.prepare();
+        if(!cancelled&&button.current&&typeof ResizeObserver!=='undefined'){buttonObserver=new ResizeObserver(()=>{const width=Math.max(200,Math.min(360,Math.floor(button.current?.clientWidth||280)));if(buttonRendered&&width!==lastButtonWidth)renderGoogle();});buttonObserver.observe(button.current);}
       } catch (failure) { if (!cancelled) { setError(failure.message); setLoading(false); } }
     }
     prepare();
-    return () => { cancelled = true;signIn?.stop();window.removeEventListener('focus',resume);document.removeEventListener('visibilitychange',resume); };
+    return () => { cancelled = true;buttonObserver?.disconnect();signIn?.stop();window.removeEventListener('focus',resume);document.removeEventListener('visibilitychange',resume); };
   }, [retry]);
-  return <main className="extended-page live-page account-page">
-    <SudokuAccountEntry/>
-    <section className="account-entry" aria-labelledby="account-title">
-      <div className="account-benefits">
-        <span className="eyebrow">YOUR ADVENTURE ACCOUNT</span>
-        <h1 id="account-title">Your next adventure starts here.</h1>
-        <p className="account-summary">Sign in to pick up a saved story, find your games, or print your next adventure.</p>
-        <div className="account-illustration" aria-hidden="true">
-          <div className="account-paper account-paper-back"><span /><span /><span /></div>
-          <div className="account-paper account-paper-front">
-            <span className="account-map-sun" />
-            <svg className="account-map-route" viewBox="0 0 420 200" fill="none" preserveAspectRatio="none"><path d="M38 157 C105 157 84 63 172 86 S256 168 316 110 S356 61 390 55" stroke="currentColor" strokeWidth="4" strokeDasharray="6 10" strokeLinecap="round" /></svg>
-            <span className="account-map-stop account-map-stop-one" /><span className="account-map-stop account-map-stop-two" /><span className="account-map-stop account-map-stop-three" />
-            <Sparkle className="account-map-sparkle" size={35} weight="fill" />
-          </div>
-          <div className="account-paper-tab"><Books size={25} weight="duotone" /></div>
-        </div>
-        <ul className="account-benefit-list">
-          <li><Books size={22} /><span>Your printable games</span></li>
-          <li><Sparkle size={22} /><span>Stories in progress</span></li>
-          <li><Receipt size={22} /><span>Orders and downloads</span></li>
-        </ul>
-        <Link className="text-link account-browse" to="/en/themes/">Browse adventures first <ArrowRight size={18} /></Link>
-      </div>
-      <div className="account-signin">
-        <div className="live-panel account-card">
-          <span className="account-card-icon" aria-hidden="true"><Sparkle size={28} weight="fill" /></span>
-          <span className="eyebrow">FOR PARENTS &amp; TEACHERS</span>
-          <h2>Open your adventure shelf</h2>
-          <p className="account-card-intro">Continue with your adult Google account. Your games, drafts and orders will be here.</p>
-          <div className="account-google" ref={button} aria-label="Sign in with Google" aria-busy={loading || busy} />
-          {loading && <p className="account-status" role="status">Loading Google sign-in…</p>}
-          {busy && <p className="account-status" role="status">Signing you in…</p>}
-          {error && <><Alert>{error}</Alert><button type="button" className="button-quiet" onClick={() => setRetry(value => value + 1)}>Try again</button></>}
-          <p className="account-child-note">Just your adult account. No child account needed.</p>
-          <p className="account-privacy">We use your verified Google email to find your adventures. We do not request access to your contacts or Google Drive. <Link to="/en/privacy/">Read our Privacy Notice</Link>.</p>
-        </div>
-        <p className="live-note account-support">Need help accessing a purchase? <Link to="/en/help/">Contact support <ArrowRight size={16} /></Link></p>
-      </div>
-    </section>
-  </main>;
+  return <AccountEntry Link={Link} googleRef={button} loading={loading} busy={busy} error={error} onRetry={()=>setRetry(value=>value+1)} returnTo={returnTo} localPreview={localPreview}/>;
 }
 
 export function LiveShelf({ Link }) {

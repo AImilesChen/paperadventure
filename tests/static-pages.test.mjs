@@ -287,3 +287,15 @@ test('all four policy pages contain readable complete published policies and con
 });
 
 
+
+test('sign-in initial HTML focuses authentication before any progress dashboard', async () => {
+ const html=await read('en/account/index.html');
+ const main=html.match(/<main\b[\s\S]*?<\/main>/)?.[0]||'';
+ assert.match(main,/Sign in to Paper Adventure/);
+ assert.match(main,/aria-label="Sign in with Google"/);
+ assert.match(main,/Sudoku progress/);
+ assert.match(main,/Shared AI credits/);
+ assert.doesNotMatch(main,/id="my-sudoku"|Your next adventure starts here|Open your adventure shelf/);
+ assert.doesNotMatch(html, /class="feedback-trigger"/);
+ assert.match(html,/<meta name="robots" content="noindex"/);
+});
