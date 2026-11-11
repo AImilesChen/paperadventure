@@ -1,3 +1,4 @@
+import {accountSections} from './account-center.mjs';
 import { themes } from './catalog.mjs';
 import { guides } from './guides.mjs';
 
@@ -6,7 +7,7 @@ const page = (path, title, description, indexable = true) => ({ path, title, des
 export const publicPages = Object.freeze([
   page('/en/credits/', 'AI Credits | One Wallet for Sudoku & Online Puzzle Help', 'Buy shared AI credits for Sudoku and six online escape puzzles. Compare one-time packs, see help costs and manage one account wallet.'),
   page('/en/sudoku/points/', 'AI Credits', 'Continue to the shared AI credits wallet.', false),
-  page('/en/account/billing/', 'Billing & AI Credits', 'View your private shared AI credits purchases, usage and wallet activity.', false),
+  ...accountSections.map(section=>page(section.path,section.label+' | Account Center','Your private Paper Adventure account: games, progress, credits and purchases.',false)),
   page('/en/sudoku/', 'Online Sudoku | Progressive Levels & Solving Tips', 'Play progressive Sudoku levels with saved progress and thinking hints. Learn the rules, singles, locked candidates and pairs as you build your solving skills.'),
   page('/en/sudoku/levels/', 'Sudoku Levels: Progressive Puzzle Collections', 'Explore Sudoku puzzle collections with progressive levels. Progress from singles to candidate pairs, learn the difficulty stages and continue your next unlocked puzzle.', true),
   page('/en/sudoku/how-to-play/', 'How to Play Sudoku: Rules for Beginners & Practice', 'Learn Sudoku rules with a full-board first move, row-column-box conflict examples and three free beginner exercises. Understand notes, controls and verified completion.'),
