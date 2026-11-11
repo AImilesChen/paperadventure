@@ -1,3 +1,4 @@
+import {sudokuHelpVersion} from '../../shared/sudoku/help-model.mjs';
 import {PointsStore} from './points.mjs';
 import {firstClearCtes,firstClearTiming} from '../../shared/sudoku/first-clear-ranking.mjs';
 import {publicCatalog,catalogSummary} from '../../shared/sudoku/catalog.mjs';
@@ -6,7 +7,7 @@ import{mergeConflicts,mergeAccounts}from'./merge.mjs';
 import {applyAction,freshAccount,publicState,puzzles,SudokuError}from'./service.mjs';
 import {board,logicStep}from'../../shared/sudoku/engine.mjs';
 import {sha256}from'../security.mjs';
-const cleanHint=h=>h?{id:h.id,tier:h.tier,texts:h.texts.slice(0,h.tier),cells:h.cells,board:h.board}:h;
+const cleanHint=h=>h?{id:h.id,tier:h.tier,texts:h.texts.slice(0,h.tier),cells:h.cells,board:h.board,format:h.format,access:h.access,target:h.target,method:h.method,updatedAt:h.updatedAt,...(h.tier>=2?{placement:h.placement}:{})}:h;
 const response=(data,status=200,cookie)=>Response.json({serverNow:Date.now(),...data,...(data.session?{session:{...data.session,hints:undefined}}:{}),...(data.hint?{hint:cleanHint(data.hint)}:{})},{status,headers:{'cache-control':'no-store',...(cookie?{'set-cookie':cookie}:{})}});
 const query=(db,sql,...args)=>db.prepare(sql).bind(...args);
 export class D1SudokuStore{
@@ -69,7 +70,7 @@ export async function sudokuApi(request,env,{authenticate=async()=>null,store=en
  const speedEnabled=env.SUDOKU_SPEED_ENABLED==='true'&&await store.speedReady?.();
  let cookie;
  try{
- if(path==='/health'&&request.method==='GET'){await store.get('health-probe');return response({ready:true,release:'sudoku-v40',weeklyVersion:0,weeklyRetired:true,leaderboardVersion:4,speedVersion:speedEnabled?1:0,pointsVersion:await new PointsStore(env.DB).ready()?1:0,catalog:catalogSummary});}
+ if(path==='/health'&&request.method==='GET'){await store.get('health-probe');return response({ready:true,release:'sudoku-v40',weeklyVersion:0,weeklyRetired:true,leaderboardVersion:4,hintVersion:sudokuHelpVersion,speedVersion:speedEnabled?1:0,pointsVersion:await new PointsStore(env.DB).ready()?1:0,catalog:catalogSummary});}
  if(!['GET','POST','PUT'].includes(request.method))throw new SudokuError(405,'METHOD_NOT_ALLOWED','Unsupported method.');
  if(request.method!=='GET'&&request.headers.get('origin')!==new URL(env.PUBLIC_ORIGIN||request.url).origin)throw new SudokuError(403,'ORIGIN_DENIED','This request origin is not allowed.');
  let token=request.headers.get('cookie')?.split(';').map(s=>s.trim()).find(s=>s.startsWith('paw_sudoku='))?.slice(11);if(!/^[a-f0-9]{64}$/.test(token||'')){token=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');cookie=`paw_sudoku=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000${url.protocol==='https:'?'; Secure':''}`;}
@@ -91,7 +92,7 @@ export async function sudokuApi(request,env,{authenticate=async()=>null,store=en
  if(path==='/speed/reviews'){if(!speedEnabled)throw new SudokuError(503,'SPEED_DISABLED','Speed scoring is unavailable.');const admin=await authorizeAdmin(request,env);if(!admin)throw new SudokuError(403,'ADMIN_REQUIRED','Administrator access required.');if(request.method==='GET'){const filter=url.searchParams.get('status')||'pending';if(!['pending','valid','invalid'].includes(filter))throw new SudokuError(400,'FILTER_INVALID','Choose a timing status.');return response({rows:await store.reviews(filter)},200,cookie);}const data=await request.json();if(!['valid','invalid'].includes(data.status)||typeof data.id!=='string'||typeof data.reason!=='string'||data.reason.length<3||data.reason.length>500)throw new SudokuError(400,'REVIEW_INVALID','Enter a result and review reason.');await store.review(data.id,data.status,data.reason,admin.emailHash||'local-admin');return response({reviewed:true},200,cookie);}
  const storageKey=await sha256('sudoku-cache:'+owner);
  const profile=()=>({storageKey,nickname:row.nickname,listed:Boolean(row.listed),authenticated:Boolean(hash)});
- if(request.method==='GET'&&path==='/progress')return response({state:publicState(row.state),catalog:publicCatalog,speedEnabled,profile:profile(),mergePending:pendingMerge,local:env.SUDOKU_LOCAL==='true'},200,cookie);
+ if(request.method==='GET'&&path==='/progress')return response({state:publicState(row.state),catalog:publicCatalog,speedEnabled,hintVersion:sudokuHelpVersion,profile:profile(),mergePending:pendingMerge,local:env.SUDOKU_LOCAL==='true'},200,cookie);
  if(path==='/merge'&&request.method==='POST')return response({state:publicState(row.state),profile:profile(),mergeCompleted:mergeDone},200,cookie);
  if(request.method==='GET'&&path==='/leaderboard'&&url.searchParams.get('mode')==='speed'){if(!speedEnabled)throw new SudokuError(503,'SPEED_DISABLED','Speed scoring is unavailable.');const level=Number(url.searchParams.get('level'));const p=publicCatalog.levels[level-1];if(!Number.isInteger(level)||!p)throw new SudokuError(400,'LEVEL_INVALID','Choose a published level.');return response({...await store.speedRanks(level,p.puzzleVersion,owner),profile:profile()},200,cookie);}
  if(request.method==='GET'&&path==='/leaderboard'){const mode='all';return response({...await store.ranks(mode,owner),mode,profile:profile()},200,cookie);}
