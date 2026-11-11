@@ -28,12 +28,12 @@ test('compact navigation exposes all six puzzles and printing without the old la
   assert.match(html, /class="pw-entry-print" href="#print-puzzles"/);
 });
 
-test('all cases, visible first-puzzle premise and separate hidden solutions remain in the indexable page', async () => {
+test('all cases, visible first-puzzle premise and credit-gated solutions remain in the indexable page', async () => {
   const html = await page();
   for (const puzzle of freePuzzles) {
     assert.ok(html.includes(`id="${puzzle.id}"`));
     assert.ok(html.includes(`id="${puzzle.id}-title"`));
-    assert.ok(html.includes(`id="${puzzle.id}-solution" hidden=""`));
+    assert.ok(!html.includes(`id="${puzzle.id}-solution" hidden=""`));
   }
   assert.match(html, /<p class="si-premise">Each row is one of these four words written in symbols\. The word labels have been shuffled\.<\/p>/);
   assert.match(html, /Which word matches each stamp record\?/);

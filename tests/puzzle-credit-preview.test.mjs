@@ -73,15 +73,10 @@ test('corrupt balances and obsolete content editions cannot create current unloc
   assert.deepEqual(wallet.history, []);
 });
 
-test('credit preview is gated to local dev after mount; public HTML stays free and contains the visible premise', async () => {
-  const html = await readFile('dist/client/en/escape-room-puzzles/index.html', 'utf8');
-  assert.doesNotMatch(html, /demo credits|Full solution · 5 credits|DEMO CREDITS/);
-  assert.match(html, /Which word matches each stamp record\?/);
-  assert.match(html, /<p class="si-premise">Each row is one of these four words written in symbols\. The word labels have been shuffled\.<\/p>/);
-  assert.doesNotMatch(html, /<details[^>]*class="si-premise"/);
-  const source = await readFile('src/puzzleWorkshop.jsx', 'utf8');
-  assert.match(source, /import\.meta\.env\.DEV/);
-  assert.match(source, /\['localhost', '127\.0\.0\.1'\]\.includes/);
+test('public games use the server wallet with a free first hint and no demo reset',async()=>{
+ const html=await readFile('dist/client/en/escape-room-puzzles/index.html','utf8');
+ assert.doesNotMatch(html,/demo credits|DEMO CREDITS|Reset demo balance/);assert.match(html,/Which word matches each stamp record\?/);assert.match(html,/Hint 1/);assert.match(html,/First hint free/);assert.match(html,/up to 5 credits total/);
+ const source=await readFile('src/puzzleWorkshop.jsx','utf8');assert.match(source,/useGameCredits/);assert.doesNotMatch(source,/useCreditPreview|import\.meta\.env\.DEV/);
 });
 
 

@@ -82,7 +82,7 @@ test('built search HTML contains every puzzle, download destination and contextu
   for (const p of freePuzzles) {
     assert.ok(html.includes(`id="${p.id}"`));
     assert.ok(html.includes(p.title));
-    assert.ok(html.includes(`id="${p.id}-solution" hidden=""`));
+    assert.ok(!html.includes(`id="${p.id}-solution" hidden=""`));
   }
   assert.match(html, /not a complete escape-room kit/);
   assert.ok(html.includes('paper-adventure-puzzles-A4-players.pdf'));

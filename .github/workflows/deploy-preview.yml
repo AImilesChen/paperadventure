@@ -89,6 +89,33 @@ jobs:
             if(!verified)throw Error('Measurement notice is not published; current site retained: '+kind);
           }
           NODE
+      - name: Require the shared AI credits contract before publishing its interface
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          let ready=false;
+          for(let attempt=0;attempt<90;attempt++){
+            try{const r=await fetch('https://paperadventure.app/api/v1/credits/health',{signal:AbortSignal.timeout(10000)}),h=await r.json();assert.equal(r.status,200);assert.equal(h.version,1);assert.equal(h.ready,true);assert.equal(h.scope,'site-wide');assert.equal(h.consumers.length,7);ready=true;break;}catch{await new Promise(resolve=>setTimeout(resolve,5000));}
+          }
+          if(!ready)throw Error('Shared AI credits API is not ready; retain the current interface.');
+          NODE
+      - name: Require both verified live AI credit packs before publishing purchases
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          let ready=false;
+          for(let attempt=0;attempt<90;attempt++){
+            try{
+              const r=await fetch('https://paperadventure.app/api/v1/credits/catalog',{signal:AbortSignal.timeout(15000)}),c=await r.json();
+              assert.equal(r.status,200);assert.equal(c.enabled,true);assert.equal(c.mode,'live');assert.equal(c.products.length,2);
+              for(const [sku,points,amount] of [['ai_credits_100',100,299],['ai_credits_300',300,699]]){
+                const p=c.products.find(p=>p.sku===sku);assert.equal(p.available,true);assert.equal(p.points,points);assert.equal(p.unitAmount,amount);assert.equal(p.currency,'usd');
+              }
+              ready=true;break;
+            }catch{await new Promise(resolve=>setTimeout(resolve,5000));}
+          }
+          if(!ready)throw Error('Verified live AI credit packs are unavailable; retain current interface.');
+          NODE
       - name: Wait for matching Sudoku backend before publishing the game
         run: |
           for attempt in {1..120}; do

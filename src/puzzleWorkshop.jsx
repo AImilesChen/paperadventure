@@ -10,7 +10,7 @@ import MoonSignal, { MoonConnected } from './MoonSignal.jsx';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ArrowCounterClockwise, Check, Lightbulb } from '@phosphor-icons/react';
 import { freePuzzles, puzzleSvg, trailGrid, trailMoves, harbourNodes, harbourBridges } from '../shared/free-puzzles.mjs';
-import CreditHelp, { useCreditPreview } from './puzzleCreditPreview.jsx';
+import CreditHelp, { useGameCredits } from './gameCreditHelp.jsx';
 import { stampEdition, inspectStampMatches } from '../shared/stamp-investigation.mjs';
 import StampInvestigation from './stampInvestigation.jsx';
 import { PostalRecords, PostalHowToPlay, PostalPocketKey, PostalDelivery } from './PostalRoute.jsx';
@@ -38,12 +38,10 @@ const completionNames = { independent: 'Solved independently', hint: 'Solved wit
 const lobbyDetails=[['Symbol decoding · Route reasoning','Compare old records to crack a symbol code, then rebuild the delivery route.'],['Letter decoding','Adjust letter relationships to translate the moon station’s secret message.'],['Spatial reasoning','Slide the blocking crates to deliver the urgent parcel through the exit.'],['Evidence investigation','Compare records and notes to identify the target parcel and the false clue.'],['Evidence · Route reconstruction','Inspect traces and landmarks to reconstruct the missing patrol route.'],['Switch logic','Plan overlapping switch effects to restore all 36 navigation lights.']];
 const controls = { 'stamp-code': 'Check delivery route', 'signal-shift': 'Check answer', 'parcel-queue': 'Delivery complete', 'shared-parcel': 'Check my judgment', 'forest-trail': 'Submit route', 'harbour-route': 'Check circuit' };
 
-function InteractiveCard({ puzzle, index, item, active, ready, update, edit, check, feedback, notify, restart, chooseNext, creditPreview, credits }) {
+function InteractiveCard({ puzzle, index, item, active, ready, update, edit, check, feedback, notify, restart, chooseNext, credits }) {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const routePhase = index === 0 && item.data.verified && !archiveOpen;
   const [resetOpen, setResetOpen] = useState(false);
-  const [solutionOpen, setSolutionOpen] = useState(false);
-  const [solutionConfirm, setSolutionConfirm] = useState(false);
   const heading = useRef(null);
   const printedReference = useRef(null);
   const [routeSelection, setRouteSelection] = useState('');
@@ -66,10 +64,6 @@ function InteractiveCard({ puzzle, index, item, active, ready, update, edit, che
     fitReference(); desktop.addEventListener('change', fitReference);
     return () => desktop.removeEventListener('change', fitReference);
   }, []);
-  function showSolution() {
-    update(current => ({ ...current, viewed: current.completion ? current.viewed : true }));
-    setSolutionOpen(true); setSolutionConfirm(false);
-  }
   const helpField = index === 0 && routePhase ? 'routeHints' : 'hints';
   const helpCount = item[helpField] || 0;
   const helpPuzzle = index === 5 ? {...puzzle,hints:lightHints(item.data)} : index === 4 ? { ...puzzle, hints: forestHints(item.data) } : index === 2 ? { ...puzzle, hints: bayHints(item.completion ? bayStart : item.data.positions), solution: baySolution(item.completion ? bayStart : item.data.positions) } : helpField === 'routeHints' ? { ...puzzle, hints: puzzle.routeHints } : puzzle;
@@ -105,18 +99,13 @@ function InteractiveCard({ puzzle, index, item, active, ready, update, edit, che
     <p role="status" className={`pw-feedback ${item.completion ? 'success' : ''}`}>{item.completion ? `${completionNames[item.completion]}. ${puzzle.payoff}` : feedback}</p>
     {index === 0 && clearRouteOpen && <div className="pw-confirm" role="group" aria-label="Confirm clear route"><p>Clear the five route positions? Your restored key and unlocked help stay available.</p><button onClick={() => { edit({ ...item.data, route: ['', '', '', '', ''], pair: [] }); setClearRouteOpen(false); setRouteSelection(''); requestAnimationFrame(() => document.getElementById('postal-route-title')?.focus({ preventScroll: true })); }}>Clear this route</button><button onClick={() => setClearRouteOpen(false)}>Keep route</button></div>}
     {item.completion && <div className="pw-celebration"><strong>{index === 0 ? 'Delivery recorded' : 'Discovery recorded'}</strong>{index === 0 && <PostalDelivery route={item.data.route}/>}{index === 1 && <MoonConnected/>}{index === 2 && <BayDelivered/>}{index === 3 && <ParcelDelivered/>}<p>{item.completion === 'solution' ? 'You completed this puzzle after opening its explanation. Try it again later without the solution.' : 'Your actions fit the clues. Tell someone how you worked it out.'}</p><button className="pw-check" onClick={chooseNext}>{index === 5 ? 'Choose another puzzle' : 'Try the next puzzle'} <ArrowRight size={18}/></button><a href="#print-puzzles">Get the printable sheets</a></div>}
-    {resetOpen && <div className="pw-confirm" role="group" aria-label="Confirm puzzle restart"><p>Clear this puzzle’s moves, hints and completion? The other five puzzles stay saved.</p><button onClick={() => { restart(); setResetOpen(false); setSolutionOpen(false); setSolutionConfirm(false); heading.current?.focus(); }}>Restart this puzzle</button><button onClick={() => setResetOpen(false)}>Keep playing</button></div>}
+    {resetOpen && <div className="pw-confirm" role="group" aria-label="Confirm puzzle restart"><p>Clear this puzzle’s moves, hints and completion? The other five puzzles stay saved.</p><button onClick={() => { restart(); setResetOpen(false); heading.current?.focus(); }}>Restart this puzzle</button><button onClick={() => setResetOpen(false)}>Keep playing</button></div>}
     {index < 6 && <h3 className="pv-help-title">Need a hint?</h3>}
-    {creditPreview ? <CreditHelp renderSolution={index === 5 ? () => <HarbourExplanation/> : index === 4 ? () => <ForestExplanation/> : index === 3 ? () => <ParcelExplanation/> : index === 2 ? () => <BayWalkthrough positions={item.completion ? bayStart : item.data.positions} fromStart={Boolean(item.completion)}/> : undefined} puzzle={helpPuzzle} item={{ ...item, hints: helpCount }} credits={credits} grant={kind => {
-      update(current => kind === 'solution' ? { ...current, viewed: current.completion ? current.viewed : true, ...([3,4,5].includes(index) ? { hints: 3 } : {}) } : { ...current, [helpField]: Math.max(current[helpField] || 0, Number(kind.split('-')[1])) });
+    <CreditHelp renderSolution={index === 5 ? () => <HarbourExplanation/> : index === 4 ? () => <ForestExplanation/> : index === 3 ? () => <ParcelExplanation/> : index === 2 ? () => <BayWalkthrough positions={item.completion ? bayStart : item.data.positions} fromStart={Boolean(item.completion)}/> : undefined} puzzle={helpPuzzle} item={{ ...item, hints: helpCount }} credits={credits} grant={kind => {
+      update(current => kind === 'solution' ? { ...current, viewed: current.completion ? current.viewed : true, [helpField]: 3 } : { ...current, [helpField]: Math.max(current[helpField] || 0, Number(kind.split('-')[1])) });
       if (kind !== 'solution') trackConversionEvent('puzzle_hint_open', { puzzle: puzzle.id });
-    }}/> : <>
-    <div className="pw-help"><button disabled={!ready || helpCount >= 3 || Boolean(item.completion)} onClick={() => { update(current => ({ ...current, [helpField]: Math.min(3, (current[helpField] || 0) + 1) })); trackConversionEvent('puzzle_hint_open', { puzzle: puzzle.id }); }}><Lightbulb size={18}/>{helpCount >= 3 ? 'All hints shown' : `Show hint ${helpCount + 1} of 3`}</button><button aria-expanded={solutionOpen || solutionConfirm} aria-controls={`${puzzle.id}-solution`} disabled={!ready} onClick={() => { if (solutionOpen) setSolutionOpen(false); else if (item.completion || item.viewed) showSolution(); else setSolutionConfirm(true); }}>{solutionOpen ? 'Hide explanation' : item.completion ? 'Read explanation' : 'Reveal solution'}</button></div>
-    {helpCount > 0 && <ol className="puzzle-hints">{helpPuzzle.hints.slice(0, helpCount).map((hint, i) => <li key={i}><strong>Hint {i + 1}</strong><p>{hint}</p></li>)}</ol>}
-    {solutionConfirm && <div className="pw-confirm"><p>This reveals the answer. Completing afterwards will be marked “after viewing solution”.</p><button onClick={showSolution}>Show solution</button><button onClick={() => setSolutionConfirm(false)}>Keep solving</button></div>}
-    </>}
+    }}/>
     </ToolWrapper>
-    <div className="puzzle-solution" id={`${puzzle.id}-solution`} hidden={!solutionOpen}><p>{![3,4,5].includes(index) && <><strong>{puzzle.answer}.</strong> </>}{helpPuzzle.solution}</p>{index === 2 && <BayWalkthrough positions={item.completion ? bayStart : item.data.positions} fromStart={Boolean(item.completion)}/>} {index === 3 && <ParcelExplanation/>}{index === 4 && <ForestExplanation/>}{index === 5 && <HarbourExplanation/>}<p className="pw-small">The explanation does not fill or complete the puzzle for you.</p></div>
     </div></div>
     {index === 5 && item.legacyHarbourCompletion && <p className="hl-legacy">Your earlier harbour result is kept separately. This switch circuit is new; your other five games stay saved.</p>}
     {index === 4 && item.legacyForestCompletion && <p className="fl-legacy">Your earlier letter-trail result is kept separately. This rescue challenge is new; your other five games stay saved.</p>}
@@ -137,9 +126,8 @@ export default function PuzzleWorkshop() {
   const [clearOpen, setClearOpen] = useState(false);
   const [round, setRound] = useState(0);
   const [stampUpdated, setStampUpdated] = useState(false);
-  const [creditPreview, setCreditPreview] = useState(false);
-  const credits = useCreditPreview(creditPreview, ready, state);
-  useEffect(() => { if (import.meta.env.DEV && ['localhost', '127.0.0.1'].includes(window.location.hostname)) setCreditPreview(true); }, []);
+  const accountCredits = useGameCredits(ready);
+  const credits = {...accountCredits,saveForLeave:()=>{try{localStorage.setItem(workshopKey,JSON.stringify(state));return true;}catch{setStorage('unavailable');return false;}}};
   const title = useRef(null);
   const loaded = useRef(false);
   useEffect(() => {
@@ -181,8 +169,8 @@ export default function PuzzleWorkshop() {
   const activeIndex = freePuzzles.findIndex(p => p.id === state.active);
   const activePuzzle = freePuzzles[activeIndex];
   return <section id="try-puzzles" className="pw-workshop pw-entry-workshop puzzle-shell" aria-labelledby="pw-title">
-    <div className="lobby-intro"><span className="lobby-tag">SIX FREE CHALLENGES · NO ACCOUNT NEEDED</span><h1 id="pw-title">Free escape room puzzles</h1><p>Six puzzles. Six ways to solve. Decode messages, move crates, investigate evidence or restore a circuit. Choose any challenge; your progress saves in this browser.</p>{ready&&resume&&<div className="lobby-resume">Last played: <strong>{shortTitles[freePuzzles.findIndex(p=>p.id===resume)]}</strong><button onClick={()=>select(resume,true)}>Continue last game</button></div>}</div>
-    <p className="sd-lobby-link"><a href="/en/sudoku/">New: Sudoku adventure · 100 levels, thinking hints and a leaderboard →</a></p>
+    <div className="lobby-intro"><span className="lobby-tag">SIX FREE CHALLENGES · NO ACCOUNT NEEDED</span><h1 id="pw-title">Free escape room puzzles</h1><p>Six puzzles. Six ways to solve. Play free with a first hint in each game. Deeper hints and explained answers use optional shared AI credits. Your moves save in this browser.</p>{ready&&resume&&<div className="lobby-resume">Last played: <strong>{shortTitles[freePuzzles.findIndex(p=>p.id===resume)]}</strong><button onClick={()=>select(resume,true)}>Continue last game</button></div>}</div>
+    <p className="sd-lobby-link"><a href="/en/sudoku/">New: Sudoku adventure · progressive levels, thinking hints and a leaderboard →</a></p>
     <section id="puzzle-directory" className="lobby-directory" aria-labelledby="lobby-title"><div className="lobby-heading"><div><h2 id="lobby-title">Choose your challenge</h2><p>All six games are independent. Explore them in any order.</p></div><span>{completed} of 6 completed</span></div><div className="lobby-grid">{freePuzzles.map((p,i)=>gameCard(p,i))}</div></section>
     <div id="puzzle-play" hidden={!playing}>
     <header className="pw-entry-toolbar" ref={title} tabIndex={-1}>
@@ -190,14 +178,14 @@ export default function PuzzleWorkshop() {
       <nav className="pw-entry-picker" aria-label="Puzzle navigation"><button aria-label="Previous puzzle" disabled={!ready || activeIndex === 0} onClick={() => select(freePuzzles[activeIndex - 1].id, true)}><ArrowLeft size={18}/></button><label><span className="pw-sr-only">Choose a puzzle</span><select disabled={!ready} value={state.active} onChange={e => select(e.target.value,true)}>{freePuzzles.map((p, i) => <option key={p.id} value={p.id}>{p.number} · {shortTitles[i]}{state.items[p.id].completion ? ' · solved' : ''}</option>)}</select></label><button aria-label="Next puzzle" disabled={!ready || activeIndex === freePuzzles.length - 1} onClick={() => select(freePuzzles[activeIndex + 1].id, true)}><ArrowRight size={18}/></button></nav>
       <div className="pw-entry-progress" role="status"><strong>{completed}/6</strong><span>solved</span></div><a className="pw-entry-print" href="#print-puzzles">Print PDFs</a>
     </header>
-    <div className="pw-game-stack">{freePuzzles.map((puzzle, index) => <InteractiveCard creditPreview={creditPreview} credits={credits} key={`${puzzle.id}-${state.items[puzzle.id].revision || 0}-${round}`} puzzle={puzzle} index={index} item={state.items[puzzle.id]} ready={ready} active={playing && state.active === puzzle.id} update={transform => update(puzzle.id, transform)} edit={data => update(puzzle.id, item => changeData(item, puzzle.id, data))} check={() => check(puzzle.id)} feedback={feedback[puzzle.id] || ''} notify={message => setFeedback(old => ({ ...old, [puzzle.id]: message }))} restart={() => { update(puzzle.id, old => ({ ...freshItem(puzzle.id), ...(puzzle.id === 'stamp-code' ? { legacyCompletion: old.legacyCompletion } : puzzle.id === 'harbour-route' ? {legacyHarbourCompletion:old.legacyHarbourCompletion} : puzzle.id === 'forest-trail' ? { legacyForestCompletion: old.legacyForestCompletion } : puzzle.id === 'shared-parcel' ? { legacyParcelCompletion: old.legacyParcelCompletion } : {}), revision: (old.revision || 0) + 1 })); requestAnimationFrame(() => document.getElementById(`${puzzle.id}-title`)?.focus()); }} chooseNext={() => select(freePuzzles[(index + 1) % 6].id, true)}/>)}</div>
+    <div className="pw-game-stack">{freePuzzles.map((puzzle, index) => <InteractiveCard credits={credits} key={`${puzzle.id}-${state.items[puzzle.id].revision || 0}-${round}`} puzzle={puzzle} index={index} item={state.items[puzzle.id]} ready={ready} active={playing && state.active === puzzle.id} update={transform => update(puzzle.id, transform)} edit={data => update(puzzle.id, item => changeData(item, puzzle.id, data))} check={() => check(puzzle.id)} feedback={feedback[puzzle.id] || ''} notify={message => setFeedback(old => ({ ...old, [puzzle.id]: message }))} restart={() => { update(puzzle.id, old => ({ ...freshItem(puzzle.id), ...(puzzle.id === 'stamp-code' ? { legacyCompletion: old.legacyCompletion } : puzzle.id === 'harbour-route' ? {legacyHarbourCompletion:old.legacyHarbourCompletion} : puzzle.id === 'forest-trail' ? { legacyForestCompletion: old.legacyForestCompletion } : puzzle.id === 'shared-parcel' ? { legacyParcelCompletion: old.legacyParcelCompletion } : {}), revision: (old.revision || 0) + 1 })); requestAnimationFrame(() => document.getElementById(`${puzzle.id}-title`)?.focus()); }} chooseNext={() => select(freePuzzles[(index + 1) % 6].id, true)}/>)}</div>
     <div className="pw-case-context"><strong>About this case · {activePuzzle.title}</strong><p>{activePuzzle.story}</p></div>
     <section className="lobby-recommend" aria-label="Other challenges"><h2>{state.items[state.active].completion?'What will you try next?':'Try a different challenge'}</h2><p>Your current progress stays saved. Choose another way to solve.</p><div className="lobby-grid lobby-pair">{freePuzzles.map((p,i)=>({p,i})).filter(({p})=>p.id!==state.active).sort((a,b)=>Boolean(state.items[a.p.id].completion)-Boolean(state.items[b.p.id].completion)||(a.p.category===activePuzzle.category)-(b.p.category===activePuzzle.category)).slice(0,2).map(({p,i})=>gameCard(p,i,true))}</div><button onClick={directory}>View all 6 games</button></section>
     </div>
     {stampUpdated && <p className="si-edition-note">Puzzle 1 now has a five-stop route. Valid record matches and the restored key are kept; an earlier POOL completion is recorded separately. Your other five saved puzzles are kept.</p>}
     <div className="pw-storage"><p role="status">{!ready ? 'Loading saved progress…' : storage === 'unavailable' ? 'Browser saving is unavailable. You can keep playing, but progress may be lost when you leave or reload.' : storage === 'recovered' ? 'An unreadable save was reset. New progress is saved in this browser.' : 'Progress saves automatically in this browser, including moves and hints. It does not sync to other devices.'}</p><button disabled={!ready} onClick={() => setClearOpen(true)}>Clear saved progress</button></div>
     {clearOpen && <div className="pw-confirm"><p>Clear all six puzzles, hints and completion records in this browser?</p><button onClick={() => { setPlaying(false);setResume(null);setState(freshWorkshop()); setRound(n => n + 1); setFeedback({}); setClearOpen(false); window.history.replaceState(window.history.state, '', '#puzzle-directory'); title.current?.focus(); }}>Clear all progress</button><button onClick={() => setClearOpen(false)}>Keep progress</button></div>}
-    <p className="pw-small pw-storage-note">Your moves stay on this device. Puzzle event counts use fixed puzzle IDs and help-use labels, not typed answers. Prefer paper? Matching player sheets and a separate answer guide are below.</p>
+    <p className="pw-small pw-storage-note">Your moves stay on this device. Account help unlocks use the shared AI credits wallet; your board stays in this browser. Prefer paper? Matching player sheets and a separate answer guide are below.</p>
   </section>;
 }
 

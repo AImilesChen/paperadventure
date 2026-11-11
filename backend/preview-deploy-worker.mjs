@@ -12,6 +12,7 @@ const previewRobots = 'User-agent: *\nDisallow: /\n';
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if(url.pathname==='/en/sudoku/points/'){const target=new URL(request.url);target.pathname='/en/credits/';return new Response(null,{status:308,headers:{location:target.href,'cache-control':'no-cache','x-robots-tag':'noindex'}});}
     if (url.pathname.startsWith('/api/')) return env.BACKEND_STAGE?.fetch ? env.BACKEND_STAGE.fetch(request) : handleApi(request);
     const isPublicHost = url.hostname === publicHost;
     const retired=retiredWeeklyTarget(url.pathname);
