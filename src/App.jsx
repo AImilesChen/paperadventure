@@ -1,6 +1,7 @@
 import HeaderDiscovery from './headerDiscovery.jsx';
 import {SudokuDisclosure} from './sudokuNavigation.jsx';
 import SudokuLessons from './sudokuLessons.jsx';
+import SudokuPoints,{SudokuBilling} from './sudokuPoints.jsx';
 import {prepareSudokuLeave} from './sudoku-leave.mjs';
 import{clearDeviceCopies}from'./sudoku-device.mjs';
 import{SudokuHomeEntry}from'./sudokuEntry.jsx';
@@ -317,6 +318,8 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route.startsWith('/en/themes')) page = <WorldsOverview Link={Link} catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
   else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
+  else if (route==='/en/sudoku/points/') page=<SudokuPoints key={routeLocation} route={route}/>;
+  else if (route==='/en/account/billing/') page=<SudokuBilling key={routeLocation} route={route}/>;
   else if ((['/en/sudoku/how-to-play/','/en/sudoku/techniques/'].includes(route)||(route.startsWith('/en/sudoku/techniques/')&&pageFor(route)))) page = <SudokuLessons key={route} route={route}/>;
   else if (route === '/en/sudoku/levels/') page = <SudokuLevels key={routeLocation} route={route}/>;
   else if (['/en/sudoku/','/en/sudoku/play/','/en/sudoku/leaderboard/'].includes(route)) page = <Sudoku key={routeLocation} Link={Link} route={route}/>;

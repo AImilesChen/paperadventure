@@ -10,7 +10,7 @@ async function call(path,body,method='POST'){
  return response.json();
 }
 let ready=false;
-for(let i=0;i<24;i++){try{const h=await call('/health');assert.equal(h.release,'sudoku-v40');assert.equal(h.catalog?.version,catalogSummary.version);assert.equal(h.weeklyVersion,0);assert.equal(h.weeklyRetired,true);assert.equal(h.leaderboardVersion,4);assert.equal(h.speedVersion,1);ready=true;break;}catch{await new Promise(r=>setTimeout(r,5000));}}
+for(let i=0;i<24;i++){try{const h=await call('/health');assert.equal(h.release,'sudoku-v40');assert.equal(h.catalog?.version,catalogSummary.version);assert.equal(h.weeklyVersion,0);assert.equal(h.weeklyRetired,true);assert.equal(h.leaderboardVersion,4);assert.equal(h.speedVersion,1);assert.equal(h.pointsVersion,1);ready=true;break;}catch{await new Promise(r=>setTimeout(r,5000));}}
 assert.ok(ready,'Matching Sudoku backend not ready');
 const progress=await call('/progress');assert.equal(progress.state.highest,0);assert.equal(progress.state.balance,15);assert.equal(progress.profile.authenticated,false);
 assert.equal(progress.speedEnabled,true);

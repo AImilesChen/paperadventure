@@ -15,7 +15,7 @@ function mergeProgress(account,guest,choices){const a=structuredClone(account);a
  return a;
 }
 export function mergeAccounts(account,guest,guestId,choices={}){const conflicts=mergeConflicts(account,guest);if(conflicts.some(c=>!['guest','account'].includes(choices[c.id])))throw new SudokuError(409,'MERGE_CHOICE_REQUIRED','Choose which unfinished board to keep for each conflicting level.');if(account.imported?.includes(guestId))return structuredClone(account);
- const a=mergeProgress(account,guest,choices);a.imported=[...(account.imported||[]),guestId];a.balance=Math.max(account.balance,guest.balance);
+ const a=mergeProgress(account,guest,choices);a.imported=[...(account.imported||[]),guestId];a.paidBalance=account.paidBalance||0;a.balance=a.paidBalance+Math.max(account.balance-a.paidBalance,guest.balance-(guest.paidBalance||0));
  // Retired boards never block campaign sign-in or rewrite saved historical scores.
  if(Object.keys(guest.weekly||{}).length||Object.keys(guest.retiredWeeklyImports||{}).length){a.retiredWeeklyImports??={};a.retiredWeeklyImports[guestId]={weekly:structuredClone(guest.weekly||{}),imports:structuredClone(guest.retiredWeeklyImports||{})};}
  a.ledger.push({id:'merge-'+guestId,delta:a.balance-account.balance,reason:'Guest progress linked (balances not added)',at:Date.now()});return a;
