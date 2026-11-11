@@ -68,9 +68,7 @@ export async function pointsWebhook(request,rawEnv,{store,clock=()=>Date.now()}=
 export async function pointsApi(request,rawEnv,{store,authenticate,ensureAccount,clock=()=>Date.now(),authorizeAdmin}={}){
  const env=await pointsPriceEnvironment(rawEnv),url=new URL(request.url),path=url.pathname.replace(/^\/api\/v1\/(?:sudoku\/points|credits)/,'');store??=new PointsStore(env.DB);
  try{
- const ready=Boolean(store.db)&&await store.ready(),mode=stripeKeyMode(env.STRIPE_SECRET_KEY);
- const ownerAcceptance=env.AI_CREDITS_OWNER_TEST==='true'&&Boolean(await authorizeAdmin?.(request,env));
- const enabled=ready&&(configured(env)||ownerAcceptance&&configured({...env,AI_CREDITS_ENABLED:'true'}));
+ const ready=Boolean(store.db)&&await store.ready(),enabled=ready&&configured(env),mode=stripeKeyMode(env.STRIPE_SECRET_KEY);
  if(path==='/catalog'&&request.method==='GET')return reply({enabled,mode:enabled?mode:'disabled',termsVersion:pointsTermsVersion,products:pointsProducts.map(({priceEnv,...p})=>({...p,available:enabled&&/^price_/.test(env[priceEnv]||'')}))});
  if(!ready)fail(503,'POINTS_UNAVAILABLE','The points wallet is not available yet.');
  const identity=await authenticate(request,env);if(!identity)fail(401,'LOGIN_REQUIRED','Sign in with your adult account to buy points and view billing.');const owner='account:'+identity;
