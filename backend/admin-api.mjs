@@ -1,3 +1,4 @@
+import {adminAnalytics} from './admin-analytics.mjs';
 import {ApiError} from './domain.mjs';
 import {requireAdmin} from './admin-identity.mjs';
 import {normalizeEmail,sha256} from './security.mjs';
@@ -120,6 +121,7 @@ export async function handleAdminApi(request,env,context={}) {
   if(write&&request.headers.get('origin')!==new URL(env.PUBLIC_ORIGIN||request.url).origin)throw new ApiError(403,'ADMIN_ORIGIN_DENIED','请求来源不正确。');
   if(write&&Number(request.headers.get('content-length')||0)>16384)throw new ApiError(413,'ADMIN_BODY_TOO_LARGE','请求过长。');
   if(path==='/api/v1/admin/session'&&request.method==='GET')return json({authorized:true,email:actor.email});
+  if(path==='/api/v1/admin/analytics'&&request.method==='GET')return json(await adminAnalytics(env,params));
   if(path==='/api/v1/admin/summary'&&request.method==='GET')return json(await summary(env,params));
   if(path==='/api/v1/admin/messages'&&request.method==='GET') {
    const where=[],args=[],kind=params.get('kind'),status=params.get('status'),type=params.get('type'),query=searchValue(params);

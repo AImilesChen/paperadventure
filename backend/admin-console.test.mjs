@@ -26,7 +26,7 @@ async function fixture(){
 test('all admin data requires the designated verified Google session; legacy and email-link sessions are denied',async()=>{
  const f=await fixture();
  for(const cookie of ['',`paw_session=${await f.token('ordinary@example.test')}`,`paw_session=${await f.token(f.owner,{})}`,`paw_session=${await f.token(f.owner,{provider:'email-link'})}`,'paw_session=tampered']){
-  for(const path of ['/session','/summary','/messages','/users','/orders','/refunds','/exceptions','/settings','/audit']){
+  for(const path of ['/session','/summary','/analytics?days=1','/messages','/users','/orders','/refunds','/exceptions','/settings','/audit']){
    const response=await f.call(path,'GET',undefined,{cookie});assert.equal(response.status,403,path);assert.equal((await response.text()).includes('buyer@example.test'),false);
   }
  }
@@ -160,4 +160,15 @@ test('historical cleanup also clears bound payment mismatch alerts without rewri
  assert.equal((await (await f.call('/exceptions')).json()).payment_sync.length,0);
  assert.equal(f.db.prepare("SELECT paid_at FROM orders WHERE id='test-paid'").get().paid_at,null);
  assert.equal(f.db.prepare("SELECT provider_payment_status FROM admin_payment_state WHERE order_id='test-paid'").get().provider_payment_status,'paid');
+});
+
+
+test('admin analytics is private, read-only and reports missing configuration honestly',async()=>{
+ const f=await fixture();
+ const response=await f.call('/analytics?days=1');assert.equal(response.status,200);
+ assert.match(response.headers.get('cache-control'),/private, no-store/);assert.equal(response.headers.get('x-robots-tag'),'noindex');
+ assert.equal((await response.json()).status,'not_configured');
+ assert.equal((await f.call('/analytics?days=365')).status,400);
+ assert.equal((await f.call('/analytics','POST')).status,404);
+ f.db.close();
 });
