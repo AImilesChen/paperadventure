@@ -1,1 +1,1 @@
-admin-traffic-v59-cf-readonly-20261112
+admin-traffic-v59-workers-redirect-compatibility-20261112

@@ -35,3 +35,7 @@ The earlier GA4 adapter/configuration instructions are superseded; GA4 is not th
 Earlier user-approved GCP service account paperadventure-ga4-reader@paperadventure.iam.gserviceaccount.com (unique ID 106756389524520271500, project paperadventure) exists with no project roles and no GA4 property Viewer grant. JSON key creation/download outcome remains UNKNOWN after browser timeout. No known downloaded private key was read or configured. Inspect actual key list before any future retry; do not continue GA4 work under this CF request. GA4 UI property557907157/account395554176 was read previously; those UI values are separate from CF visits.
 
 Official references: https://developers.cloudflare.com/analytics/graphql-api/getting-started/authentication/api-token-auth/ ; https://developers.cloudflare.com/web-analytics/data-metrics/high-level-metrics/ ; https://developers.cloudflare.com/web-analytics/faq/ .
+
+## Release runtime correction
+
+PR192 initially deployed but the authenticated production report returned upstream errors. Official Workers Request documentation confirms redirect:error is unsupported and throws before the provider call. Replaced it with redirect:manual; existing non-2xx rejection refuses every redirect without forwarding the credential. Added redirect refusal regression coverage; 23 focused tests pass. This is a Workers runtime difference missed by Node-only checks. Production verification must be repeated after the correction.
