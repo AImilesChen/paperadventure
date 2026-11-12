@@ -32,7 +32,8 @@ function reportQuery(since,until){
 async function getReport(env,secret,since,until){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
  try{
-  const response=await (env.FETCH||fetch)(endpoint,{method:'POST',redirect:'error',signal:controller.signal,headers:{authorization:'Bearer '+secret,'content-type':'application/json'},body:JSON.stringify({query:reportQuery(since,until)})});
+  // Workers supports manual/follow only. Reject 3xx below without forwarding credentials.
+  const response=await (env.FETCH||fetch)(endpoint,{method:'POST',redirect:'manual',signal:controller.signal,headers:{authorization:'Bearer '+secret,'content-type':'application/json'},body:JSON.stringify({query:reportQuery(since,until)})});
   if(!response.ok)throw fail([401,403].includes(response.status)?'permission':response.status===429?'quota':'upstream');
   const body=await response.json();
   if(!body||typeof body!=='object'||body.errors!=null&&!Array.isArray(body.errors))throw fail('format');
