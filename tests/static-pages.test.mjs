@@ -307,3 +307,25 @@ test('sign-in initial HTML focuses authentication before any progress dashboard'
  assert.doesNotMatch(html, /class="feedback-trigger"/);
  assert.match(html,/<meta name="robots" content="noindex"/);
 });
+
+import {renderLlms} from '../shared/llms.mjs';
+import {catalogSummary} from '../shared/sudoku/catalog.mjs';
+import {helpPrices} from '../shared/sudoku/help-model.mjs';
+import {freePuzzles} from '../shared/free-puzzles.mjs';
+test('llms guide is generated from published facts and links only to public information',async()=>{
+ const text=await readFile('dist/client/llms.txt','utf8');assert.equal(text,renderLlms());assert.match(text,/^# Paper Adventure Workshop\n\n>/);assert(text.includes(`${catalogSummary.publishedCount} published`));
+ for(const p of pointsProducts)assert(text.includes(`${p.points} credits for ${pointsMoney(p.unitAmount)} USD`));
+ assert(text.includes(`thinking hint costs ${helpPrices.reasoning}`));assert(text.includes(`answer costs ${helpPrices.answer}`));
+ const links=[...text.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map(m=>new URL(m[1]));
+ for(const url of links){assert.equal(url.origin,'https://paperadventure.app');assert(publicPages.some(p=>p.path===url.pathname),url.href);assert.equal(url.search,'');assert(!/\/(?:api|admin|account|orders|checkout|my-adventures)(?:\/|$)/.test(url.pathname));}
+ for(const p of freePuzzles)assert(links.some(u=>u.hash==='#'+p.id));
+ assert.doesNotMatch(text,/price_[a-zA-Z0-9]+|STRIPE_|bank-[a-f0-9]+|localhost|127\.0\.0\.1|weekly challenge/i);
+ for(const p of freePuzzles)if(p.solution?.length>30)assert(!text.includes(p.solution));
+});
+test('llms prices, puzzle totals and upgrade costs follow their source configuration',()=>{
+ const text=renderLlms({catalog:{publishedCount:420},products:[{points:250,unitAmount:499}],prices:{reasoning:2,answer:6}});
+ assert(text.includes('420 published'));assert(text.includes('250 credits for $4.99 USD'));assert(text.includes('thinking hint costs 2'));assert(text.includes('upgrading from a thinking hint costs 4 more'));
+});
+test('the root guide does not change the HTML sitemap',async()=>{
+ const sitemap=await readFile('dist/client/sitemap.xml','utf8');assert.doesNotMatch(sitemap,/llms\.txt/);
+});

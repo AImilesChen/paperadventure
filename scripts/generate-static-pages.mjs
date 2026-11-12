@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {renderLlms} from '../shared/llms.mjs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -139,6 +140,7 @@ try {
   const indexablePages = publicPages.filter(record => record.indexable);
   const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + indexablePages.map(record => `  <url><loc>${escape(origin + record.path)}</loc></url>`).join('\n') + '\n</urlset>\n';
   await writeFile(path.join(out, 'sitemap.xml'), sitemap);
+  await writeFile(path.join(out, 'llms.txt'), renderLlms({origin}));
   await writeFile(path.join(out, 'robots.txt'), 'User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://paperadventure.app/sitemap.xml\n');
   await writeFile(path.join(out, '_headers'), ['/en/account/*', '/en/my-adventures/*', '/en/checkout/*', '/en/orders/*', '/en/help/recover/*', '/en/terms/*', '/en/cookies/*', '/en/refunds/*'].map(route => route + '\n  X-Robots-Tag: noindex\n').join('\n'));
   console.log(`Generated ${publicPages.length} pre-rendered pages and ${indexablePages.length} sitemap URLs for ${origin}`);

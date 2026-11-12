@@ -90,3 +90,21 @@ test('admin shell and deep links are private, non-cacheable and cannot be framed
  }
  const write=await worker.fetch(new Request('https://paperadventure.app/admin/',{method:'POST'}),env);assert.equal(write.status,404);
 });
+
+import sitesLlmsWorker from '../worker/index.js';
+test('both site runtimes serve root llms as text and redirect its English alias once',async()=>{
+ for(const runtime of [worker,sitesLlmsWorker]){
+  const calls=[],assets={fetch:async r=>{calls.push({path:new URL(r.url).pathname,search:new URL(r.url).search,method:r.method});return new Response('# Public guide',{headers:{'content-type':'text/plain'}});}};
+  const get=await runtime.fetch(new Request('https://paperadventure.app/llms.txt?source=old',{headers:{accept:'text/html'}}),{ASSETS:assets});assert.equal(get.status,200);assert.match(get.headers.get('content-type'),/^text\/plain/);assert.equal(await get.text(),'# Public guide');assert.equal(get.headers.get('x-robots-tag'),null);assert.deepEqual(calls,[{path:'/llms.txt',search:'',method:'GET'}]);
+  const alias=await runtime.fetch(new Request('https://paperadventure.app/en/llms.txt?old=1'),{ASSETS:assets});assert.equal(alias.status,308);assert.equal(alias.headers.get('location'),'/llms.txt');assert.equal(calls.length,1);
+  const head=await runtime.fetch(new Request('https://paperadventure.app/llms.txt',{method:'HEAD'}),{ASSETS:assets});assert.equal(head.status,200);assert.equal(await head.text(),'');
+  const preview=await runtime.fetch(new Request('https://preview.paperadventure.app/llms.txt'),{ASSETS:assets});assert.equal(preview.headers.get('x-robots-tag'),'noindex');
+  const post=await runtime.fetch(new Request('https://paperadventure.app/llms.txt',{method:'POST'}),{ASSETS:assets});assert.equal(post.status,405);assert.equal(post.headers.get('allow'),'GET, HEAD');
+ }
+});
+test('missing guides never turn into a successful HTML application shell',async()=>{
+ for(const runtime of [worker,sitesLlmsWorker])for(const status of [404,200]){
+  const result=await runtime.fetch(new Request('https://paperadventure.app/llms.txt',{headers:{accept:'text/html'}}),{ASSETS:{fetch:async()=>new Response('<html>app</html>',{status,headers:{'content-type':'text/html'}})}});
+  assert.equal(result.status,404);assert.match(result.headers.get('content-type'),/^text\/plain/);assert.doesNotMatch(await result.text(),/<html>/);
+ }
+});
