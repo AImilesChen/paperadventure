@@ -24,7 +24,7 @@ test('every dated article exposes the same fixed dates to readers and search eng
   assert.equal(article.author.url,'https://paperadventure.app/en/about/#how-we-make-it');assert.ok(body.includes('href="/en/about/#how-we-make-it"'));
  }
  assert.equal(editorialFor('/en/guides/printable-birthday-party-adventures/').modified,'2026-10-28');
- assert.equal(editorialFor('/en/sudoku/techniques/naked-pair/').modified,'2026-11-10');
+ assert.equal(editorialFor('/en/sudoku/techniques/naked-pair/').modified,'2026-11-13');
 });
 test('selected samples include usable decisions, exact argument and visible source links',async()=>{
  for(const path of ['/en/guides/run-a-printable-adventure/','/en/guides/organize-a-classroom-adventure/']){const body=await html(path);assert.ok(body.includes('id="hosting-decisions"'));assert.ok(body.includes('href="#hosting-decisions"'));assert.match(body,/Materials behind this guide/);}
