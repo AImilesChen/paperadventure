@@ -23,7 +23,7 @@ test('every dated article exposes the same fixed dates to readers and search eng
   for(const [field,value] of [['datePublished',dates.published],['dateModified',dates.modified]].filter(([,v])=>v)){assert.equal(article[field],value);assert.ok(body.includes('dateTime="'+value+'"')||body.includes('datetime="'+value+'"'),page.path+': '+field);}
   assert.equal(article.author.url,'https://paperadventure.app/en/about/#how-we-make-it');assert.ok(body.includes('href="/en/about/#how-we-make-it"'));
  }
- assert.equal(editorialFor('/en/guides/printable-birthday-party-adventures/').modified,'2026-10-28');
+ assert.equal(editorialFor('/en/guides/printable-birthday-party-adventures/').modified,'2026-11-13');
  assert.equal(editorialFor('/en/sudoku/techniques/naked-pair/').modified,'2026-11-13');
 });
 test('selected samples include usable decisions, exact argument and visible source links',async()=>{

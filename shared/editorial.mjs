@@ -1,7 +1,7 @@
 import {guides} from './guides.mjs';
 
 // Fixed editorial dates: change only after a substantive page revision.
-const revisedGuides=new Set(['run-a-printable-adventure','organize-a-classroom-adventure']);
+const revisedGuides=new Set(['run-a-printable-adventure','organize-a-classroom-adventure','printable-birthday-party-adventures']);
 export function editorialFor(path){
  const guide=guides.find(g=>g.path===path);
  if(guide)return {published:guide.date,modified:revisedGuides.has(guide.slug)?'2026-11-13':guide.date};

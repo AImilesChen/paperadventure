@@ -56,7 +56,7 @@ test('four real tutorial URLs have public metadata, parent learning navigation a
 });
 test('hub provides distinct tutorials, actual explanations and preserved old fragments in initial HTML',async()=>{
  const html=await readFile('dist/client'+learningRoot+'index.html','utf8');
- for(const l of lessons){assert.ok(html.includes('id="technique-'+l.id+'"'));assert.ok(html.includes('href="'+lessonPath(l)+'"'));assert.ok(html.includes(l.definition.replaceAll('“','“')));}
+ for(const l of lessons){assert.ok(html.includes('id="technique-'+l.id+'"'));assert.ok(html.includes('href="'+lessonPath(l)+'"'));assert.ok(html.includes(l.when));}
  for(const text of ['Where do candidate notes come from?','Read a Sudoku candidate list correctly','Match the method to what you can prove','id="speed-practice"'])assert.ok(html.includes(text));
  assert.ok(!html.includes('Open this lesson'));assert.ok(!html.includes('sl-anchors'));
  for(const [,href]of html.matchAll(/href="(#[^"]+)"/g))assert.ok(html.includes('id="'+href.slice(1)+'"'),href);
