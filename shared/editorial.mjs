@@ -6,7 +6,7 @@ export function editorialFor(path){
  const guide=guides.find(g=>g.path===path);
  if(guide)return {published:guide.date,modified:revisedGuides.has(guide.slug)?'2026-11-13':guide.date};
  if(path==='/en/sudoku/how-to-play/')return {modified:'2026-11-10'};
- if(/^\/en\/sudoku\/techniques\/(single-candidate|hidden-single|locked-candidates|naked-pair)\/$/.test(path))return {published:'2026-11-10',modified:path.endsWith('/hidden-single/')?'2026-11-13':'2026-11-10'};
+ if(/^\/en\/sudoku\/techniques\/(single-candidate|hidden-single|locked-candidates|naked-pair)\/$/.test(path))return {published:'2026-11-10',modified:'2026-11-13'};
  return null;
 }
 export const publisherDetails=Object.freeze({
