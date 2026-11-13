@@ -49,8 +49,10 @@ ${link('Shared AI credits','/en/credits/',products.map(p=>`${p.points} credits f
 
 One account balance works across Sudoku and supported online escape puzzles. Costs are displayed before unlocking help. Free play, free lessons and credit purchases have different purposes; buying credits does not buy a printable adventure pack.
 
-## Help and policies
+## Publisher, help and policies
 
+${link('About Paper Adventure','/en/about/','Publisher identity, game formats and content-checking approach.')}
+${link('Contact','/en/contact/','Support email and order-linked help.')}
 ${link('Help','/en/help/','Assistance with games, purchases and downloads.')}
 ${link('Printing help','/en/help/print/','ZIP files, paper sizes and print preparation.')}
 ${link('Report a problem','/en/help/report/','How to contact support about missing or faulty files and purchases.')}
