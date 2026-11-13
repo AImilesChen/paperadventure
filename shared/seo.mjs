@@ -1,3 +1,4 @@
+import {editorialFor,publisherDetails} from './editorial.mjs';
 import { themes } from './catalog.mjs';
 import { guides, guideFor } from './guides.mjs';
 import { siteIdentity } from './site-identity.mjs';
@@ -6,8 +7,10 @@ import { lighthouse, lighthouseArt } from './lighthouse-game.mjs';
 
 export function pageSchema(page, release, origin = 'https://paperadventure.app') {
   const url = origin + page.path;
-  const publisher = { '@type': 'Organization', '@id': origin + '/#publisher', ...siteIdentity, url: origin + '/en/', logo: origin + '/icon-512.png' };
+  const publisher = { '@type': 'Organization', '@id': origin + '/#publisher', ...siteIdentity, url: origin + '/en/', logo: origin + '/icon-512.png',description:publisherDetails.description,email:publisherDetails.email,contactPoint:{'@type':'ContactPoint',contactType:'customer support',email:publisherDetails.email,url:origin+publisherDetails.contactPath,availableLanguage:'English'},...(publisherDetails.profiles.length?{sameAs:publisherDetails.profiles}:{}),subjectOf:{'@id':origin+publisherDetails.aboutPath+'#page'} };
   const graph = [{ '@type': 'WebPage', '@id': url + '#page', name: page.title, description: page.description, url, isPartOf: { '@id': origin + '/#website' } }, { '@type': 'WebSite', '@id': origin + '/#website', ...siteIdentity, url: origin + '/en/', publisher: { '@id': publisher['@id'] } }, publisher];
+  if(page.path==='/en/about/'){graph[0]['@type']='AboutPage';graph[0].mainEntity={'@id':publisher['@id']};}
+  if(page.path==='/en/contact/'){graph[0]['@type']='ContactPage';graph[0].about={'@id':publisher['@id']};}
   if (!page.indexable) return { '@context': 'https://schema.org', '@graph': graph };
   const crumbs = [{ name: 'Home', url: origin + '/en/' }];
   const guide = guideFor(page.path);
@@ -72,5 +75,7 @@ export function pageSchema(page, release, origin = 'https://paperadventure.app')
     crumbs.push({ name: page.title, url });
     graph.push({ '@type': 'BreadcrumbList', itemListElement: crumbs.map((item, i) => ({ '@type': 'ListItem', position: i + 1, name: item.name, item: item.url })) });
   }
+  const editorial=editorialFor(page.path);
+  if(editorial)for(const entity of graph.filter(e=>e['@type']==='Article'))Object.assign(entity,{...(editorial.published?{datePublished:editorial.published}:{}),dateModified:editorial.modified,author:{'@id':publisher['@id'],name:siteIdentity.name,url:origin+publisherDetails.aboutPath+'#how-we-make-it'}});
   return { '@context': 'https://schema.org', '@graph': graph };
 }

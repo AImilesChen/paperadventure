@@ -1,3 +1,4 @@
+import {AboutPage,ContactPage} from './editorialTrust.jsx';
 import AccountCenter from './accountCenter.jsx';
 import {accountSection} from '../shared/account-center.mjs';
 import HeaderDiscovery from './headerDiscovery.jsx';
@@ -121,7 +122,7 @@ function Header({ route }) {
     <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>{open ? <X size={25} /> : <List size={25} />}</button>
   </div></header>;
 }
-function Footer({ runtime }) { return <footer className="site-footer"><div className="footer-main"><div><Brand /><p>Made for curious minds and the people who bring them together.</p></div><div className="footer-links"><div><strong>Explore</strong><Link to="/en/for-home/">Home adventures</Link><Link to="/en/for-classroom/">Classroom adventures</Link><Link to="/en/themes/">All themes</Link><Link to="/en/create/">AI custom adventures</Link><Link to="/en/pricing/">Pricing</Link></div><div><strong>Support</strong><Link to="/en/guides/">Preparation guides</Link><Link to="/en/help/">Help</Link><Link to="/en/samples/home/">Free sample</Link><Link to="/en/account/">Sign in</Link></div><div><strong>Legal</strong><Link to="/en/privacy/">Privacy</Link><Link to="/en/terms/">Terms</Link><Link to="/en/cookies/">Cookies</Link><Link to="/en/refunds/">Refunds</Link><span id="privacy-choices-slot" /></div></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Paper Adventure Workshop {runtime?.checkout ? '' : runtime?.sample ? '· Free trial available' : '· Design preview'}</span><span>For grown-ups planning playful adventures.</span></div></footer>; }
+function Footer({ runtime }) { return <footer className="site-footer"><div className="footer-main"><div><Brand /><p>Made for curious minds and the people who bring them together.</p></div><div className="footer-links"><div><strong>Explore</strong><Link to="/en/for-home/">Home adventures</Link><Link to="/en/for-classroom/">Classroom adventures</Link><Link to="/en/themes/">All themes</Link><Link to="/en/create/">AI custom adventures</Link><Link to="/en/pricing/">Pricing</Link></div><div><strong>Support</strong><Link to="/en/guides/">Preparation guides</Link><Link to="/en/about/">About Paper Adventure</Link><Link to="/en/contact/">Contact / Support</Link><Link to="/en/help/">Help centre</Link><Link to="/en/samples/home/">Free sample</Link><Link to="/en/account/">Sign in</Link></div><div><strong>Legal</strong><Link to="/en/privacy/">Privacy</Link><Link to="/en/terms/">Terms</Link><Link to="/en/cookies/">Cookies</Link><Link to="/en/refunds/">Refunds</Link><span id="privacy-choices-slot" /></div></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Paper Adventure Workshop {runtime?.checkout ? '' : runtime?.sample ? '· Free trial available' : '· Design preview'}</span><span>For grown-ups planning playful adventures.</span></div></footer>; }
 
 function ThemeGallery({ full = false, sampleReady = false }) {
   const track = useRef(null);
@@ -334,6 +335,8 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   else if (route === '/en/escape-room-games/') page = <EscapeGamesHub Link={Link} />;
   else if (route === '/en/escape-room-games/the-sleeping-lighthouse/') page = <LighthouseDetail Link={Link} />;
   else if (route === '/en/escape-room-games/the-sleeping-lighthouse/play/') page = <LighthousePlay Link={Link} />;
+  else if (route === '/en/about/') page = <AboutPage />;
+  else if (route === '/en/contact/') page = <ContactPage />;
   else if (route === '/en/guides/') page = <GuidesHub Link={Link} />;
   else if (route.startsWith('/en/guides/')) page = <GuideArticle Link={Link} route={route} />;
   else if (route === '/en/occasions/christmas/') page = <ChristmasOccasion Link={Link} catalog={runtimeCatalog} runtime={runtime} />;

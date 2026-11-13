@@ -246,7 +246,7 @@ test('three original illustrated guides have navigation, real materials, article
     const article = schema(html)['@graph'].find(item=>item['@type']==='Article');
     assert.equal(article.headline, guide.title);
     assert.equal(article.datePublished, '2026-10-28');
-    assert.match(html, /By Paper Adventure Workshop/);
+    assert.match(html.replace(/<[^>]+>/g,''), /By Paper Adventure Workshop/);
     assert.match(html, /href="\/en\/samples\/(home|classroom)\/"/);
     assert.doesNotMatch(html, /tested with \d|guaranteed|boosts? rankings/i);
   }

@@ -51,6 +51,8 @@ export const publicPages = Object.freeze([
   page('/en/samples/home/', 'Free Printable Adventure Game for Kids', 'Download The Missing Birthday Chest free: a cooperative paper adventure for ages 6–12. Includes five checkpoints, a Player Pack and Host Guide in A4 or US Letter.'),
   page('/en/samples/classroom/', 'Free Printable Classroom Adventure Game', 'Try The Adventure Club’s First Badge free for ages 6–12. Download the Player Pack and Teacher Guide in A4 or US Letter for teacher-led crews of 2–6.'),
   page('/en/pricing/', 'Game & AI Credit Pricing', 'Compare printable adventure prices and shared AI credits for Sudoku and six online escape puzzles. Get 100 credits for $2.99 or 300 for $6.99. One-time purchases, no subscription.'),
+  page('/en/about/', 'About Paper Adventure Workshop', 'Meet the publisher behind Paper Adventure. Explore printable story games, online puzzles and Sudoku, see our content checks and find support.'),
+  page('/en/contact/', 'Contact Paper Adventure | Game Help & Corrections', 'Contact Paper Adventure about game instructions, printing, downloads or guide corrections. Find our support email and help linked to your purchase.'),
   page('/en/help/', 'Help with Printable Adventures', 'Find your orders and downloads, solve printing problems, get help with stopped custom games, or request a refund.'),
   page('/en/help/start/', 'Getting Started', 'Prepare the Player Pack and adult guide, set up the opening materials, use hints and guide the group through the ending.'),
   page('/en/help/print/', 'Printing Help', 'Extract your ZIP, choose A4 or US Letter, check actual-size printing and prepare player pages separately from the answers.'),
