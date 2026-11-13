@@ -1,0 +1,31 @@
+import {ArrowRight,UsersThree,Cake,ChalkboardTeacher,CheckCircle} from '@phosphor-icons/react';
+import {guides,guideOutcomes} from '../shared/guides.mjs';
+import './guide-planning.css';
+
+const choices=[
+ {guide:guides[0],title:'Play together at home',who:'2–6 children · one team',prepare:'One complete Player Pack, pencils and the adult Host Guide.',action:'Family hosting guide',Icon:UsersThree,tone:'green'},
+ {guide:guides[2],title:'Plan a birthday activity',who:'2–12 children · one or two teams',prepare:'A separate paper set for each team, with the next clue held by the host.',action:'Birthday activity guide',Icon:Cake,tone:'amber'},
+ {guide:guides[1],title:'Organise a classroom adventure',who:'Up to 35 pupils · crews of 2–6',prepare:'One Player Pack per crew, one Teacher Guide and a review handoff.',action:'Classroom planning guide',Icon:ChalkboardTeacher,tone:'blue'},
+];
+export function GuideChoices({Link}){return <div className="gp-choices">{choices.map(({guide,title,who,prepare,action,Icon,tone})=><article className={'gp-choice gp-'+tone} key={guide.slug}><span className="gp-icon"><Icon size={29} weight="duotone"/></span><h3>{title}</h3><strong>{who}</strong><p>{prepare}</p><Link to={guide.path}>{action}<ArrowRight size={18}/></Link></article>)}</div>;}
+export function GuideQuestions({Link}){const anchors={
+ 'run-a-printable-adventure':['jobs','prepare','handout'],
+ 'organize-a-classroom-adventure':['crews','printing','review'],
+ 'printable-birthday-party-adventures':['choose','party-setup','party-flow'],
+};return <div className="gp-question-grid">{choices.map(({guide,title,tone})=><div key={guide.slug} className={'gp-question gp-'+tone}><h3>{title}</h3><ul>{guideOutcomes[guide.slug].map((text,i)=><li key={text}><Link to={guide.path+'#'+anchors[guide.slug][i]}>{text}<ArrowRight size={17}/></Link></li>)}</ul></div>)}</div>;}
+export function BirthdayPrintPlan(){return <div className="guide-table-wrap gp-print-table" tabIndex={0} aria-label="Birthday printing quantities"><table><caption>Celebration Home: choose the number of complete team sets</caption><thead><tr><th scope="col">Children</th><th scope="col">Team sets</th><th scope="col">With guide on screen</th><th scope="col">With one full guide printed</th></tr></thead><tbody><tr><th scope="row">2–6</th><td>1 × 10 Player sheets</td><td>10 + 1 finale = <strong>11 sheets</strong></td><td>10 + 12 guide pages = <strong>22 sheets</strong></td></tr><tr><th scope="row">7–12</th><td>2 × 10 Player sheets</td><td>20 + 1 finale = <strong>21 sheets</strong></td><td>20 + 12 guide pages = <strong>32 sheets</strong></td></tr></tbody></table></div>;}
+export function BirthdayHosting(){return <>
+ <section className="guide-section gp-birthday" id="party-decisions"><h2>5. Keep both teams involved at their own pace</h2><p><strong>For eight guests, try two teams of four, with 21 single-sided sheets when the host reads the guide on screen.</strong> Label the ten-page Player sets A and B before cutting. Keep one printed finale sheet with the host; it is already included in that total.</p><div className="gp-host-stages">{[
+ ['Before the first clue','Prepare five labelled material piles for each team. Keep Player page 10 and the finale on Host Guide page 12 back for their prescribed handoffs. Give each team its own paper trail.'],
+ ['At each checkpoint','Let each clue holder contribute. Check that team’s explanation against the Host Guide, release its next pile, then rotate jobs after checkpoints 1–4. Teams can advance separately.'],
+ ['At the ending','Check each team’s final parcel before its final handoff. Ask the players to show one way they helped. Keep unfinished teams’ clues private and gather the materials before food or cake.'],
+ ].map(([title,text],i)=><article key={title}><span>0{i+1}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
+ <h3>What should the host do when the plan changes?</h3><dl className="gp-host-decisions">{[
+ ['One team finishes before the other','Ask it to check its own evidence and explain how it reached the ending. Keep its answers and later pieces away from the other table; finishing first does not make it the other team’s answer checker.'],
+ ['A child needs help reading','Read the clue with that child, or let them point to its symbols while a partner reads. Keep the clue with its holder and invite them to explain what it contributes.'],
+ ['One child makes every decision','Let each clue holder speak or point before Mapper records the choice. Rotate the four jobs so the same child does not always read or write.'],
+ ['The party needs a break','Finish checking the current checkpoint if practical, then keep the team’s paper trail and remaining pieces together. Restart by asking what the team has already established, rather than releasing an extra clue.'],
+ ['A team keeps guessing','Ask which printed condition has not yet been checked. Use the next Host Guide hint, then leave the next decision with the team.'],
+ ].map(([q,a])=><div key={q}><dt>{q}</dt><dd>{a}</dd></div>)}</dl><p>These are planning examples for ages 6–12, not measured play times. Allow for reading, discussion and breaks; the guide does not promise a fixed party duration.</p></section>
+ <section className="guide-section gp-birthday" id="party-finish"><h2>6. Leave the table ready for the next activity</h2><ul className="gp-finish-list">{['Keep each team’s completed paper trail together so players can revisit their discoveries.','Collect loose pieces and adult answer pages before clearing space for food.','If a team has not finished, keep its own remaining piles separate so you can continue later.'].map(t=><li key={t}><CheckCircle size={22}/><span>{t}</span></li>)}</ul><h3>Materials and detailed instructions</h3><p>Print totals and page references above apply to <em>The Missing Birthday Chest</em>, the free Celebration Home edition. For another theme, check its own Player Pack and Host Guide.</p><div className="gp-source-links"><a href="/en/samples/home/">Get the matching free Player Pack and Host Guide →</a><a href="/en/guides/run-a-printable-adventure/#jobs">See job combinations for 2–6 players →</a><a href="/en/help/print/">Check paper size and printing →</a><a href="/en/contact/">Report a mismatch with your files →</a></div></section>
+ </>;}

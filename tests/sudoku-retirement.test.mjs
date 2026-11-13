@@ -80,5 +80,5 @@ test('public HTML and offline caches expose only campaign navigation',async()=>{
   assert.doesNotMatch(html,/href="\/en\/sudoku\/weekly(?:\/|\?)/,route);
  }
  assert.doesNotMatch(await readFile('dist/client/sitemap.xml','utf8'),/sudoku\/weekly/);
- const sw=await readFile('public/en/sudoku/sw.js','utf8');assert.doesNotMatch(sw,/'\/en\/sudoku\/weekly\/'/);assert.match(sw,/v62-1/);
+ const sw=await readFile('public/en/sudoku/sw.js','utf8');assert.doesNotMatch(sw,/'\/en\/sudoku\/weekly\/'/);assert.match(sw,/v63-1/);
 });
