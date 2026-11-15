@@ -18,7 +18,7 @@ export const publicPages = Object.freeze([
   page('/en/sudoku/techniques/naked-pair/', 'Naked Pairs in Sudoku: Examples and Practice', 'Learn exactly when a naked pair is valid, which candidates it removes and why a third candidate breaks the pattern. Includes full-board examples and practice.'),
   page('/en/sudoku/play/', 'Play Sudoku Adventure', 'Continue your Sudoku adventure.', false),
   page('/en/sudoku/leaderboard/', 'Sudoku Leaderboard: Levels Cleared & Best Times', 'Compare Sudoku levels cleared and single-level best times. Learn how rankings work, record a personal best and choose to share your progress.', true),
-  page('/en/', 'Printable Adventure Games: Try Free', 'Start with a complete free printable adventure for ages 6–12. Get player PDFs and an adult guide for home or class. No account needed.'),
+  page('/en/', 'Printable Adventure Games for Kids', 'Explore printable adventure games for kids aged 6–12, with player PDFs and adult guides for home, birthdays and classrooms. Try a complete free game.'),
   page('/en/themes/', 'Home and Classroom Printable Adventure Worlds', 'Compare six Home adventures with six Classroom adventures. Celebration is the shared free world; the five other story worlds in each collection are different.'),
   page('/en/for-home/', 'Printable Adventure Games for Kids at Home', 'Explore print-at-home story adventures for ages 6–12. Try the free Celebration game, browse themed Home packs, or create a custom story.'),
   ...themes.flatMap(theme => [

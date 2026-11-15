@@ -3,6 +3,9 @@
 .home-product-heading{display:grid;grid-template-columns:1.1fr .9fr;align-items:end;gap:7%;margin-bottom:32px}
 .home-product-heading h2{margin:12px 0 0;font-size:clamp(2.15rem,3.45vw,3.45rem);line-height:1.1}
 .home-product-heading>p{max-width:500px;margin:0 0 4px;color:#45677a;line-height:1.75}
+.home-product-definition{min-width:0}.home-product-definition p{font-size:18px;line-height:1.8;color:#365a70;margin:0 0 18px}.home-product-definition p:last-child{margin-bottom:0}
+.home-product-heading:has(.home-product-definition){grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);align-items:start;gap:7%}
+.home-material-intro{font-size:18px;line-height:1.8;color:#365a70;max-width:900px;margin:0 0 26px}
 .home-product-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:24px}
 .home-material-card{margin:0;border:1px solid #bad6e2;border-radius:14px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
 .home-material-image{position:relative;display:flex;align-items:center;justify-content:center;height:350px;padding:22px;background:#e9f4f8}
@@ -25,6 +28,9 @@
 .home-product-bottom>p{font-size:.87rem;line-height:1.75;max-width:600px;margin:0;color:#416278}
 .home-product-bottom>div{display:flex;flex-wrap:wrap;gap:8px 22px}
 .home-product-bottom .text-link{font-size:.85rem;min-height:44px}
+.home-product-guide .home-material-card figcaption p,.home-product-guide .home-play-example p{font-size:17px;line-height:1.8}.home-product-guide .home-play-example strong{font-size:18px}.home-product-guide .home-material-card h3{font-size:24px}
+.home-product-guide .home-product-bottom>p,.home-product-guide .home-product-bottom .text-link{font-size:17px}
+@media(max-width:1000px){.home-product-heading:has(.home-product-definition){grid-template-columns:1fr;gap:22px}}
 .home-material-image:focus-visible{outline:3px solid #ad3425;outline-offset:-5px}
 @media(max-width:1000px){.home-product-heading{grid-template-columns:1fr;gap:18px}.home-product-heading>p{max-width:720px}.home-product-layout{grid-template-columns:1fr 1fr}.home-material-image{height:310px;padding:16px}.home-play-example{grid-template-columns:1fr;gap:22px}.home-product-bottom{display:block}.home-product-bottom>div{margin-top:14px}}
 @media(max-width:800px){.home-product-shell{width:90%}}

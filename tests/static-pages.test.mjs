@@ -95,6 +95,41 @@ test('homepage explains the printable product and links to both ways to play', a
   assert.doesNotMatch(html, /Custom theme idea/);
 });
 
+test('homepage answers are present before JavaScript or a visitor opens the native FAQ',async()=>{
+  const home=await read('en/index.html');
+  const questions=home.match(/<section class="home-questions"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(questions,'home FAQ must be rendered on the server');
+  const entries=[...questions.matchAll(/<details\b([^>]*)>([\s\S]*?)<\/details>/g)];
+  assert.equal(entries.length,8);
+  assert.match(entries[0][1],/\bopen(?:="")?/);
+  assert.ok(entries.slice(1).every(e=>!e[1].includes('open')));
+  for(const [,attrs,body] of entries){assert.match(body,/<summary>[^<]+<\/summary>/);assert.match(body,/<div class="home-question-answer"><p>[\s\S]+<\/p><\/div>/);}
+  assert.match(questions,/Other themes and custom adventures have their own prices/);
+  assert.match(questions,/After payment, review and approve/);
+  assert.doesNotMatch(questions,/Stripe test mode|Test transactions|all games are free|guaranteed/);
+  assert.match(questions,/one combines Courier and Mapper/);
+  assert.match(questions,/2–12 children/);assert.match(questions,/2–35 pupils/);
+});
+
+test('homepage hosting and selection links resolve to public pages and actual guide sections',async()=>{
+  const home=await read('en/index.html');
+  for(const cls of ['home-play-choices','home-start-guide','home-questions']){
+    const section=home.match(new RegExp('<section class="'+cls+'"[\\s\\S]*?<\\/section>'))?.[0];
+    assert.ok(section,cls);
+    for(const [,href] of section.matchAll(/href="([^"]+)"/g)){
+      const u=new URL(href.replaceAll('&amp;','&'),'https://paperadventure.app/en/');
+      assert.equal(u.origin,'https://paperadventure.app');
+      assert.ok(publicPages.some(p=>p.path===u.pathname&&p.indexable),href);
+      if(u.hash){const target=await read(u.pathname.slice(1)+'index.html');assert.ok(target.includes('id="'+u.hash.slice(1)+'"'),href);}
+    }
+  }
+  assert.ok(home.indexOf('id="home-start-title"')<home.indexOf('id="home-custom-heading"'),'hosting instructions precede the separate paid custom-order process');
+  const guide=home.match(/<section class="home-start-guide"[\s\S]*?<\/section>/)[0];
+  assert.equal((guide.match(/<li>/g)||[]).length,5);
+  assert.match(guide,/separate the player materials into checkpoint piles/i);
+  assert.match(home.replace(/<!--[\s\S]*?-->/g,''),/PLAY ONLINE · 300 LEVELS/);
+});
+
 test('homepage shows actual materials and an honest custom example with audience and guide navigation intact', async () => {
   const html = await read('en/index.html');
   const sections = ['sample-spotlight-heading','home-product-guide-title','home-custom-heading','home-guides-heading'];
