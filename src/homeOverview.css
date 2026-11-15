@@ -1,0 +1,35 @@
+/* Readable product guidance using the existing paper/sky palette and typefaces. */
+.home-play-choices{margin-top:34px;padding-top:30px;border-top:1px solid #aecbd8}
+.home-play-choices>h3{font-size:26px;line-height:1.35;margin:0 0 22px}
+.home-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px}
+.home-choice-grid article{min-width:0;padding:0 0 0 20px;border-left:3px solid #31715c;display:flex;flex-direction:column;align-items:flex-start}
+.home-choice-grid article:nth-child(2){border-color:#a56b21}.home-choice-grid article:nth-child(3){border-color:#2e6797}
+.home-choice-grid h4{font-family:'Bree Serif',serif;font-weight:400;font-size:24px;margin:0 0 10px;line-height:1.3}
+.home-choice-grid strong{font-size:17px;line-height:1.6}.home-choice-grid p{font-size:17px;line-height:1.75;margin:12px 0 15px;color:#365a70}
+.home-choice-grid a{display:inline-flex;align-items:center;gap:8px;font-size:17px;font-weight:800;line-height:1.5;min-height:44px;margin-top:auto}
+.home-choice-grid a svg{flex-shrink:0}.home-play-choices>p.home-choice-note{font-size:16px;line-height:1.7;color:#3d6176;max-width:920px;margin:24px 0 0}
+.home-start-guide{padding:64px 0;background:#fffdf8;border-top:1px solid #d1e1e3}
+.home-start-layout{display:grid;grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);gap:8%}
+.home-start-heading h2,.home-questions h2{font-size:clamp(32px,3.15vw,46px);line-height:1.15;margin:13px 0 20px}
+.home-start-heading>p,.home-questions-layout>div>p{font-size:18px;line-height:1.8;color:#365a70;margin:0 0 22px}
+.home-start-heading .text-link,.home-questions .text-link{font-size:17px;min-height:44px}
+.home-start-steps{counter-reset:host-step;list-style:none;margin:0;padding:0}
+.home-start-steps li{counter-increment:host-step;position:relative;padding:0 0 24px 55px;margin-bottom:24px;border-bottom:1px solid #c5d9df}
+.home-start-steps li::before{content:counter(host-step,decimal-leading-zero);position:absolute;left:0;top:2px;font-size:20px;font-weight:900;line-height:1.5;color:#a73524}
+.home-start-steps h3{font-size:22px;line-height:1.4;margin:0 0 10px}.home-start-steps p{font-size:18px;line-height:1.8;margin:0;color:#365a70}
+.home-start-note{font-size:17px;line-height:1.8;margin:0;color:#365a70}.home-start-note a,.home-question-answer a{text-decoration:underline;text-underline-offset:3px;font-weight:750}
+.home-questions{padding:64px 0;background:#eaf4f8}
+.home-questions-layout{display:grid;grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);gap:8%;align-items:start}
+.home-question-list{min-width:0;border-top:1px solid #aacbd9}
+.home-question-list details{border-bottom:1px solid #aacbd9}
+.home-question-list summary{list-style:none;position:relative;padding:22px 34px 22px 0;font-size:19px;line-height:1.55;font-weight:850;cursor:pointer;min-height:44px}
+.home-question-list summary::-webkit-details-marker{display:none}.home-question-list summary::after{content:'+';position:absolute;right:2px;top:19px;font-size:27px;font-weight:500;color:#2d6557}
+.home-question-list details[open]>summary::after{content:'−'}
+.home-question-answer p{font-size:18px;line-height:1.8;color:#365a70;margin:0 0 24px}
+.home-question-list summary:focus-visible,.home-overview-links a:focus-visible{outline:3px solid #ad3425;outline-offset:4px}
+.home-funnel .home-sample-copy>p,.home-funnel .home-sample-copy>p.home-sample-setup,.home-funnel .home-guide-copy p{font-size:17px;line-height:1.8}
+.home-funnel .home-sample-copy dl>div{font-size:16px;grid-template-columns:82px minmax(0,1fr)}
+.home-funnel .home-sample-copy>.text-link,.home-funnel .home-sample-browse,.home-funnel .home-guide-copy>.text-link{font-size:17px;min-height:44px}
+.home-funnel .home-sample-note{font-size:16px;line-height:1.8}
+@media(max-width:900px){.home-start-layout,.home-questions-layout{grid-template-columns:1fr;gap:28px}.home-start-heading>p,.home-questions-layout>div>p{max-width:760px}}
+@media(max-width:700px){.home-choice-grid{grid-template-columns:1fr;gap:28px}.home-play-choices{margin-top:28px;padding-top:26px}.home-play-choices>h3{font-size:25px}.home-choice-grid h4{font-size:23px}.home-start-guide,.home-questions{padding:48px 0}.home-start-heading h2,.home-questions h2{font-size:32px}.home-start-steps li{padding-left:43px}.home-start-steps h3{font-size:21px}.home-question-list summary{font-size:18px;padding-top:20px;padding-bottom:20px}.home-question-answer p{font-size:17px;line-height:1.85}.home-start-steps p{font-size:17px}.home-choice-grid a{min-height:44px}.home-choice-grid article{padding-left:17px}}
