@@ -4,7 +4,7 @@ import {rankingContext,rankingSignIn} from '../shared/sudoku/leaderboard-context
 import {Trophy,Timer,ListChecks,Lightbulb,BookOpen,ArrowRight,CheckCircle,SquaresFour} from '@phosphor-icons/react';
 import './sudoku-leaderboard.css';
 
-export function SudokuLeaderboardIntro(){return <section className="sd-ranks-intro" aria-label="Compare Sudoku progress"><p>Compare levels cleared or your best time on the same puzzle. Thinking hints are welcome.</p><a href="#ranking-rules" className="sd-ranks-guide-link">Ranking rules <ArrowRight size={17} aria-hidden="true"/></a></section>;}
+export function SudokuLeaderboardIntro(){return <section className="sd-ranks-intro" aria-label="Compare Sudoku progress"><p>Public rankings are open to everyone. No sign-in or completed level is needed to view other players.</p><a href="#ranking-rules" className="sd-ranks-guide-link">Ranking rules <ArrowRight size={17} aria-hidden="true"/></a></section>;}
 function RankingSignInLink({total}){
  const[context,setContext]=useState(null);
  useEffect(()=>{const update=()=>setContext(rankingContext(location.search,total));update();window.addEventListener('sudoku-ranking-context',update);return()=>window.removeEventListener('sudoku-ranking-context',update);},[total]);
@@ -12,7 +12,7 @@ function RankingSignInLink({total}){
 }
 
 const faqs=[
- ['How do I join the Sudoku leaderboard?','Play a level, sign in to keep your progress across devices, then use Manage public profile beside either leaderboard. Choose a nickname and turn on public sharing. Guests can play and keep personal results without appearing publicly.'],
+ ['How do I join the Sudoku leaderboard?','Viewing rankings needs no sign-in or completed level. To add your own result, play a level, sign in to keep your progress across devices, then use Manage public profile beside either leaderboard. Choose a nickname and turn on public sharing. Guests can play and keep personal results without appearing publicly.'],
  ['Can I use points for hints and still rank?','Yes. Thinking hints do not reduce your cleared-level score, add a time penalty, or disqualify a speed result. Use a hint to understand a deduction, then continue solving.'],
  ['When does a timed attempt start and finish?','Choose Start level to reveal a new puzzle and start the server clock. The timer ends when the server receives and verifies your completed board. Automatic continuation starts the next attempt immediately. Time away, pauses, offline time and connection delays count.'],
  ['Can I replay a level to improve my best time?','Yes. Restart an unlocked level for a new timed attempt. Your fastest valid result for that exact puzzle and timing rules counts. Replaying does not add another cleared level or another first-clear points reward.'],

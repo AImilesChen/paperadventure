@@ -40,3 +40,48 @@ body:has(.sd-ranks-content){min-width:0}
 .sd-ranks-personal-rule{display:flex;gap:10px;align-items:flex-start;border-top:1px solid #d3dfd4;padding-top:16px;margin-top:auto}.sd-ranks-personal-rule>.sd-rank-glyph{margin-top:2px}.sd-ranks-personal-rule strong{font-size:12px}.sd-ranks-view .sd-ranks-personal-rule p{font-size:12px;line-height:1.75;color:#58716b;margin:5px 0 0}.sd-ranks-view .sd-ranks-personal-rule{margin-top:auto;padding-top:18px}
 
 @media(max-width:700px){.sd-ranks-view .sd-ranks-total-table th:nth-child(3){width:49px}}
+
+/* Separate public viewing from optional participation in empty boards. */
+.sd-ranks-view .sd-ranks-empty-public{justify-content:center;gap:0}.sd-ranks-view .sd-ranks-empty-public>h4{font-size:24px;margin:0 0 10px}.sd-ranks-view .sd-ranks-empty-public p{font-size:16px;line-height:1.75;max-width:54ch;margin:0 0 16px}.sd-ranks-view .sd-ranks-join{width:100%;border-top:1px solid #d3dfd4;margin-top:8px;padding-top:20px}.sd-ranks-view .sd-ranks-join h5{font-size:18px;line-height:1.5;margin:0 0 8px}.sd-ranks-view .sd-ranks-intro p{font-size:16px;line-height:1.7}.sd-ranks-view .sd-ranks-empty-public .sd-action-link{font-size:16px}
+
+/* Open ranking positions are visibly empty, never sample players or zero scores. */
+.sd-ranks-view .sd-ranks-empty-public{height:auto;min-height:0;justify-content:flex-start;align-items:stretch;padding:16px 0 0;margin:0;border-top:0;text-align:left}
+.sd-empty-board{width:100%;border:1px solid #c5d5cc;border-radius:12px;overflow:hidden;background:#fffefa;margin:0 0 22px}
+.sd-empty-board-label{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#eaf2ec;border-bottom:1px solid #c5d5cc;font-size:11px;letter-spacing:1.1px;font-weight:850;color:#355d50}
+.sd-empty-board-label>span:last-child{font-size:13px;letter-spacing:0;font-weight:700;color:#46665e}
+.sd-empty-ranks-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:16px;line-height:1.5}
+.sd-empty-ranks-table th{padding:12px 15px;color:#45655c;font-size:13px;font-weight:800;text-align:left;border-bottom:1px solid #d8e2da;background:#f7f9f5;overflow-wrap:break-word}
+.sd-empty-ranks-table th:first-child{width:72px}.sd-empty-ranks-table th:nth-child(3){width:90px}.sd-empty-ranks-table th:last-child{width:138px}.sd-empty-ranks-table.is-speed th:last-child{width:138px}
+.sd-empty-ranks-table td{padding:12px 15px;height:64px;box-sizing:border-box;border-bottom:1px solid #e1e8e0;vertical-align:middle;text-align:left}
+.sd-empty-ranks-table tbody tr:last-child td{border:0}.sd-empty-position:nth-child(even){background:#f6f9f5}
+.sd-open-rank{display:inline-flex;align-items:center;justify-content:center;position:relative;width:38px;height:38px;border:1px solid #cfdbd2;border-radius:10px;color:#587269;font-size:15px;font-weight:850;font-variant-numeric:tabular-nums;background:#f0f5ef}
+.sd-empty-position.position-1 .sd-open-rank{background:#fff2d4;border-color:#d8b56b;color:#7f5717;box-shadow:inset 0 3px 0 #e7be68}
+.sd-empty-position.position-2 .sd-open-rank{background:#edf2f5;border-color:#bacbd5;color:#4b6475;box-shadow:inset 0 3px 0 #beced9}
+.sd-empty-position.position-3 .sd-open-rank{background:#f8e9de;border-color:#d8b69b;color:#855638;box-shadow:inset 0 3px 0 #d5a57d}
+.sd-open-player{display:flex;align-items:center;gap:12px;color:#61776e;font-weight:650}
+.sd-open-avatar{display:flex;align-items:center;justify-content:center;flex:none;width:32px;height:32px;border-radius:50%;border:1px dashed #bdcdc2;background:#f1f6f0;color:#7c9185;font-weight:400}
+.sd-open-score{color:#6a7f75;font-size:18px;font-variant-numeric:tabular-nums}
+.sd-ranks-view .sd-ranks-empty-public .sd-empty-board-note{margin:0;max-width:none;padding:11px 16px;background:#f7f9f5;border-top:1px solid #d8e2da;color:#526e60;font-size:13px;line-height:1.6}
+.sd-ranks-view .sd-ranks-empty-public>h4{font-size:20px;margin:0 0 7px}.sd-ranks-view .sd-ranks-empty-public>p{font-size:16px;margin:0 0 18px;line-height:1.7}
+.sd-ranks-view .sd-ranks-empty-public .sd-ranks-join{background:#edf4ef;border:1px solid #cfdfd4;border-radius:10px;box-sizing:border-box;margin:0;padding:18px}
+.sd-ranks-view .sd-ranks-join h5{color:#224e40}.sd-ranks-view .sd-ranks-join p{font-size:15px;margin:0 0 14px}
+@media(max-width:700px){.sd-empty-ranks-table{font-size:14px}.sd-empty-ranks-table th{padding:10px 8px;font-size:12px;line-height:1.5}.sd-empty-ranks-table td{padding:10px 8px;height:58px}.sd-empty-ranks-table th:first-child{width:46px}.sd-empty-ranks-table th:nth-child(3){width:50px}.sd-empty-ranks-table th:last-child{width:80px}.sd-empty-ranks-table.is-speed th:last-child{width:90px}.sd-open-rank{width:30px;height:32px;border-radius:8px;font-size:13px}.sd-open-player{gap:0}.sd-open-avatar{display:none}.sd-ranks-view .sd-ranks-empty-public .sd-ranks-join{padding:15px}.sd-empty-board-label{padding:11px 12px;font-size:10px;letter-spacing:.7px}.sd-ranks-view .sd-ranks-empty-public .sd-empty-board-note{padding:10px 12px;font-size:12px}}
+
+/* Use the same hierarchy when real records arrive; preserve scrolling and own-row emphasis. */
+.sd-ranks-view .sd-ranks-scroll{border:1px solid #c5d5cc;border-radius:12px;background:#fffefa}
+.sd-ranks-view .sd-ranks-table thead th{background:#eaf2ec;color:#355d50;padding-top:13px;padding-bottom:13px;font-size:13px;font-weight:850;letter-spacing:0}
+.sd-ranks-view .sd-ranks-table tbody tr:nth-child(even):not(.is-you){background:#f6f9f5}
+.sd-ranks-view .sd-ranks-table tbody tr:hover:not(.is-you){background:#edf4ed}
+.sd-ranks-view .sd-ranks-table .sd-rank-position{min-width:34px;min-height:34px;justify-content:center;border-radius:9px;font-variant-numeric:tabular-nums}
+.sd-ranks-view .sd-ranks-table .place-1{background:#fff2d4;border:1px solid #d8b56b;color:#7f5717}
+.sd-ranks-view .sd-ranks-table .place-2{background:#edf2f5;border:1px solid #bacbd5;color:#4b6475}
+.sd-ranks-view .sd-ranks-table .place-3{background:#f8e9de;border:1px solid #d8b69b;color:#855638}
+@media(max-width:700px){.sd-ranks-view .sd-ranks-table thead th{font-size:11px}.sd-ranks-view .sd-ranks-table .sd-rank-position{min-width:26px;min-height:30px}}
+
+/* One medal system for open positions and real public records. */
+.sd-ranks-view .sd-rank-with-medal.sd-open-rank,.sd-ranks-view .sd-ranks-table .sd-rank-with-medal.sd-rank-position{display:inline-flex;align-items:center;justify-content:center;min-width:44px;width:44px;min-height:54px;height:54px;border:0!important;border-radius:0;background:none!important;box-shadow:none!important;padding:0;gap:0}
+.sd-rank-medal{display:block;flex:none;width:44px;height:54px;overflow:visible;filter:drop-shadow(0 2px 1px #173b2b1a)}
+.sd-rank-ordinal{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:#526f63}
+.sd-ranks-view .sd-empty-ranks-table td{height:76px;padding-top:10px;padding-bottom:10px}.sd-ranks-view .sd-empty-ranks-table th:first-child{width:82px}
+.sd-ranks-view .sd-ranks-table td:has(.sd-rank-medal){height:70px}.sd-ranks-view .sd-ranks-table th:first-child{width:70px}
+@media(max-width:700px){.sd-rank-medal{width:36px;height:44px}.sd-ranks-view .sd-rank-with-medal.sd-open-rank,.sd-ranks-view .sd-ranks-table .sd-rank-with-medal.sd-rank-position{min-width:36px;width:36px;min-height:44px;height:44px}.sd-ranks-view .sd-empty-ranks-table td{height:66px}.sd-ranks-view .sd-empty-ranks-table th:first-child{width:52px}.sd-ranks-view .sd-ranks-table th:first-child{width:44px}.sd-rank-ordinal{font-size:14px;min-width:30px;height:32px}}

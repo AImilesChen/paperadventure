@@ -17,7 +17,7 @@ test('public leaderboard content is available before account loading and has one
  assert.doesNotMatch(html,/<meta name="robots" content="noindex"/);
  assert.match(html,/<link rel="canonical" href="https:\/\/paperadventure.app\/en\/sudoku\/leaderboard\/"/);
  assert.equal((html.match(/<h1[ >]/g)||[]).length,1);
- for(const text of ['Compare levels cleared or your best time on the same puzzle.','Two ways to move up the leaderboard','From first puzzle to public score','Improve your Sudoku solving speed','Can I use points for hints and still rank?','Time away, pauses, offline time and connection delays count.','Can I keep my progress private?'])assert.ok(html.includes(text),text);
+ for(const text of ['Public rankings are open to everyone. No sign-in or completed level is needed to view other players.','Two ways to move up the leaderboard','From first puzzle to public score','Improve your Sudoku solving speed','Can I use points for hints and still rank?','Time away, pauses, offline time and connection delays count.','Can I keep my progress private?'])assert.ok(html.includes(text),text);
  assert.doesNotMatch(html,/Manage public profile<\/button>|Public nickname<\/label>|Player-[a-f0-9]{6}/);
  const sitemap=await readFile('dist/client/sitemap.xml','utf8');
  assert.equal((sitemap.match(/https:\/\/paperadventure.app\/en\/sudoku\/leaderboard\//g)||[]).length,1);
