@@ -64,7 +64,7 @@ export default function SiteFooter({ Link, Brand, runtime }) {
         </details>)}
       </nav>
     </div>
-    <nav className="footer-directories" aria-label="Tool directories"><span>Tool directories</span><a href="https://aitop10.tools/" target="_blank" rel="noopener noreferrer">AiTop10 Tools</a><a href="https://firstlook.tools" target="_blank" rel="noopener noreferrer"><img src="https://firstlook.tools/badge/badge_dark.svg" alt="Featured on First Look" width="200" height="54" loading="lazy" style={{ display: 'block', maxWidth: '100%', height: 'auto' }} /></a></nav>
+    <nav className="footer-directories" aria-label="Tool directories"><span>Tool directories</span><a href="https://aitop10.tools/" target="_blank" rel="noopener noreferrer">AiTop10 Tools</a><a href="https://firstlook.tools" target="_blank" rel="noopener noreferrer"><img src="https://firstlook.tools/badge/badge_dark.svg" alt="Featured on First Look" width="200" height="54" loading="lazy" style={{ display: 'block', maxWidth: '100%', height: 'auto' }} /></a><a href="https://findly.tools/paper-adventure-workshop?utm_source=paper-adventure-workshop" target="_blank" rel="noopener noreferrer"><img src="https://findly.tools/badges/findly-tools-badge-light.svg" alt="Featured on Findly.tools" width="175" height="55" loading="lazy" style={{ display: 'block', maxWidth: '100%', height: 'auto' }} /></a></nav>
     <div className="footer-bottom">
       <span className="footer-copyright">© {new Date().getFullYear()} Paper Adventure Workshop {runtime?.checkout ? '' : runtime?.sample ? '· Free trial available' : '· Design preview'}</span>
       <nav className="footer-policies" aria-label="Policies and privacy">
