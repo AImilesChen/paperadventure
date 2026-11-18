@@ -64,6 +64,7 @@ export default function SiteFooter({ Link, Brand, runtime }) {
         </details>)}
       </nav>
     </div>
+    <nav className="footer-directories" aria-label="Tool directories"><span>Tool directories</span><a href="https://aitop10.tools/" target="_blank" rel="noopener noreferrer">AiTop10 Tools</a></nav>
     <div className="footer-bottom">
       <span className="footer-copyright">© {new Date().getFullYear()} Paper Adventure Workshop {runtime?.checkout ? '' : runtime?.sample ? '· Free trial available' : '· Design preview'}</span>
       <nav className="footer-policies" aria-label="Policies and privacy">
