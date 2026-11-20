@@ -1,33 +1,3 @@
-html[lang=zh-Hans] .language-switcher{position:relative;flex:none;align-self:center;color:#173b57;white-space:nowrap;font-size:14px;line-height:1.4}
-html[lang=zh-Hans] .language-trigger{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer}
-html[lang=zh-Hans] .language-trigger:hover,html[lang=zh-Hans] .language-trigger[aria-expanded=true]{border-color:#b5d0dd;background:#ffffff99}
-html[lang=zh-Hans] .language-trigger>svg:last-child{transition:transform .15s}
-html[lang=zh-Hans] .language-trigger[aria-expanded=true]>svg:last-child{transform:rotate(180deg)}
-html[lang=zh-Hans] .language-flag{display:block;flex:none;width:24px;height:16px;border-radius:2px;box-shadow:0 0 0 1px #102e4826;overflow:hidden}
-html[lang=zh-Hans] .language-label-short{display:none}
-html[lang=zh-Hans] .language-options{position:absolute;right:0;top:calc(100% + 8px);z-index:40;display:grid;gap:3px;min-width:184px;padding:6px;border:1px solid #b8d0dd;border-radius:10px;background:#fffdf9;box-shadow:0 12px 28px #173b5726}
-html[lang=zh-Hans] .language-options[hidden]{display:none}
-html[lang=zh-Hans] .language-options a{display:flex;align-items:center;gap:11px;min-height:44px;padding:10px;border-radius:6px;color:inherit;text-decoration:none;font:inherit;font-weight:700}
-html[lang=zh-Hans] .language-options a>svg:last-child:not(.language-flag){margin-left:auto;color:#246b70}
-html[lang=zh-Hans] .language-options a:hover,html[lang=zh-Hans] .language-options a[aria-current=true]{background:#e8f4f8}
-html[lang=zh-Hans] .language-trigger:focus-visible,html[lang=zh-Hans] .language-options a:focus-visible{outline:3px solid #ad3425;outline-offset:2px}
-html[lang=zh-Hans] .account-header .account-header-help{margin-left:auto}
-@media(min-width:1241px) and (max-width:1390px){
-  html[lang=zh-Hans] body .site-header .nav-shell.header-nav-shell{gap:6px}
-  html[lang=zh-Hans] body .site-header nav.site-nav{gap:14px}
-  html[lang=zh-Hans] .language-trigger{gap:6px;padding-inline:6px}
-  html[lang=zh-Hans] body .site-header .header-account-trigger>span{display:none}
-}
-@media(max-width:600px){
-  html[lang=zh-Hans] .language-switcher{font-size:14px}
-  html[lang=zh-Hans] .language-trigger{gap:5px;padding-inline:5px}
-  html[lang=zh-Hans] .language-trigger .language-flag{width:21px;height:14px}
-  html[lang=zh-Hans] .language-label-full{display:none}html[lang=zh-Hans] .language-label-short{display:inline}
-}
-@media(max-width:380px){
-  html[lang=zh-Hans] .site-header .brand{font-size:12px;gap:5px}html[lang=zh-Hans] .site-header .brand strong{font-size:16px}html[lang=zh-Hans] .site-header .brand-mark{width:24px}
-}
-@media(prefers-reduced-motion:reduce){html[lang=zh-Hans] .language-trigger>svg:last-child{transition:none}}
 html[lang=zh-Hans] .locale-material-note{margin:0;padding:9px 20px;background:#fff4de;border-bottom:1px solid #ead8b6;color:#63451f;font:14px/1.6 system-ui;text-align:center}
 
 html[lang=zh-Hans]{--locale-page-gutter:5.5%}

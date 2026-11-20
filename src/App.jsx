@@ -70,7 +70,6 @@ function Link({ to, children, className = '', ...props }) {return <a href={local
 function Brand() {return <Link to={localHref("/en/")} className="brand"><span className="brand-mark"><img src="/icon.svg" alt="" width="38" height="38" /></span><span>{translateUi("Paper Adventure")}<br /><strong>{translateUi("Workshop")}</strong></span></Link>;}
 
 function Header({ route }) {
-  const localizedHeader = routeLocale(window.location.pathname) !== 'en';
   const [open, setOpen] = useState(false);
   const [authenticated, setAuthenticated] = useState(null);
   const [administrator, setAdministrator] = useState(false);
@@ -102,7 +101,7 @@ function Header({ route }) {
     window.addEventListener('pointerdown', closeOutside);
     return () => {window.removeEventListener('keydown', closeOnEscape);window.removeEventListener('pointerdown', closeOutside);};
   }, [accountOpen, open]);
-  if (route === '/en/account/') return <header className="site-header account-header"><div className="nav-shell header-nav-shell"><Brand /><Link className="account-header-help" to={localHref("/en/help/")}>{translateUi("Need help? ")}<ArrowUpRight size={16} aria-hidden="true" /></Link>{localizedHeader && <LanguageSwitcher />}</div></header>;
+  if (route === '/en/account/') return <header className="site-header account-header"><div className="nav-shell header-nav-shell"><Brand /><Link className="account-header-help" to={localHref("/en/help/")}>{translateUi("Need help? ")}<ArrowUpRight size={16} aria-hidden="true" /></Link><LanguageSwitcher /></div></header>;
   return <header className={route === '/en/' ? 'site-header home-header' : 'site-header'} onClick={(event) => {if (event.target.closest('a.brand')) {setOpen(false);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}}><div className="nav-shell header-nav-shell"><Brand />
     <nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label={translateUi("Main navigation")} onClick={(event) => {if (event.target.closest('a')) {setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));}}}>
       <HeaderDiscovery kind="home" route={route} LinkComponent={Link} onOpen={() => setAccountOpen(false)} />
@@ -127,7 +126,7 @@ function Header({ route }) {
       <Link className={route === '/en/' ? 'header-create-secondary' : 'button button-small'} to={localHref("/en/create/")}>{translateUi("Create with AI ")}<ArrowUpRight size={16} /></Link>
     </div>
     <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={translateUi(open ? translateUi('Close menu') : translateUi('Open menu'))} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>{open ? <X size={25} /> : <List size={25} />}</button>
-    {localizedHeader && <LanguageSwitcher onOpen={() => {setOpen(false);setAccountOpen(false);}} />}
+    <LanguageSwitcher onOpen={() => {setOpen(false);setAccountOpen(false);}} />
   </div></header>;
 }
 
