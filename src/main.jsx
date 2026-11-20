@@ -1,11 +1,12 @@
 import React from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
-import {routeLocale} from '../shared/locale.mjs';
+import {routeLocale,htmlLanguage} from '../shared/locale.mjs';
 import {registerMessages} from '../shared/locale-text.mjs';
 import "./styles.css";
 
 async function start(){
 const locale=routeLocale(window.location.pathname);
+document.documentElement.lang=htmlLanguage(locale);
 if(locale!=='en'){
   const response=await fetch(`/locales/${locale}.json?v=${__LOCALE_REVISION__}`);
   if(!response.ok)throw Error('Language dictionary unavailable');

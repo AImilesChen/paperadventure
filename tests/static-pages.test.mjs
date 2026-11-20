@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, stat, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { publicPages } from '../shared/page-manifest.mjs';
@@ -21,6 +21,18 @@ test('every account-center section is privately rendered and absent from search 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist', 'client');
 const read = file => readFile(path.join(out, file), 'utf8');
+
+test('all page and application styles are render-blocking before pre-rendered content appears', async () => {
+  const css = (await readdir(path.join(out,'assets'))).filter(name => name.endsWith('.css')).map(name => '/assets/' + name);
+  assert.ok(css.length > 0);
+  for (const file of ['index.html','app-shell.txt',...publicPages.map(page => page.path.slice(1) + 'index.html')]) {
+    const html = await read(file), head = html.slice(0,html.indexOf('</head>'));
+    const links = [...head.matchAll(/<link\b[^>]*>/g)].map(([tag]) => tag).filter(tag => /\brel="stylesheet"/.test(tag));
+    const hrefs = links.map(tag => tag.match(/\bhref="([^"]+)"/)?.[1]);
+    assert.equal(new Set(hrefs).size,hrefs.length,file + ': duplicate stylesheets');
+    for (const asset of css) assert.ok(hrefs.includes(asset),file + ': late stylesheet ' + asset);
+  }
+});
 
 test('public HTML declares the stable square high-resolution favicon', async () => {
   const png = await readFile(path.join(out, 'icon-512.png'));

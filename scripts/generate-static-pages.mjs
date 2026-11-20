@@ -29,7 +29,27 @@ if (!/^https:\/\/[^/]+$/.test(origin)) throw new Error('SITE_ORIGIN must be an H
 // Public catalogue and content pages are indexable on the canonical domain.
 // Private, transactional and unfinished legal-review routes retain noindex.
 const escape = value => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-const template = await readFile(path.join(out, 'index.html'), 'utf8');
+// App is imported after the locale dictionary. Its CSS must still block the
+// first paint of pre-rendered content, rather than arriving after that fetch.
+const manifest = JSON.parse(await readFile(path.join(out, '.vite/manifest.json'), 'utf8'));
+const initialCss = new Set(), seenChunks = new Set();
+function collectStyles(key) {
+  if (seenChunks.has(key)) return;
+  const chunk = manifest[key];
+  assert.ok(chunk, `Missing initial asset manifest entry: ${key}`);
+  seenChunks.add(key);
+  for (const css of chunk.css || []) {
+    assert.match(css, /^assets\/[A-Za-z0-9_.-]+\.css$/);
+    initialCss.add('/' + css);
+  }
+  for (const dependency of [...(chunk.imports || []), ...(chunk.dynamicImports || [])]) collectStyles(dependency);
+}
+collectStyles('index.html');
+let template = await readFile(path.join(out, 'index.html'), 'utf8');
+const linkedCss = new Set([...template.matchAll(/<link\b[^>]*>/g)].filter(([tag]) => /\brel="stylesheet"/.test(tag)).map(([tag]) => tag.match(/\bhref="([^"]+)"/)?.[1]));
+const missingStyles = [...initialCss].filter(href => !linkedCss.has(href));
+template = template.replace('</head>', missingStyles.map(href => `    <link rel="stylesheet" crossorigin href="${escape(href)}" />`).join('\n') + '\n  </head>');
+await writeFile(path.join(out, 'index.html'), template);
 // Cloudflare canonicalizes requests for /index.html to /. Keep an identical
 // non-HTML asset for dynamic client routes so an asset-binding fallback does
 // not redirect the browser away from the original order URL.
