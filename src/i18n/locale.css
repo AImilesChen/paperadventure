@@ -12,6 +12,12 @@
 .language-options a:hover,.language-options a[aria-current=true]{background:#e8f4f8}
 .language-trigger:focus-visible,.language-options a:focus-visible{outline:3px solid #ad3425;outline-offset:2px}
 .account-header .account-header-help{margin-left:auto}
+@media(min-width:1241px) and (max-width:1390px){
+  body .site-header .nav-shell.header-nav-shell{gap:6px}
+  body .site-header nav.site-nav{gap:14px}
+  .language-trigger{gap:6px;padding-inline:6px}
+  body .site-header .header-account-trigger>span{display:none}
+}
 @media(max-width:600px){
   .language-switcher{font-size:14px}
   .language-trigger{gap:5px;padding-inline:5px}
