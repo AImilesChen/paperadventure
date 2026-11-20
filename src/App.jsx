@@ -101,7 +101,7 @@ function Header({ route }) {
     window.addEventListener('pointerdown', closeOutside);
     return () => {window.removeEventListener('keydown', closeOnEscape);window.removeEventListener('pointerdown', closeOutside);};
   }, [accountOpen, open]);
-  if (route === '/en/account/') return <header className="site-header account-header"><div className="nav-shell header-nav-shell"><Brand /><LanguageSwitcher /><Link className="account-header-help" to={localHref("/en/help/")}>{translateUi("Need help? ")}<ArrowUpRight size={16} aria-hidden="true" /></Link></div></header>;
+  if (route === '/en/account/') return <header className="site-header account-header"><div className="nav-shell header-nav-shell"><Brand /><Link className="account-header-help" to={localHref("/en/help/")}>{translateUi("Need help? ")}<ArrowUpRight size={16} aria-hidden="true" /></Link><LanguageSwitcher /></div></header>;
   return <header className={route === '/en/' ? 'site-header home-header' : 'site-header'} onClick={(event) => {if (event.target.closest('a.brand')) {setOpen(false);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}}><div className="nav-shell header-nav-shell"><Brand />
     <nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label={translateUi("Main navigation")} onClick={(event) => {if (event.target.closest('a')) {setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));}}}>
       <HeaderDiscovery kind="home" route={route} LinkComponent={Link} onOpen={() => setAccountOpen(false)} />
@@ -112,7 +112,7 @@ function Header({ route }) {
       <Link to={localHref("/en/pricing/")} className="nav-primary-link" aria-current={route.startsWith("/en/pricing") ? "page" : undefined}>{translateUi("Pricing")}</Link>
       <Link className="nav-create-mobile" to={localHref("/en/create/")}>{translateUi("Create with AI ")}<ArrowUpRight size={16} /></Link>
     </nav>
-    <div className="nav-actions"><LanguageSwitcher />
+    <div className="nav-actions">
       {authenticated ? <div className="header-account" ref={accountRef} onBlur={(event) => {if (!event.currentTarget.contains(event.relatedTarget)) setAccountOpen(false);}}>
         <button type="button" className="header-account-trigger" ref={accountTrigger} aria-label={translateUi("Account")} aria-expanded={accountOpen} aria-controls="account-navigation" onClick={() => {setAccountOpen((value) => !value);setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>
           <UserCircle size={22} aria-hidden="true" /><span>{translateUi("Account")}</span><CaretDown size={13} aria-hidden="true" />
@@ -126,6 +126,7 @@ function Header({ route }) {
       <Link className={route === '/en/' ? 'header-create-secondary' : 'button button-small'} to={localHref("/en/create/")}>{translateUi("Create with AI ")}<ArrowUpRight size={16} /></Link>
     </div>
     <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={translateUi(open ? translateUi('Close menu') : translateUi('Open menu'))} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>{open ? <X size={25} /> : <List size={25} />}</button>
+    <LanguageSwitcher onOpen={() => {setOpen(false);setAccountOpen(false);}} />
   </div></header>;
 }
 
