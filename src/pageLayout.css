@@ -17,7 +17,7 @@ html[lang=zh-Hans] body :is(
 html[lang=zh-Hans] body :is(
   .home-section-shell,.home-product-shell,.birthday-shell,
   .how-guide-shell,.pricing-guide-shell,.custom-create-shell,
-  .themes-section .theme-track,.theme-audience-switch,
+  .themes-section:not(.theme-marquee) .theme-track,.theme-audience-switch,
   .paw-footer .footer-main,.paw-footer .footer-directories,.paw-footer .footer-bottom
 ){
   width:min(89%,calc(1480px - 11%));
@@ -53,7 +53,7 @@ html[lang=zh-Hans] .catalog-hero-visual>img{height:auto}
   html[lang=zh-Hans] body :is(
     .home-section-shell,.home-product-shell,.birthday-shell,
     .how-guide-shell,.pricing-guide-shell,.custom-create-shell,
-    .themes-section .theme-track,.theme-audience-switch,
+    .themes-section:not(.theme-marquee) .theme-track,.theme-audience-switch,
     .paw-footer .footer-main,.paw-footer .footer-directories,.paw-footer .footer-bottom
   ){width:90%}
   html[lang=zh-Hans] body .guides-intro{padding-inline:5%}
