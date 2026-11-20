@@ -12,6 +12,56 @@ html[lang=zh-Hans] body :is(
   padding-inline:5.5%;
 }
 
+/* Public-page frames share the approved homepage's actual content edges.
+   Opt in by template so home, scrolling tracks, articles, forms and games
+   retain their existing geometry. Padding percentages follow the same
+   containing-block calculation as .hero, including at wide viewports. */
+html body main:is(
+  .catalog-page,.worlds-overview,.theme-detail-page,
+  .pricing-guide,.how-guide,.help-center,.guides-hub
+){
+  --public-frame-max:1480px;
+  --public-inline-gutter:5.5%;
+  --public-inner-width:min(89%,calc(var(--public-frame-max) - 11%));
+}
+
+/* Frames with their own inner padding: keep all vertical spacing intact. */
+html body main:is(.catalog-page,.worlds-overview,.theme-detail-page) .product-shell,
+html body main.worlds-overview>.page-intro,
+html body main.help-center .help-container,
+html body main.guides-page.guides-hub .guide-shell{
+  box-sizing:border-box;
+  width:100%;
+  max-width:var(--public-frame-max);
+  margin-inline:auto;
+  padding-inline:var(--public-inline-gutter);
+}
+
+/* These sections sit in full-width backgrounds; their width is already
+   the inner content width, so they must not receive another gutter. */
+html body main.pricing-guide .pricing-guide-shell,
+html body main.how-guide .how-guide-shell{
+  box-sizing:border-box;
+  width:var(--public-inner-width);
+  max-width:none;
+  margin-inline:auto;
+  padding-inline:0;
+}
+
+html body main.guides-page.guides-hub>.guides-intro{
+  padding-inline:max(var(--public-inline-gutter),calc((100% - var(--public-frame-max))/2 + var(--public-inline-gutter)));
+}
+
+@media(max-width:800px){
+  html body main:is(
+    .catalog-page,.worlds-overview,.theme-detail-page,
+    .pricing-guide,.how-guide,.help-center,.guides-hub
+  ){
+    --public-inline-gutter:5%;
+    --public-inner-width:min(90%,calc(var(--public-frame-max) - 10%));
+  }
+}
+
 /* These sections already fill the background. Use the hero's inner width,
    so a second layer of padding cannot move their content edges inward. */
 html[lang=zh-Hans] body :is(
