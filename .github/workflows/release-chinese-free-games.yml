@@ -1,0 +1,80 @@
+name: Release Chinese free game PDFs v84
+on:
+  push:
+    branches: [frontend-prd-v13-2026-10-08, release/chinese-free-v84-20261120]
+    paths: [backend/chinese-free-games-v84.trigger, .github/workflows/release-chinese-free-games.yml]
+permissions:
+  contents: read
+concurrency:
+  group: paper-adventure-backend-stage
+  cancel-in-progress: false
+jobs:
+  checkpoint:
+    if: github.ref == 'refs/heads/release/chinese-free-v84-20261120'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: node scripts/chinese-free-rollback-tag.mjs --create
+        env:
+          GH_TOKEN: ${{ github.token }}
+  release:
+    if: github.ref == 'refs/heads/frontend-prd-v13-2026-10-08'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: '1'
+      CHINESE_FREE_RELEASE: v84
+      PAYMENTS_EXPECTED_MODE: live
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: node scripts/chinese-free-rollback-tag.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:backend
+      - run: npm run test:release
+      - name: Prepare pinned deployment tool
+        run: |
+          npm install --prefix "$RUNNER_TEMP/zh-tools" wrangler@4.149.0
+          echo "WRANGLER_CLI=$RUNNER_TEMP/zh-tools/node_modules/wrangler/bin/wrangler.js" >> "$GITHUB_ENV"
+      - name: Resolve existing database and record recovery bookmark
+        run: |
+          node "$WRANGLER_CLI" d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/zh-release-d1.json"
+          node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/zh-release-d1.json','utf8'));const id=d.uuid||d.result?.uuid||d.database?.uuid;if(!/^[0-9a-f-]{36}$/i.test(id||''))throw Error('D1 UUID missing');fs.appendFileSync(process.env.GITHUB_ENV,'PAPER_ADVENTURE_STAGE_D1_ID='+id+'\n')"
+          node "$WRANGLER_CLI" d1 time-travel info paper-adventure-stage-db --json > "$RUNNER_TEMP/zh-release-recovery-bookmark.json"
+      - run: node scripts/write-stage-wrangler.mjs
+      - run: node scripts/verify-chinese-free-production.mjs --capture-english
+      - name: Add only localized schema, upload verified private PDFs and activate Chinese editions
+        run: node scripts/release-chinese-free-files.mjs
+      - name: Deploy Chinese sample API while retaining all existing runtime variables
+        run: node "$WRANGLER_CLI" deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var FREE_SAMPLE_ZH_ENABLED:true
+      - name: Verify Chinese downloads, English preservation and existing paid runtime
+        run: |
+          node scripts/verify-chinese-free-production.mjs --wait --compare-english
+          curl --fail --silent --show-error https://paperadventure.app/api/v1/health | node scripts/payment-runtime.mjs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: chinese-free-release-v84-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/zh-release-*.json
+            output/pdf/zh-free-games/release/
+          if-no-files-found: warn
+          retention-days: 30

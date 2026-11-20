@@ -1,4 +1,5 @@
 import {localePath,localeCodes} from '../shared/locale.mjs';
+import {sampleLocale,localizedFreePack,localizedFreeSample} from './localized-free-samples.mjs';
 import {verifyApprovedCreditPrices} from './credits/verify-prices.mjs';
 import {sudokuApi,D1SudokuStore} from './sudoku/api.mjs';
 import {pointsApi,pointsWebhook,retryPointPayments} from './sudoku/points.mjs';
@@ -726,9 +727,11 @@ async function savedDraft(request, env) {
 }
 
 async function freeSample(request, env, setting, paper, role) {
+  const locale=sampleLocale(request);
   if (!env.DB || !env.PRIVATE_FILES || env.FREE_SAMPLE_ENABLED !== 'true') throw new ApiError(404, 'SAMPLE_NOT_PUBLISHED', 'The free sample is not published.');
   const catalog = await liveCatalog(env);
   if (catalog.freeSampleThemeId !== 'celebration') throw new ApiError(404, 'SAMPLE_NOT_PUBLISHED', 'Both free sample editions must be ready before download.');
+  if(locale==='zh')return localizedFreeSample(request,env,setting,paper,role,verifiedPdf);
   const pack = await query(env.DB, "SELECT p.* FROM ready_packs p JOIN theme_worlds w ON w.id = p.theme_world_id WHERE p.theme_world_id = 'celebration' AND p.setting = ? AND p.status IN ('release_ready','published') AND w.status = 'published' AND (SELECT COUNT(*) FROM ready_pack_files f WHERE f.ready_pack_id = p.id) = 4 ORDER BY p.published_at DESC, p.version DESC LIMIT 1", setting).first();
   if (!pack) throw new ApiError(404, 'SAMPLE_NOT_PUBLISHED', 'The free sample is not published.');
   const file = await query(env.DB, 'SELECT * FROM ready_pack_files WHERE ready_pack_id = ? AND paper = ? AND role = ?', pack.id, paper, role).first();
@@ -1392,6 +1395,17 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       requireSameOrigin(request, env);
       const secure = new URL(env.PUBLIC_ORIGIN || request.url).protocol === 'https:' ? '; Secure' : '';
       return new Response(null, { status: 204, headers: { 'set-cookie': `paw_session=; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=0`, 'cache-control': 'no-store' } });
+    }
+    if(request.method==='GET'&&path==='/api/v1/samples/availability'){
+      const locale=sampleLocale(request);
+      const catalog=await liveCatalog(env);
+      const englishReady=env.FREE_SAMPLE_ENABLED==='true'&&Boolean(env.PRIVATE_FILES)&&catalog.freeSampleThemeId==='celebration';
+      const editions={};
+      for(const setting of ['home','classroom']){
+        const pack=englishReady&&locale==='zh'?await localizedFreePack(env,setting,locale):null;
+        editions[setting]={available:locale==='en'?englishReady:Boolean(pack),version:pack?.version||null};
+      }
+      return json({locale,editions},200,{'cache-control':'no-store'});
     }
     const sample = path.match(/^\/api\/v1\/samples\/(home|classroom)\/(A4|Letter)\/(player|guide)$/);
     if (request.method === 'GET' && sample) return await freeSample(request, env, sample[1], sample[2], sample[3]);

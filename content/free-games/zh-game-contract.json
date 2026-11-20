@@ -1,0 +1,338 @@
+{
+  "locale": "zh",
+  "version": "1.0-zh.1",
+  "sourceEnglishVersion": "1.0",
+  "home": {
+    "title": "失踪的生日宝箱",
+    "pages": {
+      "player": 10,
+      "guide": 12
+    },
+    "roles": [
+      "信使",
+      "观察员",
+      "绘图员",
+      "保管员"
+    ],
+    "letters": [
+      [
+        "A",
+        "狐狸",
+        2,
+        3,
+        "太阳"
+      ],
+      [
+        "B",
+        "狐狸",
+        2,
+        2,
+        "池塘"
+      ],
+      [
+        "C",
+        "猫头鹰",
+        0,
+        3,
+        "月亮"
+      ]
+    ],
+    "route": [
+      [
+        "D",
+        "太阳",
+        "池塘"
+      ],
+      [
+        "B",
+        "大树",
+        "小桥"
+      ],
+      [
+        "A",
+        "太阳",
+        "大树"
+      ],
+      [
+        "E",
+        "池塘",
+        "云朵"
+      ],
+      [
+        "C",
+        "小桥",
+        "红旗"
+      ]
+    ],
+    "labels": [
+      [
+        "A",
+        "红色",
+        2,
+        4,
+        "狐狸"
+      ],
+      [
+        "B",
+        "红色",
+        1,
+        4,
+        "铃铛"
+      ],
+      [
+        "C",
+        "蓝色",
+        2,
+        4,
+        "风筝"
+      ],
+      [
+        "D",
+        "红色",
+        2,
+        5,
+        "树叶"
+      ]
+    ],
+    "symbols": [
+      "太阳",
+      "云朵",
+      "旗子",
+      "月亮",
+      "小路"
+    ],
+    "codeRows": [
+      [
+        "狐狸",
+        "送",
+        "到",
+        "小",
+        "圆",
+        "桌"
+      ],
+      [
+        "铃铛",
+        "送",
+        "到",
+        "小",
+        "书",
+        "架"
+      ],
+      [
+        "风筝",
+        "送",
+        "到",
+        "小",
+        "木",
+        "椅"
+      ],
+      [
+        "树叶",
+        "送",
+        "到",
+        "蓝",
+        "地",
+        "毯"
+      ]
+    ],
+    "parcels": [
+      [
+        "A",
+        "红色",
+        4,
+        "小圆桌"
+      ],
+      [
+        "B",
+        "红色",
+        4,
+        "小书架"
+      ],
+      [
+        "C",
+        "蓝色",
+        4,
+        "小圆桌"
+      ],
+      [
+        "D",
+        "红色",
+        5,
+        "小圆桌"
+      ]
+    ],
+    "answer": {
+      "letter": "A",
+      "route": [
+        "A",
+        "B",
+        "C"
+      ],
+      "flag": "红旗",
+      "label": "A",
+      "number": 4,
+      "codeMark": "狐狸",
+      "message": "送到小圆桌",
+      "place": "小圆桌",
+      "parcel": "A"
+    },
+    "cutPiecesPerTeam": 21,
+    "version": "1.0-zh.1"
+  },
+  "classroom": {
+    "title": "冒险俱乐部的第一枚徽章",
+    "pages": {
+      "player": 12,
+      "guide": 18
+    },
+    "roles": [
+      "故事朗读员",
+      "道具操作员",
+      "小组记录员",
+      "线索核查员"
+    ],
+    "invitation": [
+      {
+        "id": "C",
+        "text": "把地图放在最靠近橡树标记的位置。",
+        "edges": {
+          "top": "triangle",
+          "right": "diamond"
+        }
+      },
+      {
+        "id": "A",
+        "text": "欢迎来到冒险俱乐部！",
+        "edges": {
+          "right": "circle",
+          "bottom": "triangle"
+        }
+      },
+      {
+        "id": "D",
+        "text": "徽章放在地图与铅笔之间。",
+        "edges": {
+          "top": "square",
+          "left": "diamond"
+        }
+      },
+      {
+        "id": "B",
+        "text": "请在欢迎桌的橡树一端集合。",
+        "edges": {
+          "left": "circle",
+          "bottom": "square"
+        }
+      }
+    ],
+    "supplies": [
+      "铅笔",
+      "地图",
+      "徽章"
+    ],
+    "clues": [
+      [
+        "故事朗读员",
+        "徽章中央放一个指南针。"
+      ],
+      [
+        "道具操作员",
+        "中央的上方恰好放两颗星星。"
+      ],
+      [
+        "小组记录员",
+        "中央的下方放一本书。"
+      ],
+      [
+        "线索核查员",
+        "中央的左右两侧各放一只互助手。"
+      ]
+    ],
+    "tokens": [
+      [
+        "MOON",
+        "月亮"
+      ],
+      [
+        "STAR 1",
+        "星星一"
+      ],
+      [
+        "BOOK",
+        "书本"
+      ],
+      [
+        "HANDS LEFT",
+        "左侧互助手"
+      ],
+      [
+        "KEY",
+        "钥匙"
+      ],
+      [
+        "COMPASS",
+        "指南针"
+      ],
+      [
+        "FLAG",
+        "旗子"
+      ],
+      [
+        "HANDS RIGHT",
+        "右侧互助手"
+      ],
+      [
+        "STAR 2",
+        "星星二"
+      ]
+    ],
+    "answer": {
+      "order": [
+        "地图",
+        "徽章",
+        "铅笔"
+      ],
+      "centre": "指南针",
+      "top": [
+        "星星一",
+        "星星二"
+      ],
+      "bottom": "书本",
+      "left": "左侧互助手",
+      "right": "右侧互助手",
+      "unused": [
+        "月亮",
+        "钥匙",
+        "旗子"
+      ]
+    },
+    "cutPiecesPerGroup": 20,
+    "lowCutPiecesPerGroup": 8,
+    "version": "1.0-zh.2",
+    "physical": {
+      "supplyWidthMm": 50,
+      "supplyHeightMm": 32,
+      "slotWidthMm": 54,
+      "slotHeightMm": 36,
+      "markInsetPt": 14,
+      "minimumMarkClearanceMm": 1,
+      "symbolSizePt": 52,
+      "badgeRadiusPt": 100
+    },
+    "displayMode": "flat",
+    "pageMap": {
+      "cover": 1,
+      "jobs": 2,
+      "invitationTask": 3,
+      "invitationCards": 4,
+      "tableTask": 5,
+      "supplyCards": 6,
+      "clueCards": 7,
+      "blueprint": 8,
+      "symbols": 9,
+      "badge": 10,
+      "review": 11,
+      "return": 12
+    }
+  }
+}

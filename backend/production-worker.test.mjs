@@ -35,7 +35,7 @@ async function approvedCustomInput(env,input) {
 
 function database({includeThemeRecovery=true,includeSemanticRecovery=true}={}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql','0037_order_8f5d_material_recovery.sql','0038_step_delivery.sql','0039_post_delivery_editions.sql','0040_refund_evidence_guards.sql','0041_support_notifications.sql','0042_library_archives.sql','0043_site_feedback.sql','0044_admin_console.sql','0045_admin_exception_archives.sql','0046_checkout_promotions.sql']) {
+  for (const name of ['0001_core.sql','0002_runtime.sql','0003_revision_attempts.sql','0004_failure_notifications.sql','0005_theme_worlds.sql','0006_ready_pack_variants.sql','0007_variant_release_status.sql','0008_custom_plan_review.sql','0009_custom_delivery_recovery.sql','0010_pdf_generation_history.sql','0011_custom_story_checkpoints.sql','0012_staged_custom_generation.sql','0013_paid_pack_remakes.sql','0014_pack_remake_recovery.sql','0015_pack_remake_rounds.sql','0016_controlled_pack_epoch.sql','0017_pack_quality_epoch.sql','0018_resumable_blueprint_parts.sql','0019_quality_theme_replan.sql','0020_failed_theme_plan_retry.sql','0021_theme_plan_failure_recovery.sql','0022_theme_plan_qa_recovery.sql','0023_private_plan_checkpoints.sql','0024_scoped_semantic_plan_recovery.sql','0025_order_theme_covers.sql','0026_printed_delivery_copy.sql','0027_delivery_copy_checkpoints.sql','0028_explicit_saved_fact_repair.sql','0029_bound_delivery_copy_revision.sql','0030_scoped_material_recovery.sql','0031_scoped_blueprint_story_recovery.sql','0032_scoped_deterministic_location_recovery.sql','0033_scoped_causal_link_recovery.sql','0034_scoped_downstream_recovery.sql','0035_explicit_copy_transport_recovery.sql','0036_revision_previews.sql','0037_order_8f5d_material_recovery.sql','0038_step_delivery.sql','0039_post_delivery_editions.sql','0040_refund_evidence_guards.sql','0041_support_notifications.sql','0042_library_archives.sql','0043_site_feedback.sql','0044_admin_console.sql','0045_admin_exception_archives.sql','0046_checkout_promotions.sql','0054_localized_free_samples.sql']) {
     if(name==='0021_theme_plan_failure_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0022_theme_plan_qa_recovery.sql'&&!includeThemeRecovery)continue;
     if(name==='0024_scoped_semantic_plan_recovery.sql'&&!includeSemanticRecovery)continue;
@@ -244,6 +244,43 @@ test('Celebration cannot enter paid ready-made checkout even when the sample fla
     { ...purchase, themeId: 'celebration' }, { origin: 'https://adventure.example' }), env);
   assert.equal(response.status, 409);
   assert.equal((await response.json()).error.code, 'SAMPLE_IS_FREE');
+});
+
+test('Chinese free samples are separately gated, integrity checked and never selected by English',async()=>{
+ const {db,binding}=database();seedReady(db);
+ const enBytes=new TextEncoder().encode('%PDF-1.7 English fixture');
+ const zhBytes=new TextEncoder().encode('%PDF-1.7 Chinese fixture');
+ const digest=b=>createHash('sha256').update(b).digest('hex');
+ db.prepare('UPDATE ready_pack_files SET sha256=?,bytes=?').run(digest(enBytes),enBytes.length);
+ for(const setting of ['home','classroom']){
+  const id=`zh-${setting}`;
+  db.prepare("INSERT INTO localized_free_packs(id,locale,setting,version,source_english_version,status,published_at) VALUES (?,'zh',?,'1.0-zh.1','1.0','published',CURRENT_TIMESTAMP)").run(id,setting);
+  for(const paper of ['A4','Letter'])for(const role of ['player','guide'])db.prepare('INSERT INTO localized_free_pack_files(pack_id,paper,role,r2_key,sha256,bytes) VALUES (?,?,?,?,?,?)').run(id,paper,role,`zh/${setting}/${paper}/${role}`,digest(zhBytes),zhBytes.length);
+ }
+ const env={...config(binding),FREE_SAMPLE_ENABLED:'true',PRIVATE_FILES:{get:async key=>({body:key.startsWith('zh/')?zhBytes:enBytes})}};
+ const path='/api/v1/samples/home/A4/player';
+ assert.equal((await handleProductionApi(request(path+'?locale=zh'),env)).status,404);
+ assert.equal((await handleProductionApi(request('/api/v1/samples/availability?locale=zh'),env).then(r=>r.json())).editions.home.available,false);
+ env.FREE_SAMPLE_ZH_ENABLED='true';
+ for(const setting of ['home','classroom'])for(const paper of ['A4','Letter'])for(const role of ['player','guide']){
+  const r=await handleProductionApi(request(`/api/v1/samples/${setting}/${paper}/${role}?locale=zh`),env);
+  assert.equal(r.status,200);assert.equal(r.headers.get('x-paper-adventure-locale'),'zh');assert.equal(r.headers.get('x-paper-adventure-pack-version'),'1.0-zh.1');
+  assert.match(r.headers.get('content-disposition'),/-zh-/);assert.deepEqual(new Uint8Array(await r.arrayBuffer()),zhBytes);
+ }
+ for(const suffix of ['', '?locale=en']){
+  const r=await handleProductionApi(request(path+suffix),env);assert.equal(r.status,200);
+  assert.deepEqual(new Uint8Array(await r.arrayBuffer()),enBytes);assert.doesNotMatch(r.headers.get('content-disposition'),/-zh-/);
+ }
+ const bad=await handleProductionApi(request(path+'?locale=zh'),{...env,PRIVATE_FILES:{get:async()=>({body:enBytes})}});
+ assert.equal(bad.status,503);
+ db.prepare("DELETE FROM localized_free_pack_files WHERE pack_id='zh-home' AND paper='Letter' AND role='guide'").run();
+ assert.equal((await handleProductionApi(request(path+'?locale=zh'),env)).status,404);
+ assert.equal((await handleProductionApi(request(path),env)).status,200);
+ const a=await handleProductionApi(request('/api/v1/samples/availability?locale=zh'),env).then(r=>r.json());
+ assert.equal(a.editions.home.available,false);assert.equal(a.editions.classroom.available,true);
+ db.prepare("UPDATE localized_free_packs SET status='withdrawn' WHERE setting='classroom'").run();
+ assert.equal((await handleProductionApi(request('/api/v1/samples/classroom/A4/player?locale=zh'),env)).status,404);
+ for(const suffix of ['?locale=fr','?locale=','?locale=zh&locale=en'])assert.equal((await handleProductionApi(request(path+suffix),env)).status,400);
 });
 
 test('purchase validation distinguishes ready packs from custom activity and rejects invalid groups', () => {

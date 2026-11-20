@@ -1,0 +1,7 @@
+PA Free Game Sans is a subset of Noto Sans SC, Copyright 2014-2021 Adobe (http://www.adobe.com/).
+Source: https://github.com/notofonts/noto-cjk/tree/main/Sans/Variable/TTF/Subset
+Original installed source: NotoSansSC-VF.ttf. Generated regular 400 and bold 700 instances; renamed to avoid reserved font names.
+Licensed under SIL Open Font License 1.1; see OFL.txt.
+Build helper: fonttools 4.61.1, retains glyph IDs.
+
+PA Classroom Sans: independent classroom-only subset and 400/700 instances of the same OFL source, renamed PAClassroomSans; original PA Free Game Sans files retained byte-for-byte.

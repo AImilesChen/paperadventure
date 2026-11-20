@@ -1,0 +1,58 @@
+{
+  "locale": "zh",
+  "packVersions": {
+    "home": "1.0-zh.1",
+    "classroom": "1.0-zh.2"
+  },
+  "items": [
+    {
+      "path": "public/assets/free-games/zh/home-map.jpg",
+      "source": "output/pdf/zh-free-games/celebration-home-player-zh-A4.pdf",
+      "sourceSha256": "c4a0be6ae076457e52a0d1bc525c83bf11e3c151ac501bd5eb01d6dae7e5b704",
+      "page": 5,
+      "sha256": "e307953e82a63c42219d58180251a66317ab18af22f26d7bb369754883f40e5c"
+    },
+    {
+      "path": "public/assets/free-games/zh/home-record.jpg",
+      "source": "output/pdf/zh-free-games/celebration-home-player-zh-A4.pdf",
+      "sourceSha256": "c4a0be6ae076457e52a0d1bc525c83bf11e3c151ac501bd5eb01d6dae7e5b704",
+      "page": 3,
+      "sha256": "a3cb4c9fbff0bf3a2736d9d62e27fd2d4d06ccdb7f6b15411da2f88eb4d734b9"
+    },
+    {
+      "path": "public/assets/free-games/zh/home-handout-cut.jpg",
+      "source": "output/pdf/zh-free-games/celebration-home-guide-zh-A4.pdf",
+      "sourceSha256": "fa2210b6ab63c809825794596735466bc2e7bd3cadc38fdff8b24a95c17e0dce",
+      "page": 4,
+      "sha256": "76a6578d4f9fef50babff8c0537d65769b9a853830235ca582c146f15576c006"
+    },
+    {
+      "path": "public/assets/free-games/zh/classroom-plan.jpg",
+      "source": "output/pdf/zh-free-games/classroom-1.0-zh.2/celebration-classroom-player-zh-A4.pdf",
+      "sourceSha256": "8b8b82195f261510f6d88563e747f3ae189dc957d3e47b46dad972ee8a6ee5f0",
+      "page": 8,
+      "sha256": "2860893bb3338d84b6864ae8100c55562b3a504174c8f65d24d026d18e803f8e"
+    },
+    {
+      "path": "public/assets/free-games/zh/classroom-symbols.jpg",
+      "source": "output/pdf/zh-free-games/classroom-1.0-zh.2/celebration-classroom-player-zh-A4.pdf",
+      "sourceSha256": "8b8b82195f261510f6d88563e747f3ae189dc957d3e47b46dad972ee8a6ee5f0",
+      "page": 9,
+      "sha256": "7af7d6727e9bf51284bfabff1baad81a659a3df0cbd6038fb1e7b8bd6c4945a2"
+    },
+    {
+      "path": "public/assets/free-games/zh/classroom-review.jpg",
+      "source": "output/pdf/zh-free-games/classroom-1.0-zh.2/celebration-classroom-player-zh-A4.pdf",
+      "sourceSha256": "8b8b82195f261510f6d88563e747f3ae189dc957d3e47b46dad972ee8a6ee5f0",
+      "page": 11,
+      "sha256": "a92e82c6adfac4f7528a7244ebfccea8a292f5417cbf01ba155b9e2ef928d7ba"
+    },
+    {
+      "path": "public/assets/free-games/zh/classroom-jobs.jpg",
+      "source": "output/pdf/zh-free-games/classroom-1.0-zh.2/celebration-classroom-player-zh-A4.pdf",
+      "sourceSha256": "8b8b82195f261510f6d88563e747f3ae189dc957d3e47b46dad972ee8a6ee5f0",
+      "page": 2,
+      "sha256": "bc80f3df3fd1167ec01ab1a469f30ba36cce4673c419e99efae4fedea7176669"
+    }
+  ]
+}
