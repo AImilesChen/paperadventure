@@ -1,0 +1,63 @@
+{
+  "version": "1.0-zh.2",
+  "title": "冒险俱乐部的第一枚徽章",
+  "pages": {
+    "player": 12,
+    "guide": 18
+  },
+  "playerPages": {
+    "cover": 1,
+    "jobs": 2,
+    "invitationTask": 3,
+    "invitationCards": 4,
+    "tableTask": 5,
+    "supplyCards": 6,
+    "clueCards": 7,
+    "blueprint": 8,
+    "symbols": 9,
+    "badge": 10,
+    "review": 11,
+    "return": 12
+  },
+  "guidePages": {
+    "quickstart": 1,
+    "printing": 2,
+    "preparation": 3,
+    "roles": 4,
+    "smallTeams": 5,
+    "largeTeams": 6,
+    "classFlow": 7,
+    "mission1": 8,
+    "mission1Answers": 9,
+    "mission2": 10,
+    "mission2Answers": 11,
+    "mission3": 12,
+    "mission3Answers": 13,
+    "mission4": 14,
+    "mission4Answers": 15,
+    "mission5": 16,
+    "mission5Answers": 17,
+    "support": 18
+  },
+  "previews": {
+    "plan": 8,
+    "symbols": 9,
+    "review": 11,
+    "jobs": 2
+  },
+  "physical": {
+    "supplyWidthMm": 50,
+    "supplyHeightMm": 32,
+    "slotWidthMm": 54,
+    "slotHeightMm": 36,
+    "markInsetPt": 14,
+    "minimumMarkClearanceMm": 1,
+    "symbolSizePt": 52,
+    "badgeRadiusPt": 100
+  },
+  "precutPieces": {
+    "complete": 20,
+    "lowCut": 8
+  },
+  "displayMode": "flat"
+}

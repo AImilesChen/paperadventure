@@ -43,6 +43,8 @@ jobs:
       - run: npm run test:sites
       - run: npm run test:backend
       - run: npm run test:release
+      - name: Require matching Chinese PDFs before publishing their download interface
+        run: node scripts/verify-chinese-free-production.mjs --wait
       - name: Bundle production API without publishing
         run: npx --yes wrangler@4.149.0 deploy --config backend/wrangler.production-smoke.jsonc --dry-run
       - name: Validate site Worker bundle without publishing

@@ -43,3 +43,36 @@ test('individual PDFs stay available and invalid selections make no request', as
   assert.equal(await result.blob.text(),pdf);
   await assert.rejects(prepareSampleDownload({setting:'private',paper:'A4',role:'complete',fetcher:()=>{throw Error('Must not request');}}),/valid game/);
 });
+
+test('Chinese pairs use explicit language URLs, names and a matching release version',async()=>{
+ for(const setting of ['home','classroom'])for(const paper of ['A4','Letter']){
+  const calls=[];
+  const {blob,filename}=await prepareSampleDownload({setting,paper,role:'complete',locale:'zh',fetcher:async url=>{
+   calls.push(url);return new Response(pdf,{headers:{'content-type':'application/pdf','x-paper-adventure-locale':'zh','x-paper-adventure-pack-version':'1.0-zh.1'}});
+  }});
+  assert.equal(filename,`celebration-${setting}-complete-zh-${paper}.zip`);
+  assert.deepEqual(calls,['player','guide'].map(role=>`/api/v1/samples/${setting}/${paper}/${role}?locale=zh`));
+  const files=zipEntries(new Uint8Array(await blob.arrayBuffer()));
+  assert.deepEqual(files.map(f=>f.name),['player','guide'].map(role=>`celebration-${setting}-${role}-zh-${paper}.pdf`));
+  assert.ok(files.every(f=>f.data===pdf));
+ }
+});
+
+test('Chinese download rejects English fallback, missing version and a release changing between files',async()=>{
+ for(const mode of ['english','missing-version','changed','missing-guide'])await assert.rejects(prepareSampleDownload({setting:'home',paper:'A4',role:'complete',locale:'zh',fetcher:async url=>{
+  if(mode==='missing-guide'&&url.includes('/guide'))return new Response('Unavailable',{status:404});
+  const headers={'content-type':'application/pdf','x-paper-adventure-locale':mode==='english'?'en':'zh'};
+  if(mode!=='missing-version')headers['x-paper-adventure-pack-version']=mode==='changed'&&url.includes('/guide')?'new':'old';
+  return new Response(pdf,{headers});
+ }}),/language|editions|unavailable/);
+});
+
+test('unsupported PDF locales are rejected before network access',async()=>{
+ await assert.rejects(prepareSampleDownload({setting:'home',paper:'A4',role:'player',locale:'fr',fetcher:()=>{throw Error('Must not request');}}),/supported PDF language/);
+});
+
+test('a requested Chinese classroom revision rejects older and newer complete pairs',async()=>{
+ for(const version of ['1.0-zh.1','1.0-zh.3'])await assert.rejects(prepareSampleDownload({setting:'classroom',paper:'A4',role:'complete',locale:'zh',expectedVersion:'1.0-zh.2',fetcher:async()=>new Response(pdf,{headers:{'content-type':'application/pdf','x-paper-adventure-locale':'zh','x-paper-adventure-pack-version':version}})}),/edition is being updated/);
+ const result=await prepareSampleDownload({setting:'classroom',paper:'Letter',role:'complete',locale:'zh',expectedVersion:'1.0-zh.2',fetcher:async url=>{assert.match(url,/locale=zh&version=1\.0-zh\.2$/);return new Response(pdf,{headers:{'content-type':'application/pdf','x-paper-adventure-locale':'zh','x-paper-adventure-pack-version':'1.0-zh.2'}});}});
+ assert.equal(zipEntries(new Uint8Array(await result.blob.arrayBuffer())).length,2);
+});
