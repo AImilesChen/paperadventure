@@ -1,6 +1,6 @@
 /* Match the published English homepage hero: 1480px frame, 5.5% side space.
    Shared by every locale; navigation retains its original independent layout. */
-body :is(
+html[lang=zh-Hans] body :is(
   .product-shell,.page-intro,.help-container,.steps-section,.faq-preview,
   .themes-section>.section-heading,.gallery-bottom,
   .catalog-shell,.sample-experience,.pricing-experience,.help-experience,
@@ -14,7 +14,7 @@ body :is(
 
 /* These sections already fill the background. Use the hero's inner width,
    so a second layer of padding cannot move their content edges inward. */
-body :is(
+html[lang=zh-Hans] body :is(
   .home-section-shell,.home-product-shell,.birthday-shell,
   .how-guide-shell,.pricing-guide-shell,.custom-create-shell,
   .themes-section .theme-track,.theme-audience-switch,
@@ -25,36 +25,36 @@ body :is(
   margin-inline:auto;
   padding-inline:0;
 }
-body .site-footer.paw-footer{padding-inline:0}
+html[lang=zh-Hans] body .site-footer.paw-footer{padding-inline:0}
 
-body .guides-page .guide-shell{
+html[lang=zh-Hans] body .guides-page .guide-shell{
   width:100%;max-width:1480px;margin-inline:auto;padding-inline:5.5%;
 }
-body .guides-intro{padding-inline:max(5.5%,calc((100% - 1480px)/2 + 5.5%))}
-.guide-article{max-width:850px}
+html[lang=zh-Hans] body .guides-intro{padding-inline:max(5.5%,calc((100% - 1480px)/2 + 5.5%))}
+html[lang=zh-Hans] .guide-article{max-width:850px}
 
 /* Preserve the playable board and focused purchase/account form layouts. */
-body .sd-page:not(.sd-play-view) .sd-shell{
+html[lang=zh-Hans] body .sd-page:not(.sd-play-view) .sd-shell{
   width:100%;max-width:1480px;margin-inline:auto;padding-inline:5.5%;
 }
 
 /* The source art is 4:3; HTML height attributes must not force a tall crop. */
-.catalog-hero-visual>img{height:auto}
+html[lang=zh-Hans] .catalog-hero-visual>img{height:auto}
 
 /* The reference homepage uses 5% side space on small screens. */
 @media(max-width:800px){
-  body :is(
+  html[lang=zh-Hans] body :is(
     .product-shell,.page-intro,.help-container,.steps-section,.faq-preview,
     .themes-section>.section-heading,.gallery-bottom,
     .catalog-shell,.sample-experience,.pricing-experience,.help-experience,
     .puzzle-shell,.lh-shell,.trust-shell,.sample-download-shell,
     .guides-page .guide-shell,.sd-page:not(.sd-play-view) .sd-shell
   ){padding-inline:5%}
-  body :is(
+  html[lang=zh-Hans] body :is(
     .home-section-shell,.home-product-shell,.birthday-shell,
     .how-guide-shell,.pricing-guide-shell,.custom-create-shell,
     .themes-section .theme-track,.theme-audience-switch,
     .paw-footer .footer-main,.paw-footer .footer-directories,.paw-footer .footer-bottom
   ){width:90%}
-  body .guides-intro{padding-inline:5%}
+  html[lang=zh-Hans] body .guides-intro{padding-inline:5%}
 }
