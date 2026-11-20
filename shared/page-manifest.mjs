@@ -1,10 +1,12 @@
+import {localePath,localeCodes} from './locale.mjs';
+import {translate} from './locale-text.mjs';
 import {accountSections} from './account-center.mjs';
 import { themes } from './catalog.mjs';
 import { guides } from './guides.mjs';
 
 const page = (path, title, description, indexable = true) => ({ path, title, description, indexable });
 
-export const publicPages = Object.freeze([
+export const englishPages = Object.freeze([
   page('/en/credits/', 'AI Credits | One Wallet for Sudoku & Online Puzzle Help', 'Buy shared AI credits for Sudoku and six online escape puzzles. Compare one-time packs, see help costs and manage one account wallet.'),
   page('/en/sudoku/points/', 'AI Credits', 'Continue to the shared AI credits wallet.', false),
   ...accountSections.map(section=>page(section.path,section.label+' | Account Center','Your private Paper Adventure account: games, progress, credits and purchases.',false)),
@@ -70,5 +72,6 @@ export const publicPages = Object.freeze([
   page('/en/refunds/', 'Refund and Cancellation Review', 'Review the current refund and cancellation information for Paper Adventure.', false),
 ]);
 
+export const publicPages=Object.freeze(localeCodes.flatMap(locale=>englishPages.map(record=>({...record,path:localePath(record.path,locale),title:translate(record.title,locale),description:translate(record.description,locale),locale}))));
 export const pageFor = pathname => publicPages.find(page => page.path === pathname) ?? null;
 

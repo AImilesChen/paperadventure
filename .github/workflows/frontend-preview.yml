@@ -24,6 +24,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test:static
+      - run: node --test tests/locale.test.mjs
       - run: npm run test:sites
       - run: npm run test:backend
       - run: npm run test:release

@@ -1,3 +1,4 @@
+import {basePath,localePath,routeLocale} from '../shared/locale.mjs';
 import {llmsResponse} from '../shared/llms-route.mjs';
 import { handleApi } from './worker.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
@@ -13,12 +14,12 @@ const previewRobots = 'User-agent: *\nDisallow: /\n';
 export default {
   async fetch(request, env) {
     const guide=await llmsResponse(request,env.ASSETS);if(guide)return guide;
-    const url = new URL(request.url);
-    if(url.pathname==='/en/sudoku/points/'){const target=new URL(request.url);target.pathname='/en/credits/';return new Response(null,{status:308,headers:{location:target.href,'cache-control':'no-cache','x-robots-tag':'noindex'}});}
+    const url = new URL(request.url);const route=basePath(url.pathname);
+    if(route==='/en/sudoku/points/'){const target=new URL(request.url);target.pathname=localePath('/en/credits/',routeLocale(url.pathname));return new Response(null,{status:308,headers:{location:target.href,'cache-control':'no-cache','x-robots-tag':'noindex'}});}
     if (url.pathname.startsWith('/api/')) return env.BACKEND_STAGE?.fetch ? env.BACKEND_STAGE.fetch(request) : handleApi(request);
     const isPublicHost = url.hostname === publicHost;
-    const retired=retiredWeeklyTarget(url.pathname);
-    if(retired){const target=new URL(retired,url.origin);return new Response(null,{status:308,headers:{location:target.href,'cache-control':'no-cache','x-robots-tag':'noindex'}});}
+    const retired=retiredWeeklyTarget(route);
+    if(retired){const target=new URL(localePath(retired,routeLocale(url.pathname)),url.origin);return new Response(null,{status:308,headers:{location:target.href,'cache-control':'no-cache','x-robots-tag':'noindex'}});}
     if (url.pathname === '/robots.txt') return new Response(isPublicHost ? publicRobots : previewRobots, {
       headers: {
         'content-type': 'text/plain; charset=utf-8',
@@ -30,8 +31,8 @@ export default {
       return Response.redirect(url.toString(), 308);
     }
 
-    const isPrivateOrder = /^\/en\/orders\/[A-Za-z0-9-]+\/?$/.test(url.pathname) && url.pathname !== '/en/orders/demo/';
-    const isAdmin=/^\/admin(?:\/|$)/.test(url.pathname);
+    const isPrivateOrder = /^\/en\/orders\/[A-Za-z0-9-]+\/?$/.test(route) && route !== '/en/orders/demo/';
+    const isAdmin=/^\/admin(?:\/|$)/.test(route);
     const canServeShell = ['GET', 'HEAD'].includes(request.method);
     let response = (isPrivateOrder||isAdmin) && canServeShell ? null : await env.ASSETS.fetch(request);
     if (((isPrivateOrder||isAdmin) && canServeShell) || (response?.status === 404 && canServeShell && request.headers.get('accept')?.includes('text/html'))) {

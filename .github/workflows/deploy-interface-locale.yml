@@ -1,0 +1,58 @@
+name: Deploy interface locale API
+on:
+  push:
+    branches: [frontend-prd-v13-2026-10-08]
+    paths: [backend/interface-locale-release.trigger]
+permissions:
+  contents: read
+concurrency:
+  group: paper-adventure-backend-stage
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PAYMENTS_EXPECTED_MODE: live
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:backend
+      - run: node --test tests/locale.test.mjs
+      - run: npm run test:release
+      - name: Resolve existing database binding without changing data
+        run: |
+          npx --yes wrangler@4.149.0 d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/paw-d1.json"
+          node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/paw-d1.json','utf8'));const id=d.uuid||d.result?.uuid||d.database?.uuid;if(!/^[0-9a-f-]{36}$/i.test(id||''))throw Error('D1 UUID missing');fs.appendFileSync(process.env.GITHUB_ENV,'PAPER_ADVENTURE_STAGE_D1_ID='+id+'\n')"
+      - name: Deploy locale support while retaining runtime variables
+        run: |
+          node scripts/write-stage-wrangler.mjs
+          npx --yes wrangler@4.149.0 deploy --config backend/wrangler.stage.generated.jsonc --keep-vars
+      - name: Verify public locale and credit capabilities without creating orders
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {assertPaymentRuntime} from './scripts/payment-runtime.mjs';
+          const origin='https://paperadventure.app';
+          for(let attempt=0;attempt<24;attempt++){
+            try{
+              const r=await fetch(origin+'/api/v1/health',{signal:AbortSignal.timeout(15000)});
+              assert.equal(r.status,200);const h=await r.json();
+              assert.equal(h.interfaceLocaleVersion,1);assert.deepEqual(h.interfaceLocales,['en','zh']);
+              assertPaymentRuntime(h,{expectedMode:'live'});
+              const c=await fetch(origin+'/api/v1/credits/health',{signal:AbortSignal.timeout(15000)});
+              assert.equal(c.status,200);assert.equal((await c.json()).ready,true);
+              console.log('Locale API ready; live checkout and shared credits retained. No database migration or order created.');
+              process.exit(0);
+            }catch(error){if(attempt===23)throw error;await new Promise(resolve=>setTimeout(resolve,5000));}
+          }
+          NODE

@@ -174,7 +174,10 @@ test('DeepSeek key enables generation capability without requiring an OpenAI key
   const env = { ...config(binding), AI_PROVIDER: 'deepseek', DEEPSEEK_API_KEY: 'test-only',
     GENERATION_QUEUE: { send: async () => {} }, PROPOSALS_ENABLED: 'true' };
   const ready = await handleProductionApi(request('/api/v1/health'), env);
-  assert.equal((await ready.json()).generation, true);
+  const health = await ready.json();
+  assert.equal(health.generation, true);
+  assert.equal(health.interfaceLocaleVersion, 1);
+  assert.deepEqual(health.interfaceLocales, ['en','zh']);
   const missing = await handleProductionApi(request('/api/v1/health'),
     { ...env, DEEPSEEK_API_KEY: undefined, OPENAI_API_KEY: 'other-key', OPENAI_MODEL: 'gpt-test' });
   assert.equal((await missing.json()).generation, false);
@@ -2746,4 +2749,17 @@ test('owner one-use coupon charges exactly one dollar, delivers the selected pac
  assert.equal((await quote()).status,409);
  const refund={id:'evt_coupon_refund',type:'charge.refunded',livemode:true,data:{object:{livemode:true,payment_intent:'pi_couponfixture',currency:'usd',amount:100,amount_refunded:100,refunded:true,refunds:{has_more:false,data:[{id:'re_couponfixture',amount:100,currency:'usd',status:'succeeded',payment_intent:'pi_couponfixture'}]}}}};
  assert.equal((await send(refund)).status,200);assert.equal(db.prepare('SELECT amount_total,status FROM orders').get().amount_total,100);assert.equal(db.prepare('SELECT status FROM entitlements').get().status,'revoked');assert.equal((await quote()).status,409);assert.equal(calls,1);
+});
+
+
+test('Chinese custom checkout preserves paid spec and amount while localizing hosted checkout returns',async()=>{
+ const {db,binding}=database();seedReady(db);
+ db.prepare("INSERT INTO price_versions (id,sku,currency,unit_amount,stripe_price_id,tax_behavior,sale_enabled) VALUES ('price-zh','custom_home','USD',1499,'price_zh_fixture','exclusive',1)").run();
+ let form;const env={...config(binding),OPENAI_API_KEY:'test',OPENAI_MODEL:'test-model',GENERATION_QUEUE:{send:async()=>{}},FETCH:async(_url,init)=>{form=new URLSearchParams(init.body);return Response.json({id:'cs_zh_fixture',url:'https://checkout.stripe.com/fixture',client_reference_id:form.get('client_reference_id')});}};
+ const input=await approvedCustomInput(env,{sku:'custom_home',customIdea:'Home moon library',players:4,age:'8-10',paper:'A4',direction:'mission',email:'adult@example.com'});
+ const sessionToken=await signAccessToken(env.SESSION_SECRET,{scope:'session',emailHash:await sha256(`${env.SESSION_SECRET}|${input.email}`),exp:Math.floor(Date.now()/1000)+3600});
+ const {email,...purchase}=input;
+ const response=await handleProductionApi(request('/api/v1/checkout-intents','POST',{...purchase,locale:'zh'},{'Idempotency-Key':'zh-fixture-attempt-001',origin:'https://adventure.example',cookie:`paw_session=${sessionToken}`}),env);
+ assert.equal(response.status,201,await response.clone().text());assert.equal(form.get('locale'),'zh');assert.match(form.get('success_url'),/\/zh\/orders\//);assert.match(form.get('cancel_url'),/\/zh\/checkout\//);
+ const {orderId}=await response.json(),order=db.prepare('SELECT * FROM orders WHERE id=?').get(orderId);assert.equal(order.amount_total,1499);assert.equal(order.currency,'USD');assert.equal(JSON.parse(order.purchase_spec_json).customIdea,'Home moon library');
 });

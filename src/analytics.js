@@ -1,4 +1,5 @@
 import { pageFor } from '../shared/page-manifest.mjs';
+import {basePath} from '../shared/locale.mjs';
 import { analyticsConfig } from './analytics-config.js';
 import { isAnalyticsPage,isPublicSudokuPage } from './analytics-route.mjs';
 import { conversionProperties } from './conversionEvents.mjs';
@@ -165,24 +166,25 @@ export function wireAnalyticsEvents() {
       const action=target.closest('[data-sudoku-event]');
       const mode=new URLSearchParams(window.location.search).get('mode')==='speed'?'speed':'all';
       if(action){trackConversionEvent(action.getAttribute('data-sudoku-event'),{mode:action.getAttribute('data-board-mode')||mode});return;}
-      if(anchor){const u=new URL(anchor.href,window.location.origin);const destination={'/en/sudoku/techniques/':'techniques','/en/sudoku/how-to-play/':'rules','/en/sudoku/levels/':'levels'}[u.pathname];if(u.origin===window.location.origin&&destination)trackConversionEvent('sudoku_learning_click',{destination});}
+      if(anchor){const u=new URL(anchor.href,window.location.origin);const destination={'/en/sudoku/techniques/':'techniques','/en/sudoku/how-to-play/':'rules','/en/sudoku/levels/':'levels'}[basePath(u.pathname)];if(u.origin===window.location.origin&&destination)trackConversionEvent('sudoku_learning_click',{destination});}
     }
     if (anchor) {
       const url = new URL(anchor.href, window.location.origin);
       if (url.origin !== window.location.origin) return;
-      const current = window.location.pathname;
+      const current = basePath(window.location.pathname);
       const setting = url.searchParams.get('setting');
-      if (anchor.closest('.home-funnel') && /^\/en\/samples\/(home|classroom)\/$/.test(url.pathname)) {
-        trackConversionEvent('home_sample_click', { setting: url.pathname.split('/')[3] });
-      } else if (anchor.closest('.sample-download-page') && ['/en/for-home/','/en/for-classroom/'].includes(url.pathname)) {
-        trackConversionEvent('sample_browse_themes', { setting: url.pathname === '/en/for-home/' ? 'home' : 'classroom' });
-      } else if (anchor.closest('.theme-detail-page') && url.pathname === '/en/checkout/' && url.searchParams.get('kind') === 'ready') {
+      const destinationPath=basePath(url.pathname);
+      if (anchor.closest('.home-funnel') && /^\/en\/samples\/(home|classroom)\/$/.test(destinationPath)) {
+        trackConversionEvent('home_sample_click', { setting: destinationPath.split('/')[3] });
+      } else if (anchor.closest('.sample-download-page') && ['/en/for-home/','/en/for-classroom/'].includes(destinationPath)) {
+        trackConversionEvent('sample_browse_themes', { setting: destinationPath === '/en/for-home/' ? 'home' : 'classroom' });
+      } else if (anchor.closest('.theme-detail-page') && destinationPath === '/en/checkout/' && url.searchParams.get('kind') === 'ready') {
         trackConversionEvent('product_checkout_click', { setting, theme: url.searchParams.get('theme') });
       }
-      if (anchor.closest('.hero') && url.pathname === '/en/create/') trackEvent('hero_cta_click', { location: 'hero' });
-      else if (anchor.closest('.theme-card, .product-theme-card') && url.pathname.startsWith('/en/themes/')) trackEvent('theme_open', { theme: url.pathname.split('/')[3] || 'unknown' });
-      else if (url.pathname === '/en/pricing/') trackEvent('pricing_open', { location: current === '/en/' ? 'home' : 'other' });
-      else if (url.pathname.startsWith('/en/checkout/')) trackEvent('checkout_preview_open');
+      if (anchor.closest('.hero') && destinationPath === '/en/create/') trackEvent('hero_cta_click', { location: 'hero' });
+      else if (anchor.closest('.theme-card, .product-theme-card') && destinationPath.startsWith('/en/themes/')) trackEvent('theme_open', { theme: destinationPath.split('/')[3] || 'unknown' });
+      else if (destinationPath === '/en/pricing/') trackEvent('pricing_open', { location: current === '/en/' ? 'home' : 'other' });
+      else if (destinationPath.startsWith('/en/checkout/')) trackEvent('checkout_preview_open');
       return;
     }
     const button = target.closest('button');

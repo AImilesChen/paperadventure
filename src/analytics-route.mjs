@@ -1,3 +1,4 @@
+import {basePath} from '../shared/locale.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
 
 // Third-party analytics belongs only on public editorial pages. Planning,
@@ -5,8 +6,8 @@ import { pageFor } from '../shared/page-manifest.mjs';
 const privatePage = /^\/en\/(?:escape-room-puzzles|credits|sudoku|create|checkout|orders|my-adventures|account)(?:\/|$)|^\/en\/help\/(?:recover|report)(?:\/|$)/;
 
 const publicSudoku=new Set(['/en/sudoku/leaderboard/','/en/sudoku/levels/','/en/sudoku/how-to-play/','/en/sudoku/techniques/','/en/sudoku/techniques/single-candidate/','/en/sudoku/techniques/hidden-single/','/en/sudoku/techniques/locked-candidates/','/en/sudoku/techniques/naked-pair/']);
-export const isPublicSudokuPage=pathname=>publicSudoku.has(pathname);
-export function isAnalyticsPage(pathname) {
+export const isPublicSudokuPage=pathname=>publicSudoku.has(basePath(pathname));
+export function isAnalyticsPage(pathname) {pathname=basePath(pathname);
   if(isPublicSudokuPage(pathname))return true;
   return Boolean(pageFor(pathname)) && !privatePage.test(pathname);
 }

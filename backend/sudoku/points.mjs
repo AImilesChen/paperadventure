@@ -1,3 +1,4 @@
+import {localePath} from '../../shared/locale.mjs';
 import {pointsProducts,pointsTermsVersion,pointsPurchaseNotice,safeGameReturn} from '../../shared/sudoku/point-products.mjs';
 import {stripeRequest,stripeKeyMode,paymentEnvironment} from '../payments.mjs';
 import {verifyStripeSignature,sha256} from '../security.mjs';
@@ -88,7 +89,8 @@ export async function pointsApi(request,rawEnv,{store,authenticate,ensureAccount
   const price=await validatePrice(env,product),at=clock(),o=await store.createOrder(owner,product,price,mode,{...input,policyVersions:JSON.parse(env.SUDOKU_POINTS_POLICY_VERSIONS||'{}')},at);
   if(o.checkout_id){const current=await settlePointsOrder(store,o,env,at);if(current.status!=='pending')return reply({order:publicOrder(current)});return reply({order:publicOrder(current),checkoutUrl:o.checkout_url});}
   const customer=await store.customer(owner,mode,()=>stripe(env,'customers',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded','Idempotency-Key':'sudoku-customer-'+mode+'-'+identity},body:new URLSearchParams({'metadata[purpose]':'ai_credits'})}));
-  const fields={mode:'payment',customer,'line_items[0][price]':price,'line_items[0][quantity]':'1',client_reference_id:o.id,'metadata[purpose]':'ai_credits','metadata[points_order]':o.id,'payment_intent_data[metadata][purpose]':'ai_credits','payment_intent_data[metadata][points_order]':o.id,success_url:env.PUBLIC_ORIGIN+'/en/account/billing/?order='+o.id,cancel_url:env.PUBLIC_ORIGIN+'/en/account/billing/?order='+o.id+'&cancelled=1'};
+  const uiLocale=input.locale==='zh'?'zh':'en';
+  const fields={...(uiLocale==='zh'?{locale:'zh'}:{}),mode:'payment',customer,'line_items[0][price]':price,'line_items[0][quantity]':'1',client_reference_id:o.id,'metadata[purpose]':'ai_credits','metadata[points_order]':o.id,'payment_intent_data[metadata][purpose]':'ai_credits','payment_intent_data[metadata][points_order]':o.id,success_url:env.PUBLIC_ORIGIN+localePath('/en/account/billing/?order='+o.id,uiLocale),cancel_url:env.PUBLIC_ORIGIN+localePath('/en/account/billing/?order='+o.id,uiLocale)+'&cancelled=1'};
   const s=await stripe(env,'checkout/sessions',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded','Idempotency-Key':'sudoku-points-'+o.id},body:new URLSearchParams(fields)});
   if(!s.url?.startsWith('https://checkout.stripe.com/')&&!(env.SUDOKU_LOCAL==='true'&&new URL(env.PUBLIC_ORIGIN).hostname==='127.0.0.1'&&s.url?.startsWith(env.PUBLIC_ORIGIN+'/__points-test/')))fail(502,'CHECKOUT_UNAVAILABLE','The checkout link could not be verified.');await store.bindCheckout(o,s,at);return reply({order:publicOrder(await store.order(o.id,owner)),checkoutUrl:s.url},201);
  }

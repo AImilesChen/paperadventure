@@ -36,10 +36,10 @@ export async function stripeRequest(env, path, options = {}, fetcher = fetch) {
   return response.json();
 }
 
-export function checkoutForm({ orderId, email, priceId, inlinePrice, specHash, successUrl, cancelUrl, couponId }) {
+export function checkoutForm({ orderId, email, priceId, inlinePrice, specHash, successUrl, cancelUrl, couponId, locale }) {
   const form = new URLSearchParams();
   const fields = {
-    mode: 'payment', client_reference_id: orderId,
+    ...(locale==='zh'?{locale:'zh'}:{}),mode: 'payment', client_reference_id: orderId,
     'line_items[0][quantity]': '1',
     'metadata[order_id]': orderId, 'metadata[spec_hash]': specHash,
     success_url: successUrl, cancel_url: cancelUrl,

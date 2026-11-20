@@ -1,3 +1,4 @@
+import {localePath,localeCodes} from '../shared/locale.mjs';
 import {verifyApprovedCreditPrices} from './credits/verify-prices.mjs';
 import {sudokuApi,D1SudokuStore} from './sudoku/api.mjs';
 import {pointsApi,pointsWebhook,retryPointPayments} from './sudoku/points.mjs';
@@ -325,7 +326,7 @@ async function checkout(request, env) {
       if (activeSession.status === 'open' && activeSession.expires_at > nowSeconds())
         return json({ orderId: existing.id, checkoutUrl: existing.checkout_url, mode: testOnly ? 'stripe_test' : 'stripe' });
       if (activeSession.status === 'complete' && activeSession.payment_status === 'paid')
-        return json({ orderId: existing.id, checkoutUrl: new URL('/en/orders/' + existing.id + '/', env.PUBLIC_ORIGIN).href, mode: testOnly ? 'stripe_test' : 'stripe' });
+        return json({ orderId: existing.id, checkoutUrl: new URL(localePath('/en/orders/' + existing.id + '/',input.locale==='zh'?'zh':'en'), env.PUBLIC_ORIGIN).href, mode: testOnly ? 'stripe_test' : 'stripe' });
     }
   }
   if (!order) {
@@ -339,9 +340,10 @@ async function checkout(request, env) {
   }
   if (order.checkout_url && order.stripe_checkout_session_id) return json({ orderId: order.id, checkoutUrl: order.checkout_url, mode: 'stripe' });
   const origin = new URL(env.PUBLIC_ORIGIN).origin;
-  const form = checkoutForm({ orderId: order.id, email, priceId: testOnly ? null : price.stripe_price_id,
+  const uiLocale=input.locale==='zh'?'zh':'en';
+  const form = checkoutForm({ locale:uiLocale,orderId: order.id, email, priceId: testOnly ? null : price.stripe_price_id,
     inlinePrice: testOnly ? { name: `Paper Adventure ${spec.themeId || 'original'} ${offer.setting} ${offer.kind} test`, unitAmount: offer.unitAmount } : null, specHash,
-    successUrl: `${origin}/en/orders/${order.id}/?checkout=returned`, cancelUrl: `${origin}/en/checkout/?cancelled=1`, couponId:promotion?.couponId });
+    successUrl: origin+localePath(`/en/orders/${order.id}/?checkout=returned`,uiLocale), cancelUrl: origin+localePath('/en/checkout/?cancelled=1',uiLocale), couponId:promotion?.couponId });
   const session = await stripeRequest(env, 'checkout/sessions', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'Idempotency-Key': `paw-${order.id}` }, body: form.toString() }, env.FETCH || fetch);
   if (!session.id || !session.url || session.client_reference_id !== order.id) throw new ApiError(502, 'PAYMENT_PROVIDER_ERROR', 'Payment session could not be verified.');
   await query(env.DB, 'UPDATE orders SET stripe_checkout_session_id = ?, checkout_url = ? WHERE id = ? AND status = ?', session.id, session.url, order.id, 'pending_payment').run();
@@ -1326,7 +1328,7 @@ export async function handleProductionApi(request, env = {}, context = {}) {
       // A usable sandbox outside STAGE_PREVIEW still uses test keys. Report the
       // actual enabled mode, never infer live solely from generic readiness.
       const checkoutMode = !checkout ? 'closed' : stripeKeyMode(env.STRIPE_SECRET_KEY);
-      return json({ status: 'configured_runtime', purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, adminConsole:true, orderPresentation:true, checkoutPromotions:true,escapePurchases:true, adminNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Account and service administration')), feedback:feedbackReady(env), feedbackNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Site feedback')), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
+      return json({ status: 'configured_runtime', interfaceLocaleVersion:1, interfaceLocales:localeCodes, purchaseConfirmationVersion: purchaseConsentVersion, paperContractVersion: 1, themeCovers: coverGenerationReady(env), supportNotifications: true, libraryArchives: true, adminConsole:true, orderPresentation:true, checkoutPromotions:true,escapePurchases:true, adminNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Account and service administration')), feedback:feedbackReady(env), feedbackNotice:Boolean(legal?.get('privacy')?.sections_json?.includes('Site feedback')), checkout, checkoutMode, generation: generationReady(env), proposals: false, paidPlanReview: generationReady(env) && await paidPlanSchemaReady(env), account: accountReady(env), sample: Boolean(catalog.freeSampleThemeId), legal: legal?.size === 4 });
     }
     const legalPath = path.match(/^\/api\/v1\/legal\/(privacy|terms|cookies|refunds)$/);
     if (request.method === 'GET' && legalPath) {

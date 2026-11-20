@@ -1,3 +1,5 @@
+import {basePath,routeLocale,localePath,htmlLanguage} from './locale.mjs';
+import {translate} from './locale-text.mjs';
 import {editorialFor,publisherDetails} from './editorial.mjs';
 import { themes } from './catalog.mjs';
 import { guides, guideFor } from './guides.mjs';
@@ -5,7 +7,7 @@ import { siteIdentity } from './site-identity.mjs';
 import { freePuzzles, puzzlePath } from './free-puzzles.mjs';
 import { lighthouse, lighthouseArt } from './lighthouse-game.mjs';
 
-export function pageSchema(page, release, origin = 'https://paperadventure.app') {
+function englishPageSchema(page, release, origin = 'https://paperadventure.app') {
   const url = origin + page.path;
   const publisher = { '@type': 'Organization', '@id': origin + '/#publisher', ...siteIdentity, url: origin + '/en/', logo: origin + '/icon-512.png',description:publisherDetails.description,email:publisherDetails.email,contactPoint:{'@type':'ContactPoint',contactType:'customer support',email:publisherDetails.email,url:origin+publisherDetails.contactPath,availableLanguage:'English'},...(publisherDetails.profiles.length?{sameAs:publisherDetails.profiles}:{}),subjectOf:{'@id':origin+publisherDetails.aboutPath+'#page'} };
   const graph = [{ '@type': 'WebPage', '@id': url + '#page', name: page.title, description: page.description, url, isPartOf: { '@id': origin + '/#website' } }, { '@type': 'WebSite', '@id': origin + '/#website', ...siteIdentity, url: origin + '/en/', publisher: { '@id': publisher['@id'] } }, publisher];
@@ -78,4 +80,22 @@ export function pageSchema(page, release, origin = 'https://paperadventure.app')
   const editorial=editorialFor(page.path);
   if(editorial)for(const entity of graph.filter(e=>e['@type']==='Article'))Object.assign(entity,{...(editorial.published?{datePublished:editorial.published}:{}),dateModified:editorial.modified,author:{'@id':publisher['@id'],name:siteIdentity.name,url:origin+publisherDetails.aboutPath+'#how-we-make-it'}});
   return { '@context': 'https://schema.org', '@graph': graph };
+}
+
+export function pageSchema(page,release,origin='https://paperadventure.app'){
+ const locale=page.locale||routeLocale(page.path),schema=englishPageSchema({...page,path:basePath(page.path)},release,origin);
+ if(locale==='en')return schema;
+ const display=new Set(['name','headline','description','caption']);
+ function walk(value,key=''){
+  if(Array.isArray(value))return value.map(item=>walk(item,key));
+  if(value&&typeof value==='object'){
+   const result=Object.fromEntries(Object.entries(value).map(([k,v])=>[k,walk(v,k)]));
+   if(['WebPage','AboutPage','ContactPage','CollectionPage','Article'].includes(result['@type']))result.inLanguage=htmlLanguage(locale);
+   return result;
+  }
+  if(typeof value!=='string')return value;
+  if(['url','@id','item'].includes(key)&&value.startsWith(origin+'/en/'))return origin+localePath(value.slice(origin.length),locale);
+  return display.has(key)?translate(value,locale):value;
+ }
+ return walk(schema);
 }
