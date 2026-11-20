@@ -17,4 +17,4 @@ export const publisherDetails=Object.freeze({
  // Add only independently verified profiles belonging to this brand.
  profiles:[],
 });
-export const displayEditorialDate=value=>new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(value+'T00:00:00Z'));
+export const displayEditorialDate=(value,locale='en')=>new Intl.DateTimeFormat(locale==='zh'?'zh-CN':'en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(value+'T00:00:00Z'));

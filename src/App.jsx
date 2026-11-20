@@ -1,19 +1,22 @@
-import SiteFooter from './siteFooter.jsx';
-import {AboutPage,ContactPage} from './editorialTrust.jsx';
+import LanguageSwitcher from './LanguageSwitcher.jsx';
+import { basePath, routeLocale, htmlLanguage } from '../shared/locale.mjs';
+import './i18n/locale.css';
+import { t as translateUi, localHref } from "./i18n/index.mjs";import SiteFooter from './siteFooter.jsx';
+import { AboutPage, ContactPage } from './editorialTrust.jsx';
 import AccountCenter from './accountCenter.jsx';
-import {accountSection} from '../shared/account-center.mjs';
+import { accountSection } from '../shared/account-center.mjs';
 import HeaderDiscovery from './headerDiscovery.jsx';
-import {SudokuDisclosure} from './sudokuNavigation.jsx';
+import { SudokuDisclosure } from './sudokuNavigation.jsx';
 import SudokuLessons from './sudokuLessons.jsx';
 import SudokuPoints from './sudokuPoints.jsx';
-import {prepareSudokuLeave} from './sudoku-leave.mjs';
-import{clearDeviceCopies}from'./sudoku-device.mjs';
-import{SudokuHomeEntry}from'./sudokuEntry.jsx';
-import {EscapeFoldCityDetail} from './escapeFoldCity.jsx';
-import {EscapeLetterDetail} from './escapeLetter.jsx';
-import {EscapeClockDetail} from './escapeClock.jsx';
-import {EscapeMidnightDetail} from './escapeMidnight.jsx';
-import {EscapeTrainDetail} from './escapeTrain.jsx';
+import { prepareSudokuLeave } from './sudoku-leave.mjs';
+import { clearDeviceCopies } from './sudoku-device.mjs';
+import { SudokuHomeEntry } from './sudokuEntry.jsx';
+import { EscapeFoldCityDetail } from './escapeFoldCity.jsx';
+import { EscapeLetterDetail } from './escapeLetter.jsx';
+import { EscapeClockDetail } from './escapeClock.jsx';
+import { EscapeMidnightDetail } from './escapeMidnight.jsx';
+import { EscapeTrainDetail } from './escapeTrain.jsx';
 import { useEffect, useRef, useState } from 'react';
 import AdminConsole from './adminConsole.jsx';
 import FeedbackWidget from './feedbackWidget.jsx';
@@ -30,7 +33,7 @@ import { ChristmasOccasion } from './christmasOccasion.jsx';
 import FreePuzzles from './freePuzzles.jsx';
 import Sudoku from './sudoku.jsx';
 import SudokuLevels from './sudokuLevels.jsx';
-import {retiredWeeklyTarget} from '../shared/sudoku-retirement.mjs';
+import { retiredWeeklyTarget } from '../shared/sudoku-retirement.mjs';
 import { EscapeGamesHub, LighthouseDetail, LighthousePlay } from './lighthouseGame.jsx';
 import { HomeSamples, HomeCustomStory, HomeGuides } from './homeSections.jsx';
 import { HomeStartGuide, HomeQuestions } from './homeOverview.jsx';
@@ -48,80 +51,81 @@ import { HowItWorksPage } from './howItWorks.jsx';
 import { HomeProductGuide } from './homeProductGuide.jsx';
 import CurrentPrivacyNotice from './privacyNotice.jsx';
 import { useModalFocus } from './useModalFocus.js';
+import './pageLayout.css';
 
 const faq = [
-  ['What can I download today?', 'The Celebration trial has separate Home and Classroom printable Player Packs and adult guides in A4 and US Letter. Both editions are free.'],
-  ['What is inside a printable adventure game?', 'Each game has a Player Pack with story pages and connected clues, plus a separate Host or Teacher Guide with preparation, hints and answers. Offered editions include A4 and US Letter files.'],
-  ['How are Home and Classroom adventures different?', 'Home games are family stories for a household group. Classroom games use different story worlds and teacher-led group missions. Celebration is the shared free theme, with a separate game for each setting.'],
-  ['Can I use my own story idea?', 'Yes. Start from any featured theme or describe an idea of your own. Signed-in adults can inspect five-checkpoint plans before continuing.'],
-  ['Is there a classroom version?', 'Yes. The free Celebration trial has a distinct classroom game, and custom adventure planning supports classroom groups.'],
-  ['When would I pay?', 'The free Celebration trial never needs payment. Fixed packs and custom adventures are available in Stripe test mode after adult Google sign-in. Test transactions do not collect real money.'],
-];
+['What can I download today?', 'The Celebration trial has separate Home and Classroom printable Player Packs and adult guides in A4 and US Letter. Both editions are free.'],
+['What is inside a printable adventure game?', 'Each game has a Player Pack with story pages and connected clues, plus a separate Host or Teacher Guide with preparation, hints and answers. Offered editions include A4 and US Letter files.'],
+['How are Home and Classroom adventures different?', 'Home games are family stories for a household group. Classroom games use different story worlds and teacher-led group missions. Celebration is the shared free theme, with a separate game for each setting.'],
+['Can I use my own story idea?', 'Yes. Start from any featured theme or describe an idea of your own. Signed-in adults can inspect five-checkpoint plans before continuing.'],
+['Is there a classroom version?', 'Yes. The free Celebration trial has a distinct classroom game, and custom adventure planning supports classroom groups.'],
+['When would I pay?', 'The free Celebration trial never needs payment. Fixed packs and custom adventures are available in Stripe test mode after adult Google sign-in. Test transactions do not collect real money.']];
 
-function path() { return window.location.pathname; }
-const isPrivateOrderRoute = route => /^\/en\/orders\/[A-Za-z0-9-]+\/?$/.test(route) && !/^\/en\/orders\/demo\/?$/.test(route);
+
+function path() {return window.location.pathname;}
+const isPrivateOrderRoute = (route) => /^\/en\/orders\/[A-Za-z0-9-]+\/?$/.test(route) && !/^\/en\/orders\/demo\/?$/.test(route);
 let pendingNavigation = '';
-async function navigate(to, approved = false) { if(!await prepareSudokuLeave())return; const target = new URL(to, window.location.origin); if (!approved && target.pathname === '/en/create/' && (target.searchParams.has('theme') || target.searchParams.has('custom'))) { const saved = initialDraft(); const incoming = target.searchParams.get('theme') || ''; if ((saved.theme || saved.idea) && (target.searchParams.has('custom') || saved.theme !== incoming || Boolean(saved.custom))) { pendingNavigation = to; window.dispatchEvent(new Event('draft-conflict')); return; } } if (analyticsAvailable() && crossesAnalyticsBoundary(window.location.pathname, target.pathname)) { window.location.assign(target.href); return; } window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')); window.scrollTo({ top: 0, behavior: 'instant' }); }
-function Link({ to, children, className = '', ...props }) { return <a href={to} className={className} onClick={e => { if (!e.defaultPrevented && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); navigate(to); } }} {...props}>{children}</a>; }
-function Brand() { return <Link to="/en/" className="brand"><span className="brand-mark"><img src="/icon.svg" alt="" width="38" height="38" /></span><span>Paper Adventure<br /><strong>Workshop</strong></span></Link>; }
+async function navigate(to, approved = false) {to = localHref(to);if (!(await prepareSudokuLeave())) return;const target = new URL(to, window.location.origin);if (!approved && basePath(target.pathname) === '/en/create/' && (target.searchParams.has('theme') || target.searchParams.has('custom'))) {const saved = initialDraft();const incoming = target.searchParams.get('theme') || '';if ((saved.theme || saved.idea) && (target.searchParams.has('custom') || saved.theme !== incoming || Boolean(saved.custom))) {pendingNavigation = to;window.dispatchEvent(new Event('draft-conflict'));return;}}if (analyticsAvailable() && crossesAnalyticsBoundary(window.location.pathname, target.pathname)) {window.location.assign(localHref(target.href));return;}window.history.pushState({}, '', to);window.dispatchEvent(new PopStateEvent('popstate'));window.scrollTo({ top: 0, behavior: 'instant' });}
+function Link({ to, children, className = '', ...props }) {return <a href={localHref(to)} className={className} onClick={(e) => {if (!e.defaultPrevented && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {e.preventDefault();navigate(to);}}} {...props}>{translateUi(children)}</a>;}
+function Brand() {return <Link to={localHref("/en/")} className="brand"><span className="brand-mark"><img src="/icon.svg" alt="" width="38" height="38" /></span><span>{translateUi("Paper Adventure")}<br /><strong>{translateUi("Workshop")}</strong></span></Link>;}
 
 function Header({ route }) {
   const [open, setOpen] = useState(false);
   const [authenticated, setAuthenticated] = useState(null);
-  const [administrator,setAdministrator]=useState(false);
-  const [accountOpen,setAccountOpen]=useState(false);
-  const accountRef=useRef(null);
-  const accountTrigger=useRef(null);
-  useEffect(() => {setOpen(false);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));}, [route]);
+  const [administrator, setAdministrator] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef(null);
+  const accountTrigger = useRef(null);
+  useEffect(() => {setOpen(false);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));}, [route]);
   useEffect(() => {
     let active = true;
-    fetch('/api/v1/auth/session', { credentials: 'same-origin' }).then(response => response.ok ? response.json() : null)
-      .then(session => { if (active){setAuthenticated(Boolean(session?.authenticated));setAdministrator(Boolean(session?.admin));} }).catch(() => { if (active) setAuthenticated(false); });
-    return () => { active = false; };
+    fetch('/api/v1/auth/session', { credentials: 'same-origin' }).then((response) => response.ok ? response.json() : null).
+    then((session) => {if (active) {setAuthenticated(Boolean(session?.authenticated));setAdministrator(Boolean(session?.admin));}}).catch(() => {if (active) setAuthenticated(false);});
+    return () => {active = false;};
   }, []);
   async function signOut() {
     try {
       const response = await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin' });
-      if (response.ok) { clearDeviceCopies();setAuthenticated(false);setAdministrator(false); setOpen(false);setAccountOpen(false); navigate('/en/'); }
-    } catch { /* Keep the current session visible if sign-out could not be confirmed. */ }
+      if (response.ok) {clearDeviceCopies();setAuthenticated(false);setAdministrator(false);setOpen(false);setAccountOpen(false);navigate('/en/');}
+    } catch {/* Keep the current session visible if sign-out could not be confirmed. */}
   }
   useEffect(() => {
-    const closeOnEscape = event => {
-      if(event.key==='Escape'){
-        if(accountOpen){setAccountOpen(false);accountTrigger.current?.focus();}
-        else if(open){setOpen(false);document.querySelector('.menu-toggle')?.focus();}
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') {
+        if (accountOpen) {setAccountOpen(false);accountTrigger.current?.focus();} else
+        if (open) {setOpen(false);document.querySelector('.menu-toggle')?.focus();}
       }
     };
-    const closeOutside=event=>{if(!accountRef.current?.contains(event.target))setAccountOpen(false);if(open&&!event.target.closest('.site-header')){setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}};
+    const closeOutside = (event) => {if (!accountRef.current?.contains(event.target)) setAccountOpen(false);if (open && !event.target.closest('.site-header')) {setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}};
     window.addEventListener('keydown', closeOnEscape);
-    window.addEventListener('pointerdown',closeOutside);
-    return () => {window.removeEventListener('keydown', closeOnEscape);window.removeEventListener('pointerdown',closeOutside);};
-  }, [accountOpen,open]);
-  if(route==='/en/account/')return <header className="site-header account-header"><div className="nav-shell header-nav-shell"><Brand/><Link className="account-header-help" to="/en/help/">Need help? <ArrowUpRight size={16} aria-hidden="true"/></Link></div></header>;
-  return <header className={route === '/en/' ? 'site-header home-header' : 'site-header'} onClick={event=>{if(event.target.closest('a.brand')){setOpen(false);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}}><div className="nav-shell header-nav-shell"><Brand />
-    <nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label="Main navigation" onClick={event=>{if(event.target.closest('a')){setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));}}}>
-      <HeaderDiscovery kind="home" route={route} LinkComponent={Link} onOpen={()=>setAccountOpen(false)}/>
-      <Link to="/en/for-classroom/" className="nav-primary-link" aria-current={(route.startsWith("/en/for-classroom") || /^\/en\/themes\/[^/]+\/classroom\/$/.test(route)) ? "page" : undefined}>For classrooms</Link>
-      <SudokuDisclosure route={route} global onOpen={()=>{window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));setAccountOpen(false);}}/>
-      <Link to="/en/how-it-works/" className="nav-primary-link" aria-current={route.startsWith("/en/how-it-works") ? "page" : undefined}>How it works</Link>
-      <HeaderDiscovery kind="resources" route={route} LinkComponent={Link} onOpen={()=>setAccountOpen(false)}/>
-      <Link to="/en/pricing/" className="nav-primary-link" aria-current={route.startsWith("/en/pricing") ? "page" : undefined}>Pricing</Link>
-      <Link className="nav-create-mobile" to="/en/create/">Create with AI <ArrowUpRight size={16} /></Link>
+    window.addEventListener('pointerdown', closeOutside);
+    return () => {window.removeEventListener('keydown', closeOnEscape);window.removeEventListener('pointerdown', closeOutside);};
+  }, [accountOpen, open]);
+  if (route === '/en/account/') return <header className="site-header account-header"><div className="nav-shell header-nav-shell"><Brand /><LanguageSwitcher /><Link className="account-header-help" to={localHref("/en/help/")}>{translateUi("Need help? ")}<ArrowUpRight size={16} aria-hidden="true" /></Link></div></header>;
+  return <header className={route === '/en/' ? 'site-header home-header' : 'site-header'} onClick={(event) => {if (event.target.closest('a.brand')) {setOpen(false);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}}><div className="nav-shell header-nav-shell"><Brand />
+    <nav id="primary-navigation" className={open ? 'site-nav open' : 'site-nav'} aria-label={translateUi("Main navigation")} onClick={(event) => {if (event.target.closest('a')) {setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));}}}>
+      <HeaderDiscovery kind="home" route={route} LinkComponent={Link} onOpen={() => setAccountOpen(false)} />
+      <Link to={localHref("/en/for-classroom/")} className="nav-primary-link" aria-current={route.startsWith("/en/for-classroom") || /^\/en\/themes\/[^/]+\/classroom\/$/.test(route) ? "page" : undefined}>{translateUi("For classrooms")}</Link>
+      <SudokuDisclosure route={route} global onOpen={() => {window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));setAccountOpen(false);}} />
+      <Link to={localHref("/en/how-it-works/")} className="nav-primary-link" aria-current={route.startsWith("/en/how-it-works") ? "page" : undefined}>{translateUi("How it works")}</Link>
+      <HeaderDiscovery kind="resources" route={route} LinkComponent={Link} onOpen={() => setAccountOpen(false)} />
+      <Link to={localHref("/en/pricing/")} className="nav-primary-link" aria-current={route.startsWith("/en/pricing") ? "page" : undefined}>{translateUi("Pricing")}</Link>
+      <Link className="nav-create-mobile" to={localHref("/en/create/")}>{translateUi("Create with AI ")}<ArrowUpRight size={16} /></Link>
     </nav>
-    <div className="nav-actions">
-      {authenticated ? <div className="header-account" ref={accountRef} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setAccountOpen(false);}}>
-        <button type="button" className="header-account-trigger" ref={accountTrigger} aria-label="Account" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={()=>{setAccountOpen(value=>!value);setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>
-          <UserCircle size={22} aria-hidden="true"/><span>Account</span><CaretDown size={13} aria-hidden="true"/>
+    <div className="nav-actions"><LanguageSwitcher />
+      {authenticated ? <div className="header-account" ref={accountRef} onBlur={(event) => {if (!event.currentTarget.contains(event.relatedTarget)) setAccountOpen(false);}}>
+        <button type="button" className="header-account-trigger" ref={accountTrigger} aria-label={translateUi("Account")} aria-expanded={accountOpen} aria-controls="account-navigation" onClick={() => {setAccountOpen((value) => !value);setOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>
+          <UserCircle size={22} aria-hidden="true" /><span>{translateUi("Account")}</span><CaretDown size={13} aria-hidden="true" />
         </button>
-        {accountOpen&&<nav id="account-navigation" className="header-account-panel" aria-label="Account navigation" onClick={event=>{if(event.target.closest('a'))setAccountOpen(false);}}>
-          <Link to="/en/account/overview/">Account center <ArrowUpRight size={16} aria-hidden="true"/></Link>
-          {administrator&&<a href="/admin/">管理后台 <ArrowUpRight size={16} aria-hidden="true"/></a>}
-          <button type="button" className="header-account-signout" onClick={signOut}>Sign out</button>
+        {accountOpen && <nav id="account-navigation" className="header-account-panel" aria-label={translateUi("Account navigation")} onClick={(event) => {if (event.target.closest('a')) setAccountOpen(false);}}>
+          <Link to={localHref("/en/account/overview/")}>{translateUi("Account center ")}<ArrowUpRight size={16} aria-hidden="true" /></Link>
+          {administrator && <a href="/admin/">管理后台 <ArrowUpRight size={16} aria-hidden="true" /></a>}
+          <button type="button" className="header-account-signout" onClick={signOut}>{translateUi("Sign out")}</button>
         </nav>}
-      </div> : <Link className="header-signin" to="/en/account/">{authenticated===null?'Account':'Sign in'}</Link>}
-      <Link className={route === '/en/' ? 'header-create-secondary' : 'button button-small'} to="/en/create/">Create with AI <ArrowUpRight size={16} /></Link>
+      </div> : <Link className="header-signin" to={localHref("/en/account/")}>{authenticated === null ? translateUi('Account') : translateUi('Sign in')}</Link>}
+      <Link className={route === '/en/' ? 'header-create-secondary' : 'button button-small'} to={localHref("/en/create/")}>{translateUi("Create with AI ")}<ArrowUpRight size={16} /></Link>
     </div>
-    <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure',{detail:null}));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>{open ? <X size={25} /> : <List size={25} />}</button>
+    <button type="button" className="menu-toggle" aria-controls="primary-navigation" aria-label={translateUi(open ? translateUi('Close menu') : translateUi('Open menu'))} aria-expanded={open} onClick={() => {setOpen(!open);setAccountOpen(false);window.dispatchEvent(new CustomEvent('paw-header-disclosure', { detail: null }));window.dispatchEvent(new Event('paw-close-sudoku-menus'));}}>{open ? <X size={25} /> : <List size={25} />}</button>
   </div></header>;
 }
 
@@ -130,7 +134,7 @@ function ThemeGallery({ full = false, sampleReady = false }) {
   const section = useRef(null);
   const [onScreen, setOnScreen] = useState(false);
   const [entered, setEntered] = useState(false);
-  const worldsFor = audience => themes.filter(theme => theme.availableSettings?.includes(audience));
+  const worldsFor = (audience) => themes.filter((theme) => theme.availableSettings?.includes(audience));
   const resumeTimer = useRef(null);
   const [bounds, setBounds] = useState({ left: false, right: true });
   const [playing, setPlaying] = useState(true);
@@ -142,7 +146,7 @@ function ThemeGallery({ full = false, sampleReady = false }) {
   const galleryThemes = worldsFor(setting);
   useEffect(() => {
     if (full) return;
-    const observer = new IntersectionObserver(([entry]) => { setOnScreen(entry.isIntersecting); if (entry.isIntersecting) setEntered(true); }, { threshold: 0.05 });
+    const observer = new IntersectionObserver(([entry]) => {setOnScreen(entry.isIntersecting);if (entry.isIntersecting) setEntered(true);}, { threshold: 0.05 });
     if (section.current) observer.observe(section.current);
     return () => observer.disconnect();
   }, [full]);
@@ -156,13 +160,13 @@ function ThemeGallery({ full = false, sampleReady = false }) {
     const element = track.current;
     element?.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
-    return () => { element?.removeEventListener('scroll', update); window.removeEventListener('resize', update); };
+    return () => {element?.removeEventListener('scroll', update);window.removeEventListener('resize', update);};
   }, [setting]);
   useEffect(() => () => window.clearTimeout(resumeTimer.current), []);
   useEffect(() => {
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (motion.matches) setPlaying(false);
-    const update = event => { if (event.matches) setPlaying(false); };
+    const update = (event) => {if (event.matches) setPlaying(false);};
     motion.addEventListener('change', update);
     return () => motion.removeEventListener('change', update);
   }, []);
@@ -173,15 +177,15 @@ function ThemeGallery({ full = false, sampleReady = false }) {
     const gap = parseFloat(window.getComputedStyle(element).gap) || 0;
     const step = (firstCard?.getBoundingClientRect().width || element.clientWidth) + gap;
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
-    if (wrap && element.scrollLeft >= element.scrollWidth - element.clientWidth - 4) element.scrollTo({ left: 0, behavior });
-    else element.scrollBy({ left: direction * step, behavior });
+    if (wrap && element.scrollLeft >= element.scrollWidth - element.clientWidth - 4) element.scrollTo({ left: 0, behavior });else
+    element.scrollBy({ left: direction * step, behavior });
   };
   useEffect(() => {
     if (full || !playing || paused || !onScreen) return;
     const element = track.current;
-    let frame, previous = 0, position = element.scrollLeft;
-    const animate = time => {
-      if (document.visibilityState !== 'visible') { previous = 0; frame = requestAnimationFrame(animate); return; }
+    let frame,previous = 0,position = element.scrollLeft;
+    const animate = (time) => {
+      if (document.visibilityState !== 'visible') {previous = 0;frame = requestAnimationFrame(animate);return;}
       const cards = element.querySelectorAll('.theme-card');
       const cycle = cards[galleryThemes.length]?.offsetLeft - cards[0]?.offsetLeft;
       if (previous && cycle > 0) {
@@ -195,56 +199,56 @@ function ThemeGallery({ full = false, sampleReady = false }) {
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
   }, [full, playing, paused, onScreen, setting]);
-  const pauseForTouch = () => { window.clearTimeout(resumeTimer.current); setTouchPaused(true); };
-  const resumeAfterTouch = () => { window.clearTimeout(resumeTimer.current); resumeTimer.current = window.setTimeout(() => setTouchPaused(false), 8000); };
+  const pauseForTouch = () => {window.clearTimeout(resumeTimer.current);setTouchPaused(true);};
+  const resumeAfterTouch = () => {window.clearTimeout(resumeTimer.current);resumeTimer.current = window.setTimeout(() => setTouchPaused(false), 8000);};
   return <section ref={section} className={full ? 'themes-section themes-full' : `themes-section theme-marquee ${entered ? 'is-entered' : ''}`} id="themes" aria-labelledby="theme-gallery-heading" aria-roledescription="carousel">
-    <div className="section-heading"><div><span className="eyebrow"><Sparkle size={17} weight="fill" /> PICK A THEME</span><h2 id="theme-gallery-heading">{full ? 'Themes & activities' : 'Printable story games by theme'}<span className="dot">.</span></h2><p>Browse distinct Home and Classroom story worlds. Celebration has a free game in each collection.</p></div><div className="gallery-controls">{!full && <><span className="gallery-status">{!playing ? 'Auto-scroll off' : paused ? 'Paused while viewing cards' : 'Auto-scroll on'}</span><button type="button" className="gallery-play-toggle" aria-label={playing ? 'Pause automatic theme scrolling' : 'Resume automatic theme scrolling'} aria-pressed={!playing} onClick={() => setPlaying(value => !value)}>{playing ? <Pause size={17} weight="bold" /> : <Play size={17} weight="bold" />}<span>{playing ? 'Pause' : 'Play'}</span></button></>}<button type="button" aria-label="Scroll themes left" disabled={!bounds.left} onClick={() => { pauseForTouch(); resumeAfterTouch(); scroll(-1); }}><ArrowLeft size={22} /></button><button type="button" aria-label="Scroll themes right" disabled={!bounds.right} onClick={() => { pauseForTouch(); resumeAfterTouch(); scroll(1); }}><ArrowRight size={22} /></button></div></div>
-    <div className="theme-audience-switch" role="group" aria-label="Choose where to play"><button type="button" aria-pressed={setting === "home"} className={setting === "home" ? "active" : ""} onClick={() => { setSetting("home"); track.current?.scrollTo({ left: 0, behavior: "auto" }); }}>Home adventures <span>{worldsFor('home').length} games</span></button><button type="button" aria-pressed={setting === "classroom"} className={setting === "classroom" ? "active" : ""} onClick={() => { setSetting("classroom"); track.current?.scrollTo({ left: 0, behavior: "auto" }); }}>Classroom adventures <span>{worldsFor('classroom').length} games</span></button></div>
-    <div className="theme-track" ref={track} role="group" aria-label="Theme cards" onTouchStart={pauseForTouch} onTouchEnd={resumeAfterTouch} onTouchCancel={resumeAfterTouch} onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)} onFocusCapture={() => setFocusWithin(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocusWithin(false); }}>{(full ? galleryThemes : [...galleryThemes, ...galleryThemes]).map((theme, i) => <Link key={`${theme.id}-${i}`} aria-hidden={i >= galleryThemes.length ? true : undefined} tabIndex={i >= galleryThemes.length ? -1 : undefined} data-loop-copy={i >= galleryThemes.length ? "true" : undefined} className="theme-card" to={`/en/themes/${theme.id}/${setting}/`}><div className="theme-image-wrap"><img src={theme.story[setting].image || theme.image} alt={`${theme.title} ${setting} story artwork`} width="800" height="600" decoding="async" loading={i < 3 ? 'eager' : 'lazy'} /><span className="theme-tag">{theme.id === 'celebration' ? sampleReady ? setting === 'home' ? 'Free Home printable' : 'Free Classroom printable' : 'Free trial theme' : (setting === 'home' ? 'Home story pack' : 'Classroom story pack')}</span></div><div className="theme-card-copy"><div><h3>{theme.story[setting].title}</h3><p>{theme.title} world</p></div><span className="theme-arrow"><ArrowUpRight size={20} /></span></div><p className="theme-mission">{theme.story[setting].goal}</p><span className="theme-use">{theme.id === 'celebration' && sampleReady ? `Explore free ${setting} game` : 'Explore this theme'} <ArrowRight size={17} /></span></Link>)}</div>
-    <div className="gallery-bottom"><Link className="text-link" to={setting === "home" ? "/en/for-home/" : "/en/for-classroom/"}>See all {galleryThemes.length} {setting} adventures <ArrowRight size={18} /></Link><Link className="custom-link" to={`/en/create/?custom=1&setting=${setting}`}><PencilSimple size={18} /> Have another idea? Start your own story <ArrowRight size={17} /></Link></div>
+    <div className="section-heading"><div><span className="eyebrow"><Sparkle size={17} weight="fill" />{translateUi(" PICK A THEME")}</span><h2 id="theme-gallery-heading">{full ? translateUi('Themes & activities') : translateUi('Printable story games by theme')}<span className="dot">.</span></h2><p>{translateUi("Browse distinct Home and Classroom story worlds. Celebration has a free game in each collection.")}</p></div><div className="gallery-controls">{!full && <><span className="gallery-status">{!playing ? translateUi('Auto-scroll off') : paused ? translateUi('Paused while viewing cards') : translateUi('Auto-scroll on')}</span><button type="button" className="gallery-play-toggle" aria-label={translateUi(playing ? translateUi('Pause automatic theme scrolling') : translateUi('Resume automatic theme scrolling'))} aria-pressed={!playing} onClick={() => setPlaying((value) => !value)}>{playing ? <Pause size={17} weight="bold" /> : <Play size={17} weight="bold" />}<span>{playing ? translateUi('Pause') : translateUi('Play')}</span></button></>}<button type="button" aria-label={translateUi("Scroll themes left")} disabled={!bounds.left} onClick={() => {pauseForTouch();resumeAfterTouch();scroll(-1);}}><ArrowLeft size={22} /></button><button type="button" aria-label={translateUi("Scroll themes right")} disabled={!bounds.right} onClick={() => {pauseForTouch();resumeAfterTouch();scroll(1);}}><ArrowRight size={22} /></button></div></div>
+    <div className="theme-audience-switch" role="group" aria-label={translateUi("Choose where to play")}><button type="button" aria-pressed={setting === "home"} className={setting === "home" ? "active" : ""} onClick={() => {setSetting("home");track.current?.scrollTo({ left: 0, behavior: "auto" });}}>{translateUi("Home adventures ")}<span>{translateUi(worldsFor('home').length)}{translateUi(" games")}</span></button><button type="button" aria-pressed={setting === "classroom"} className={setting === "classroom" ? "active" : ""} onClick={() => {setSetting("classroom");track.current?.scrollTo({ left: 0, behavior: "auto" });}}>{translateUi("Classroom adventures ")}<span>{translateUi(worldsFor('classroom').length)}{translateUi(" games")}</span></button></div>
+    <div className="theme-track" ref={track} role="group" aria-label={translateUi("Theme cards")} onTouchStart={pauseForTouch} onTouchEnd={resumeAfterTouch} onTouchCancel={resumeAfterTouch} onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)} onFocusCapture={() => setFocusWithin(true)} onBlurCapture={(event) => {if (!event.currentTarget.contains(event.relatedTarget)) setFocusWithin(false);}}>{(full ? galleryThemes : [...galleryThemes, ...galleryThemes]).map((theme, i) => <Link key={`${theme.id}-${i}`} aria-hidden={i >= galleryThemes.length ? true : undefined} tabIndex={i >= galleryThemes.length ? -1 : undefined} data-loop-copy={i >= galleryThemes.length ? "true" : undefined} className="theme-card" to={localHref(`/en/themes/${theme.id}/${setting}/`)}><div className="theme-image-wrap"><img src={theme.story[setting].image || theme.image} alt={translateUi("{value0} {value1} story artwork", { value0: translateUi(theme.title), value1: translateUi(setting) })} width="800" height="600" decoding="async" loading={i < 3 ? 'eager' : 'lazy'} /><span className="theme-tag">{theme.id === 'celebration' ? sampleReady ? setting === 'home' ? translateUi('Free Home printable') : translateUi('Free Classroom printable') : translateUi('Free trial theme') : setting === 'home' ? translateUi('Home story pack') : translateUi('Classroom story pack')}</span></div><div className="theme-card-copy"><div><h3>{translateUi(theme.story[setting].title)}</h3><p>{translateUi(theme.title)}{translateUi(" world")}</p></div><span className="theme-arrow"><ArrowUpRight size={20} /></span></div><p className="theme-mission">{translateUi(theme.story[setting].goal)}</p><span className="theme-use">{theme.id === 'celebration' && sampleReady ? translateUi("Explore free {value0} game", { value0: translateUi(setting) }) : translateUi('Explore this theme')} <ArrowRight size={17} /></span></Link>)}</div>
+    <div className="gallery-bottom"><Link className="text-link" to={localHref(setting === "home" ? "/en/for-home/" : "/en/for-classroom/")}>{translateUi("See all ")}{translateUi(galleryThemes.length)} {translateUi(setting)}{translateUi(" adventures ")}<ArrowRight size={18} /></Link><Link className="custom-link" to={localHref(`/en/create/?custom=1&setting=${setting}`)}><PencilSimple size={18} />{translateUi(" Have another idea? Start your own story ")}<ArrowRight size={17} /></Link></div>
   </section>;
 }
-function Home({ sampleReady = false }) { return <main className="home-funnel">
-  <section className="hero"><div className="hero-copy"><span className="eyebrow"><Sparkle size={17} weight="fill" /> PRINTABLE STORIES, SHARED ADVENTURES</span><h1>Printable adventure games for kids. <em>Play together.</em></h1><p className="hero-lede">Paper Adventure brings printable stories to your table. Share clues and solve five connected missions together. Try a complete free game for home or class.</p><div className="hero-actions"><Link to="/en/samples/home/" className="button button-large">{sampleReady ? 'Try a complete game free' : 'Explore the Celebration trial'} <DownloadSimple size={20} /></Link><Link to="/en/themes/" className="secondary-link">Browse game themes <ArrowRight size={20} /></Link></div>{sampleReady && <p className="hero-free-note">No account needed · Printable PDF · A4 &amp; US Letter</p>}<div className="hero-facts" aria-label="What you can find here"><span><strong>Ages 6–12</strong> story play</span><span><strong>Home + Classroom</strong> games</span></div></div><div className="hero-visual"><img src="/assets/hero-workshop.png" width="1316" height="1195" fetchPriority="high" alt="A handmade paper adventure world with a friendly otter, maps and clues" /></div></section>
+function Home({ sampleReady = false }) {return <main className="home-funnel">
+  <section className="hero"><div className="hero-copy"><span className="eyebrow"><Sparkle size={17} weight="fill" />{translateUi(" PRINTABLE STORIES, SHARED ADVENTURES")}</span><h1>{translateUi("Printable adventure games for kids. ")}<em>{translateUi("Play together.")}</em></h1><p className="hero-lede">{translateUi("Paper Adventure brings printable stories to your table. Share clues and solve five connected missions together. Try a complete free game for home or class.")}</p><div className="hero-actions"><Link to={localHref("/en/samples/home/")} className="button button-large">{sampleReady ? translateUi('Try a complete game free') : translateUi('Explore the Celebration trial')} <DownloadSimple size={20} /></Link><Link to={localHref("/en/themes/")} className="secondary-link">{translateUi("Browse game themes ")}<ArrowRight size={20} /></Link></div>{sampleReady && <p className="hero-free-note">{translateUi("No account needed \xB7 Printable PDF \xB7 A4 & US Letter")}</p>}<div className="hero-facts" aria-label={translateUi("What you can find here")}><span><strong>{translateUi("Ages 6\u201312")}</strong>{translateUi(" story play")}</span><span><strong>{translateUi("Home + Classroom")}</strong>{translateUi(" games")}</span></div></div><div className="hero-visual"><img src="/assets/hero-workshop.png" width="1316" height="1195" fetchPriority="high" alt={translateUi("A handmade paper adventure world with a friendly otter, maps and clues")} /></div></section>
   <ThemeGallery sampleReady={sampleReady} />
   <HomeSamples Link={Link} sampleReady={sampleReady} />
   <HomeProductGuide Link={Link} sampleReady={sampleReady} />
   <HomeStartGuide Link={Link} />
-  <SudokuHomeEntry/>
+  <SudokuHomeEntry />
   <HomeCustomStory Link={Link} />
   <HomeGuides Link={Link} />
-  <HomeQuestions Link={Link} sampleReady={sampleReady} /><section className="last-cta"><Sparkle size={27} weight="fill" /><h2>Every great adventure starts with a little idea.</h2><Link to="/en/create/" className="button button-large">Create My Adventure <ArrowUpRight size={22} /></Link></section>
-</main>; }
-function PageIntro({ eyebrow, title, body, children }) { return <section className="page-intro"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{body && <p>{body}</p>}{children}</section>; }
-function NotFoundPage() { return <main><PageIntro eyebrow="PAGE NOT FOUND" title="That page isn't here." body="The address may have changed. You can return to the story worlds or start from the homepage." /><div className="inline-cta"><Link className="button" to="/en/themes/">Browse story worlds <ArrowRight size={18} /></Link><Link className="text-link" to="/en/">Go to homepage <ArrowRight size={18} /></Link></div></main>; }
-function ThemesPage() { return <main><PageIntro eyebrow="THE IDEA SHELF" title="Where will your story begin?" body="These illustrated worlds are starting points. Your own idea is welcome too." /><ThemeGallery full sampleReady={false} /><div className="inline-cta"><div><h2>Something else in mind?</h2><p>Describe a favourite place, creature, or curiosity.</p></div><Link className="button" to="/en/create/?custom=1">Make my own world <ArrowUpRight size={19} /></Link></div></main>; }
-const initialDraft = () => { try { const value = JSON.parse(localStorage.getItem('paw-draft') || '{}'); return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; } catch { return {}; } };
+  <HomeQuestions Link={Link} sampleReady={sampleReady} /><section className="last-cta"><Sparkle size={27} weight="fill" /><h2>{translateUi("Every great adventure starts with a little idea.")}</h2><Link to={localHref("/en/create/")} className="button button-large">{translateUi("Create My Adventure ")}<ArrowUpRight size={22} /></Link></section>
+</main>;}
+function PageIntro({ eyebrow, title, body, children }) {return <section className="page-intro"><span className="eyebrow">{translateUi(eyebrow)}</span><h1>{translateUi(title)}</h1>{body && <p>{translateUi(body)}</p>}{translateUi(children)}</section>;}
+function NotFoundPage() {return <main><PageIntro eyebrow="PAGE NOT FOUND" title={translateUi("That page isn't here.")} body="The address may have changed. You can return to the story worlds or start from the homepage." /><div className="inline-cta"><Link className="button" to={localHref("/en/themes/")}>{translateUi("Browse story worlds ")}<ArrowRight size={18} /></Link><Link className="text-link" to={localHref("/en/")}>{translateUi("Go to homepage ")}<ArrowRight size={18} /></Link></div></main>;}
+function ThemesPage() {return <main><PageIntro eyebrow="THE IDEA SHELF" title={translateUi("Where will your story begin?")} body="These illustrated worlds are starting points. Your own idea is welcome too." /><ThemeGallery full sampleReady={false} /><div className="inline-cta"><div><h2>{translateUi("Something else in mind?")}</h2><p>{translateUi("Describe a favourite place, creature, or curiosity.")}</p></div><Link className="button" to={localHref("/en/create/?custom=1")}>{translateUi("Make my own world ")}<ArrowUpRight size={19} /></Link></div></main>;}
+const initialDraft = () => {try {const value = JSON.parse(localStorage.getItem('paw-draft') || '{}');return value && typeof value === 'object' && !Array.isArray(value) ? value : {};} catch {return {};}};
 const emptyDraft = () => ({ theme: '', custom: false, idea: '', setting: '', players: '', age: '', place: '', reading: '', paper: '', groups: '', materials: '', direction: '' });
 function SetupExtras({ draft, change }) {
   const [open, setOpen] = useState(false);
-  return <div className="setup-extras"><button className="disclosure" onClick={() => setOpen(!open)} aria-expanded={open}><span><PencilSimple size={20} /> Reading, printing & materials</span><span>{open ? '−' : '+'}</span></button>{open && <div className="setup-extras-body"><p>Optional details help show how the finished creator would respect practical limits.</p><div className="form-grid"><label>Reading support<select value={draft.reading || ''} onChange={e => change('reading', e.target.value)}><option value="">Choose later</option><option value="Read aloud">Adult reads aloud</option><option value="Short text">Shorter player text</option><option value="Independent">Independent readers</option></select></label><label>Paper size<select value={draft.paper || ''} onChange={e => change('paper', e.target.value)}><option value="">Choose later</option><option value="A4">A4</option><option value="US Letter">US Letter</option></select></label><label className="wide">Materials or space limits<input maxLength={180} value={draft.materials || ''} onChange={e => change('materials', e.target.value)} placeholder="e.g. paper only, no hiding places" /></label></div></div>}</div>;
+  return <div className="setup-extras"><button className="disclosure" onClick={() => setOpen(!open)} aria-expanded={open}><span><PencilSimple size={20} />{translateUi(" Reading, printing & materials")}</span><span>{open ? translateUi('−') : translateUi('+')}</span></button>{open && <div className="setup-extras-body"><p>{translateUi("Optional details help show how the finished creator would respect practical limits.")}</p><div className="form-grid"><label>{translateUi("Reading support")}<select value={draft.reading || ''} onChange={(e) => change('reading', e.target.value)}><option value="">{translateUi("Choose later")}</option><option value="Read aloud">{translateUi("Adult reads aloud")}</option><option value="Short text">{translateUi("Shorter player text")}</option><option value="Independent">{translateUi("Independent readers")}</option></select></label><label>{translateUi("Paper size")}<select value={draft.paper || ''} onChange={(e) => change('paper', e.target.value)}><option value="">{translateUi("Choose later")}</option><option value="A4">A4</option><option value="US Letter">{translateUi("US Letter")}</option></select></label><label className="wide">{translateUi("Materials or space limits")}<input maxLength={180} value={draft.materials || ''} onChange={(e) => change('materials', e.target.value)} placeholder={translateUi("e.g. paper only, no hiding places")} /></label></div></div>}</div>;
 }
 function CreatePage({ runtime, catalog }) {
   const orderingUnavailable = runtime?.status === 'configured_runtime' && runtime.checkout === false;
-  const customOffers = runtime?.checkout ? (catalog?.offers || []).filter(item => ['custom_home', 'custom_classroom'].includes(item.sku) && item.saleEnabled) : [];
-  return <main className="extended-page live-page creator-workspace"><header id="start" className="creator-heading creator-hero"><div className="creator-hero-copy"><span className="eyebrow">AI CUSTOM ADVENTURE</span><h1>Your idea. Their next paper adventure.</h1><p>Tell us your idea and who will play. Story and play details are optional. After payment, review your personal plan before the game PDFs are made.</p>{customOffers.length > 0 && <p className="custom-create-prices">Free format example{customOffers.map(offer => <span key={offer.sku}> · {offer.sku === 'custom_home' ? 'Home' : 'Classroom'} {formatUsd(offer.unitAmount)}</span>)}{runtime.checkoutMode === 'test' && ' · Test checkout'}</p>}</div><figure className="creator-hero-art"><img src="/assets/custom-adventure-workshop-v1.jpg" alt="Paper story cards beside pencils and an adventure map" width="1448" height="1086" fetchPriority="high" decoding="async" /><figcaption>Story-making illustration · your delivery is printable PDFs.</figcaption></figure></header><section className="custom-create-loading custom-create-shell" aria-live="polite"><h2>Your idea starts here</h2><p>{orderingUnavailable ? 'Custom checkout is currently unavailable. You can still explore the format example and ready-made games.' : 'Choose your story idea, group and paper size in the interactive creator. Explore the example files and how ordering works below while it loads.'}</p><Link to="/en/themes/">Browse ready-made games</Link></section><CreatorGuide Link={Link} /></main>;
+  const customOffers = runtime?.checkout ? (catalog?.offers || []).filter((item) => ['custom_home', 'custom_classroom'].includes(item.sku) && item.saleEnabled) : [];
+  return <main className="extended-page live-page creator-workspace"><header id="start" className="creator-heading creator-hero"><div className="creator-hero-copy"><span className="eyebrow">{translateUi("AI CUSTOM ADVENTURE")}</span><h1>{translateUi("Your idea. Their next paper adventure.")}</h1><p>{translateUi("Tell us your idea and who will play. Story and play details are optional. After payment, review your personal plan before the game PDFs are made.")}</p>{customOffers.length > 0 && <p className="custom-create-prices">{translateUi("Free format example")}{customOffers.map((offer) => <span key={offer.sku}> · {offer.sku === 'custom_home' ? translateUi('Home') : translateUi('Classroom')} {translateUi(formatUsd(offer.unitAmount))}</span>)}{runtime.checkoutMode === 'test' && translateUi(' · Test checkout')}</p>}</div><figure className="creator-hero-art"><img src="/assets/custom-adventure-workshop-v1.jpg" alt={translateUi("Paper story cards beside pencils and an adventure map")} width="1448" height="1086" fetchPriority="high" decoding="async" /><figcaption>{translateUi("Story-making illustration \xB7 your delivery is printable PDFs.")}</figcaption></figure></header><section className="custom-create-loading custom-create-shell" aria-live="polite"><h2>{translateUi("Your idea starts here")}</h2><p>{orderingUnavailable ? translateUi('Custom checkout is currently unavailable. You can still explore the format example and ready-made games.') : translateUi('Choose your story idea, group and paper size in the interactive creator. Explore the example files and how ordering works below while it loads.')}</p><Link to={localHref("/en/themes/")}>{translateUi("Browse ready-made games")}</Link></section><CreatorGuide Link={Link} /></main>;
 }
 
-function SamplesPage({ classroom }) { return <main><PageIntro eyebrow="SAMPLE MATERIALS" title={classroom ? 'A classroom adventure, step by step.' : 'See what an adventure could contain.'} body="A finished, tested sample pack is being prepared. This page previews the intended structure without presenting fictional files as ready to download." /><div className="sample-layout"><div className="sample-paper"><span>EXAMPLE STRUCTURE</span><h2>{classroom ? 'The classroom mission' : 'The family quest'}</h2><p>A connected story with clues, cooperative moments, and a clear ending.</p><div className="sample-lines"><i /><i /><i /><i /></div></div><div className="sample-copy"><h2>Made for the people running it, too.</h2><ul><li><Check size={20} /> A clear start and setup guide</li><li><Check size={20} /> Player pages and connected clues</li><li><Check size={20} /> Hints and answers for the organiser</li><li><Check size={20} /> A shared story ending</li></ul><p className="muted">The items above describe the planned product format. They are not downloadable materials in this prototype.</p><div className="sample-tabs"><Link className={!classroom ? 'active' : ''} to="/en/samples/home/">Home sample</Link><Link className={classroom ? 'active' : ''} to="/en/samples/classroom/">Classroom sample</Link></div><Link className="button" to="/en/create/">Start creating <ArrowRight size={18} /></Link></div></div></main>; }
-function PricingPage() { return <main><PageIntro eyebrow="PRICING" title="The right adventure for your group." body="The home and classroom editions are both part of the planned launch. Final prices will be confirmed before checkout opens." /><div className="price-grid">{[['Home adventure','For families, parties, and small groups','Home play setup','Separate organiser guide'],['Classroom adventure','For teachers planning group play','Classroom group setup','Teacher-facing running guide']].map(([title,body,a,b]) => <article key={title}><span className="eyebrow">{title.toUpperCase()}</span><h2>{title}</h2><p>{body}</p><strong className="price-tbd">Price to be confirmed</strong><ul><li><Check size={19} /> {a}</li><li><Check size={19} /> {b}</li><li><Check size={19} /> Printable materials planned</li></ul><Link className="button" to={`/en/create/?setting=${title.startsWith('Home') ? 'home' : 'classroom'}`}>Start with this setting <ArrowRight size={18} /></Link></article>)}</div><p className="page-note">No payment is collected in this prototype.</p></main>; }
-function FaqItem({ q, a }) { const [open, setOpen] = useState(false); return <div className="faq-item"><button aria-expanded={open} onClick={() => setOpen(!open)}><span>{q}</span>{open ? <Minus size={20} /> : <Plus size={20} />}</button>{open && <p>{a}</p>}</div>; }
-function HelpPage() { return <main><PageIntro eyebrow="HERE TO HELP" title="Good questions make better adventures." body="Answers about the planned experience and what this design prototype includes." /><div className="help-layout"><h2>Frequently asked questions</h2><div className="faq-list">{faq.map(([q,a]) => <FaqItem key={q} q={q} a={a} />)}</div></div></main>; }
-function MyAdventuresPage() { const draft = initialDraft(); return <main><PageIntro eyebrow="MY ADVENTURES" title="Your adventure shelf." body="In this prototype, a draft is saved only in this browser. Accounts and order retrieval are not connected." /><div className="shelf-card"><div className="step-icon"><PencilSimple size={28} /></div><div><h2>{draft.theme || draft.idea ? 'Your saved idea' : 'Your shelf is ready for its first story.'}</h2><p>{draft.theme ? `${draft.theme[0].toUpperCase()}${draft.theme.slice(1)} world` : draft.idea || 'Start with a world, then make it yours.'}</p></div><Link className="button" to="/en/create/">{draft.theme || draft.idea ? 'Continue draft' : 'Start creating'} <ArrowRight size={18} /></Link></div></main>; }
-function OrderPage() { const [state, setState] = useState(0); const states = [['Proposal selected','Your story direction is chosen. In the real product, payment would be a separate confirmed step.'],['Payment pending','A production checkout would clearly show the final price and terms before charging.'],['Creating adventure','After successful payment, the adventure would be generated and checked.'],['Files ready','Player materials and an organiser guide would become available once verified.']]; return <main><PageIntro eyebrow="ORDER FLOW DEMO" title="What happens after you choose." body="Explore the planned order states. This is a visual demonstration; there is no payment, generation, or download." /><div className="order-demo"><div className="order-progress">{states.map(([name],i) => <button key={name} onClick={() => setState(i)} className={state === i ? 'active' : ''}><span>{i + 1}</span>{name}</button>)}</div><div className="order-status"><span className="eyebrow">DEMO STATE {state + 1} OF 4</span><h2>{states[state][0]}</h2><p>{states[state][1]}</p><div className="prototype-notice"><DownloadSimple size={22} /><div><strong>Preview only</strong><p>No real order or printable file exists in this prototype.</p></div></div><button className="button" onClick={() => setState((state + 1) % 4)}>Next state <ArrowRight size={18} /></button></div></div></main>; }
-function LegalPage({ kind }) { const title = { privacy:'Privacy Policy', terms:'Terms of Use', cookies:'Cookie Notice', refunds:'Refund Policy' }[kind] || 'Legal information'; return <main><PageIntro eyebrow="LEGAL INFORMATION" title={title} body="This policy is under legal review and is not yet published for production use." /><div className="legal-notice"><h2>Policy in preparation</h2><p>The site’s legal and compliance draft exists separately for review. This prototype intentionally does not display unfinished policy text as final terms.</p><Link className="text-link" to="/en/help/">Visit Help <ArrowRight size={18} /></Link></div></main>; }
+function SamplesPage({ classroom }) {return <main><PageIntro eyebrow="SAMPLE MATERIALS" title={translateUi(classroom ? translateUi('A classroom adventure, step by step.') : translateUi('See what an adventure could contain.'))} body="A finished, tested sample pack is being prepared. This page previews the intended structure without presenting fictional files as ready to download." /><div className="sample-layout"><div className="sample-paper"><span>{translateUi("EXAMPLE STRUCTURE")}</span><h2>{classroom ? translateUi('The classroom mission') : translateUi('The family quest')}</h2><p>{translateUi("A connected story with clues, cooperative moments, and a clear ending.")}</p><div className="sample-lines"><i /><i /><i /><i /></div></div><div className="sample-copy"><h2>{translateUi("Made for the people running it, too.")}</h2><ul><li><Check size={20} />{translateUi(" A clear start and setup guide")}</li><li><Check size={20} />{translateUi(" Player pages and connected clues")}</li><li><Check size={20} />{translateUi(" Hints and answers for the organiser")}</li><li><Check size={20} />{translateUi(" A shared story ending")}</li></ul><p className="muted">{translateUi("The items above describe the planned product format. They are not downloadable materials in this prototype.")}</p><div className="sample-tabs"><Link className={!classroom ? 'active' : ''} to={localHref("/en/samples/home/")}>{translateUi("Home sample")}</Link><Link className={classroom ? 'active' : ''} to={localHref("/en/samples/classroom/")}>{translateUi("Classroom sample")}</Link></div><Link className="button" to={localHref("/en/create/")}>{translateUi("Start creating ")}<ArrowRight size={18} /></Link></div></div></main>;}
+function PricingPage() {return <main><PageIntro eyebrow="PRICING" title={translateUi("The right adventure for your group.")} body="The home and classroom editions are both part of the planned launch. Final prices will be confirmed before checkout opens." /><div className="price-grid">{[['Home adventure', 'For families, parties, and small groups', 'Home play setup', 'Separate organiser guide'], ['Classroom adventure', 'For teachers planning group play', 'Classroom group setup', 'Teacher-facing running guide']].map(([title, body, a, b]) => <article key={title}><span className="eyebrow">{translateUi(title.toUpperCase())}</span><h2>{translateUi(title)}</h2><p>{translateUi(body)}</p><strong className="price-tbd">{translateUi("Price to be confirmed")}</strong><ul><li><Check size={19} /> {translateUi(a)}</li><li><Check size={19} /> {translateUi(b)}</li><li><Check size={19} />{translateUi(" Printable materials planned")}</li></ul><Link className="button" to={localHref(`/en/create/?setting=${title.startsWith('Home') ? 'home' : 'classroom'}`)}>{translateUi("Start with this setting ")}<ArrowRight size={18} /></Link></article>)}</div><p className="page-note">{translateUi("No payment is collected in this prototype.")}</p></main>;}
+function FaqItem({ q, a }) {const [open, setOpen] = useState(false);return <div className="faq-item"><button aria-expanded={open} onClick={() => setOpen(!open)}><span>{translateUi(q)}</span>{open ? <Minus size={20} /> : <Plus size={20} />}</button>{open && <p>{translateUi(a)}</p>}</div>;}
+function HelpPage() {return <main><PageIntro eyebrow="HERE TO HELP" title={translateUi("Good questions make better adventures.")} body="Answers about the planned experience and what this design prototype includes." /><div className="help-layout"><h2>{translateUi("Frequently asked questions")}</h2><div className="faq-list">{faq.map(([q, a]) => <FaqItem key={q} q={q} a={a} />)}</div></div></main>;}
+function MyAdventuresPage() {const draft = initialDraft();return <main><PageIntro eyebrow="MY ADVENTURES" title={translateUi("Your adventure shelf.")} body="In this prototype, a draft is saved only in this browser. Accounts and order retrieval are not connected." /><div className="shelf-card"><div className="step-icon"><PencilSimple size={28} /></div><div><h2>{draft.theme || draft.idea ? translateUi('Your saved idea') : translateUi('Your shelf is ready for its first story.')}</h2><p>{draft.theme ? translateUi("{value0}{value1} world", { value0: draft.theme[0].toUpperCase(), value1: draft.theme.slice(1) }) : draft.idea || translateUi('Start with a world, then make it yours.')}</p></div><Link className="button" to={localHref("/en/create/")}>{draft.theme || draft.idea ? translateUi('Continue draft') : translateUi('Start creating')} <ArrowRight size={18} /></Link></div></main>;}
+function OrderPage() {const [state, setState] = useState(0);const states = [['Proposal selected', 'Your story direction is chosen. In the real product, payment would be a separate confirmed step.'], ['Payment pending', 'A production checkout would clearly show the final price and terms before charging.'], ['Creating adventure', 'After successful payment, the adventure would be generated and checked.'], ['Files ready', 'Player materials and an organiser guide would become available once verified.']];return <main><PageIntro eyebrow="ORDER FLOW DEMO" title={translateUi("What happens after you choose.")} body="Explore the planned order states. This is a visual demonstration; there is no payment, generation, or download." /><div className="order-demo"><div className="order-progress">{states.map(([name], i) => <button key={name} onClick={() => setState(i)} className={state === i ? 'active' : ''}><span>{translateUi(i + 1)}</span>{translateUi(name)}</button>)}</div><div className="order-status"><span className="eyebrow">{translateUi("DEMO STATE ")}{translateUi(state + 1)}{translateUi(" OF 4")}</span><h2>{translateUi(states[state][0])}</h2><p>{translateUi(states[state][1])}</p><div className="prototype-notice"><DownloadSimple size={22} /><div><strong>{translateUi("Preview only")}</strong><p>{translateUi("No real order or printable file exists in this prototype.")}</p></div></div><button className="button" onClick={() => setState((state + 1) % 4)}>{translateUi("Next state ")}<ArrowRight size={18} /></button></div></div></main>;}
+function LegalPage({ kind }) {const title = { privacy: 'Privacy Policy', terms: 'Terms of Use', cookies: 'Cookie Notice', refunds: 'Refund Policy' }[kind] || 'Legal information';return <main><PageIntro eyebrow="LEGAL INFORMATION" title={translateUi(title)} body="This policy is under legal review and is not yet published for production use." /><div className="legal-notice"><h2>{translateUi("Policy in preparation")}</h2><p>{translateUi("The site\u2019s legal and compliance draft exists separately for review. This prototype intentionally does not display unfinished policy text as final terms.")}</p><Link className="text-link" to={localHref("/en/help/")}>{translateUi("Visit Help ")}<ArrowRight size={18} /></Link></div></main>;}
 
-function RetiredWeekly({route}){const target=retiredWeeklyTarget(route);useEffect(()=>{window.location.replace(target);},[target]);return <main className="sd-page"><div className="sd-shell"><h1>Continue your Sudoku adventure</h1><p>The weekly challenge has closed. Your points and saved progress are kept.</p><a href={target}>Continue to Sudoku</a></div></main>;}
+function RetiredWeekly({ route }) {const target = retiredWeeklyTarget(route);useEffect(() => {window.location.replace(localHref(target));}, [target]);return <main className="sd-page"><div className="sd-shell"><h1>{translateUi("Continue your Sudoku adventure")}</h1><p>{translateUi("The weekly challenge has closed. Your points and saved progress are kept.")}</p><a href={localHref(target)}>{translateUi("Continue to Sudoku")}</a></div></main>;}
 
 export function App({ initialPublicRelease = readPublicRelease() } = {}) {
   const [routeLocation, setRouteLocation] = useState(() => `${path()}${window.location.search}`);
   const [queryReady, setQueryReady] = useState(false);
   useEffect(() => setQueryReady(true), []);
-  const route = routeLocation.split('?')[0];
+  const actualRoute = routeLocation.split('?')[0];const route = basePath(actualRoute);const locale = routeLocale(actualRoute);
   const [runtime, setRuntime] = useState(initialPublicRelease?.runtime || null);
   const [runtimeCatalog, setRuntimeCatalog] = useState(initialPublicRelease?.catalog || null);
   const [catalogStatus, setCatalogStatus] = useState('loading');
@@ -254,29 +258,29 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
     setCatalogStatus('loading');
-    const read = async url => {
+    const read = async (url) => {
       const response = await fetch(url, { signal: controller.signal });
       if (!response.ok) throw new Error('Public catalogue request failed');
       return response.json();
     };
-    Promise.all([read('/api/v1/health'), read('/api/v1/catalog')])
-      .then(([health, catalog]) => {
-        if (cancelled) return;
-        if (health.status === 'configured_runtime' && catalog && typeof catalog === 'object') {
-          setRuntime(health); setRuntimeCatalog(catalog); setCatalogStatus('ready');
-        } else setCatalogStatus('error');
-      })
-      .catch(() => { if (!cancelled) setCatalogStatus('error'); })
-      .finally(() => clearTimeout(timeout));
-    return () => { cancelled = true; clearTimeout(timeout); controller.abort(); };
+    Promise.all([read('/api/v1/health'), read('/api/v1/catalog')]).
+    then(([health, catalog]) => {
+      if (cancelled) return;
+      if (health.status === 'configured_runtime' && catalog && typeof catalog === 'object') {
+        setRuntime(health);setRuntimeCatalog(catalog);setCatalogStatus('ready');
+      } else setCatalogStatus('error');
+    }).
+    catch(() => {if (!cancelled) setCatalogStatus('error');}).
+    finally(() => clearTimeout(timeout));
+    return () => {cancelled = true;clearTimeout(timeout);controller.abort();};
   }, [catalogAttempt]);
-  useEffect(() => { const sync = async () => {if(await prepareSudokuLeave())setRouteLocation(`${path()}${window.location.search}`);else window.history.pushState({},'',routeLocation);}; window.addEventListener('popstate', sync); return () => window.removeEventListener('popstate', sync); }, [routeLocation]);
+  useEffect(() => {const sync = async () => {if (await prepareSudokuLeave()) setRouteLocation(`${path()}${window.location.search}`);else window.history.pushState({}, '', routeLocation);};window.addEventListener('popstate', sync);return () => window.removeEventListener('popstate', sync);}, [routeLocation]);
   useEffect(() => {
-    const page = pageFor(route);
+    const page = pageFor(actualRoute);document.documentElement.lang = htmlLanguage(locale);
     const indexableHere = ['paperadventure.app', 'localhost', '127.0.0.1'].includes(window.location.hostname) && Boolean(page?.indexable);
     let robots = document.querySelector('meta[name="robots"]');
-    if (indexableHere) robots?.remove();
-    else {
+    if (indexableHere) robots?.remove();else
+    {
       if (!robots) {
         robots = document.createElement('meta');
         robots.name = 'robots';
@@ -285,80 +289,79 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
       robots.content = 'noindex';
     }
     if (!page) {
-      document.title = `${route==='/admin'||route.startsWith('/admin/')?'管理后台':isPrivateOrderRoute(route) ? 'Your order' : 'Page not found'} | Paper Adventure Workshop`;
+      document.title = translateUi("{value0} | Paper Adventure Workshop", { value0: route === '/admin' || route.startsWith('/admin/') ? '管理后台' : isPrivateOrderRoute(route) ? translateUi('Your order') : translateUi('Page not found') });
       document.querySelector('link[rel="canonical"]')?.remove();
       document.querySelector('script[type="application/ld+json"]')?.remove();
       return;
     }
     let canonical = document.querySelector('link[rel="canonical"]');
     const origin = canonical ? new URL(canonical.href).origin : window.location.origin;
-    if (!canonical) { canonical = document.createElement('link'); canonical.rel = 'canonical'; document.head.appendChild(canonical); }
+    if (!canonical) {canonical = document.createElement('link');canonical.rel = 'canonical';document.head.appendChild(canonical);}
     const url = `${origin}${page.path}`;
     document.title = pageDocumentTitle(page);
     for (const [selector, value] of [
-      ['meta[name="description"]', page.description],
-      ['meta[property="og:title"]', document.title],
-      ['meta[property="og:description"]', page.description],
-      ['meta[property="og:url"]', url],
-      ['meta[name="twitter:title"]', document.title],
-      ['meta[name="twitter:description"]', page.description],
-    ]) document.querySelector(selector)?.setAttribute('content', value);
+    ['meta[name="description"]', page.description],
+    ['meta[property="og:title"]', document.title],
+    ['meta[property="og:description"]', page.description],
+    ['meta[property="og:url"]', url],
+    ['meta[name="twitter:title"]', document.title],
+    ['meta[name="twitter:description"]', page.description]])
+    document.querySelector(selector)?.setAttribute('content', value);
     canonical?.setAttribute('href', url);
     let siteName = document.querySelector('meta[property="og:site_name"]');
-    if (!siteName) { siteName = document.createElement('meta'); siteName.setAttribute('property', 'og:site_name'); document.head.appendChild(siteName); }
+    if (!siteName) {siteName = document.createElement('meta');siteName.setAttribute('property', 'og:site_name');document.head.appendChild(siteName);}
     siteName.content = siteIdentity.name;
     let structured = document.querySelector('script[type="application/ld+json"]');
-    if (!structured) { structured = document.createElement('script'); structured.type = 'application/ld+json'; document.head.appendChild(structured); }
+    if (!structured) {structured = document.createElement('script');structured.type = 'application/ld+json';document.head.appendChild(structured);}
     structured.textContent = JSON.stringify(pageSchema(page, { runtime, catalog: runtimeCatalog }, origin));
-  }, [route, runtime, runtimeCatalog]);
+  }, [route, locale, runtime, runtimeCatalog]);
   const [conflictTo, setConflictTo] = useState('');
-  const dismissConflict = () => { pendingNavigation = ''; setConflictTo(''); };
+  const dismissConflict = () => {pendingNavigation = '';setConflictTo('');};
   const conflictDialogRef = useModalFocus(Boolean(conflictTo), dismissConflict);
-  useEffect(() => { const show = () => setConflictTo(pendingNavigation); window.addEventListener('draft-conflict', show); return () => window.removeEventListener('draft-conflict', show); }, []);
+  useEffect(() => {const show = () => setConflictTo(pendingNavigation);window.addEventListener('draft-conflict', show);return () => window.removeEventListener('draft-conflict', show);}, []);
   let page;
-  if (retiredWeeklyTarget(route)) page = <RetiredWeekly route={route}/>;
-  else if (route !== '/' && !pageFor(route) && !isPrivateOrderRoute(route)) page = <NotFoundPage />;
-  else if (route === '/en/' || route === '/') page = <Home sampleReady={Boolean(runtime?.sample)} />;
-  else if (route.startsWith('/en/themes/') && route !== '/en/themes/') page = <ThemeDetailPage Link={Link} themeId={route.split('/')[3]} selectedSetting={['home', 'classroom'].includes(route.split('/')[4]) ? route.split('/')[4] : queryReady ? new URLSearchParams(routeLocation.split('?')[1] || '').get('setting') : null} catalog={runtimeCatalog} runtime={runtime} />;
-  else if (route.startsWith('/en/themes')) page = <WorldsOverview Link={Link} catalog={runtimeCatalog} />;
-  else if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;
-  else if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;
-  else if (['/en/credits/','/en/sudoku/points/'].includes(route)) page=<SudokuPoints key={routeLocation} route={route}/>;
-  else if (accountSection(route)) page=<AccountCenter key={routeLocation} route={route} Link={Link}/>;
-  else if ((['/en/sudoku/how-to-play/','/en/sudoku/techniques/'].includes(route)||(route.startsWith('/en/sudoku/techniques/')&&pageFor(route)))) page = <SudokuLessons key={route} route={route}/>;
-  else if (route === '/en/sudoku/levels/') page = <SudokuLevels key={routeLocation} route={route}/>;
-  else if (['/en/sudoku/','/en/sudoku/play/','/en/sudoku/leaderboard/'].includes(route)) page = <Sudoku key={routeLocation} Link={Link} route={route}/>;
-  else if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;
-  else if (route === '/en/escape-room-games/the-secret-of-fold-city/') page = <EscapeFoldCityDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;
-  else if (route === '/en/escape-room-games/the-last-letter-before-the-storm/') page = <EscapeLetterDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;
-  else if (route === '/en/escape-room-games/the-clockmakers-thirteenth-hour/') page = <EscapeClockDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;
-  else if (route === '/en/escape-room-games/the-midnight-masquerade/') page = <EscapeMidnightDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;
-  else if (route === '/en/escape-room-games/the-missing-seventh-carriage/') page = <EscapeTrainDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt(value => value + 1)}/>;
-  else if (route === '/en/escape-room-games/') page = <EscapeGamesHub Link={Link} />;
-  else if (route === '/en/escape-room-games/the-sleeping-lighthouse/') page = <LighthouseDetail Link={Link} />;
-  else if (route === '/en/escape-room-games/the-sleeping-lighthouse/play/') page = <LighthousePlay Link={Link} />;
-  else if (route === '/en/about/') page = <AboutPage />;
-  else if (route === '/en/contact/') page = <ContactPage />;
-  else if (route === '/en/guides/') page = <GuidesHub Link={Link} />;
-  else if (route.startsWith('/en/guides/')) page = <GuideArticle Link={Link} route={route} />;
-  else if (route === '/en/occasions/christmas/') page = <ChristmasOccasion Link={Link} catalog={runtimeCatalog} runtime={runtime} />;
-  else if (route === '/en/occasions/birthday/') page = <BirthdayOccasion Link={Link} catalog={runtimeCatalog} runtime={runtime} />;
-  else if (route.startsWith('/en/occasions/halloween')) page = <HalloweenOccasion Link={Link} />;
-  else if (route.startsWith('/en/how-it-works')) page = <HowItWorksPage Link={Link} catalog={runtimeCatalog} checkoutMode={runtime?.checkoutMode} />;
-  else if (route.startsWith('/en/create')) page = queryReady ? <LiveCreate key={window.location.search} Link={Link} checkoutReady={Boolean(runtime?.checkout)} checkoutMode={runtime?.checkoutMode} runtimeOffers={runtimeCatalog?.offers} /> : <CreatePage key={window.location.search} runtime={runtime} catalog={runtimeCatalog} />;
-  else if (route.startsWith('/en/samples/classroom')) page = runtimeCatalog?.themes.find(theme => theme.id === 'celebration')?.classroom.freeSample ? <LiveSamples Link={Link} classroom catalog={runtimeCatalog} /> : <SamplesExperience Link={Link} classroom />;
-  else if (route.startsWith('/en/samples')) page = runtimeCatalog?.themes.find(theme => theme.id === 'celebration')?.home.freeSample ? <LiveSamples Link={Link} catalog={runtimeCatalog} /> : <SamplesExperience Link={Link} />;
-  else if (route.startsWith('/en/pricing')) page = <PricingGuide Link={Link} catalog={runtimeCatalog} checkoutMode={runtime?.checkoutMode} checkoutReady={runtime?.checkout} />;
-  else if (route.startsWith('/en/help')) page = <HelpExperience Link={Link} topic={route.split('/')[3] || ''} />;
-  else if (route.startsWith('/en/my-adventures')) page = <AccountCenter key={routeLocation} route={route} Link={Link}/>;
-  else if (route.startsWith('/en/checkout')) page = runtime?.checkout ? <LiveCheckout Link={Link} catalog={runtimeCatalog} checkoutMode={runtime.checkoutMode} /> : <CheckoutPreview key={routeLocation} Link={Link} />;
-  else if (isPrivateOrderRoute(route)) page = <LiveOrder Link={Link} orderId={route.split('/')[3]} />;
-  else if (route === '/en/orders/demo/') page = <OrderExperience Link={Link} />;
-  else if (route.startsWith('/en/account')) page = <LiveAccount key={routeLocation} Link={Link} />;
-  else if (route === '/en/privacy/') page = runtime?.legal ? <LiveLegal key="privacy" kind="privacy" /> : <CurrentPrivacyNotice />;
-   else if (['/en/terms/', '/en/cookies/', '/en/refunds/'].includes(route)) page = runtime?.legal ? <LiveLegal key={route} kind={route.split('/')[2]} /> : <LegalExperience Link={Link} kind={route.split('/')[2]} />;
-  else page = <NotFoundPage />;
-  if(route==='/admin'||route.startsWith('/admin/'))return <AdminConsole/>;
-  return <><Header route={route} />{page}<SiteFooter Link={Link} Brand={Brand} runtime={runtime} />{route!=='/en/account/'&&<FeedbackWidget enabled={runtime?.feedback===true&&runtime?.feedbackNotice===true} Link={Link}/>}{conflictTo && <div className="modal-backdrop" role="presentation"><div ref={conflictDialogRef} tabIndex={-1} className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="draft-dialog-title"><span className="eyebrow">SAVED DRAFT</span><h2 id="draft-dialog-title">Start a new adventure?</h2><p>You already have an idea saved in this browser. Choosing the new world will replace that draft.</p><div className="modal-actions"><button className="button-quiet" onClick={dismissConflict}>Keep my draft</button><button className="button" onClick={() => { const to = conflictTo; pendingNavigation = ''; setConflictTo(''); navigate(to, true); }}>Use new world <ArrowRight size={18} /></button></div></div></div>}</>;
+  if (retiredWeeklyTarget(route)) page = <RetiredWeekly route={route} />;else
+  if (route !== '/' && !pageFor(route) && !isPrivateOrderRoute(route)) page = <NotFoundPage />;else
+  if (route === '/en/' || route === '/') page = <Home sampleReady={Boolean(runtime?.sample)} />;else
+  if (route.startsWith('/en/themes/') && route !== '/en/themes/') page = <ThemeDetailPage Link={Link} themeId={route.split('/')[3]} selectedSetting={['home', 'classroom'].includes(route.split('/')[4]) ? route.split('/')[4] : queryReady ? new URLSearchParams(routeLocation.split('?')[1] || '').get('setting') : null} catalog={runtimeCatalog} runtime={runtime} />;else
+  if (route.startsWith('/en/themes')) page = <WorldsOverview Link={Link} catalog={runtimeCatalog} />;else
+  if (route.startsWith('/en/for-home')) page = <CatalogPage key={route} Link={Link} initialSetting="home" catalog={runtimeCatalog} />;else
+  if (route.startsWith('/en/for-classroom')) page = <CatalogPage key={route} Link={Link} initialSetting="classroom" catalog={runtimeCatalog} />;else
+  if (['/en/credits/', '/en/sudoku/points/'].includes(route)) page = <SudokuPoints key={routeLocation} route={route} />;else
+  if (accountSection(route)) page = <AccountCenter key={routeLocation} route={route} Link={Link} />;else
+  if (['/en/sudoku/how-to-play/', '/en/sudoku/techniques/'].includes(route) || route.startsWith('/en/sudoku/techniques/') && pageFor(route)) page = <SudokuLessons key={route} route={route} />;else
+  if (route === '/en/sudoku/levels/') page = <SudokuLevels key={routeLocation} route={route} />;else
+  if (['/en/sudoku/', '/en/sudoku/play/', '/en/sudoku/leaderboard/'].includes(route)) page = <Sudoku key={routeLocation} Link={Link} route={route} />;else
+  if (route === '/en/escape-room-puzzles/') page = <FreePuzzles Link={Link} />;else
+  if (route === '/en/escape-room-games/the-secret-of-fold-city/') page = <EscapeFoldCityDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt((value) => value + 1)} />;else
+  if (route === '/en/escape-room-games/the-last-letter-before-the-storm/') page = <EscapeLetterDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt((value) => value + 1)} />;else
+  if (route === '/en/escape-room-games/the-clockmakers-thirteenth-hour/') page = <EscapeClockDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt((value) => value + 1)} />;else
+  if (route === '/en/escape-room-games/the-midnight-masquerade/') page = <EscapeMidnightDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt((value) => value + 1)} />;else
+  if (route === '/en/escape-room-games/the-missing-seventh-carriage/') page = <EscapeTrainDetail Link={Link} catalog={runtimeCatalog} catalogStatus={catalogStatus} retryCatalog={() => setCatalogAttempt((value) => value + 1)} />;else
+  if (route === '/en/escape-room-games/') page = <EscapeGamesHub Link={Link} />;else
+  if (route === '/en/escape-room-games/the-sleeping-lighthouse/') page = <LighthouseDetail Link={Link} />;else
+  if (route === '/en/escape-room-games/the-sleeping-lighthouse/play/') page = <LighthousePlay Link={Link} />;else
+  if (route === '/en/about/') page = <AboutPage />;else
+  if (route === '/en/contact/') page = <ContactPage />;else
+  if (route === '/en/guides/') page = <GuidesHub Link={Link} />;else
+  if (route.startsWith('/en/guides/')) page = <GuideArticle Link={Link} route={route} />;else
+  if (route === '/en/occasions/christmas/') page = <ChristmasOccasion Link={Link} catalog={runtimeCatalog} runtime={runtime} />;else
+  if (route === '/en/occasions/birthday/') page = <BirthdayOccasion Link={Link} catalog={runtimeCatalog} runtime={runtime} />;else
+  if (route.startsWith('/en/occasions/halloween')) page = <HalloweenOccasion Link={Link} />;else
+  if (route.startsWith('/en/how-it-works')) page = <HowItWorksPage Link={Link} catalog={runtimeCatalog} checkoutMode={runtime?.checkoutMode} />;else
+  if (route.startsWith('/en/create')) page = queryReady ? <LiveCreate key={window.location.search} Link={Link} checkoutReady={Boolean(runtime?.checkout)} checkoutMode={runtime?.checkoutMode} runtimeOffers={runtimeCatalog?.offers} /> : <CreatePage key={window.location.search} runtime={runtime} catalog={runtimeCatalog} />;else
+  if (route.startsWith('/en/samples/classroom')) page = runtimeCatalog?.themes.find((theme) => theme.id === 'celebration')?.classroom.freeSample ? <LiveSamples Link={Link} classroom catalog={runtimeCatalog} /> : <SamplesExperience Link={Link} classroom />;else
+  if (route.startsWith('/en/samples')) page = runtimeCatalog?.themes.find((theme) => theme.id === 'celebration')?.home.freeSample ? <LiveSamples Link={Link} catalog={runtimeCatalog} /> : <SamplesExperience Link={Link} />;else
+  if (route.startsWith('/en/pricing')) page = <PricingGuide Link={Link} catalog={runtimeCatalog} checkoutMode={runtime?.checkoutMode} checkoutReady={runtime?.checkout} />;else
+  if (route.startsWith('/en/help')) page = <HelpExperience Link={Link} topic={route.split('/')[3] || ''} />;else
+  if (route.startsWith('/en/my-adventures')) page = <AccountCenter key={routeLocation} route={route} Link={Link} />;else
+  if (route.startsWith('/en/checkout')) page = runtime?.checkout ? <LiveCheckout Link={Link} catalog={runtimeCatalog} checkoutMode={runtime.checkoutMode} /> : <CheckoutPreview key={routeLocation} Link={Link} />;else
+  if (isPrivateOrderRoute(route)) page = <LiveOrder Link={Link} orderId={route.split('/')[3]} />;else
+  if (route === '/en/orders/demo/') page = <OrderExperience Link={Link} />;else
+  if (route.startsWith('/en/account')) page = <LiveAccount key={routeLocation} Link={Link} />;else
+  if (route === '/en/privacy/') page = runtime?.legal ? <LiveLegal key="privacy" kind="privacy" /> : <CurrentPrivacyNotice />;else
+  if (['/en/terms/', '/en/cookies/', '/en/refunds/'].includes(route)) page = runtime?.legal ? <LiveLegal key={route} kind={route.split('/')[2]} /> : <LegalExperience Link={Link} kind={route.split('/')[2]} />;else
+  page = <NotFoundPage />;
+  if (route === '/admin' || route.startsWith('/admin/')) return <AdminConsole />;
+  return <><Header route={route} />{locale !== 'en' && /^\/en\/(?:themes|for-home|for-classroom|escape-room-games|escape-room-puzzles|samples|create|checkout|pricing|orders)(?:\/|$)/.test(route) && <p className="locale-material-note">{translateUi("\u5F53\u524D\u4E3A\u4E2D\u6587\u754C\u9762\uFF1B\u53EF\u4E0B\u8F7D\u7684\u6E38\u620F PDF\u3001\u6E38\u620F\u4E2D\u7684\u82F1\u6587\u7EBF\u7D22\u53CA AI \u5B9A\u5236\u5185\u5BB9\u4ECD\u4F7F\u7528\u82F1\u6587\u3002")}</p>}{translateUi(page)}<SiteFooter Link={Link} Brand={Brand} runtime={runtime} />{route !== '/en/account/' && <FeedbackWidget enabled={runtime?.feedback === true && runtime?.feedbackNotice === true} Link={Link} />}{conflictTo && <div className="modal-backdrop" role="presentation"><div ref={conflictDialogRef} tabIndex={-1} className="draft-modal" role="dialog" aria-modal="true" aria-labelledby="draft-dialog-title"><span className="eyebrow">{translateUi("SAVED DRAFT")}</span><h2 id="draft-dialog-title">{translateUi("Start a new adventure?")}</h2><p>{translateUi("You already have an idea saved in this browser. Choosing the new world will replace that draft.")}</p><div className="modal-actions"><button className="button-quiet" onClick={dismissConflict}>{translateUi("Keep my draft")}</button><button className="button" onClick={() => {const to = conflictTo;pendingNavigation = '';setConflictTo('');navigate(to, true);}}>{translateUi("Use new world ")}<ArrowRight size={18} /></button></div></div></div>}</>;
 }
-

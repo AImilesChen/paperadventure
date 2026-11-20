@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+import {localeCodes,localePath,htmlLanguage,routeLocale} from '../shared/locale.mjs';
 import {renderLlms} from '../shared/llms.mjs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
@@ -18,7 +19,10 @@ const out = path.join(root, 'dist', 'client');
 // A newly published bank gets a fresh offline shell and discards obsolete build
 // assets, without ever caching account/API responses.
 const sudokuSw=await readFile(path.join(root,'public/en/sudoku/sw.js'),'utf8');
-await writeFile(path.join(out,'en/sudoku/sw.js'),sudokuSw.replace(/const CACHE='([^']+)'/,(_,cache)=>`const CACHE='${cache}-${catalogSummary.version}'`));
+const buildAssets=(await readdir(path.join(out,'assets'))).filter(file=>/\.(?:js|css)$/.test(file)).map(file=>'/assets/'+file);
+const assetRevision=buildAssets.join('|').split('').reduce((hash,char)=>Math.imul(hash^char.charCodeAt(0),16777619)>>>0,2166136261).toString(16);
+const offlineShell=(locale)=>{let source=sudokuSw.replaceAll('/en/','/'+locale+'/').replaceAll('\\/en\\/','\\/'+locale+'\\/');if(locale==='zh')source=source.replaceAll('paw-sudoku-shell-','paw-sudoku-zh-shell-');return source.replace('const BUILD_ASSETS=[];', 'const BUILD_ASSETS='+JSON.stringify([...buildAssets,...(locale==='zh'?['/locales/zh.json']:[])])+';').replace(/const CACHE='([^']+)'/,(_,cache)=>`const CACHE='${cache}-${catalogSummary.version}-${assetRevision}'`);};
+await writeFile(path.join(out,'en/sudoku/sw.js'),offlineShell('en'));
 const origin = process.env.SITE_ORIGIN || 'https://paperadventure.app';
 if (!/^https:\/\/[^/]+$/.test(origin)) throw new Error('SITE_ORIGIN must be an HTTPS origin without a path');
 
@@ -30,6 +34,8 @@ const template = await readFile(path.join(out, 'index.html'), 'utf8');
 // non-HTML asset for dynamic client routes so an asset-binding fallback does
 // not redirect the browser away from the original order URL.
 await writeFile(path.join(out, 'app-shell.txt'), template);
+await mkdir(path.join(out,'zh/sudoku'),{recursive:true});
+await writeFile(path.join(out,'zh/sudoku/sw.js'),offlineShell('zh').replace("if(/^\\/assets","if(u.pathname==='/locales/zh.json'||/^\\/assets").replace('cache.match(req)','cache.match(u.pathname)'));
 const server = await createServer({ root, server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
 globalThis.localStorage = { getItem: () => null };
 
@@ -61,6 +67,7 @@ try {
       `<meta name="description" content="${escape(record.description)}" />`,
       ...(record.indexable ? [] : ['<meta name="robots" content="noindex" />']),
       `<link rel="canonical" href="${escape(url)}" />`,
+      ...(record.indexable?[...localeCodes.map(code=>`<link rel="alternate" hreflang="${htmlLanguage(code)}" href="${origin}${localePath(record.path,code)}" />`),`<link rel="alternate" hreflang="x-default" href="${origin}${localePath(record.path,'en')}" />`]:[]),
       '<meta property="og:type" content="website" />',
       `<meta property="og:site_name" content="${siteIdentity.name}" />`,
       `<meta property="og:title" content="${escape(pageDocumentTitle(record))}" />`,
@@ -75,7 +82,7 @@ try {
       `<meta name="twitter:image" content="${origin}/og-image.jpg" />`,
       `<script type="application/ld+json">${htmlJson(pageSchema(record, initialPublicRelease, origin))}</script>`,
     ].join('\n    ');
-    const html = template
+    const html = template.replace('<html lang="en">',`<html lang="${htmlLanguage(record.locale)}">`)
       .replace(/\s*<title>[^<]*<\/title>/, '')
       .replace(/\s*<meta name="description"[^>]*>/, '')
       .replace(/\s*<meta name="robots"[^>]*>/, '')
@@ -138,11 +145,11 @@ try {
   }
   console.log('Verified public bootstrap hydration parity on all indexable routes');
   const indexablePages = publicPages.filter(record => record.indexable);
-  const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + indexablePages.map(record => `  <url><loc>${escape(origin + record.path)}</loc></url>`).join('\n') + '\n</urlset>\n';
+  const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + indexablePages.map(record => `  <url><loc>${escape(origin + record.path)}</loc>${localeCodes.map(code=>`<xhtml:link rel="alternate" hreflang="${htmlLanguage(code)}" href="${escape(origin+localePath(record.path,code))}"/>`).join('')}<xhtml:link rel="alternate" hreflang="x-default" href="${escape(origin+localePath(record.path,'en'))}"/></url>`).join('\n') + '\n</urlset>\n';
   await writeFile(path.join(out, 'sitemap.xml'), sitemap);
   await writeFile(path.join(out, 'llms.txt'), renderLlms({origin}));
   await writeFile(path.join(out, 'robots.txt'), 'User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://paperadventure.app/sitemap.xml\n');
-  await writeFile(path.join(out, '_headers'), ['/en/account/*', '/en/my-adventures/*', '/en/checkout/*', '/en/orders/*', '/en/help/recover/*', '/en/terms/*', '/en/cookies/*', '/en/refunds/*'].map(route => route + '\n  X-Robots-Tag: noindex\n').join('\n'));
+  await writeFile(path.join(out, '_headers'), ['/en/account/*', '/en/my-adventures/*', '/en/checkout/*', '/en/orders/*', '/en/help/recover/*', '/en/terms/*', '/en/cookies/*', '/en/refunds/*'].flatMap(route=>localeCodes.map(code=>localePath(route,code))).map(route => route + '\n  X-Robots-Tag: noindex\n').join('\n'));
   console.log(`Generated ${publicPages.length} pre-rendered pages and ${indexablePages.length} sitemap URLs for ${origin}`);
 } finally {
   delete globalThis.window;

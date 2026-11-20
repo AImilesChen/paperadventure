@@ -6,10 +6,10 @@ export const feedbackDevices=['desktop','mobile','tablet'];
 export function feedbackPagePath(value) {
   if(typeof value!=='string'||value.length>2000||!value.startsWith('/')||value.startsWith('//'))return '/';
   const path=value.split(/[?#]/)[0];
-  if(!/^\/(?:en(?:\/|$))?[-a-zA-Z0-9_/]*$/.test(path))return '/';
-  if(/^\/en\/orders(?:\/|$)/.test(path))return '/en/orders/';
-  if(/^\/en\/(account|checkout|my-adventures|create)(?:\/|$)/.test(path))return `/en/${path.split('/')[2]}/`;
-  if(!path.startsWith('/en/'))return '/';
+  if(!/^\/(?:(?:en|zh)(?:\/|$))?[-a-zA-Z0-9_/]*$/.test(path))return '/';
+  if(/^\/(?:en|zh)\/orders(?:\/|$)/.test(path))return `/${path.split('/')[1]}/orders/`;
+  if(/^\/(?:en|zh)\/(account|checkout|my-adventures|create)(?:\/|$)/.test(path))return `/${path.split('/')[1]}/${path.split('/')[2]}/`;
+  if(!/^\/(?:en|zh)\//.test(path))return '/';
   return path.slice(0,300);
 }
 
