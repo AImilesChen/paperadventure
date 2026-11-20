@@ -11,3 +11,4 @@
 .sd-play-view .sd-assist .sd-hint-buy button,.sd-play-view .sd-assist .sd-hint button,.sd-play-view .sd-assist .sd-callout button{min-height:44px;font-size:14px;padding:9px 11px;margin:8px 0;max-width:100%}.sd-play-view .sd-assist .sd-hint-buy button{width:100%;font-size:15px}.sd-play-view .sd-assist .sd-hint h4{font-size:18px;line-height:1.5}.sd-play-view .sd-assist select{font-size:15px;line-height:1.6;min-height:46px}
 
 .sd-play-view .sd-tutorial p{font-size:16px;line-height:1.8}.sd-play-view .sd-tutorial button{font-size:16px;min-height:46px}
+.sd-play-view .sd-level-actions .sd-check-feedback{flex-basis:100%;order:2;margin:0;font-size:14px;line-height:1.65;text-align:left;overflow-wrap:anywhere}

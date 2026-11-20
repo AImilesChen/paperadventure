@@ -355,5 +355,9 @@
   "Bring a Paper Adventure story mission into your classroom. Print the player pages, share clues in small groups, and use the Teacher Guide to lead five connected checkpoints. Designed for ages 6–12 and 2–35 students.": "把 Paper Adventure 的故事任务带进课堂。先打印玩家材料，再让学生分组分享线索，由教师引导完成五个相连的任务。适合 6–12 岁学生，参与人数为 2–35 人。",
   "For the classroom": "课堂活动",
   "A4 & US Letter": "A4 / US Letter",
-  "Printable Adventure Games for Kids at Home": "可打印的儿童家庭冒险游戏"
+  "Printable Adventure Games for Kids at Home": "可打印的儿童家庭冒险游戏",
+  "No repeated digits found in rows, columns or boxes. {value0} empty cells remain. Keep filling the board to finish this level.": "暂未发现行、列或宫内的重复数字。还剩 {value0} 个空格，请继续完成棋盘。",
+  "Some digits repeat in a row, column or 3×3 box. Review the highlighted cells.": "行、列或九宫格中有重复数字，请检查已标出的冲突格。",
+  "This board could not be verified as complete. Review any empty cells and Sudoku rule conflicts.": "棋盘尚未通过完整验证，请检查空格及行、列、九宫格中的数字冲突。",
+  "Some cells are empty or the board breaks a Sudoku rule.": "棋盘还有空格，或存在违反数独规则的填写。"
 }
