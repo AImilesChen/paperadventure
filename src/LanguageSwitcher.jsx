@@ -1,3 +1,4 @@
+import './languageSwitcher.css';
 import { useEffect, useRef, useState } from 'react';
 import { CaretDown, Check } from '@phosphor-icons/react';
 import { LOCALES, routeLocale, switchLanguage } from '../shared/locale.mjs';
