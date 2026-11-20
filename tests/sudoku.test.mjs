@@ -1,3 +1,5 @@
+import {inspectBoard} from '../shared/sudoku/board-check.mjs';
+import {translate} from '../shared/locale-text.mjs';
 import test from'node:test';import assert from'node:assert/strict';import{readFile}from'node:fs/promises';import{DatabaseSync}from'node:sqlite';
 import{analyse,board,countSolutions,validComplete,nextHint,units}from'../shared/sudoku/engine.mjs';import{puzzles,freshAccount,applyAction}from'../backend/sudoku/service.mjs';import{sudokuApi,D1SudokuStore}from'../backend/sudoku/api.mjs';
 function independentCount(raw){const a=board(raw);let count=0;function run(){let at=-1,best=[];for(let i=0;i<81;i++)if(!a[i]){const used=new Set(units.filter(u=>u.includes(i)).flat().map(j=>a[j]));const p=[1,2,3,4,5,6,7,8,9].filter(n=>!used.has(n));if(!p.length)return;if(at<0||p.length<best.length){at=i;best=p;}}if(at<0){count++;return;}for(const d of best){a[at]=d;run();if(count>1)break;}a[at]=0;}run();return count;}
@@ -35,3 +37,15 @@ test('edit history rejects another owner, another puzzle, a new attempt and anot
 test('history cannot restore corrupted candidates or modify original clues',()=>{const store=editStorage(),c=editContext(),bad=editFrame();bad.notes[0]=[12];assert.equal(writeEditHistory(c,{undo:[bad],redo:[]},store),false);const fixed={...c,givens:'2'+'0'.repeat(80)};fixed.current.values[0]=2;assert.equal(writeEditHistory(fixed,{undo:[editFrame()],redo:[]},store),false);store.setItem('paw-sudoku-device-v1:owner-a:edit-history:puzzle-1','{broken');assert.deepEqual(readEditHistory(c,store),{undo:[],redo:[]});});
 test('resetting a round clears saved edit stacks and storage failure leaves editing usable',()=>{const store=editStorage(),c=editContext();writeEditHistory(c,{undo:[editFrame()],redo:[editFrame(8)]},store);writeEditHistory(c,{undo:[],redo:[]},store);assert.deepEqual(readEditHistory(c,store),{undo:[],redo:[]});assert.equal(writeEditHistory(c,{undo:[],redo:[]},{setItem(){throw Error('quota');}}),false);assert.deepEqual(readEditHistory(c,{getItem(){throw Error('unavailable');}}),{undo:[],redo:[]});});
 test('history size stays bounded independently for every level',()=>{const store=editStorage(),c=editContext();writeEditHistory(c,{undo:Array.from({length:250},()=>editFrame()),redo:[]},store);assert.equal(readEditHistory(c,store).undo.length,200);const next={...c,sessionId:'puzzle-2'};writeEditHistory(next,{undo:[],redo:[]},store);assert.equal(readEditHistory(c,store).undo.length,200);});
+
+
+test('board check separates unfinished boards from conflicts without claiming solution correctness',()=>{
+ const initial=board(puzzles[0].givens),before=[...initial];
+ const partial=inspectBoard(initial);assert.equal(partial.kind,'incomplete');assert.equal(partial.empty,initial.filter(n=>!n).length);assert.deepEqual(initial,before);
+ assert.match(translate(partial.message,'zh',{value0:partial.empty}),new RegExp('还剩 '+partial.empty+' 个空格'));
+ const empty=Array(81).fill(0);assert.equal(inspectBoard(empty).empty,81);
+ for(const pair of [[0,8],[0,72],[0,10]]){const repeated=[...empty];for(const i of pair)repeated[i]=1;const check=inspectBoard(repeated);assert.equal(check.kind,'conflict');assert.match(translate(check.message,'zh'),/冲突格/);}
+ const arbitrary=[...empty];arbitrary[0]=Number(puzzles[0].solution[0])%9+1;assert.equal(inspectBoard(arbitrary).kind,'incomplete');
+ assert.equal(inspectBoard(puzzles[0].solution).kind,'ready');
+ const full=board(puzzles[0].solution);full[0]=full[1];assert.equal(inspectBoard(full).kind,'conflict');
+});
