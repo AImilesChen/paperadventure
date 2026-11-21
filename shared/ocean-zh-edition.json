@@ -1,0 +1,10 @@
+{
+  "world":"ocean","setting":"classroom","locale":"zh","version":"1.0-zh.2","title":"珊瑚海图探险",
+  "pages":{"player":11,"guide":19},
+  "playerPages":{"cover":1,"jobs":2,"progress":3,"chartPieces":4,"chartTask":5,"positionTask":6,"frame":7,"observations":8,"plot":9,"log":10,"report":11},
+  "guidePages":{"start":1,"printing":2,"distribution":3,"smallTeams":4,"largeTeams":5,"flow":6,"mission1":7,"answer1":8,"mission2":9,"answer2":10,"mission3":11,"answer3":12,"mission4":13,"answer4":14,"mission5":15,"answer5":16,"quickReference":17,"support":18,"ending":19},
+  "cutPieces":8,"slots":{"widthPt":240,"heightPt":160},"tileInsetPt":6,"markInsetPt":15,
+  "tiles":[["珊瑚礁","reef",{"top":"square","left":"diamond"}],["灯塔","light",{"left":"circle","bottom":"square"}],["航道","channel",{"top":"triangle","right":"diamond"}],["海藻湾","kelp",{"right":"circle","bottom":"triangle"}]],
+  "solution":{"chart":["海藻湾","灯塔","航道","珊瑚礁"],"square":"B2","left":{"mark":"鱼","count":3},"centre":{"mark":"扇形珊瑚","count":1},"right":{"mark":"条纹浮标","count":1},"log":{"A":"keep","B":"repair","C":"repair"}},
+  "previews":{"chart":{"role":"player","page":4},"plot":{"role":"player","page":9},"report":{"role":"player","page":11}}
+}
