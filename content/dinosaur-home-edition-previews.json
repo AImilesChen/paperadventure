@@ -1,0 +1,206 @@
+{
+  "en": {
+    "map": {
+      "path": "public/assets/dinosaur-home-en-map.jpg",
+      "page": 8,
+      "width": 992,
+      "height": 900,
+      "caption": "Blank six-slot expedition map",
+      "excerpt": true,
+      "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+      "sha256": "24a4a10ea60dc28a4578fd228983b7082ba10358cf15df7956c4e6564909ca89"
+    },
+    "backpack": {
+      "path": "public/assets/dinosaur-home-en-backpack.jpg",
+      "page": 11,
+      "width": 599,
+      "height": 261,
+      "caption": "Empty two-slot backpack",
+      "excerpt": true,
+      "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+      "sha256": "1870b1d18b85258cd97c75c619ff3903359c437a5de6a617c94146d6f4498a7a"
+    },
+    "choices": {
+      "path": "public/assets/dinosaur-home-en-choices.jpg",
+      "page": 12,
+      "width": 546,
+      "height": 387,
+      "caption": "Four unselected supply tokens",
+      "excerpt": true,
+      "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+      "sha256": "70cd9d86e8d65ba089675c9790e75538d9605744e85620ff0aaa550cb3797314"
+    },
+    "bridge": {
+      "path": "public/assets/dinosaur-home-en-bridge.jpg",
+      "page": 9,
+      "width": 254,
+      "height": 390,
+      "caption": "One upright bridge tile",
+      "excerpt": true,
+      "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+      "sha256": "c2f58c3e85987317684f7b7ab17302174d6faf23be8513e2bfc426009cc40f3c"
+    },
+    "block": {
+      "path": "public/assets/dinosaur-home-en-block.jpg",
+      "page": 15,
+      "width": 106,
+      "height": 141,
+      "caption": "Closed-place marker",
+      "excerpt": true,
+      "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+      "sha256": "49ead7e8a5f81d6735d9efb3d9a4d2d57761f15b7fbcc011acd2f7d44e0e668d"
+    },
+    "milo": {
+      "path": "public/assets/dinosaur-home-en-milo.jpg",
+      "page": 15,
+      "width": 107,
+      "height": 141,
+      "caption": "Milo movement marker",
+      "excerpt": true,
+      "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+      "sha256": "39c224323103a21c38a61f545e795e97bc667a1cceafcca1a1565bc483114bdc"
+    },
+    "join-right": {
+      "path": "public/assets/dinosaur-home-en-join-right.jpg",
+      "page": 7,
+      "width": 70,
+      "height": 85,
+      "caption": "Neutral right-edge path detail",
+      "excerpt": true,
+      "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+      "sha256": "d056b75c71d1e0e682bd7463d59cd8015dc48b179a2a17a3d49d695f302e40a4"
+    },
+    "join-left": {
+      "path": "public/assets/dinosaur-home-en-join-left.jpg",
+      "page": 7,
+      "width": 70,
+      "height": 85,
+      "caption": "Neutral left-edge path detail",
+      "excerpt": true,
+      "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+      "sha256": "cda01d565b506afcab6e4e2982da26d6bec0e3efe6cbf77cb7184fcd458140f8"
+    },
+    "record": {
+      "path": "public/assets/dinosaur-home-en-record.jpg",
+      "page": 3,
+      "width": 1030,
+      "height": 1484,
+      "caption": "Blank expedition record",
+      "excerpt": true,
+      "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+      "sha256": "4d4cb0e61fbb35b3e12eb1454661c5435e14a3193ba0865f5fe9b2fd8c531f85"
+    },
+    "keepsake": {
+      "path": "public/assets/dinosaur-home-en-keepsake.jpg",
+      "page": 17,
+      "width": 1027,
+      "height": 632,
+      "caption": "Blank keepsake drawing area",
+      "excerpt": true,
+      "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+      "sha256": "c048aa64a313fb2bf4667bea941136e3cae73ea36489d09c61b58ecab0552f63"
+    }
+  },
+  "zh": {
+    "map": {
+      "path": "public/assets/dinosaur-home-zh-map.jpg",
+      "page": 8,
+      "width": 992,
+      "height": 900,
+      "caption": "空白六格探险地图",
+      "excerpt": true,
+      "sourceSha256": "b04c6a81ee29441901fa280df5312e62862db2fda1570682f07e92738e36f701",
+      "sha256": "676040f57de113ad2fc18ff34fb0acf4ad2c63d6fd91ce14e469e8fcd6f527fb"
+    },
+    "backpack": {
+      "path": "public/assets/dinosaur-home-zh-backpack.jpg",
+      "page": 11,
+      "width": 599,
+      "height": 262,
+      "caption": "空白两格背包",
+      "excerpt": true,
+      "sourceSha256": "b04c6a81ee29441901fa280df5312e62862db2fda1570682f07e92738e36f701",
+      "sha256": "9fc4cd17e498e9e0e7bdd1580599802e8cfd8efc1e0fd66af23cd2975de7fcca"
+    },
+    "choices": {
+      "path": "public/assets/dinosaur-home-zh-choices.jpg",
+      "page": 12,
+      "width": 546,
+      "height": 387,
+      "caption": "四件未选择的补给纸卡",
+      "excerpt": true,
+      "sourceSha256": "b04c6a81ee29441901fa280df5312e62862db2fda1570682f07e92738e36f701",
+      "sha256": "cbb1b5921ec89befc1c427b8f04af826ea468b2b1386b7fb66e00ab0b05d223d"
+    },
+    "bridge": {
+      "path": "public/assets/dinosaur-home-zh-bridge.jpg",
+      "page": 9,
+      "width": 254,
+      "height": 391,
+      "caption": "一张正向木桥地形卡",
+      "excerpt": true,
+      "sourceSha256": "b04c6a81ee29441901fa280df5312e62862db2fda1570682f07e92738e36f701",
+      "sha256": "04e7c4267d6af6e806ca7b98b5f8870b29d78ca68f1c4eaf3e3c657c26ee92ef"
+    },
+    "block": {
+      "path": "public/assets/dinosaur-home-zh-block.jpg",
+      "page": 15,
+      "width": 106,
+      "height": 141,
+      "caption": "封路标记",
+      "excerpt": true,
+      "sourceSha256": "b04c6a81ee29441901fa280df5312e62862db2fda1570682f07e92738e36f701",
+      "sha256": "c6ed04fed18afa343ee5cccb916aed1829197582bc8079139421531610e0c328"
+    },
+    "milo": {
+      "path": "public/assets/dinosaur-home-zh-milo.jpg",
+      "page": 15,
+      "width": 107,
+      "height": 141,
+      "caption": "米洛移动标记",
+      "excerpt": true,
+      "sourceSha256": "b04c6a81ee29441901fa280df5312e62862db2fda1570682f07e92738e36f701",
+      "sha256": "3d3da326bb4bdd9a0e7013b64853b8eae4cb97eca1881964015f2e72583eec0d"
+    },
+    "join-right": {
+      "path": "public/assets/dinosaur-home-zh-join-right.jpg",
+      "page": 7,
+      "width": 70,
+      "height": 85,
+      "caption": "中性示例的右侧路口",
+      "excerpt": true,
+      "sourceSha256": "b04c6a81ee29441901fa280df5312e62862db2fda1570682f07e92738e36f701",
+      "sha256": "d056b75c71d1e0e682bd7463d59cd8015dc48b179a2a17a3d49d695f302e40a4"
+    },
+    "join-left": {
+      "path": "public/assets/dinosaur-home-zh-join-left.jpg",
+      "page": 7,
+      "width": 70,
+      "height": 85,
+      "caption": "中性示例的左侧路口",
+      "excerpt": true,
+      "sourceSha256": "b04c6a81ee29441901fa280df5312e62862db2fda1570682f07e92738e36f701",
+      "sha256": "cda01d565b506afcab6e4e2982da26d6bec0e3efe6cbf77cb7184fcd458140f8"
+    },
+    "record": {
+      "path": "public/assets/dinosaur-home-zh-record.jpg",
+      "page": 3,
+      "width": 1030,
+      "height": 1484,
+      "caption": "空白探险记录",
+      "excerpt": true,
+      "sourceSha256": "b04c6a81ee29441901fa280df5312e62862db2fda1570682f07e92738e36f701",
+      "sha256": "5c522746ef9f314cf25cbf494a04adad62437883e2335cbe727f05de44f16aab"
+    },
+    "keepsake": {
+      "path": "public/assets/dinosaur-home-zh-keepsake.jpg",
+      "page": 17,
+      "width": 1027,
+      "height": 632,
+      "caption": "空白纪念绘画区",
+      "excerpt": true,
+      "sourceSha256": "b04c6a81ee29441901fa280df5312e62862db2fda1570682f07e92738e36f701",
+      "sha256": "734d25947e52c74eaa7a50c3626290fe20d8d7bb7c2e4bcc11e6274a9def70de"
+    }
+  }
+}

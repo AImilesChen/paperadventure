@@ -4,8 +4,8 @@ export function readyDocumentUrl(orderId,role,paper,locale,edition){
  if(!['player','guide'].includes(role)||!['A4','Letter'].includes(paper)||!['en','zh'].includes(locale)||!edition)throw new Error('Choose an available PDF language, edition and paper size.');
  return `/api/v1/files/${encodeURIComponent(orderId)}/${role}?paper=${paper}&locale=${locale}&edition=${encodeURIComponent(edition)}`;
 }
-export async function prepareReadyLanguageDownload({orderId,paper,locale,edition,themeId='ocean',fetcher=fetch}){
- const stem=readyDocumentStem(themeId);
+export async function prepareReadyLanguageDownload({orderId,paper,locale,edition,themeId='ocean',setting='classroom',fetcher=fetch}){
+ const stem=readyDocumentStem(themeId,setting);
  const files=await Promise.all(['player','guide'].map(async role=>{
   const response=await fetcher(readyDocumentUrl(orderId,role,paper,locale,edition),{credentials:'same-origin'});
   if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(data.error?.message||'The selected PDF files are unavailable. Retry or choose another available language.');}

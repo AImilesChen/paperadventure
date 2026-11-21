@@ -1,72 +1,102 @@
 {
   "map": {
-    "page": 7,
+    "path": "public/assets/dinosaur-home-en-map.jpg",
+    "page": 8,
+    "width": 992,
+    "height": 900,
     "caption": "Blank six-slot expedition map",
-    "width": 918,
-    "height": 903,
-    "excerpt": true
+    "excerpt": true,
+    "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+    "sha256": "24a4a10ea60dc28a4578fd228983b7082ba10358cf15df7956c4e6564909ca89"
   },
   "backpack": {
-    "page": 10,
-    "caption": "Empty two-slot paper backpack",
-    "width": 1555,
-    "height": 375,
-    "excerpt": true
+    "path": "public/assets/dinosaur-home-en-backpack.jpg",
+    "page": 11,
+    "width": 599,
+    "height": 261,
+    "caption": "Empty two-slot backpack",
+    "excerpt": true,
+    "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+    "sha256": "1870b1d18b85258cd97c75c619ff3903359c437a5de6a617c94146d6f4498a7a"
   },
   "choices": {
-    "page": 10,
-    "caption": "Four unselected paper supplies",
-    "width": 729,
-    "height": 463,
-    "excerpt": true
+    "path": "public/assets/dinosaur-home-en-choices.jpg",
+    "page": 12,
+    "width": 546,
+    "height": 387,
+    "caption": "Four unselected supply tokens",
+    "excerpt": true,
+    "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+    "sha256": "70cd9d86e8d65ba089675c9790e75538d9605744e85620ff0aaa550cb3797314"
   },
   "bridge": {
-    "page": 8,
-    "caption": "One printed bridge tile",
-    "width": 396,
-    "height": 637,
-    "excerpt": true
+    "path": "public/assets/dinosaur-home-en-bridge.jpg",
+    "page": 9,
+    "width": 254,
+    "height": 390,
+    "caption": "One upright bridge tile",
+    "excerpt": true,
+    "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+    "sha256": "c2f58c3e85987317684f7b7ab17302174d6faf23be8513e2bfc426009cc40f3c"
   },
   "block": {
-    "page": 12,
-    "caption": "Printed BLOCK marker",
-    "width": 201,
-    "height": 204,
-    "excerpt": true
+    "path": "public/assets/dinosaur-home-en-block.jpg",
+    "page": 15,
+    "width": 106,
+    "height": 141,
+    "caption": "Closed-place marker",
+    "excerpt": true,
+    "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+    "sha256": "49ead7e8a5f81d6735d9efb3d9a4d2d57761f15b7fbcc011acd2f7d44e0e668d"
   },
   "milo": {
-    "page": 12,
-    "caption": "Printed MILO marker",
-    "width": 155,
-    "height": 204,
-    "excerpt": true
+    "path": "public/assets/dinosaur-home-en-milo.jpg",
+    "page": 15,
+    "width": 107,
+    "height": 141,
+    "caption": "Milo movement marker",
+    "excerpt": true,
+    "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+    "sha256": "39c224323103a21c38a61f545e795e97bc667a1cceafcca1a1565bc483114bdc"
   },
   "join-right": {
-    "page": 8,
-    "caption": "Right-edge path detail",
-    "width": 94,
-    "height": 152,
-    "excerpt": true
+    "path": "public/assets/dinosaur-home-en-join-right.jpg",
+    "page": 7,
+    "width": 70,
+    "height": 85,
+    "caption": "Neutral right-edge path detail",
+    "excerpt": true,
+    "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+    "sha256": "d056b75c71d1e0e682bd7463d59cd8015dc48b179a2a17a3d49d695f302e40a4"
   },
   "join-left": {
-    "page": 8,
-    "caption": "Left-edge path detail",
-    "width": 103,
-    "height": 152,
-    "excerpt": true
+    "path": "public/assets/dinosaur-home-en-join-left.jpg",
+    "page": 7,
+    "width": 70,
+    "height": 85,
+    "caption": "Neutral left-edge path detail",
+    "excerpt": true,
+    "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+    "sha256": "cda01d565b506afcab6e4e2982da26d6bec0e3efe6cbf77cb7184fcd458140f8"
   },
   "record": {
+    "path": "public/assets/dinosaur-home-en-record.jpg",
     "page": 3,
-    "caption": "Blank five-mission expedition record",
-    "width": 1075,
-    "height": 1521,
-    "excerpt": false
+    "width": 1030,
+    "height": 1484,
+    "caption": "Blank expedition record",
+    "excerpt": true,
+    "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+    "sha256": "4d4cb0e61fbb35b3e12eb1454661c5435e14a3193ba0865f5fe9b2fd8c531f85"
   },
   "keepsake": {
-    "page": 15,
-    "caption": "Blank expedition drawing area",
-    "width": 916,
-    "height": 677,
-    "excerpt": true
+    "path": "public/assets/dinosaur-home-en-keepsake.jpg",
+    "page": 17,
+    "width": 1027,
+    "height": 632,
+    "caption": "Blank keepsake drawing area",
+    "excerpt": true,
+    "sourceSha256": "b3dd15ddc46ab93a0c81c0be2634a395c84a6202e9c030d80df5f5c9aa01aa3c",
+    "sha256": "c048aa64a313fb2bf4667bea941136e3cae73ea36489d09c61b58ecab0552f63"
   }
 }

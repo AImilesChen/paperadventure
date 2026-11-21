@@ -1,12 +1,16 @@
-import { t as translateUi, localHref } from "./i18n/index.mjs";import { useState } from 'react';
+import {currentLocale} from './i18n/index.mjs';
+import {dinosaurDetailZh} from './dinosaurDetailZh.mjs';
+import dinosaurEditionAssets from './dinosaurHomeEditionPreviewAssets.json';
+import { t as baseCopy, localHref } from "./i18n/index.mjs";import { useState } from 'react';
 import { Printer, Monitor, Backspace, Scissors, Equals } from '@phosphor-icons/react';
 import { homeGamePlanning, homePrintPlan } from '../shared/home-game-planning.mjs';
-import dinosaurAssets from './dinosaurPreviewAssets.json';
 import christmasAssets from './christmasHomePreviewAssets.json';
 import './featuredHomePreparation.css';
 import './printingCalculator.css';
 
-// Counts and handoffs follow dinosaur_home_experience.py and christmas_home_workshop.py.
+const gameCopy=(themeId)=>(key,values)=>themeId==='dinosaur'&&currentLocale()==='zh'&&Object.hasOwn(dinosaurDetailZh,key)?dinosaurDetailZh[key].replace(/\{(\w+)\}/g,(token,name)=>values?.[name]??token):baseCopy(key,values);
+
+// Dinosaur counts follow the revised edition; Christmas keeps its established source.
 const packs = {
   dinosaur: {
     ...homeGamePlanning.dinosaur,
@@ -14,9 +18,9 @@ const packs = {
     previews: [['map', 'A landscape to build'], ['backpack', 'A place for paper supplies'], ['record', 'A record of the journey']],
     materials: 'Ordinary paper, a pencil, adult-handled scissors and a flat table. All supplies and obstacles in the story are paper pieces.',
     steps: [
-    ['Read and print', 'Read the Host Guide first. Print Player pages 1–15 for each team, single-sided at Actual size / 100%, in matching A4 or US Letter.'],
-    ['Cut and count', 'An adult cuts 4 jobs on page 2, 6 tiles on page 8, 4 supplies on page 10 and 2 markers on page 12. Keep the map and backpack boards whole.'],
-    ['Sort the missions', 'Start with pages 1–3. Prepare piles 4–5, 6–8, 9–10, 11–12 and 13. Keep the welcome on page 14 and keepsake on page 15 with the adult until the ending.'],
+    ['Read and print', 'Read the Host Guide first. Print Player pages 1–17 per team, single-sided at Actual size / 100%, in matching A4 or US Letter.'],
+    ['Cut and count', 'Full-cut: adult cuts 4 jobs on page 2, 6 tiles on page 9, 4 supplies on page 12 and 2 markers on page 15. Low-cut: keep jobs whole and cut 12 moving pieces. Keep all instructions and mats whole.'],
+    ['Sort the missions', 'Start with pages 1–3. Prepare piles 4–5, 6–9, 10–12, 13–15 and 16. The complete welcome stays in the private Host Guide; release optional Player page 17 only after the ending.'],
     ['Host one mission at a time', 'Read the scene, hand out its materials, check the paper evidence and offer a hint when needed. Rotate the four jobs after missions 1–4.']],
 
     table: [['ADULT SIDE', 'Host Guide, later mission piles and ending pages'], ['TEAM SIDE', 'Current mission, journey record and space for the map'], ['WITHIN REACH', 'Counted paper pieces and a pencil']],
@@ -47,27 +51,31 @@ const packs = {
 };
 
 export function PackPurchaseFacts({ themeId }) {
+  const translateUi=gameCopy(themeId);
   const pack = packs[themeId];
   return <div className="pack-purchase-facts"><p><strong>{translateUi(pack.playerPages)}{translateUi(" Player pages")}</strong><span aria-hidden="true"> · </span>{translateUi(pack.guidePages)}{translateUi("-page Host Guide")}<span aria-hidden="true"> · </span>{translateUi(pack.pieces)}{translateUi(" paper pieces per team")}</p><a href="#prepare-game">{translateUi("See printing and adult preparation \u2193")}</a></div>;
 }
 
 export function FeaturedHostFileCard({ themeId }) {
+  const translateUi=gameCopy(themeId);
   const pack = packs[themeId];
   const contents = themeId === 'dinosaur' ?
-  ['Print inventory, 16-piece cutting list and mission handoffs', 'Rotating jobs and reading or writing support', 'Read-aloud scenes, evidence checks and graduated hints', 'Correction, no-cut fallback, final welcome and reset'] :
+  ['Print inventory, 16-piece cutting list and mission handoffs', 'Rotating jobs and reading or writing support', 'Separate read-aloud action pages, private answers and graduated hints', 'Low-cut preparation, repack/retry, private final welcome and reset'] :
   ['Print inventory, cutting boundaries and covered mission piles', 'Grouping, rotating jobs and reading support', 'Read-aloud scenes, physical checks and two graduated hints', 'Repair, replacement, final reply and replay'];
   return <article className="theme-file-card"><span>{translateUi("FOR THE ADULT HOST")}</span><h3>{translateUi("Host Guide \xB7 ")}{translateUi(pack.guidePages)}{translateUi(" pages")}</h3><p>{translateUi("Read separately to prepare and lead the five missions.")}</p><ul>{contents.map((item) => <li key={item}>{translateUi(item)}</li>)}</ul></article>;
 }
 
 export function FeaturedPackMaterials({ themeId }) {
-  const pack = packs[themeId],assets = themeId === 'dinosaur' ? dinosaurAssets : christmasAssets;
+  const translateUi=gameCopy(themeId);
+  const pack = packs[themeId],assets = themeId === 'dinosaur' ? dinosaurEditionAssets[currentLocale()==='zh'?'zh':'en'] : christmasAssets;
   return <div className="pack-material-overview"><div className="pack-material-heading"><span className="eyebrow">{translateUi("ACTUAL PLAYER PACK EXCERPTS")}</span><h3>{translateUi("Paper materials you can inspect before buying.")}</h3><p>{translateUi("Selected blank materials from the game, not a view of every page. Complete clues, solutions and the ending stay in the pack.")}</p></div><div className="pack-material-grid">{translateUi(pack.previews.map(([name, title]) => {
-        const item = assets[name],src = `/assets/${themeId}-home-detail-${name}.jpg`;
-        return <figure key={name}><a href={localHref(src)} target="_blank" rel="noopener noreferrer" aria-label={translateUi("Enlarge {value0} (opens in a new tab)", { value0: title.toLowerCase() })}><img src={src} alt={translateUi(item.caption)} width={item.width} height={item.height} loading="lazy" /><span>{translateUi("Enlarge material \u2197")}</span></a><figcaption><strong>{translateUi(title)}</strong><span>{translateUi("Player Pack \xB7 A4 page ")}{translateUi(item.page)}{item.excerpt ? translateUi(' excerpt') : translateUi('')}</span></figcaption></figure>;
+        const item = assets[name],src = themeId==='dinosaur' ? item.path.replace(/^public/,'') : `/assets/${themeId}-home-detail-${name}.jpg`;
+        return <figure key={name}><a href={localHref(src)} target="_blank" rel="noopener noreferrer" aria-label={translateUi("Enlarge {value0} (opens in a new tab)", { value0: currentLocale()==='zh'&&themeId==='dinosaur'?translateUi(title):title.toLowerCase() })}><img src={src} alt={translateUi(item.caption)} width={item.width} height={item.height} loading="lazy" /><span>{translateUi("Enlarge material \u2197")}</span></a><figcaption><strong>{translateUi(title)}</strong><span>{translateUi("Player Pack \xB7 A4 page ")}{translateUi(item.page)}{item.excerpt ? translateUi(' excerpt') : translateUi('')}</span></figcaption></figure>;
       }))}</div><p className="pack-inventory"><strong>{translateUi(pack.pieces)}{translateUi(" loose pieces per team:")}</strong> {translateUi(pack.inventory)}{translateUi(". Keep boards and other whole pages uncut as directed.")}</p></div>;
 }
 
 export function HomePrintingCalculator({ themeId, Link }) {
+  const translateUi=gameCopy(themeId);
   const pack = packs[themeId];
   const [children, setChildren] = useState('4');
   const [printGuide, setPrintGuide] = useState(false);
@@ -98,11 +106,12 @@ export function HomePrintingCalculator({ themeId, Link }) {
         <p className="print-receipt-note">{translateUi("A4 or US Letter \xB7 single-sided")}</p>
       </div>
     </div>
-    <div className="pack-calculator-footer"><details className="pack-print-reference"><summary>{translateUi("See one- and two-team totals")}</summary><p className="print-calculation-note">{translateUi("One PDF page per sheet. Print the Host Guide once, even for two teams. Cut-out pieces are separate from the sheet count.")}</p><p><strong>{translateUi("Player Pack \xB7 ")}{translateUi(pack.playerPages)}{translateUi(" pages")}</strong><br />{translateUi("One complete copy per team.")}</p><p><strong>{translateUi("Host Guide \xB7 ")}{translateUi(pack.guidePages)}{translateUi(" pages")}</strong><br />{translateUi("One adult copy, on screen or printed.")}</p><div className="pack-table-wrap"><table><caption>{translateUi("Single-sided sheets with the Host Guide on screen")}</caption><thead><tr><th scope="col">{translateUi("Children")}</th><th scope="col">{translateUi("Team sets")}</th><th scope="col">{translateUi("Sheets")}</th></tr></thead><tbody><tr><th scope="row">2–6</th><td>1</td><td>{translateUi(pack.playerPages)}</td></tr><tr><th scope="row">7–12</th><td>2</td><td>{translateUi(pack.playerPages * 2)}</td></tr></tbody></table></div><p className="pack-print-note">{translateUi("Printing one Host Guide adds ")}{translateUi(pack.guidePages)}{translateUi(" sheets: ")}{translateUi(pack.playerPages + pack.guidePages)}{translateUi(" for one team or ")}{translateUi(pack.playerPages * 2 + pack.guidePages)}{translateUi(" for two. For 7\u201312 children, use two balanced teams of 3\u20136; the adult is additional.")}</p></details><Link className="text-link" to={localHref("/en/help/print/")}>{translateUi("Printing help \u2192")}</Link></div>
+    <div className="pack-calculator-footer"><details className="pack-print-reference"><summary>{translateUi("See one- and two-team totals")}</summary><p className="print-calculation-note">{translateUi("One PDF page per sheet. Print the Host Guide once, even for two teams. Cut-out pieces are separate from the sheet count.")}</p><p><strong>{translateUi("Player Pack \xB7 ")}{translateUi(pack.playerPages)}{translateUi(" pages")}</strong><br />{translateUi("One complete copy per team.")}</p><p><strong>{translateUi("Host Guide \xB7 ")}{translateUi(pack.guidePages)}{translateUi(" pages")}</strong><br />{translateUi("One adult copy, on screen or printed.")}</p><div className="pack-table-wrap"><table><caption>{translateUi("Single-sided sheets with the Host Guide on screen")}</caption><thead><tr><th scope="col">{translateUi("Children")}</th><th scope="col">{translateUi("Team sets")}</th><th scope="col">{translateUi("Sheets")}</th></tr></thead><tbody><tr><th scope="row">2–6</th><td>1</td><td>{translateUi(pack.playerPages)}</td></tr><tr><th scope="row">7–12</th><td>2</td><td>{translateUi(pack.playerPages * 2)}</td></tr></tbody></table></div><p className="pack-print-note">{themeId==='dinosaur'&&currentLocale()==='zh'?<>含一份纸质主持指南：一组共{pack.playerPages+pack.guidePages}张，两组共{pack.playerPages*2+pack.guidePages}张。7至12名玩家分两个均衡小组，每组3至6人，另需成人主持。</>:<>{translateUi("Printing one Host Guide adds ")}{translateUi(pack.guidePages)}{translateUi(" sheets: ")}{translateUi(pack.playerPages + pack.guidePages)}{translateUi(" for one team or ")}{translateUi(pack.playerPages * 2 + pack.guidePages)}{translateUi(" for two. For 7\u201312 children, use two balanced teams of 3\u20136; the adult is additional.")}</>}</p></details><Link className="text-link" to={localHref("/en/help/print/")}>{translateUi("Printing help \u2192")}</Link></div>
   </div>;
 }
 
 export function FeaturedHomePreparation({ themeId, Link }) {
+  const translateUi=gameCopy(themeId);
   const pack = packs[themeId];
   return <>
     <section id="prepare-game" className="theme-detail-section pack-calculator-section" aria-labelledby="pack-calculator-title"><HomePrintingCalculator key={themeId} themeId={themeId} Link={Link} /></section>
