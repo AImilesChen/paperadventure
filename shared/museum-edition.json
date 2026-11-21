@@ -1,0 +1,12 @@
+{
+  "world":"museum","setting":"classroom","code":"C08",
+  "versions":{"en":"1.1","zh":"1.0-zh.1"},"basePackVersions":["v1.0","1.0"],
+  "titles":{"en":"The Mixed-Up Exhibition","zh":"错位的奇珍展"},
+  "pages":{"player":13,"guide":19},"pieces":{"standard":12,"lowCut":3},
+  "ledger":[["M-72",1,1],["M-27",2,1],["M-20",2,0]],"targetMarks":[2,1],
+  "caseCards":[4,2,7],"caseOrder":[2,7,4],"caseNumber":4,"accession":"M-27",
+  "parts":["crescent","triangle","single","double","stripes","dots"],
+  "chosenParts":["crescent","double","dots"],"trustedSources":["A","C"],
+  "sourceIds":{"A":"M-27","B":"M-72","C":"M-27"},
+  "partCardPt":[144,96],"partSlotPt":[162,114],"caseCardPt":[140,82],"caseSlotPt":[158,110]
+}

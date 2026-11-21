@@ -1,0 +1,84 @@
+{
+  "items": [
+    {
+      "locale": "en",
+      "version": "1.1",
+      "page": 3,
+      "sourceSha256": "0a052930347d65f7d89db73a9ee616e3b3e04339cc205c1efc9b9dc90db6b054",
+      "path": "public/assets/museum-en-progress.jpg",
+      "sha256": "fa9bb747ab58d260162c49b6fb6ef718427f030056ff5313d43f54d30a7e2820"
+    },
+    {
+      "locale": "en",
+      "version": "1.1",
+      "page": 5,
+      "sourceSha256": "0a052930347d65f7d89db73a9ee616e3b3e04339cc205c1efc9b9dc90db6b054",
+      "path": "public/assets/museum-en-gallery.jpg",
+      "sha256": "47a14562d8a71e78afa403253051a82876d8b6eb5f87851933c6e43889356075"
+    },
+    {
+      "locale": "en",
+      "version": "1.1",
+      "page": 8,
+      "sourceSha256": "0a052930347d65f7d89db73a9ee616e3b3e04339cc205c1efc9b9dc90db6b054",
+      "path": "public/assets/museum-en-parts.jpg",
+      "sha256": "a85cfdd3cefb16031948febdbb22c4a4665cbe7eabb73ed8c7b3c3ecad3a85c3"
+    },
+    {
+      "locale": "en",
+      "version": "1.1",
+      "page": 11,
+      "sourceSha256": "0a052930347d65f7d89db73a9ee616e3b3e04339cc205c1efc9b9dc90db6b054",
+      "path": "public/assets/museum-en-label.jpg",
+      "sha256": "d421e8d0833ae3ccfba1344f8b2e20df0a44fbd5e1728799709c79e1ba546728"
+    },
+    {
+      "locale": "en",
+      "version": "1.1",
+      "page": 12,
+      "sourceSha256": "0a052930347d65f7d89db73a9ee616e3b3e04339cc205c1efc9b9dc90db6b054",
+      "path": "public/assets/museum-en-display.jpg",
+      "sha256": "85956b4ccb321b0c05196d8f1c46e2ec59f1b62dcd0fadafd003938062a8c118"
+    },
+    {
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "page": 3,
+      "sourceSha256": "d8867aa2cdc91f0923ed13e821c265e01815eff2485eeac697a9e6cdc4c94433",
+      "path": "public/assets/museum-zh-progress.jpg",
+      "sha256": "222879b1f8a88174ed8b8582952d2c6dee76a987a94d0bd638a188c2b145773f"
+    },
+    {
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "page": 5,
+      "sourceSha256": "d8867aa2cdc91f0923ed13e821c265e01815eff2485eeac697a9e6cdc4c94433",
+      "path": "public/assets/museum-zh-gallery.jpg",
+      "sha256": "f2f59947c757c0a659a5f7595a2ce1fd8fd3b33b8cebccaa1118093e73b9403e"
+    },
+    {
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "page": 8,
+      "sourceSha256": "d8867aa2cdc91f0923ed13e821c265e01815eff2485eeac697a9e6cdc4c94433",
+      "path": "public/assets/museum-zh-parts.jpg",
+      "sha256": "1293cabdf2964490787fc40d856caaffe9529b4f3d500273382af363a72ef717"
+    },
+    {
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "page": 11,
+      "sourceSha256": "d8867aa2cdc91f0923ed13e821c265e01815eff2485eeac697a9e6cdc4c94433",
+      "path": "public/assets/museum-zh-label.jpg",
+      "sha256": "edaf7d5f5a6bedd8314bf6e9ce2369cb1c9e2be67629b344c16aeb2ee1ca5ad3"
+    },
+    {
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "page": 12,
+      "sourceSha256": "d8867aa2cdc91f0923ed13e821c265e01815eff2485eeac697a9e6cdc4c94433",
+      "path": "public/assets/museum-zh-display.jpg",
+      "sha256": "f26286d0bebd8ffc016163a0e8d6ea76a37492139ae760c80af860c206b6633b"
+    }
+  ]
+}

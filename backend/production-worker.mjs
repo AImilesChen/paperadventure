@@ -1,3 +1,4 @@
+import {paidDocumentGame} from '../shared/ready-document-editions.mjs';
 import {readyLanguageEdition,readyLanguageFile,readyDocumentEditions} from './localized-ready-packs.mjs';
 import {localePath,localeCodes} from '../shared/locale.mjs';
 import {sampleLocale,localizedFreePack,localizedFreeSample} from './localized-free-samples.mjs';
@@ -185,7 +186,7 @@ async function liveCatalog(env) {
     WHERE status = 'published' OR (? = 1 AND status = 'internal_test')
     GROUP BY ready_pack_id,variant_id HAVING COUNT(*) = 4`, testOnly ? 1 : 0).all();
   const documentEditions=new Map();
-  for(const pack of ready.filter(p=>p.theme_world_id==='ocean'&&p.setting==='classroom'))documentEditions.set(pack.id,await readyDocumentEditions(env,pack));
+  for(const pack of ready.filter(p=>paidDocumentGame(p.theme_world_id,p.setting)))documentEditions.set(pack.id,await readyDocumentEditions(env,pack));
   const variantsFor = pack => (variantRows.results || []).filter(row => row.ready_pack_id === pack?.id).map(row => row.variant_id);
   const trialPacks = ready.filter(pack => pack.theme_world_id === 'celebration');
   const free = env.FREE_SAMPLE_ENABLED === 'true' &&
@@ -208,7 +209,7 @@ async function liveCatalog(env) {
     escapeGames:escapeProducts.map(p=>{const pack=ready.find(r=>r.theme_world_id===p.id&&r.setting==='home'&&r.version===p.version&&extraCounts.get(r.id)===2&&(p.id!=='midnight-masquerade'||attachmentCounts.get(r.id)===8));return {...p,home:{readyStatus:pack&&canCheckout&&liveSkus.has(p.sku)?'published':'not_published',packVersion:pack?.version||null}};}),
     themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: readyStatus(theme.id, 'home'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
       classroom: { readyStatus: readyStatus(theme.id, 'classroom'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null,
-        ...(theme.id==='ocean'?{documentEditions:documentEditions.get(ready.find(pack=>pack.theme_world_id===theme.id&&pack.setting==='classroom')?.id)||[]}:{}),
+        ...(paidDocumentGame(theme.id,'classroom')?{documentEditions:documentEditions.get(ready.find(pack=>pack.theme_world_id===theme.id&&pack.setting==='classroom')?.id)||[]}:{}),
         variantIds: variantsFor(ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')) } })),
     offers: offers.map(offer => ({ ...offer, saleEnabled: canCheckout && liveSkus.has(offer.sku) && (offer.kind === 'custom' ? generationReady(env) && planSchemaReady : availablePaidPack(offer.setting)) })) };
 }
@@ -304,8 +305,8 @@ async function checkout(request, env) {
     if (!readyPack) throw new ApiError(503, 'PACK_NOT_PUBLISHED', 'This ready-made pack is not published.');
     const files = await query(env.DB, 'SELECT paper, role FROM ready_pack_files WHERE ready_pack_id = ?', readyPack.id).all();
     if (files.results?.length !== 4) throw new ApiError(503, 'PACK_FILES_INCOMPLETE', 'The printable pack is incomplete.');
-    if(spec.documentLocale==='zh'){
-      const translated=await readyLanguageEdition(env,readyPack.id,'zh',spec.documentEdition);
+    if(spec.documentEdition){
+      const translated=await readyLanguageEdition(env,readyPack.id,spec.documentLocale||'en',spec.documentEdition);
       if(!translated)throw new ApiError(409,'DOCUMENT_EDITION_UNAVAILABLE','The selected PDF language edition is unavailable. No payment was created.');
     }
     if(spec.themeId==='midnight-masquerade'){
@@ -846,7 +847,7 @@ async function orderView(request, env, orderId) {
   const world=order.product_kind==='ready'?(themes.find(theme=>theme.id===spec.themeId)||escapeProduct(spec.themeId)):null;
   const story=world?.story?.[displaySetting];
   let documentInfo={};
-  if(order.product_kind==='ready'&&spec.themeId==='ocean'&&displaySetting==='classroom'){
+  if(order.product_kind==='ready'&&paidDocumentGame(spec.themeId,displaySetting,spec.variantId)){
     const pack=entitlement?.ready_pack_id?await query(env.DB,'SELECT id,version,theme_world_id,setting FROM ready_packs WHERE id=?',entitlement.ready_pack_id).first():null;
     documentInfo={documentLocale:spec.documentLocale||'en',documentEdition:spec.documentEdition||null,documentEditions:pack?await readyDocumentEditions(env,pack):[{locale:'en',version:spec.packVersion}]};
   }
@@ -1083,14 +1084,26 @@ async function fileDownload(request, env, orderId, role) {
   const documentLocale=requestedLocale||spec.documentLocale||'en';
   let file,languageEdition=null;
   if(documentLocale!=='en'){
-    if(order.product_kind!=='ready'||spec.variantId||spec.themeId!=='ocean'||spec.setting!=='classroom')throw new ApiError(409,'DOCUMENT_EDITION_UNAVAILABLE','This game has no selected PDF language edition.');
+    if(order.product_kind!=='ready'||!paidDocumentGame(spec.themeId,spec.setting,spec.variantId))throw new ApiError(409,'DOCUMENT_EDITION_UNAVAILABLE','This game has no selected PDF language edition.');
     const pinned=fileUrl.searchParams.get('edition')||(spec.documentLocale===documentLocale?spec.documentEdition:null);
     if(pinned&&(!/^[A-Za-z0-9._-]{1,40}$/.test(pinned)||fileUrl.searchParams.getAll('edition').length>1))throw new ApiError(400,'INVALID_DOCUMENT_EDITION','Choose a published PDF edition.');
     const localized=await readyLanguageFile(env,entitlement.ready_pack_id,documentLocale,pinned,paper,role);file=localized.file;languageEdition=localized.edition.version;
-  }else if (order.product_kind === 'ready') file = spec.variantId
-    ? await query(env.DB, 'SELECT r2_key, sha256, bytes FROM ready_pack_variants WHERE ready_pack_id = ? AND variant_id = ? AND paper = ? AND role = ?', entitlement.ready_pack_id, spec.variantId, paper, role).first()
-    : await query(env.DB, 'SELECT r2_key, sha256, bytes FROM ready_pack_files WHERE ready_pack_id = ? AND paper = ? AND role = ?', entitlement.ready_pack_id, paper, role).first();
-  else {
+  }else if (order.product_kind === 'ready') {
+    let repaired=null;
+    if(paidDocumentGame(spec.themeId,spec.setting,spec.variantId)&&spec.themeId==='museum'){
+      const pinned=fileUrl.searchParams.get('edition')||(spec.documentLocale==='en'?spec.documentEdition:null);
+      const original=await query(env.DB,'SELECT version FROM ready_packs WHERE id=?',entitlement.ready_pack_id).first();
+      if(fileUrl.searchParams.getAll('edition').length>1)throw new ApiError(400,'INVALID_DOCUMENT_EDITION','Choose one PDF edition.');
+      if(!pinned||pinned!==original?.version){
+        repaired=await readyLanguageEdition(env,entitlement.ready_pack_id,'en',pinned);
+        if(pinned&&!repaired)throw new ApiError(409,'DOCUMENT_EDITION_UNAVAILABLE','The selected English repair edition is unavailable.');
+        if(repaired){const localized=await readyLanguageFile(env,entitlement.ready_pack_id,'en',repaired.version,paper,role);file=localized.file;languageEdition=localized.edition.version;}
+      }
+    }
+    if(!repaired)file=spec.variantId
+      ? await query(env.DB,'SELECT r2_key,sha256,bytes FROM ready_pack_variants WHERE ready_pack_id=? AND variant_id=? AND paper=? AND role=?',entitlement.ready_pack_id,spec.variantId,paper,role).first()
+      : await query(env.DB,'SELECT r2_key,sha256,bytes FROM ready_pack_files WHERE ready_pack_id=? AND paper=? AND role=?',entitlement.ready_pack_id,paper,role).first();
+  } else {
     if (paper !== spec.paper) throw new ApiError(404, 'FILE_NOT_FOUND', 'This paper size was not generated.');
     const requestedVersion = new URL(request.url).searchParams.get('version');
     if (requestedVersion && (!/^[1-9]\d{0,3}$/.test(requestedVersion) || Number(requestedVersion) > 999)) throw new ApiError(404, 'FILE_NOT_FOUND', 'This file version is unavailable.');

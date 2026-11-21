@@ -1,0 +1,318 @@
+{
+  "date": "2026-11-21",
+  "status": "audit_and_plan_only_no_implementation_or_publication",
+  "game": {
+    "world": "museum",
+    "setting": "classroom",
+    "code": "C08",
+    "englishTitle": "The Mixed-Up Exhibition",
+    "proposedChineseTitle": "错位的奇珍展",
+    "proposedWorldName": "奇珍博物馆",
+    "proposedObjectName": "听风器"
+  },
+  "source": {
+    "authoritativeGenerator": "scripts/museum_classroom_exhibition.py",
+    "contract": "content/theme-design/museum-classroom-exhibition-v1.md",
+    "audit": {
+      "status": "source_pdf_checks_passed_with_usability_findings",
+      "provenance": "Rebuilt from authoritative LIVE v86 English generator. Not a paid-order download; not proven historical-byte-identical.",
+      "pdfs": [
+        {
+          "path": "G:\\Website Project\\homegame\\paper-adventure-copy-review-reliability\\tmp\\chinese-ocean-v86\\tmp\\pdfs\\museum-zh-audit\\museum-classroom-player-1.0-A4.pdf",
+          "pages": 11,
+          "sha256": "30a278e2b3a8d4f9f017dcb7e0cde2c0c73883ddcea7f65de314e16097738e9c"
+        },
+        {
+          "path": "G:\\Website Project\\homegame\\paper-adventure-copy-review-reliability\\tmp\\chinese-ocean-v86\\tmp\\pdfs\\museum-zh-audit\\museum-classroom-guide-1.0-A4.pdf",
+          "pages": 10,
+          "sha256": "5348c490677693a57f72df450952e35ee6a8688daa41fff94e859f9f6b6be08d"
+        },
+        {
+          "path": "G:\\Website Project\\homegame\\paper-adventure-copy-review-reliability\\tmp\\chinese-ocean-v86\\tmp\\pdfs\\museum-zh-audit\\museum-classroom-player-1.0-Letter.pdf",
+          "pages": 11,
+          "sha256": "1b9305e60696599380ea2f1d25a981db2d8a6f611d09a169e3a4af80bae9b6e1"
+        },
+        {
+          "path": "G:\\Website Project\\homegame\\paper-adventure-copy-review-reliability\\tmp\\chinese-ocean-v86\\tmp\\pdfs\\museum-zh-audit\\museum-classroom-guide-1.0-Letter.pdf",
+          "pages": 10,
+          "sha256": "1909d3c217d7443c7191f8a852069dda975e37cd466bc399c30f4bbedacc4da7"
+        }
+      ],
+      "pagesRendered": 42,
+      "originalChecker": "passed",
+      "logic": {
+        "accession": {
+          "arcsOnlyCandidates": [
+            "M-27",
+            "M-20"
+          ],
+          "starOnlyCandidates": [
+            "M-27"
+          ],
+          "bothEvidenceRequiredLogically": false
+        },
+        "uniqueCaseArrangement": [
+          2,
+          7,
+          4
+        ],
+        "partSelectionUsesThreeDistinctClues": true,
+        "correctPartIdsAllA": true,
+        "twoPupilThirdSlipAlreadyProvidedByTeacher": true,
+        "stagedHandoutsPreventRequiredPrematureExposure": true
+      },
+      "originalSourceSha256": "e9c2357789c41734b09a2c180850d126d7e23480299ac4c4bc8307bc324b1465",
+      "sourceOrProductionModified": false,
+      "physicalPrintTested": false,
+      "childPlayTested": false
+    },
+    "screenReview": {
+      "pages": 42,
+      "contactSheets": 8,
+      "findings": "No new obvious overflow, clipped cards or missing props in the reconstructed English layouts."
+    },
+    "liveCatalogRead": {
+      "readyStatus": "published",
+      "packVersion": "v1.0",
+      "priceUSD": 14.99,
+      "chineseDocumentEditionListed": false
+    }
+  },
+  "assessment": "Five-stage English mainline can finish under its staged adult-led instructions; current program checks passing does not remove the usability/design findings below. Rebuild is not a live paid-order download or historical byte-identity proof.",
+  "findings": [
+    {
+      "id": "M01",
+      "topic": "Redundant accession evidence",
+      "pages": {
+        "player": [
+          3
+        ],
+        "guide": [
+          4,
+          9
+        ]
+      },
+      "observed": "One star alone selects M-27 uniquely. Arc count narrows to two candidates. Teacher requires both marks but also says at least one explained mark is accepted.",
+      "proposal": "Draw actual monochrome intake marks and ledger marks; revise the M-72 distractor from (1 arc,2 stars) to (1 arc,1 star), preserving the ID. Then either feature alone leaves two candidates; both yield one. Require both pieces of evidence consistently."
+    },
+    {
+      "id": "M02",
+      "topic": "Mixed cutting/task/record pages",
+      "pages": {
+        "player": [
+          2,
+          4
+        ]
+      },
+      "observed": "Optional role cuts share a page with the permanent evidence record. Three case-tag cuts share the page with the gallery task, placement plan and response field. This is not a claim that all rules disappear after these cuts.",
+      "proposal": "Keep role page whole; make progress an evidence index, not repeated answers. Separate intact gallery task from three-case-tag cut page. All necessary rules remain on the task page actually distributed."
+    },
+    {
+      "id": "M03",
+      "topic": "All correct assembly identifiers are A",
+      "pages": {
+        "player": [
+          6,
+          7
+        ]
+      },
+      "observed": "TOP A, DIAL A and BASE A are all correct. All actual pictures and three independent slips exist.",
+      "proposal": "Remove answer-pattern A/B identifiers; distinguish six cards by role/feature label and drawing, or use shuffled neutral IDs. Match actual monochrome drawings to text."
+    },
+    {
+      "id": "M04",
+      "topic": "Distractor archive disqualifies itself",
+      "pages": {
+        "player": [
+          8
+        ]
+      },
+      "observed": "Archive note B states This is a different object. The known object name also makes it easier to discard without checking accession ID.",
+      "proposal": "Remove disqualifying prose and answer-coded names as the deciding signal; make the distractor a plausible same-family archive record. Require two matching accession IDs and cite each source for the authored label. Do not preselect trusted source letters on the blank label."
+    },
+    {
+      "id": "M05",
+      "topic": "Low-cut and small-team path needs explicit propagation",
+      "pages": {
+        "player": [
+          4,
+          5,
+          7,
+          10,
+          11
+        ],
+        "guide": [
+          1,
+          2,
+          3,
+          6,
+          8,
+          10
+        ]
+      },
+      "observed": "English already provides a two-pupil path: adult holds/reads slip3. Low-cut is explained near the end of the guide; most preparation, play and reset sections still assume 12 pieces and cut parts.",
+      "proposal": "Standard12 pieces versus low-cut3 private slips; announce the chosen mode before printing. Carry both modes through handouts, actions, pass conditions, display and reset. For Chinese default two-pupil play, allocate one slip and two slips, one at a time, with no person holding all three. Describe three independent evidence sources, not three required pupil holders."
+    },
+    {
+      "id": "M06",
+      "topic": "Hosting, record reuse and visitor reveal",
+      "pages": {
+        "player": [
+          2,
+          3,
+          4,
+          5,
+          11
+        ],
+        "guide": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          10
+        ]
+      },
+      "observed": "Role rotation is generic; several results are recorded both in tasks and the central record; teacher actions contain solutions on the same page; peer visiting does not explicitly require both crews to finish mission4; player audit page contains the celebration.",
+      "proposal": "Explicit fixed-seat 2–6 pupil mission tables announced by teacher; progress indexes original work. Separate operation from adult answer pages; label strong hints. Explain flat-paper assembly and transfer existing selected parts to the exhibit. Pair visitors only after both crews finish mission4; teacher is visitor for a lone crew; repair/recheck only the failed item. Adult reads ending only after pass."
+    }
+  ],
+  "localization": {
+    "language": "Simplified Chinese",
+    "preserve": [
+      "Five distinct actions: accession, case layout, distributed-evidence assembly, authored label, visitor audit",
+      "2–6 pupils per crew, maximum35 in independent crews",
+      "A4 and Letter; flat paper/pencil/no glue/no specialist props",
+      "English files, widths, prices, paid entitlements and already-live Ocean Chinese2"
+    ],
+    "terminology": {
+      "accession ID": "藏品编号",
+      "case number": "展柜编号",
+      "conservation slip": "修复记录卡",
+      "visitor label": "观众标签",
+      "visitor audit": "访客核查",
+      "Wind Listener": "听风器（故事里的纸质展品）"
+    },
+    "fiction": "No real artifact/date/culture, sound production or wind-measuring claim; story purpose remains imaginative."
+  },
+  "plannedPlayerPages": [
+    {
+      "page": 1,
+      "content": "故事与开始方式",
+      "constraint": "Only initial pages1–3 at start"
+    },
+    {
+      "page": 2,
+      "content": "整页角色说明与换工",
+      "constraint": "Teacher announces fixed-seat task; no adult answer guide access"
+    },
+    {
+      "page": 3,
+      "content": "进度与证据索引",
+      "constraint": "Tick completion, retain original evidence"
+    },
+    {
+      "page": 4,
+      "content": "第一关：编号核对",
+      "constraint": "Actual vector intake tag, ledger, one ID/evidence response"
+    },
+    {
+      "page": 5,
+      "content": "第二关：完整展厅任务与布局板",
+      "constraint": "Entrance/middle/window rules stay intact"
+    },
+    {
+      "page": 6,
+      "content": "第二关：三张展柜卡裁剪页",
+      "constraint": "No task/answer field is cut away"
+    },
+    {
+      "page": 7,
+      "content": "第三关：操作与空白拼装板",
+      "constraint": "Top/dial/base positions explicit; flat paper model"
+    },
+    {
+      "page": 8,
+      "content": "第三关：六张部件卡",
+      "constraint": "Picture+Chinese feature label retained inside cut border"
+    },
+    {
+      "page": 9,
+      "content": "第三关：三张独立修复记录",
+      "constraint": "Adult cuts/deals; never hand out whole sheet"
+    },
+    {
+      "page": 10,
+      "content": "第四关：三份档案与来源核对",
+      "constraint": "No self-disqualifying distractor"
+    },
+    {
+      "page": 11,
+      "content": "第四关：空白观众标签",
+      "constraint": "Name, visible feature, purpose in story; authored wording"
+    },
+    {
+      "page": 12,
+      "content": "第五关：布展任务与展示铭牌",
+      "constraint": "Use already selected parts/assembly sheet and existing label, no re-solving or forced redraw"
+    },
+    {
+      "page": 13,
+      "content": "第五关：访客四项核查",
+      "constraint": "Evidence question, repair, recheck; ending kept adult-only"
+    }
+  ],
+  "plannedGuide": {
+    "targetPages": 19,
+    "notHardCap": true,
+    "pages1to6": "Preparation, standard/low-cut inventory, staged distribution, 2–6 fixed-seat tables, opening/rhythm",
+    "pages7to16": "One operation page and one separate adult answer page for each of five missions",
+    "page17": "Answer-free hosting quick reference",
+    "page18": "Support, pause/resume, qualified peer visitor protocol and repair",
+    "page19": "Ending and reset after acceptance"
+  },
+  "printPlan": {
+    "playerPagesEstimate": 13,
+    "guidePagesEstimate": 19,
+    "countsFinalizedAfterLayout": true,
+    "sevenCrewsPlayerSheetsEstimate": 91,
+    "sevenCrewsPlusOneFullGuideEstimate": 110,
+    "standardPiecesPerCrew": 12,
+    "standardBreakdown": {
+      "caseSigns": 3,
+      "parts": 6,
+      "privateSlips": 3
+    },
+    "sevenCrewsStandardPieces": 84,
+    "lowCutPiecesPerCrew": 3,
+    "sevenCrewsLowCutPieces": 21,
+    "lowCut": "Keep case/part sheets whole for pointing/writing; still cut and separately deal all three evidence slips. Final display can reference completed assembly sheet rather than force duplicate drawing."
+  },
+  "paidDeliveryPlan": {
+    "reuseSchema": "0055 localized_ready_packs and localized_ready_pack_files; no second translation database needed",
+    "implementationNeeded": "Current backend/catalog/checkout/order/download helpers are explicitly Ocean-only and use an Ocean-specific key prefix. Generalize to a reviewed per-game allowlist and per-world private key prefix, adding museum/classroom only, while preserving Ocean behavior.",
+    "version": "Separate first Chinese edition 1.0-zh.1 pinned to matching English ready pack/version",
+    "privateFiles": "Four private versioned PDF objects, not public assets",
+    "entitlements": "Use existing same-game paid ownership/access/expiry/refund restrictions; eligible existing orders need no new payment",
+    "noFallback": "Requested missing/withdrawn Chinese edition must not silently serve English",
+    "frontend": "PDF-language selector independent of UI locale; per-game title, filenames, actual page counts and blank previews; current Ocean-specific download component must become per-game, not just copy text.",
+    "artifacts": "4 PDFs,2 complete ZIPs,manifest hashes,Chinese handout/read-first notes; spoiler-safe preview pages only",
+    "laterRelease": "Only after implementation/acceptance and user release instruction: inspect latest live, verify rollback tag, read-back private objects, activate this edition, verify API before frontend. Do not run the English-slot-overwriting retail release for Chinese."
+  },
+  "acceptance": [
+    "Accession task: each mark alone leaves at least two candidates; both yield one",
+    "After cutting, task instructions remain in the actual student handout",
+    "Run standard12-piece and low-cut3-slip paper flows at every transition",
+    "Verify 2/3/4/5/6 pupil assignments including two-pupil three-slip distribution",
+    "No all-A answer pattern, self-rejecting source or answer-bearing public preview",
+    "All five missions have materials/actions/pass evidence/handover; final visitor receives original sources",
+    "All A4/Letter PDFs rendered and inspected; cut geometry, real marks, CJK embedding, spacing, page refs, parity and ZIP hashes",
+    "Existing OceanChinese/English files, paid ownership, expiry, refunds, language mismatch and incomplete ZIP cases remain covered"
+  ],
+  "limits": [
+    "No real child playtest or physical printing performed; not a prerequisite requiring unavailable children",
+    "No game source/PDF release files, backend, site, production DB, payment or account changes made in this audit"
+  ],
+  "nextStep": "On user implementation instruction, implement this Chinese-only edition and test standard and low-cut handoff before requesting/performing any separately authorized release."
+}

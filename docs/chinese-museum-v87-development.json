@@ -1,0 +1,498 @@
+{
+  "date": "2026-11-21",
+  "title": "错位的奇珍展课堂版中文资料及英文修订 v87",
+  "status": "implemented_locally_not_published",
+  "canonicalPending": "G:\\Website Project\\homegame\\paper-adventure-copy-review-reliability\\tmp\\chinese-museum-v87",
+  "canonicalLive": "G:\\Website Project\\homegame\\paper-adventure-copy-review-reliability\\tmp\\chinese-ocean-v86",
+  "liveCommit": "a2fca83064e7cde2a7ca6f5ee0b8c3c1c3c8147d",
+  "versions": {
+    "en": "1.1",
+    "zh": "1.0-zh.1"
+  },
+  "pageCounts": {
+    "player": 13,
+    "guide": 19
+  },
+  "paperSizes": [
+    "A4",
+    "Letter"
+  ],
+  "scope": [
+    "Authored bilingual Museum Classroom C08 documents, 8 PDFs and 4 complete ZIPs",
+    "Museum public copy and safe previews match the revised files",
+    "Additive document editions under existing paid entitlement; original English slots retained"
+  ],
+  "resolved": {
+    "M01": "Both accession marks required: each alone leaves two candidates; real vector marks printed.",
+    "M02": "Role/progress/task pages stay intact; cases on page6, parts on page8, private slips on page9. Cutting rules and references remain on issued pages.",
+    "M03": "No all-A correct-card pattern; select by visible shape, rings and solid dots; 9pt clearance each side.",
+    "M04": "Archive B has the same catalogue name and plausible alternate purpose; match original accession IDs instead of relying on a disqualifying sentence.",
+    "M05": "Teacher announces seat tasks for 2-6 pupils; two pupils share 1+2 slips one at a time. Standard12/low-cut3 supported throughout; seven five-pupil crews use91 player sheets plus19 guide.",
+    "M06": "Teacher operation pages separate from answers; strong hints labelled; progress indexes retained work. Peer visitors must first finish mission4; teacher visits a single crew; ending only after acceptance."
+  },
+  "checks": [
+    {
+      "name": "PDF logic/content/fonts/bounds/cut geometry/paper parity/ZIP bytes",
+      "result": "passed",
+      "evidence": "tmp/pdfs/museum/checks.json"
+    },
+    {
+      "name": "Final PDF visual review",
+      "result": "passed",
+      "pages": 128,
+      "contactsReviewed": 20,
+      "fullPopplerPages": 2,
+      "evidence": "tmp/pdfs/museum/render"
+    },
+    {
+      "name": "Final complete backend suite (synthetic private-file fixtures)",
+      "result": "passed",
+      "tests": 504,
+      "evidence": "tmp/qa/backend-final.log"
+    },
+    {
+      "name": "New Museum API/checkout/owner/download coverage",
+      "result": "passed",
+      "tests": 4,
+      "evidence": "tmp/qa/museum-tests.log"
+    },
+    {
+      "name": "Ocean language/download regression",
+      "result": "passed",
+      "tests": 7,
+      "evidence": "tmp/qa/ocean-regression.log"
+    },
+    {
+      "name": "Final static suite",
+      "result": "passed",
+      "tests": 302,
+      "evidence": "tmp/qa/static-final.log"
+    },
+    {
+      "name": "Final locale/Sites/payment-readiness suite",
+      "result": "passed",
+      "tests": 26,
+      "evidence": "tmp/qa/additional-final.log"
+    },
+    {
+      "name": "Final build and hydration",
+      "result": "passed",
+      "htmlPages": 178,
+      "sitemapUrls": 108,
+      "evidence": "tmp/qa/build-final.log"
+    },
+    {
+      "name": "Actual client ZIPs independently opened and PDF hashes compared",
+      "result": "passed",
+      "count": 4,
+      "evidence": "tmp/qa/preservation.json"
+    },
+    {
+      "name": "Local SQL stage/idempotence/hash activation/scoped withdrawal",
+      "result": "passed_in_memory_only",
+      "evidence": "tmp/qa/release-preparation.log"
+    },
+    {
+      "name": "In-app browser local Museum UI",
+      "result": "passed_at_1280px",
+      "observed": [
+        "Chinese third-mission and English fifth-mission preview switches",
+        "Original synthetic paid order offers English1.1 and Chinese1.0-zh.1; language selection changes filenames, versions and page counts",
+        "Chinese complete ZIP click reports download started",
+        "No horizontal page overflow at1280px; all detail images loaded; no captured console errors"
+      ],
+      "evidence": [
+        "tmp/qa/museum-detail-zh.png",
+        "tmp/qa/museum-detail-en.png",
+        "tmp/qa/museum-order-zh.png"
+      ]
+    },
+    {
+      "name": "Source preservation",
+      "result": "passed",
+      "evidence": "tmp/qa/preservation.json",
+      "htmlMainChanges": [
+        "en/themes/museum/index.html",
+        "en/themes/museum/classroom/index.html",
+        "zh/for-classroom/index.html",
+        "zh/themes/index.html",
+        "zh/themes/museum/index.html",
+        "zh/themes/museum/classroom/index.html"
+      ],
+      "htmlMainsPreserved": 173,
+      "allCssPreserved": true,
+      "existingFontsPreserved": true,
+      "legacyMuseumGeneratorPreserved": true,
+      "otherOverviewChanges": "Only Museum Chinese world/game display names"
+    },
+    {
+      "name": "Private answers absent from public compiled JS",
+      "result": "passed"
+    }
+  ],
+  "files": [
+    {
+      "world": "museum",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "sourceEnglishVersion": "v1.0",
+      "pairedEnglishEdition": "1.1",
+      "status": "local_review",
+      "items": [
+        {
+          "world": "museum",
+          "setting": "classroom",
+          "locale": "en",
+          "version": "1.1",
+          "paper": "A4",
+          "role": "player",
+          "pages": 13,
+          "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-player-en-A4.pdf",
+          "sha256": "0a052930347d65f7d89db73a9ee616e3b3e04339cc205c1efc9b9dc90db6b054",
+          "bytes": 214565,
+          "r2Key": "ready-localized/museum/classroom/en/1.1/A4/player-0a052930347d65f7.pdf"
+        },
+        {
+          "world": "museum",
+          "setting": "classroom",
+          "locale": "en",
+          "version": "1.1",
+          "paper": "A4",
+          "role": "guide",
+          "pages": 19,
+          "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-guide-en-A4.pdf",
+          "sha256": "b0768c1408a6b5755df9cf4916f979c6ce4016a6f0935370aa39a24ae0a1bcf9",
+          "bytes": 65164,
+          "r2Key": "ready-localized/museum/classroom/en/1.1/A4/guide-b0768c1408a6b575.pdf"
+        },
+        {
+          "world": "museum",
+          "setting": "classroom",
+          "locale": "en",
+          "version": "1.1",
+          "paper": "Letter",
+          "role": "player",
+          "pages": 13,
+          "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-player-en-Letter.pdf",
+          "sha256": "a197f094c448631c4d4fba127d8da2ed543554c66fa04d1905a7b47c5c1649c6",
+          "bytes": 214012,
+          "r2Key": "ready-localized/museum/classroom/en/1.1/Letter/player-a197f094c448631c.pdf"
+        },
+        {
+          "world": "museum",
+          "setting": "classroom",
+          "locale": "en",
+          "version": "1.1",
+          "paper": "Letter",
+          "role": "guide",
+          "pages": 19,
+          "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-guide-en-Letter.pdf",
+          "sha256": "64af0354963bf06ef29fff0e87cc9b5579969663fad4e3ad75d4e3626c33cd63",
+          "bytes": 64179,
+          "r2Key": "ready-localized/museum/classroom/en/1.1/Letter/guide-64af0354963bf06e.pdf"
+        }
+      ],
+      "zips": [
+        {
+          "paper": "A4",
+          "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-complete-en-A4.zip",
+          "sha256": "a85d52a87a97972c4846efdacde196f6f008e5531ee9c63ef9c6f4e6bb87b3bc"
+        },
+        {
+          "paper": "Letter",
+          "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-complete-en-Letter.zip",
+          "sha256": "b7daddd930a01c71085ec4f668b74aee21ed82e5630c6d66df0a39aba6da8873"
+        }
+      ]
+    },
+    {
+      "world": "museum",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "sourceEnglishVersion": "v1.0",
+      "pairedEnglishEdition": "1.1",
+      "status": "local_review",
+      "items": [
+        {
+          "world": "museum",
+          "setting": "classroom",
+          "locale": "zh",
+          "version": "1.0-zh.1",
+          "paper": "A4",
+          "role": "player",
+          "pages": 13,
+          "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-player-zh-A4.pdf",
+          "sha256": "d8867aa2cdc91f0923ed13e821c265e01815eff2485eeac697a9e6cdc4c94433",
+          "bytes": 320967,
+          "r2Key": "ready-localized/museum/classroom/zh/1.0-zh.1/A4/player-d8867aa2cdc91f09.pdf"
+        },
+        {
+          "world": "museum",
+          "setting": "classroom",
+          "locale": "zh",
+          "version": "1.0-zh.1",
+          "paper": "A4",
+          "role": "guide",
+          "pages": 19,
+          "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-guide-zh-A4.pdf",
+          "sha256": "882ea122e4596a2539aa50eb4e8d9bf3f796a86c0347e0ce18d8c8d8c19aa175",
+          "bytes": 176729,
+          "r2Key": "ready-localized/museum/classroom/zh/1.0-zh.1/A4/guide-882ea122e4596a25.pdf"
+        },
+        {
+          "world": "museum",
+          "setting": "classroom",
+          "locale": "zh",
+          "version": "1.0-zh.1",
+          "paper": "Letter",
+          "role": "player",
+          "pages": 13,
+          "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-player-zh-Letter.pdf",
+          "sha256": "83c575e324cdbabddae127ecfccd2bce6e63711d643469828156569ed9685a24",
+          "bytes": 320474,
+          "r2Key": "ready-localized/museum/classroom/zh/1.0-zh.1/Letter/player-83c575e324cdbabd.pdf"
+        },
+        {
+          "world": "museum",
+          "setting": "classroom",
+          "locale": "zh",
+          "version": "1.0-zh.1",
+          "paper": "Letter",
+          "role": "guide",
+          "pages": 19,
+          "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-guide-zh-Letter.pdf",
+          "sha256": "56ea2aab53690aba46fe4f99da3d9d380eaafe14a07671aa0fa60025790778a8",
+          "bytes": 175747,
+          "r2Key": "ready-localized/museum/classroom/zh/1.0-zh.1/Letter/guide-56ea2aab53690aba.pdf"
+        }
+      ],
+      "zips": [
+        {
+          "paper": "A4",
+          "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-complete-zh-A4.zip",
+          "sha256": "caad047bd30a9be7d3f2b0ec3a8a3c918324bc0acb0b7887d89f01682124b521"
+        },
+        {
+          "paper": "Letter",
+          "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-complete-zh-Letter.zip",
+          "sha256": "f42fe3e5858c61e40cd18902ef416bdeee00a13a1f0e3ce397762ca399d4ce07"
+        }
+      ]
+    }
+  ],
+  "sourceChanges": [
+    {
+      "path": "src/i18n/zh-overrides.json",
+      "sha256": "134e02128f8aea83e6fad7e96a3e88fa7473f039415e5c7dc6fc8fc649195b8d",
+      "before": "a7b7e8e09fd4e10257fb43b64405c3b5702a933dcda0f086f4c7072fcd13ce1f"
+    },
+    {
+      "path": "src/independentClassroomDetails.js",
+      "sha256": "6eb8a537a7c3be8578d27fb77f4b5922c607d647f729d8e97792e487d3b95958",
+      "before": "96d2d3674012f6bf7de48e39c97445aeb8fff78e36a2c88284090dcbda45d514"
+    },
+    {
+      "path": "src/livePages.jsx",
+      "sha256": "552b2d4495f027c5e6491c50a15e2bbc4bb9aa3f6f83a59d9890c07194a2f18a",
+      "before": "7730e39f282ee882d37b03c13bd3b810d78d3bf0df1533c22a825a97ab25b489"
+    },
+    {
+      "path": "src/museumClassroomExperience.jsx",
+      "sha256": "1ed7684c6f9d93ec638d68d966a2551a4fcbf4f747c0ce61268b6c8fedbe7388",
+      "before": "d6a4d0fd865abee1dcf7f508af1da39c67c3f6308d8847cf2b51a850bd431661"
+    },
+    {
+      "path": "src/museumDetailZh.mjs",
+      "sha256": "8390fe68df6a50624e8f24a607fc6ab58422408d80a11a67135238673e62f625",
+      "before": null
+    },
+    {
+      "path": "src/museumLocalizedExperience.jsx",
+      "sha256": "c6ddbe8461b7b0314a2088a2894175c7d38cb5b37c2ddcb82f6a8f048afcb8ad",
+      "before": null
+    },
+    {
+      "path": "src/productPages.jsx",
+      "sha256": "e911fa28dcf5840f5112f97670f4223f9755120baa985ffaa31dca8eaec3f4e9",
+      "before": "355c759f84fc98d23002f4daa4cba159c841b95a61cd43a02273e806e5a16036"
+    },
+    {
+      "path": "src/readyDocumentDownload.mjs",
+      "sha256": "f724d3ad58224b029b6998289dde56b99fe1ce691b2cf52d3637c042eedf13fb",
+      "before": "d9163cffc0760040f321edc2fa83797a73a81116a7e3b3b9e3a7ca09e596f4c8"
+    },
+    {
+      "path": "src/readyLocalizedDownloads.jsx",
+      "sha256": "b28896e0647d468b1e1373af0c1ca806179185711b56b69fea235c7cada2a37a",
+      "before": "09d6e553fd94dd4ba247bb119ad29d5f2c865b35decec40b5ddc34ae4c9cbb2f"
+    },
+    {
+      "path": "backend/domain.mjs",
+      "sha256": "2f0d3494a96f7b9147fd1efed2ad1b6f7e0957069b3172a922f51b532831a2c5",
+      "before": "2774fc0a1973c29c3eb9150e9fed659b38f0f7dadc1d513068580c34f39aeddd"
+    },
+    {
+      "path": "backend/localized-ready-packs.mjs",
+      "sha256": "2bcc7e3e985ce8c906544a602c0fe7d722133f61c6a1414a6be73903cc6003c2",
+      "before": "e708dc45b90833fc68a3322e787a190538d02671469ded92a7db3fa8929e7c11"
+    },
+    {
+      "path": "backend/museum-editions.fixture.mjs",
+      "sha256": "e6f52a82882a1c11c2e9974e400b662734c7fb2a69103e1e6ef516111e92a31e",
+      "before": null
+    },
+    {
+      "path": "backend/museum-editions.test.mjs",
+      "sha256": "49aacfd4565c704299fa7f18ff033b4adfdc3b7b59d568dd3dee4156734ca08e",
+      "before": null
+    },
+    {
+      "path": "backend/production-worker.mjs",
+      "sha256": "b508dc5ee68353d692d2e46e537d6f6ed097bfdb732bcfb2f0277c6fa21043f0",
+      "before": "f23ba4da37c26635858990814af8f2454c13a7532bb09490b300e8d8a2821071"
+    },
+    {
+      "path": "scripts/build_museum_previews.py",
+      "sha256": "0eb39aad7c4e9038dd424c88466199fb8993f9b1f45882af014fdfc76415d089",
+      "before": null
+    },
+    {
+      "path": "scripts/check_museum_editions.py",
+      "sha256": "1ced06c83b3c227fc26b9df0d376e8735f88ebcd8491b72bcbffe5b806f61f1d",
+      "before": null
+    },
+    {
+      "path": "scripts/generate_museum_editions.py",
+      "sha256": "b93b9679704ee1acd9ca89c8089cfbc40aa0ff80eec040274812a9bb1082e4b1",
+      "before": null
+    },
+    {
+      "path": "scripts/museum_edition_content.py",
+      "sha256": "9378006c1482cdfd8f23653ce54f824ddeaf14b79c73d153bba7632211db9a15",
+      "before": null
+    },
+    {
+      "path": "scripts/museum_edition_layout.py",
+      "sha256": "db2bb7109cdfd407f6ac3b2fe064704c2791e3f9f3651d550dd4d9fb34faf8c6",
+      "before": null
+    },
+    {
+      "path": "scripts/prepare-museum-editions-release.mjs",
+      "sha256": "3341afa0977b00f6bcd55e6776e13a5749101593ec85d0947bed41a6b8043ac0",
+      "before": null
+    },
+    {
+      "path": "scripts/prepare_museum_fonts.py",
+      "sha256": "2e6b52ba0701ecaec7d04e78c06d68c4b2ede4a050328032f14360e5dd2d59e6",
+      "before": null
+    },
+    {
+      "path": "shared/museum-edition.json",
+      "sha256": "3b743528b998ea2b6d6058b2720d2aa3d74b023e7fbd6399f6f7af26a03ba879",
+      "before": null
+    },
+    {
+      "path": "shared/ready-document-editions.mjs",
+      "sha256": "94e6006813d0933434a9f8baa2723d7d99ecfb2329c0167beb0e3fab6efbe962",
+      "before": null
+    },
+    {
+      "path": "assets/fonts/PAMuseumSans-Bold.ttf",
+      "sha256": "5890059c4fdf7300d2bbb67d7920e880ab064b1c27b4c8c9c4eeedb349155ad0",
+      "before": null
+    },
+    {
+      "path": "assets/fonts/PAMuseumSans-Regular.ttf",
+      "sha256": "76a0c19f6b649888dc07ab0f9e9e985a0af2ee04bd98dfbac3fecc73d6bcd73b",
+      "before": null
+    },
+    {
+      "path": "assets/fonts/PROVENANCE.txt",
+      "sha256": "ea739e162c39bdf9dadae031284b7982a53027fca0578ba44dbc28e48d826fc5",
+      "before": "54d98adfd44fb3a4de71a652f489d98fbfbbbdb16354b29b9319b0bb0b9f01b4"
+    },
+    {
+      "path": "public/assets/museum-en-display.jpg",
+      "sha256": "85956b4ccb321b0c05196d8f1c46e2ec59f1b62dcd0fadafd003938062a8c118",
+      "before": null
+    },
+    {
+      "path": "public/assets/museum-en-gallery.jpg",
+      "sha256": "47a14562d8a71e78afa403253051a82876d8b6eb5f87851933c6e43889356075",
+      "before": null
+    },
+    {
+      "path": "public/assets/museum-en-label.jpg",
+      "sha256": "d421e8d0833ae3ccfba1344f8b2e20df0a44fbd5e1728799709c79e1ba546728",
+      "before": null
+    },
+    {
+      "path": "public/assets/museum-en-parts.jpg",
+      "sha256": "a85cfdd3cefb16031948febdbb22c4a4665cbe7eabb73ed8c7b3c3ecad3a85c3",
+      "before": null
+    },
+    {
+      "path": "public/assets/museum-en-progress.jpg",
+      "sha256": "fa9bb747ab58d260162c49b6fb6ef718427f030056ff5313d43f54d30a7e2820",
+      "before": null
+    },
+    {
+      "path": "public/assets/museum-zh-display.jpg",
+      "sha256": "f26286d0bebd8ffc016163a0e8d6ea76a37492139ae760c80af860c206b6633b",
+      "before": null
+    },
+    {
+      "path": "public/assets/museum-zh-gallery.jpg",
+      "sha256": "f2f59947c757c0a659a5f7595a2ce1fd8fd3b33b8cebccaa1118093e73b9403e",
+      "before": null
+    },
+    {
+      "path": "public/assets/museum-zh-label.jpg",
+      "sha256": "edaf7d5f5a6bedd8314bf6e9ce2369cb1c9e2be67629b344c16aeb2ee1ca5ad3",
+      "before": null
+    },
+    {
+      "path": "public/assets/museum-zh-parts.jpg",
+      "sha256": "1293cabdf2964490787fc40d856caaffe9529b4f3d500273382af363a72ef717",
+      "before": null
+    },
+    {
+      "path": "public/assets/museum-zh-progress.jpg",
+      "sha256": "222879b1f8a88174ed8b8582952d2c6dee76a987a94d0bd638a188c2b145773f",
+      "before": null
+    },
+    {
+      "path": "content/museum-edition-previews.json",
+      "sha256": "bb79f5c3aa376c77919068bf268973a65da21059fa075e1c5b38f46f2e272a90",
+      "before": null
+    },
+    {
+      "path": "content/theme-design/museum-classroom-exhibition-v1.md",
+      "sha256": "2124184aadb8dac9a85e15de2375cadea28d73f5c890cd208e38a1addfddc3e2",
+      "before": "31096002a685e8e3fc761cab9b030095ac717d63c236ecec49d271e1aad38733"
+    }
+  ],
+  "adultReviewZip": {
+    "path": "G:\\Website Project\\homegame\\paper-adventure-copy-review-reliability\\output\\pdf\\museum-classroom-bilingual-adult-review-v87.zip",
+    "sha256": "f9f5263e541f4671329719ee608d7d2fd52d8abca0c5abc76a4cb036c2b653f5",
+    "containsSolutionsInAdultGuide": true
+  },
+  "releasePreparation": "output/pdf/museum-release-v87/plan.json",
+  "feature": "PAID_MUSEUM_EDITIONS_ENABLED (independent, default off)",
+  "limits": [
+    "No production upload, migration, activation, API or website deployment, commit or PR this turn",
+    "Browser order is a synthetic local fixture with actual generated PDF bytes; no real purchase or production paid-order download",
+    "Regular CI tests use synthetic files and require no private output directory; explicit MUSEUM_ACTUAL_PDFS=true tests verified actual eight PDFs separately",
+    "Physical printing and child play not performed; do not claim observed fun or timing",
+    "No new mobile viewport or actual printer fit claim; existing responsive CSS preserved"
+  ],
+  "nextRelease": [
+    "Inspect latest live source and create/verify fresh rollback tag before any deployment",
+    "Deploy Museum-aware API with Museum feature off and preserve Ocean flag",
+    "Upload and read-back verify8 private PDFs, stage/activate exact manifests",
+    "Enable Museum feature, check catalog/old and new orders/auth/refund/expiry; matching frontend only after both new editions available",
+    "Retain language-aware guards on rollback for revised orders; never restore whole DB or overwrite original English slots"
+  ]
+}
