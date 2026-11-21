@@ -12,4 +12,3 @@ if(r.status===404&&process.argv.includes('--create')){
 }
 assert.equal(r.status,200);assert.equal(r.data.object.type,'commit');assert.equal(r.data.object.sha,expected);
 console.log(`Verified refs/tags/${tag} -> ${expected}; retain all orders, English files and additive schema.`);
-

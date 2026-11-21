@@ -1,0 +1,75 @@
+{
+  "world": "weather",
+  "setting": "classroom",
+  "locale": "zh",
+  "version": "1.0-zh.1",
+  "sourceEnglishVersion": "v1.0",
+  "pairedEnglishEdition": "1.1",
+  "status": "local_review",
+  "items": [
+    {
+      "world": "weather",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/weather-classroom-zh-1.0-zh.1/weather-classroom-player-zh-A4.pdf",
+      "sha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78",
+      "bytes": 638108,
+      "r2Key": "ready-localized/weather/classroom/zh/1.0-zh.1/A4/player-e5e3ef50c0bc5f49.pdf"
+    },
+    {
+      "world": "weather",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/weather-classroom-zh-1.0-zh.1/weather-classroom-guide-zh-A4.pdf",
+      "sha256": "980bc305f598268197d7ae4de29da333aef84787d4bc35dc4e168fcc85fd0bac",
+      "bytes": 169644,
+      "r2Key": "ready-localized/weather/classroom/zh/1.0-zh.1/A4/guide-980bc305f5982681.pdf"
+    },
+    {
+      "world": "weather",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/weather-classroom-zh-1.0-zh.1/weather-classroom-player-zh-Letter.pdf",
+      "sha256": "3a0873940f19047548b1b8eb78c3414e4ecfebd4e6d7ce431c5550b618e70d9c",
+      "bytes": 637405,
+      "r2Key": "ready-localized/weather/classroom/zh/1.0-zh.1/Letter/player-3a0873940f190475.pdf"
+    },
+    {
+      "world": "weather",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/weather-classroom-zh-1.0-zh.1/weather-classroom-guide-zh-Letter.pdf",
+      "sha256": "6303ff19c9238afd6fc0719ab0abdedef02047620a9e94c5e88678282a5cd131",
+      "bytes": 168967,
+      "r2Key": "ready-localized/weather/classroom/zh/1.0-zh.1/Letter/guide-6303ff19c9238afd.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/weather-classroom-zh-1.0-zh.1/weather-classroom-complete-zh-A4.zip",
+      "sha256": "c8a4315bf0fecd0764cac12af777b61e0c45b444b409e8f192e08985ee383a63"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/weather-classroom-zh-1.0-zh.1/weather-classroom-complete-zh-Letter.zip",
+      "sha256": "8cdf79335830b5c15e2cf6ef5734b2de1265d71daa6eeaf2ed3715e9f0c742de"
+    }
+  ]
+}

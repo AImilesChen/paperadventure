@@ -85,4 +85,3 @@ jobs:
             output/pdf/weather-classroom-zh-1.0-zh.1/manifest.json
           if-no-files-found: warn
           retention-days: 30
-

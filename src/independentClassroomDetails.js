@@ -39,12 +39,12 @@ export const independentClassroomDetails = {
   weather: { classroom: {
     hook: 'Fictional printed observations, six rotating jobs and a report checked against the original paper tools.',
     reasons: ['Five missions ask pupils to sort, rotate, count, measure and author rather than repeatedly choose candidate cards.', 'All three instruments and their original observations are printed; a peer can check every bulletin entry.', 'The invented morning readings teach evidence checking without presenting a real-world forecast.'],
-    materials: ['Five station time slips and a three-row observation board', 'Large compass base and three rotatable wind snapshots', 'Three patterned four-pane sky cards and a matching count board', 'Printed rain gauge, three equal-size level strips, miscopied notice and blank peer-checked bulletin'],
+    materials: ['Five station records with source IDs and a shared observation board', 'Separate wind instructions/practice, whole compass base and three rotatable snapshots', 'Three patterned sky views; count directly on the shared board', 'Separate rain practice, gauge, three equal outer strips, delayed copied notice, bulletin and source audit'],
     stages: [
       ['Sort the morning records', 'Separate this station’s slips from another station and order three times.', 'A trustworthy time sequence'],
       ['Calibrate the wind dial', 'Rotate each snapshot until NORTH matches the base, then read its thick pointer.', 'Three wind readings'],
       ['Count covered sky panes', 'Inspect the four-pane cards and shade the same count on the crew board.', 'Three cloud records'],
-      ['Read and repair the rain log', 'Align each strip baseline with zero, read its top and correct the copied notice.', 'Three checked rain readings'],
+      ['Read and repair the rain log', 'Read all three original strips at gauge zero before receiving and repairing the copied notice.', 'Three checked rain readings'],
       ['Publish the bulletin', 'Fill a blank notice from original evidence and ask another pupil to audit every row.', 'A crew-authored, peer-checked observation bulletin'],
     ],
   } },

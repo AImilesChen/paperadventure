@@ -1,0 +1,75 @@
+{
+  "world": "weather",
+  "setting": "classroom",
+  "locale": "en",
+  "version": "1.1",
+  "sourceEnglishVersion": "v1.0",
+  "pairedEnglishEdition": "1.1",
+  "status": "local_review",
+  "items": [
+    {
+      "world": "weather",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/weather-classroom-en-1.1/weather-classroom-player-en-A4.pdf",
+      "sha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d",
+      "bytes": 528408,
+      "r2Key": "ready-localized/weather/classroom/en/1.1/A4/player-3a5715fd637e3e52.pdf"
+    },
+    {
+      "world": "weather",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/weather-classroom-en-1.1/weather-classroom-guide-en-A4.pdf",
+      "sha256": "492bfd79d83d0016d57f1c6f94cfd3b7655c8837164a314e167ba500574f820b",
+      "bytes": 54390,
+      "r2Key": "ready-localized/weather/classroom/en/1.1/A4/guide-492bfd79d83d0016.pdf"
+    },
+    {
+      "world": "weather",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/weather-classroom-en-1.1/weather-classroom-player-en-Letter.pdf",
+      "sha256": "39f96d99085575106697d8f8765f88ea915b418db96104b1f0f61bc1309f4bac",
+      "bytes": 527617,
+      "r2Key": "ready-localized/weather/classroom/en/1.1/Letter/player-39f96d9908557510.pdf"
+    },
+    {
+      "world": "weather",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/weather-classroom-en-1.1/weather-classroom-guide-en-Letter.pdf",
+      "sha256": "fea863fc77d9cda9c1bf7c8907e245b1844e4c61565a899aee0bb4a6622d9464",
+      "bytes": 53687,
+      "r2Key": "ready-localized/weather/classroom/en/1.1/Letter/guide-fea863fc77d9cda9.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/weather-classroom-en-1.1/weather-classroom-complete-en-A4.zip",
+      "sha256": "8584cbd7d9909141bb996f5f60a69c5025e258e535508933fec77402de4d9bfd"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/weather-classroom-en-1.1/weather-classroom-complete-en-Letter.zip",
+      "sha256": "752ee7d9e7bbc12d61fab5ae96a245e36ed7d7215d98d597f2a79d5e50224ee6"
+    }
+  ]
+}
