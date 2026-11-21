@@ -1,3 +1,5 @@
+import {currentLocale} from './i18n/index.mjs';
+import {OceanZhOpening,OceanZhPlay,OceanZhOutcome,OceanZhIntent} from './oceanClassroomZh.jsx';
 import { t as translateUi } from "./i18n/index.mjs";import { ArrowRight, ChatCircleText, Compass, FileText, UsersThree } from '@phosphor-icons/react';
 import './oceanClassroomExperience.css';
 
@@ -9,6 +11,7 @@ const roles = [
 
 
 export function OceanStoryOpening() {
+  if(currentLocale()==='zh')return <OceanZhOpening/>;
   return <section id="story-opening" className="theme-detail-section ocean-story-opening" aria-labelledby="ocean-story-heading">
     <div className="theme-detail-heading">
       <span className="eyebrow">{translateUi("YOUR CREW\u2019S MISSION")}</span>
@@ -36,6 +39,7 @@ export function OceanStoryOpening() {
 }
 
 export function OceanCooperativePlay() {
+  if(currentLocale()==='zh')return <OceanZhPlay/>;
   return <section id="crew-play" className="theme-detail-section" aria-labelledby="ocean-play-heading">
     <div className="theme-detail-heading">
       <span className="eyebrow">{translateUi("SEE HOW IT PLAYS")}</span>
@@ -73,6 +77,7 @@ export function OceanCooperativePlay() {
 }
 
 export function OceanCrewOutcome() {
+  if(currentLocale()==='zh')return <OceanZhOutcome/>;
   return <section id="crew-finish" className="theme-detail-section ocean-crew-outcome" aria-labelledby="ocean-finish-heading">
     <div className="theme-detail-heading">
       <span className="eyebrow">{translateUi("WHAT YOUR CREW COMPLETES")}</span>
@@ -88,6 +93,7 @@ export function OceanCrewOutcome() {
 }
 
 export function OceanDesignIntent() {
+  if(currentLocale()==='zh')return <OceanZhIntent/>;
   return <section className="theme-detail-section ocean-design-intent" aria-labelledby="ocean-intent-heading">
     <div className="theme-detail-heading">
       <span className="eyebrow">{translateUi("THE IDEA BEHIND THE ADVENTURE")}</span>

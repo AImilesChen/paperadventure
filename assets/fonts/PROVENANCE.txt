@@ -7,3 +7,5 @@ Build helper: fonttools 4.61.1, retains glyph IDs.
 PA Classroom Sans: independent classroom-only subset and 400/700 instances of the same OFL source, renamed PAClassroomSans; original PA Free Game Sans files retained byte-for-byte.
 
 PA Home Sans: independent Home v2 OFL subset and 400/700 instances of Noto Sans SC, renamed PAHomeSans. Previous PA Free Game Sans and PA Classroom Sans artifacts retained.
+
+PA Ocean Sans: independent Ocean Classroom Chinese edition subset and 400/700 instances of the same Noto Sans SC OFL source, renamed PAOceanSans. Built by scripts/prepare_ocean_chinese_fonts.py. Existing font files retained byte-for-byte. Licensed under SIL Open Font License 1.1; see OFL.txt.

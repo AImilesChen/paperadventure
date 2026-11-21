@@ -1,3 +1,4 @@
+import {readyLanguageEdition,readyLanguageFile,readyDocumentEditions} from './localized-ready-packs.mjs';
 import {localePath,localeCodes} from '../shared/locale.mjs';
 import {sampleLocale,localizedFreePack,localizedFreeSample} from './localized-free-samples.mjs';
 import {verifyApprovedCreditPrices} from './credits/verify-prices.mjs';
@@ -183,6 +184,8 @@ async function liveCatalog(env) {
   const variantRows = await query(env.DB, `SELECT ready_pack_id,variant_id FROM ready_pack_variants
     WHERE status = 'published' OR (? = 1 AND status = 'internal_test')
     GROUP BY ready_pack_id,variant_id HAVING COUNT(*) = 4`, testOnly ? 1 : 0).all();
+  const documentEditions=new Map();
+  for(const pack of ready.filter(p=>p.theme_world_id==='ocean'&&p.setting==='classroom'))documentEditions.set(pack.id,await readyDocumentEditions(env,pack));
   const variantsFor = pack => (variantRows.results || []).filter(row => row.ready_pack_id === pack?.id).map(row => row.variant_id);
   const trialPacks = ready.filter(pack => pack.theme_world_id === 'celebration');
   const free = env.FREE_SAMPLE_ENABLED === 'true' &&
@@ -205,6 +208,7 @@ async function liveCatalog(env) {
     escapeGames:escapeProducts.map(p=>{const pack=ready.find(r=>r.theme_world_id===p.id&&r.setting==='home'&&r.version===p.version&&extraCounts.get(r.id)===2&&(p.id!=='midnight-masquerade'||attachmentCounts.get(r.id)===8));return {...p,home:{readyStatus:pack&&canCheckout&&liveSkus.has(p.sku)?'published':'not_published',packVersion:pack?.version||null}};}),
     themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: readyStatus(theme.id, 'home'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
       classroom: { readyStatus: readyStatus(theme.id, 'classroom'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null,
+        ...(theme.id==='ocean'?{documentEditions:documentEditions.get(ready.find(pack=>pack.theme_world_id===theme.id&&pack.setting==='classroom')?.id)||[]}:{}),
         variantIds: variantsFor(ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')) } })),
     offers: offers.map(offer => ({ ...offer, saleEnabled: canCheckout && liveSkus.has(offer.sku) && (offer.kind === 'custom' ? generationReady(env) && planSchemaReady : availablePaidPack(offer.setting)) })) };
 }
@@ -300,6 +304,10 @@ async function checkout(request, env) {
     if (!readyPack) throw new ApiError(503, 'PACK_NOT_PUBLISHED', 'This ready-made pack is not published.');
     const files = await query(env.DB, 'SELECT paper, role FROM ready_pack_files WHERE ready_pack_id = ?', readyPack.id).all();
     if (files.results?.length !== 4) throw new ApiError(503, 'PACK_FILES_INCOMPLETE', 'The printable pack is incomplete.');
+    if(spec.documentLocale==='zh'){
+      const translated=await readyLanguageEdition(env,readyPack.id,'zh',spec.documentEdition);
+      if(!translated)throw new ApiError(409,'DOCUMENT_EDITION_UNAVAILABLE','The selected PDF language edition is unavailable. No payment was created.');
+    }
     if(spec.themeId==='midnight-masquerade'){
       const attachments=await query(env.DB,'SELECT paper,role FROM ready_pack_attachments WHERE ready_pack_id = ?',readyPack.id).all();
       const extras=await query(env.DB,'SELECT role FROM ready_pack_extras WHERE ready_pack_id = ?',readyPack.id).all();
@@ -837,7 +845,12 @@ async function orderView(request, env, orderId) {
   const displaySetting=order.sku.endsWith('_classroom')?'classroom':'home';
   const world=order.product_kind==='ready'?(themes.find(theme=>theme.id===spec.themeId)||escapeProduct(spec.themeId)):null;
   const story=world?.story?.[displaySetting];
-  return json({ id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
+  let documentInfo={};
+  if(order.product_kind==='ready'&&spec.themeId==='ocean'&&displaySetting==='classroom'){
+    const pack=entitlement?.ready_pack_id?await query(env.DB,'SELECT id,version,theme_world_id,setting FROM ready_packs WHERE id=?',entitlement.ready_pack_id).first():null;
+    documentInfo={documentLocale:spec.documentLocale||'en',documentEdition:spec.documentEdition||null,documentEditions:pack?await readyDocumentEditions(env,pack):[{locale:'en',version:spec.packVersion}]};
+  }
+  return json({ ...documentInfo,id: order.id, sku: order.sku, kind: order.product_kind, currency: order.currency, amountTotal: order.amount_total, status: order.status,
     ...(order.product_kind==='ready'?{themeId:spec.themeId||null,setting:displaySetting,title:story?.title||world?.title||'Your ready-made adventure',image:story?.image||world?.image||null,packVersion:spec.packVersion||null}:{}),
     createdAt: order.created_at, paidAt: order.paid_at, filesReady: Boolean(accessActive(entitlement) && order.status === 'published'),
     generationState: order.product_kind === 'custom' ? (activity?.status || (order.status === 'pending_payment' ? 'awaiting_payment' : 'pending')) : null,
@@ -1064,8 +1077,17 @@ async function fileDownload(request, env, orderId, role) {
   if (!accessActive(entitlement)) throw new ApiError(403, 'ACCESS_EXPIRED', 'Online re-download is unavailable after the access period. Files already downloaded may still be used within the licence.');
   const spec = JSON.parse(order.purchase_spec_json);
   const paper = new URL(request.url).searchParams.get('paper') === 'Letter' ? 'Letter' : 'A4';
-  let file;
-  if (order.product_kind === 'ready') file = spec.variantId
+  const fileUrl=new URL(request.url);
+  const requestedLocale=fileUrl.searchParams.get('locale');
+  if(fileUrl.searchParams.getAll('locale').length>1||requestedLocale!==null&&!['en','zh'].includes(requestedLocale))throw new ApiError(400,'INVALID_DOCUMENT_LOCALE','Choose English or Simplified Chinese for the PDF files.');
+  const documentLocale=requestedLocale||spec.documentLocale||'en';
+  let file,languageEdition=null;
+  if(documentLocale!=='en'){
+    if(order.product_kind!=='ready'||spec.variantId||spec.themeId!=='ocean'||spec.setting!=='classroom')throw new ApiError(409,'DOCUMENT_EDITION_UNAVAILABLE','This game has no selected PDF language edition.');
+    const pinned=fileUrl.searchParams.get('edition')||(spec.documentLocale===documentLocale?spec.documentEdition:null);
+    if(pinned&&(!/^[A-Za-z0-9._-]{1,40}$/.test(pinned)||fileUrl.searchParams.getAll('edition').length>1))throw new ApiError(400,'INVALID_DOCUMENT_EDITION','Choose a published PDF edition.');
+    const localized=await readyLanguageFile(env,entitlement.ready_pack_id,documentLocale,pinned,paper,role);file=localized.file;languageEdition=localized.edition.version;
+  }else if (order.product_kind === 'ready') file = spec.variantId
     ? await query(env.DB, 'SELECT r2_key, sha256, bytes FROM ready_pack_variants WHERE ready_pack_id = ? AND variant_id = ? AND paper = ? AND role = ?', entitlement.ready_pack_id, spec.variantId, paper, role).first()
     : await query(env.DB, 'SELECT r2_key, sha256, bytes FROM ready_pack_files WHERE ready_pack_id = ? AND paper = ? AND role = ?', entitlement.ready_pack_id, paper, role).first();
   else {
@@ -1080,9 +1102,10 @@ async function fileDownload(request, env, orderId, role) {
   if (!file?.r2_key) throw new ApiError(404, 'FILE_NOT_FOUND', 'The file is not ready.');
   const bytes = await verifiedPdf(env, file);
   await assertOrderNotRefunded(env,orderId);
-  await recordAccessEvidence(env,orderId,'file_served',`${role}:${paper}:${file.sha256}`,{role,paper,sha256:file.sha256});
+  await recordAccessEvidence(env,orderId,'file_served',`${role}:${paper}:${file.sha256}`,{role,paper,sha256:file.sha256,...(languageEdition?{locale:documentLocale,edition:languageEdition}:{})});
   const disposition = new URL(request.url).searchParams.get('view') === '1' ? 'inline' : 'attachment';
-  return new Response(bytes, { headers: { 'content-type': 'application/pdf', 'content-disposition': `${disposition}; filename="adventure-${role}-${paper}.pdf"`, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
+  const englishPack=order.product_kind==='ready'&&documentLocale==='en'?await query(env.DB,'SELECT version FROM ready_packs WHERE id=?',entitlement.ready_pack_id).first():null;
+  return new Response(bytes, { headers: { 'content-type': 'application/pdf', 'content-disposition': `${disposition}; filename="adventure-${role}${documentLocale==='zh'?'-zh':''}-${paper}.pdf"`, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff',...(order.product_kind==='ready'?{'x-paper-adventure-locale':documentLocale,'x-paper-adventure-pack-version':languageEdition||englishPack?.version||spec.packVersion||'unknown'}:{}) } });
 }
 
 async function revisionOwner(request,env,orderId){

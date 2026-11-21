@@ -33,7 +33,11 @@ export function validatePurchase(input) {
     if (variantId && !(offer.setting === 'classroom' && ((themeId === 'halloween' && variantId === 'halloween') || (themeId === 'christmas' && variantId === 'christmas')))) {
       throw new ApiError(400, 'INVALID_SPEC', 'Choose a supported classroom story wording.');
     }
-    return { offer, spec: { sku: offer.sku, kind: 'ready', setting: offer.setting, themeId, variantId,
+    const documentLocale=input.documentLocale??'en';
+    if(!['en','zh'].includes(documentLocale))throw new ApiError(400,'INVALID_DOCUMENT_LOCALE','Choose English or Simplified Chinese for the PDF files.');
+    if(documentLocale==='zh'&&(themeId!=='ocean'||offer.setting!=='classroom'||variantId))throw new ApiError(400,'INVALID_DOCUMENT_LOCALE','This PDF language is not offered for the selected game.');
+    const documentEdition=documentLocale==='zh'?requireText(input.documentEdition,'PDF edition',40):null;
+    return { offer, spec: { ...(documentLocale==='zh'?{documentLocale,documentEdition}:{}),sku: offer.sku, kind: 'ready', setting: offer.setting, themeId, variantId,
       packVersion: requireText(input.packVersion, 'Pack version', 40) } };
   }
   const players = Number(input.players);

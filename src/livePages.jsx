@@ -1,3 +1,4 @@
+import ReadyLocalizedDownloads from './readyLocalizedDownloads.jsx';
 import { currentLocale as uiLocale, t as translateUi, localHref } from './i18n/index.mjs';
 
 import AccountEntry from './accountEntry.jsx';
@@ -417,6 +418,7 @@ const pdfPhaseText = {
 };
 
 export function OrderPackage({ order, orderId, selectedPaper, setSelectedPaper }) {
+  if(order.kind==='ready'&&order.filesReady&&order.themeId==='ocean'&&order.setting==='classroom'&&order.documentEditions?.length)return <ReadyLocalizedDownloads key={order.id} order={order} paper={selectedPaper} setPaper={setSelectedPaper}/>;
   const ready = order.filesReady;
   const correctingTheme = themeUpdatePending(order);
   const guide = order.sku.includes('classroom') ? 'Teacher Guide' : 'Host Guide';
@@ -685,6 +687,9 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
   const theme = [...(catalog?.themes || []), ...(catalog?.escapeGames || [])].find((item) => item.id === themeId);
   const variantIds = ready && setting === 'classroom' ? theme?.classroom?.variantIds || [] : [];
   const [variantId, setVariantId] = useState('');
+  const documentEditions=ready&&themeId==='ocean'&&setting==='classroom'?theme?.[setting]?.documentEditions||[]:[];
+  const [documentLocale,setDocumentLocale]=useState(uiLocale()==='zh'?'zh':'en');
+  const selectedDocument=documentEditions.find(e=>e.locale===documentLocale)||documentEditions.find(e=>e.locale==='en');
   const [supplyRequested, setSupplyRequested] = useState(false);
   const [email, setEmail] = useState('');const [busy, setBusy] = useState(false);const [error, setError] = useState('');
   const [authenticated, setAuthenticated] = useState(null);
@@ -700,6 +705,7 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
     if (!supplyRequested) {setError('Confirm the supply and refund notice before continuing.');setBusy(false);return;}
     const checkoutEmail = accountEmail || (accountRequired ? null : email);
     const body = ready ? { sku, themeId, packVersion: theme[setting].packVersion, variantId: variantId || null, email: checkoutEmail } : { ...draftSpec(draft), sku, email: checkoutEmail };
+    if(selectedDocument?.locale==='zh'){body.documentLocale='zh';body.documentEdition=selectedDocument.version;}
     body.locale = window.location.pathname.startsWith('/zh/') ? 'zh' : 'en';
     body.serviceRequest = { version: purchaseConsentVersion, requested: true };
     try {
@@ -725,6 +731,8 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
         <p className="checkout-includes">{themeId === 'fold-city' ? translateUi('Four PDFs (10-page Player Pack + 12-page Adult Guide in A4 and US Letter), complete ZIP and offline companion; print 10 player sheets; cutting and glue required') : themeId === 'last-letter' ? translateUi('Four PDFs (20-page Player Pack + 8-page Adult Guide in A4 and US Letter), complete ZIP and offline companion; print 20 player sheets for all choices') : themeId === 'thirteenth-hour' ? translateUi('Player Pack + Adult Guide + offline companion; standard and no-cut modes') : themeId === 'midnight-masquerade' ? translateUi('Player Pack + 18 private cards + preparation map + Adult Guide + offline companion') : <>{translateUi("Player Pack + ")}{setting === 'classroom' ? translateUi('Teacher Guide') : translateUi('Host Guide')}</>}</p>
         <p className="checkout-delivery">{ready ? translateUi("Download after payment \xB7 Online access for {value0} months.", { value0: productRights.onlineRedownloadMonths }) : translateUi('Your plan starts after payment. Approve it before we create your PDFs.')}</p>
       </header>
+      {documentEditions.some(e=>e.locale==='zh')&&<label>{uiLocale()==='zh'?'购买的 PDF 语言':'PDF language for this purchase'}<select value={selectedDocument?.locale||'en'} disabled={busy} onChange={e=>setDocumentLocale(e.target.value)}>{documentEditions.map(e=><option key={e.locale} value={e.locale}>{e.locale==='zh'?'简体中文 · 11页玩家材料＋19页教师指南':'English · 9-page Player Pack + 9-page Teacher Guide'}</option>)}</select><small>{uiLocale()==='zh'?'付款前确认资料语言；界面语言与 PDF 语言分别选择。':'Confirm the PDF language before paying. Interface language and PDF language are separate.'}</small></label>}
+      {ready&&themeId==='ocean'&&setting==='classroom'&&!documentEditions.some(e=>e.locale==='zh')&&<p role="status">{uiLocale()==='zh'?'当前仅开放英文PDF。中文界面不代表中文资料；购买前请确认语言。':'Only English PDFs are currently available for this game.'}</p>}
       {!ready && <details className="checkout-details"><summary>{translateUi("Included changes and downloads")}</summary><p>{translateUi("Online re-download lasts ")}{translateUi(productRights.onlineRedownloadMonths)}{translateUi(" months from first qualified delivery.")}</p><p>{translateUi("Before approval: two successful whole-plan reworks and three successful targeted edits. After delivery: three successful checkpoint changes and two successful whole-game remakes within 30 days of first delivery. Up to six checkpoint suggestions and four whole-game candidates can be prepared; failed or discarded candidates do not use a successful replacement. If no plan works, contact support for assistance or refund-policy review.")}</p></details>}
       {!ready && customDraftReady && <dl className="live-review"><div><dt>{translateUi("Story idea")}</dt><dd>{draft.idea}</dd></div><div><dt>{translateUi("Players")}</dt><dd>{translateUi(draft.players)}{translateUi(" \xB7 ages ")}{translateUi(draft.age)}</dd></div><div><dt>{translateUi("Paper and play")}</dt><dd>{translateUi(draft.paper)} · {translateUi(mechanicById(draft.gameplay?.primary)?.title)}</dd></div></dl>}
       {!eligible ? <Alert>{!ready && !customDraftReady ? translateUi('Finish your custom adventure setup before checkout.') : translateUi('This product is not available for checkout.')}</Alert> : needsSignIn ? authenticated === null ? <p role="status">{translateUi("Checking adult sign-in\u2026")}</p> : <div><Alert>{translateUi("Sign in with your adult Google account before checkout.")}</Alert><Link className="button" to={localHref(signInPath)}>{translateUi("Sign in with Google ")}<ArrowRight size={18} /></Link></div> : <form onSubmit={start}>

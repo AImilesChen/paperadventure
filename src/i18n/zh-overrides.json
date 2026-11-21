@@ -362,7 +362,7 @@
   "Some cells are empty or the board breaks a Sudoku rule.": "棋盘还有空格，或存在违反数独规则的填写。",
   "Open the complete-game ZIP to find both files. Choose A4 or US Letter to match your printer; both sizes contain the same English-language game.": "打开完整游戏 ZIP，内含玩家材料和主持指南。选择与打印机纸张匹配的 A4 或 US Letter；两个尺寸均为同一套完整中文游戏。",
   "Open the complete-game ZIP to find both PDFs. Choose A4 or US Letter for your paper; both sizes contain the same complete English-language game.": "打开完整游戏 ZIP，内含玩家材料和教师指南。选择与纸张匹配的 A4 或 US Letter；两个尺寸均为同一套完整中文游戏。",
-  "当前为中文界面；可下载的游戏 PDF、游戏中的英文线索及 AI 定制内容仍使用英文。": "当前为中文界面；免费庆典游戏的中文 PDF 以下载页开放状态为准。其他游戏 PDF 及 AI 定制内容仍使用英文。",
+  "当前为中文界面；可下载的游戏 PDF、游戏中的英文线索及 AI 定制内容仍使用英文。": "当前为中文界面；各游戏PDF的可用语言以购买或下载页说明为准。AI定制内容仍使用英文。",
   "Choose a supported PDF language.": "请选择支持的 PDF 语言。",
   "The PDF language could not be verified. Please try again.": "无法确认 PDF 的语言，未下载文件。请重试。",
   "The PDF editions changed during download. Please try again.": "下载期间文件版本发生变化，未生成 ZIP。请重新下载。",

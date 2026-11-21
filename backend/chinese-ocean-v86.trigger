@@ -1,0 +1,1 @@
+Chinese Ocean Classroom 1.0-zh.2, source v86. Verify rollback tag before additive 0055, private upload/read-back, edition activation and API. Preserve all English slots, existing paid entitlements and user data.

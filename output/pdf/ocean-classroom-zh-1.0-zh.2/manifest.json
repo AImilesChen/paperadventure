@@ -1,0 +1,76 @@
+{
+  "world": "ocean",
+  "setting": "classroom",
+  "locale": "zh",
+  "version": "1.0-zh.2",
+  "sourceEnglishVersion": "1.0",
+  "status": "local_review",
+  "items": [
+    {
+      "world": "ocean",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.2",
+      "paper": "A4",
+      "role": "player",
+      "pages": 11,
+      "path": "output/pdf/ocean-classroom-zh-1.0-zh.2/ocean-classroom-player-zh-A4.pdf",
+      "bytes": 310911,
+      "sha256": "4511aa4d8d4c10a295f83209e829273112f87f74eeab4b3d6b6ddd1897e618ad",
+      "r2Key": "ready-localized/ocean/classroom/zh/1.0-zh.2/A4/player-4511aa4d8d4c10a2.pdf"
+    },
+    {
+      "world": "ocean",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.2",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/ocean-classroom-zh-1.0-zh.2/ocean-classroom-guide-zh-A4.pdf",
+      "bytes": 196229,
+      "sha256": "8e2fcd793a829d16699b507e5a07e8d1501b0be5938ab47478d9d684ba77fcd2",
+      "r2Key": "ready-localized/ocean/classroom/zh/1.0-zh.2/A4/guide-8e2fcd793a829d16.pdf"
+    },
+    {
+      "world": "ocean",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.2",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 11,
+      "path": "output/pdf/ocean-classroom-zh-1.0-zh.2/ocean-classroom-player-zh-Letter.pdf",
+      "bytes": 310444,
+      "sha256": "513f0a8c732166fddc4345d9cb7e80f1fedff7ce3a24d6c6ff14cb9a5c6a4ddd",
+      "r2Key": "ready-localized/ocean/classroom/zh/1.0-zh.2/Letter/player-513f0a8c732166fd.pdf"
+    },
+    {
+      "world": "ocean",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.2",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/ocean-classroom-zh-1.0-zh.2/ocean-classroom-guide-zh-Letter.pdf",
+      "bytes": 195420,
+      "sha256": "8fde687cc086a9e04c4e6570d32895e445758f385d3aa68531d162e2e745168b",
+      "r2Key": "ready-localized/ocean/classroom/zh/1.0-zh.2/Letter/guide-8fde687cc086a9e0.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/ocean-classroom-zh-1.0-zh.2/ocean-classroom-complete-zh-A4.zip",
+      "sha256": "099809012432f25f6de0787a30cad0590321e3a0bf6dce82a13178d1e5a2b236"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/ocean-classroom-zh-1.0-zh.2/ocean-classroom-complete-zh-Letter.zip",
+      "sha256": "bc2a70ddb57081daf88683d85d1055c5c0a54ef50db2900752b0e71cb98364a2"
+    }
+  ],
+  "physicalPrintTested": false,
+  "childPlayTested": false
+}

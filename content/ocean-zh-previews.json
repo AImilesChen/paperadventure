@@ -1,0 +1,19 @@
+{
+  "version": "1.0-zh.2",
+  "items": [
+    {
+      "name": "chart",
+      "page": 4,
+      "sourceSha256": "4511aa4d8d4c10a295f83209e829273112f87f74eeab4b3d6b6ddd1897e618ad",
+      "path": "public/assets/ocean-zh-chart.jpg",
+      "sha256": "58f0940cc938ae893414ca2256e91be5ca83bb8db4e1abf6de05c9fe669cb2e6"
+    },
+    {
+      "name": "plot",
+      "page": 9,
+      "sourceSha256": "4511aa4d8d4c10a295f83209e829273112f87f74eeab4b3d6b6ddd1897e618ad",
+      "path": "public/assets/ocean-zh-plot.jpg",
+      "sha256": "7329b522fa6b6c2251c4d5fe4a9c91333ca3627808c38ed944d222b2d15ea236"
+    }
+  ]
+}
