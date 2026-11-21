@@ -1,0 +1,75 @@
+{
+  "world": "workshop",
+  "setting": "classroom",
+  "locale": "en",
+  "version": "1.1",
+  "sourceEnglishVersion": "v1.0",
+  "pairedEnglishEdition": "1.1",
+  "status": "local_review",
+  "items": [
+    {
+      "world": "workshop",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/workshop-classroom-en-1.1/workshop-classroom-player-en-A4.pdf",
+      "sha256": "9624d16741023edf71b7a32257191dcbd2293879c888d3c23475bb6244060f6c",
+      "bytes": 439451,
+      "r2Key": "ready-localized/workshop/classroom/en/1.1/A4/player-9624d16741023edf.pdf"
+    },
+    {
+      "world": "workshop",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/workshop-classroom-en-1.1/workshop-classroom-guide-en-A4.pdf",
+      "sha256": "60b2182db4998b5a9e137339e368e9e3545c7519d900e8bc427ab9b531185b3f",
+      "bytes": 50101,
+      "r2Key": "ready-localized/workshop/classroom/en/1.1/A4/guide-60b2182db4998b5a.pdf"
+    },
+    {
+      "world": "workshop",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/workshop-classroom-en-1.1/workshop-classroom-player-en-Letter.pdf",
+      "sha256": "82f58af77aef0957820f8aa294e225db73dec3456a81ab64d784510d64953f56",
+      "bytes": 438974,
+      "r2Key": "ready-localized/workshop/classroom/en/1.1/Letter/player-82f58af77aef0957.pdf"
+    },
+    {
+      "world": "workshop",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/workshop-classroom-en-1.1/workshop-classroom-guide-en-Letter.pdf",
+      "sha256": "4e83cd28c2f8eec27afeaacc72ffe6091d683f93d86c6d86afefb99857c92e89",
+      "bytes": 49478,
+      "r2Key": "ready-localized/workshop/classroom/en/1.1/Letter/guide-4e83cd28c2f8eec2.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/workshop-classroom-en-1.1/workshop-classroom-complete-en-A4.zip",
+      "sha256": "22eb0d31ea32256068cb02434556bfd45da7c9355ad9d7c41a042f54d44f75b6"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/workshop-classroom-en-1.1/workshop-classroom-complete-en-Letter.zip",
+      "sha256": "8dc3394ffb121c4d42a4cb576048aa5faedbb4c9694a875758b78bf44287aa9d"
+    }
+  ]
+}

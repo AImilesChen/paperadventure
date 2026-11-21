@@ -53,6 +53,8 @@ jobs:
         run: node scripts/verify-library-production.mjs --wait
       - name: Require matching Weather English repair and Chinese PDFs before publishing its interface
         run: node scripts/verify-weather-production.mjs --wait
+      - name: Require matching Workshop English repair and Chinese PDFs before publishing its interface
+        run: node scripts/verify-workshop-production.mjs --wait
       - name: Bundle production API without publishing
         run: npx --yes wrangler@4.149.0 deploy --config backend/wrangler.production-smoke.jsonc --dry-run
       - name: Validate site Worker bundle without publishing

@@ -1,5 +1,15 @@
 # C11 / The Great Blueprint Relay / paper relay edition
 
+> Revision note (2026-11-21): This document retains the original English 1.0
+> design as historical context. The revised English 1.1 and Chinese 1.0-zh.1
+> authority is `shared/workshop-edition.json` plus
+> `scripts/workshop_edition_content.py`, `scripts/workshop_edition_layout.py`
+> and `scripts/generate_workshop_editions.py`. Each edition contains 16 Player
+> Pack pages and 19 Teacher Guide pages. Revised blueprint joins are graphic,
+> lengthwise and nonalphabetic; refer to the private edition source for answers.
+> The original generator remains unchanged for legacy access. Revised editions
+> are implemented and verified locally; they are not published yet.
+
 This is the current fixed Workshop Classroom design and prop contract.
 The former P7/Frame B/Kit 2/F-A-T/Board A candidate-card chain in
 retail-games-v1.json is superseded for C11. Preserve the workshop/classroom

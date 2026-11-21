@@ -1,0 +1,75 @@
+{
+  "world": "workshop",
+  "setting": "classroom",
+  "locale": "zh",
+  "version": "1.0-zh.1",
+  "sourceEnglishVersion": "v1.0",
+  "pairedEnglishEdition": "1.1",
+  "status": "local_review",
+  "items": [
+    {
+      "world": "workshop",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/workshop-classroom-zh-1.0-zh.1/workshop-classroom-player-zh-A4.pdf",
+      "sha256": "f762a4f11bffc12318706c5ab0596e399b37f82fe7e99a492e37f57f3f4fc8f8",
+      "bytes": 561554,
+      "r2Key": "ready-localized/workshop/classroom/zh/1.0-zh.1/A4/player-f762a4f11bffc123.pdf"
+    },
+    {
+      "world": "workshop",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/workshop-classroom-zh-1.0-zh.1/workshop-classroom-guide-zh-A4.pdf",
+      "sha256": "7b164a73f8c66fc9dcc89c1426fdf44ebe377503a5cba13d6c999ca1a837760d",
+      "bytes": 171636,
+      "r2Key": "ready-localized/workshop/classroom/zh/1.0-zh.1/A4/guide-7b164a73f8c66fc9.pdf"
+    },
+    {
+      "world": "workshop",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/workshop-classroom-zh-1.0-zh.1/workshop-classroom-player-zh-Letter.pdf",
+      "sha256": "4ed1d8ac7f1dfe42be18684d761528d67d98aa4f5ce1f2a70698ce4c2c819402",
+      "bytes": 561200,
+      "r2Key": "ready-localized/workshop/classroom/zh/1.0-zh.1/Letter/player-4ed1d8ac7f1dfe42.pdf"
+    },
+    {
+      "world": "workshop",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/workshop-classroom-zh-1.0-zh.1/workshop-classroom-guide-zh-Letter.pdf",
+      "sha256": "3234320b28c4337f11816a4df6202ac2563a735b45b920e0d41e870849ce7d47",
+      "bytes": 171186,
+      "r2Key": "ready-localized/workshop/classroom/zh/1.0-zh.1/Letter/guide-3234320b28c4337f.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/workshop-classroom-zh-1.0-zh.1/workshop-classroom-complete-zh-A4.zip",
+      "sha256": "a3e2cea9cf9887a2c92313431332beaed7d7eb68d9768803b4d8152d6de78f80"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/workshop-classroom-zh-1.0-zh.1/workshop-classroom-complete-zh-Letter.zip",
+      "sha256": "34636ab69c7c1e5c9b3c479dad6030a2de78cd45efde4e7d7b864f08879f6639"
+    }
+  ]
+}
