@@ -7,7 +7,7 @@ import { validateControlledPuzzle } from './controlled-puzzles.mjs';
 import {validatePaperPlan} from '../shared/paper-contract.mjs';
 import {validateStorySpine} from './story-spine.mjs';
 import {validateDeliveryCopy} from './delivery-copy.mjs';
-import {paidDocumentGame} from '../shared/ready-document-editions.mjs';
+import {paidDocumentGame,readyEnglishRepairGame} from '../shared/ready-document-editions.mjs';
 
 export class ApiError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code; }
@@ -37,7 +37,7 @@ export function validatePurchase(input) {
     const documentLocale=input.documentLocale??'en';
     if(!['en','zh'].includes(documentLocale))throw new ApiError(400,'INVALID_DOCUMENT_LOCALE','Choose English or Simplified Chinese for the PDF files.');
     if(documentLocale==='zh'&&!paidDocumentGame(themeId,offer.setting,variantId))throw new ApiError(400,'INVALID_DOCUMENT_LOCALE','This PDF language is not offered for the selected game.');
-    const pinned=documentLocale==='zh'||themeId==='museum'&&input.documentEdition&&input.documentEdition!==input.packVersion;
+    const pinned=documentLocale==='zh'||readyEnglishRepairGame(themeId)&&input.documentEdition&&input.documentEdition!==input.packVersion;
     const documentEdition=pinned?requireText(input.documentEdition,'PDF edition',40):null;
     return { offer, spec: { ...(pinned?{documentLocale,documentEdition}:{}),sku: offer.sku, kind: 'ready', setting: offer.setting, themeId, variantId,
       packVersion: requireText(input.packVersion, 'Pack version', 40) } };

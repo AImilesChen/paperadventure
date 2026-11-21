@@ -1,4 +1,4 @@
-import {paidDocumentGame} from '../shared/ready-document-editions.mjs';
+import {paidDocumentGame,readyEnglishRepairGame} from '../shared/ready-document-editions.mjs';
 import {readyLanguageEdition,readyLanguageFile,readyDocumentEditions} from './localized-ready-packs.mjs';
 import {localePath,localeCodes} from '../shared/locale.mjs';
 import {sampleLocale,localizedFreePack,localizedFreeSample} from './localized-free-samples.mjs';
@@ -1090,7 +1090,7 @@ async function fileDownload(request, env, orderId, role) {
     const localized=await readyLanguageFile(env,entitlement.ready_pack_id,documentLocale,pinned,paper,role);file=localized.file;languageEdition=localized.edition.version;
   }else if (order.product_kind === 'ready') {
     let repaired=null;
-    if(paidDocumentGame(spec.themeId,spec.setting,spec.variantId)&&spec.themeId==='museum'){
+    if(paidDocumentGame(spec.themeId,spec.setting,spec.variantId)&&readyEnglishRepairGame(spec.themeId)){
       const pinned=fileUrl.searchParams.get('edition')||(spec.documentLocale==='en'?spec.documentEdition:null);
       const original=await query(env.DB,'SELECT version FROM ready_packs WHERE id=?',entitlement.ready_pack_id).first();
       if(fileUrl.searchParams.getAll('edition').length>1)throw new ApiError(400,'INVALID_DOCUMENT_EDITION','Choose one PDF edition.');

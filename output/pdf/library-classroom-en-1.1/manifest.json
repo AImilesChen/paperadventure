@@ -1,0 +1,75 @@
+{
+  "world": "library",
+  "setting": "classroom",
+  "locale": "en",
+  "version": "1.1",
+  "sourceEnglishVersion": "v1.0",
+  "pairedEnglishEdition": "1.1",
+  "status": "local_review",
+  "items": [
+    {
+      "world": "library",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 14,
+      "path": "output/pdf/library-classroom-en-1.1/library-classroom-player-en-A4.pdf",
+      "sha256": "6c1d39d53cee82032b752e689a16b29ec1971d41e06d603b708649204287e4b5",
+      "bytes": 623185,
+      "r2Key": "ready-localized/library/classroom/en/1.1/A4/player-6c1d39d53cee8203.pdf"
+    },
+    {
+      "world": "library",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/library-classroom-en-1.1/library-classroom-guide-en-A4.pdf",
+      "sha256": "7848bf6d444e43c50f7757d859331fa442d731ed9c3146cda335ee9ef2af1e9a",
+      "bytes": 54600,
+      "r2Key": "ready-localized/library/classroom/en/1.1/A4/guide-7848bf6d444e43c5.pdf"
+    },
+    {
+      "world": "library",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 14,
+      "path": "output/pdf/library-classroom-en-1.1/library-classroom-player-en-Letter.pdf",
+      "sha256": "fb144224cdc3036923d02d3aba3ba60f545040eef7da3d2ec916fdcd6c65d7d5",
+      "bytes": 622486,
+      "r2Key": "ready-localized/library/classroom/en/1.1/Letter/player-fb144224cdc30369.pdf"
+    },
+    {
+      "world": "library",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/library-classroom-en-1.1/library-classroom-guide-en-Letter.pdf",
+      "sha256": "c4a9c50b8af2bdbe9bbb614ffab0b4806bf87a2761449c2ed46dfb2ce529aa2e",
+      "bytes": 53880,
+      "r2Key": "ready-localized/library/classroom/en/1.1/Letter/guide-c4a9c50b8af2bdbe.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/library-classroom-en-1.1/library-classroom-complete-en-A4.zip",
+      "sha256": "ed3005d834a2a6a9be599c40512a9dc15db7a1ed1f8ad82688044071f53cb556"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/library-classroom-en-1.1/library-classroom-complete-en-Letter.zip",
+      "sha256": "feccb6927eec9ade8f1821934ee74e4719bd0ea0b4430a0deddc1aa4ef9e16ff"
+    }
+  ]
+}

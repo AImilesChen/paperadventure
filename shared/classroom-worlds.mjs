@@ -24,9 +24,9 @@ export const independentClassroomWorlds = Object.freeze([
     image: '/assets/library-classroom-v0.1.webp', tag: 'Reading adventure',
     discoveryGroup: 'everyday',
     story: { classroom: { code: 'C09', title: 'The Missing Final Chapter',
-      goal: 'Find the right book, order its story leaves, combine three witness notes, make Kit a paper route copy and write a fitting final page.',
+      goal: 'Find the right book, restore its story order, hear three witnesses and author a fitting final page with evidence.',
       image: '/assets/library-classroom-v0.1.webp',
-      beats: ['Match the return slip', 'Order the loose leaves', 'Share three witness notes', 'Copy the route and write the final page', 'Read and correct a visitor’s summary'] } },
+      beats: ['Match the return slip', 'Order the loose leaves', 'Share three witness notes', 'Carry out the agreed plan and write the final page', 'Read and correct a visitor’s summary'] } },
   },
   {
     id: 'weather', title: 'Weather Observatory', kicker: 'Run a paper weather station',

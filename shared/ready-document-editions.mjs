@@ -1,8 +1,10 @@
 // Public metadata only; no clue contract in the browser bundle.
-export const paidDocumentGame=(world,setting='classroom',variant=null)=>setting==='classroom'&&!variant&&['ocean','museum'].includes(world);
+export const paidDocumentGame=(world,setting='classroom',variant=null)=>setting==='classroom'&&!variant&&['ocean','museum','library'].includes(world);
+export const readyEnglishRepairGame=world=>['museum','library'].includes(world);
 export function readyDocumentPages(world,locale,version){
  if(world==='ocean')return locale==='zh'?{player:11,guide:19}:{player:9,guide:9};
  if(world==='museum')return locale==='zh'||version==='1.1'?{player:13,guide:19}:{player:11,guide:10};
+ if(world==='library')return locale==='zh'||version==='1.1'?{player:14,guide:19}:{player:11,guide:10};
  return null;
 }
 export function readyDocumentLabel(world,locale,version,ui='en'){
