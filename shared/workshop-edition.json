@@ -1,0 +1,8 @@
+{
+ "world":"workshop","setting":"classroom","game":"C11","versions":{"en":"1.1","zh":"1.0-zh.1"},"sourceEnglishVersion":"v1.0",
+ "titles":{"en":"The Great Blueprint Relay","zh":"蓝图接力：纸槽传信"},"pages":{"player":16,"guide":19},"pieces":{"full":12,"low":9},
+ "track":{"widthMm":78,"lengthMm":170,"railMm":15,"laneMm":48},"calibration":{"widthMm":40,"heightMm":45},"message":{"widthMm":40,"heightMm":56},
+ "blueprint":[{"id":"M","part":"middle","bottom":"circle","top":"triangle"},{"id":"Q","part":"display","bottom":"triangle","top":null},{"id":"R","part":"start","bottom":null,"top":"circle"}],"blueprintOrder":["R","M","Q"],
+ "notes":[{"id":2,"kind":"symbol","value":"triangle"},{"id":3,"kind":"count","value":2},{"id":1,"kind":"direction","value":"forward"}],
+ "samples":[{"id":"A","widthMm":56,"heightMm":56,"direction":"forward","fit":false},{"id":"B","widthMm":40,"heightMm":56,"direction":"backward","fit":true},{"id":"C","widthMm":40,"heightMm":56,"direction":"forward","fit":true}]
+}

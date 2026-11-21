@@ -1,0 +1,150 @@
+{
+  "en": {
+    "pieces": {
+      "page": 8,
+      "width": 893,
+      "height": 1263,
+      "path": "public/assets/workshop-en-pieces.jpg",
+      "sha256": "761bf5d1f88f20bf4cc8f2aabecfe5bbf0eb7d28b313b8c0e5f766e8b4914680",
+      "sourceSha256": "9624d16741023edf71b7a32257191dcbd2293879c888d3c23475bb6244060f6c"
+    },
+    "trial-record": {
+      "page": 14,
+      "width": 893,
+      "height": 1263,
+      "path": "public/assets/workshop-en-trial-record.jpg",
+      "sha256": "8b564a9c41e1ae4266941e32a843996e2841ebe2d38d26dadd1bbfb7dd3dff8c",
+      "sourceSha256": "9624d16741023edf71b7a32257191dcbd2293879c888d3c23475bb6244060f6c"
+    },
+    "left-rail": {
+      "page": 8,
+      "width": 127,
+      "height": 1445,
+      "path": "public/assets/workshop-en-left-rail.png",
+      "boundsPdf": [
+        52,
+        225.27100000000007,
+        94.51968503937007,
+        707.1607637795277
+      ],
+      "sha256": "84a394638280025f32cc3bd9b4484c939ae760c6dbfd8923c2a29728b6fdac16",
+      "sourceSha256": "9624d16741023edf71b7a32257191dcbd2293879c888d3c23475bb6244060f6c"
+    },
+    "lane": {
+      "page": 8,
+      "width": 407,
+      "height": 1445,
+      "path": "public/assets/workshop-en-lane.png",
+      "boundsPdf": [
+        94.51968503937007,
+        225.27100000000007,
+        230.58267716535437,
+        707.1607637795277
+      ],
+      "sha256": "3f3a89d1ff76108b75d40e0812ac9fc226f595642ef93302621e57c8fb06882f",
+      "sourceSha256": "9624d16741023edf71b7a32257191dcbd2293879c888d3c23475bb6244060f6c"
+    },
+    "right-rail": {
+      "page": 8,
+      "width": 127,
+      "height": 1445,
+      "path": "public/assets/workshop-en-right-rail.png",
+      "boundsPdf": [
+        230.58267716535437,
+        225.27100000000007,
+        273.10236220472444,
+        707.1607637795277
+      ],
+      "sha256": "8168720c2e32cee7a55ee30960cda1f407dddcbba8bafbc94079e936889f4fc6",
+      "sourceSha256": "9624d16741023edf71b7a32257191dcbd2293879c888d3c23475bb6244060f6c"
+    },
+    "calibration": {
+      "page": 8,
+      "width": 339,
+      "height": 382,
+      "path": "public/assets/workshop-en-calibration.png",
+      "boundsPdf": [
+        293.10236220472444,
+        579.6017086614174,
+        406.488188976378,
+        707.1607637795277
+      ],
+      "sha256": "08b807b218ed7c9cb72a3d6e39a9c3ddc5dbf507ecede4cb5c6d12c62ddee75c",
+      "sourceSha256": "9624d16741023edf71b7a32257191dcbd2293879c888d3c23475bb6244060f6c"
+    }
+  },
+  "zh": {
+    "pieces": {
+      "page": 8,
+      "width": 893,
+      "height": 1263,
+      "path": "public/assets/workshop-zh-pieces.jpg",
+      "sha256": "a4e71b4aecf6e99c71fb7cf7cc64719cae57fe06ab64b3628d4712871b12d29c",
+      "sourceSha256": "f762a4f11bffc12318706c5ab0596e399b37f82fe7e99a492e37f57f3f4fc8f8"
+    },
+    "trial-record": {
+      "page": 14,
+      "width": 893,
+      "height": 1263,
+      "path": "public/assets/workshop-zh-trial-record.jpg",
+      "sha256": "8251168c174bd5a1afddd955233de0312544c3e02e3b7d75ba4634be2f030cfe",
+      "sourceSha256": "f762a4f11bffc12318706c5ab0596e399b37f82fe7e99a492e37f57f3f4fc8f8"
+    },
+    "left-rail": {
+      "page": 8,
+      "width": 127,
+      "height": 1445,
+      "path": "public/assets/workshop-zh-left-rail.png",
+      "boundsPdf": [
+        52,
+        225.27100000000007,
+        94.51968503937007,
+        707.1607637795277
+      ],
+      "sha256": "84a394638280025f32cc3bd9b4484c939ae760c6dbfd8923c2a29728b6fdac16",
+      "sourceSha256": "f762a4f11bffc12318706c5ab0596e399b37f82fe7e99a492e37f57f3f4fc8f8"
+    },
+    "lane": {
+      "page": 8,
+      "width": 407,
+      "height": 1445,
+      "path": "public/assets/workshop-zh-lane.png",
+      "boundsPdf": [
+        94.51968503937007,
+        225.27100000000007,
+        230.58267716535437,
+        707.1607637795277
+      ],
+      "sha256": "23093023f965fc8c808443bb3450822cff18d8f3cb898c47f4ae3db1049f64ba",
+      "sourceSha256": "f762a4f11bffc12318706c5ab0596e399b37f82fe7e99a492e37f57f3f4fc8f8"
+    },
+    "right-rail": {
+      "page": 8,
+      "width": 127,
+      "height": 1445,
+      "path": "public/assets/workshop-zh-right-rail.png",
+      "boundsPdf": [
+        230.58267716535437,
+        225.27100000000007,
+        273.10236220472444,
+        707.1607637795277
+      ],
+      "sha256": "8168720c2e32cee7a55ee30960cda1f407dddcbba8bafbc94079e936889f4fc6",
+      "sourceSha256": "f762a4f11bffc12318706c5ab0596e399b37f82fe7e99a492e37f57f3f4fc8f8"
+    },
+    "calibration": {
+      "page": 8,
+      "width": 339,
+      "height": 382,
+      "path": "public/assets/workshop-zh-calibration.png",
+      "boundsPdf": [
+        293.10236220472444,
+        579.6017086614174,
+        406.488188976378,
+        707.1607637795277
+      ],
+      "sha256": "21d4908f2b5ef5ba3109a9418ebbf65380957c65125c8ebf0c7b02e352c555aa",
+      "sourceSha256": "f762a4f11bffc12318706c5ab0596e399b37f82fe7e99a492e37f57f3f4fc8f8"
+    }
+  }
+}

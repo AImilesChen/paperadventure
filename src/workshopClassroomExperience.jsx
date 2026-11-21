@@ -1,89 +1,18 @@
-import { t as translateUi, localHref } from "./i18n/index.mjs";import { useState } from 'react';
-import { ArrowRight, ChatCircleText, FileText, Hammer, UsersThree } from '@phosphor-icons/react';
+import {useState} from 'react';
+import {currentLocale} from './i18n/index.mjs';
+import assets from './workshopEditionPreviewAssets.json';
 import './workshopClassroomExperience.css';
-
-const demoSteps = [
-{ label: 'The flat track', title: 'Start with the printed pieces', body: 'The teacher cuts the outer track and the plain calibration card. The two long dotted lines stay intact: they are fold lines.', detail: 'The printed sheet becomes the path. Students build with the materials supplied in the pack.' },
-{ label: 'Fold the rails', title: 'Fold both side strips upwards', body: 'The Builder folds the two side strips on the dotted lines, leaving the middle lane flat. The Tester places the plain card at START, printed side up and DISPLAY EDGE first.', detail: 'A child can lightly hold a leaning rail while a partner moves the card.' },
-{ label: 'Slide the card', title: 'Move the plain card to DISPLAY', body: 'The Tester slides the calibration card between the rails. If it catches, the crew checks the folds and tries again without bending the card.', detail: 'This is the plain fit check. Later, students use separate design notes to make their own message and test it.' }];
-
-
-const jobs = [
-['Scene Reader', 'Read the player steps after the teacher’s scene.'],
-['Builder', 'Join the plan, fold the channel and draw the message.'],
-['Tester', 'Predict, slide the cards and describe what happens.'],
-['Recorder', 'Write or draw the crew’s evidence and trial results.'],
-['Checker', 'Compare the work with the original plan and notes.'],
-['Presenter', 'Show the finished relay and explain a possible repair.']];
-
-
-export function WorkshopStoryOpening() {
-  return <section id="story-opening" className="theme-detail-section" aria-labelledby="workshop-story-heading">
-    <div className="theme-detail-heading">
-      <span className="eyebrow">{translateUi("YOUR INVENTION CREW\u2019S MISSION")}</span>
-      <h2 id="workshop-story-heading">{translateUi("Mira\u2019s showcase needs a working paper relay.")}</h2>
-      <p>{translateUi("The invention showcase opens soon, but Mira\u2019s blueprint has fallen into three pieces. Her message display still needs a path\u2014and a message that can travel along it. Your students become the crew who rebuilds, makes and tests the exhibit.")}</p>
-    </div>
-    <div className="workshop-opening-grid">
-      <article className="workshop-opening-scene"><Hammer size={29} aria-hidden="true" /><h3>{translateUi("From a torn plan to a demonstration")}</h3><p>{translateUi("Join the blueprint, fold a paper channel and combine three separately held design notes to make one message card. Rehearse with trial cards, record what goes wrong and show your own message to the visitors.")}</p><p className="workshop-mission-finish">{translateUi("Finish by demonstrating the relay and explaining one sample fault and a possible repair.")}</p></article>
-      <article className="workshop-opening-format"><h3>{translateUi("What students actually do")}</h3><ul><li><strong>{translateUi("With their hands:")}</strong>{translateUi(" join, fold, draw and slide paper.")}</li><li><strong>{translateUi("With their crew:")}</strong>{translateUi(" share requirements, predict results and check evidence.")}</li><li><strong>{translateUi("With a teacher:")}</strong>{translateUi(" hear each scene and receive one mission\u2019s materials at a time.")}</li></ul><p>{translateUi("Crews of 2\u20136 use complete sets. Up to 35 students can work in separate crews, with the teacher guiding the class through the story.")}</p></article>
-    </div>
-  </section>;
-}
-
-function WorkshopRelayDemo() {
-  const [step, setStep] = useState(0);
-  const current = demoSteps[step];
-  return <div className="workshop-demo">
-    <div className="workshop-demo-controls" role="group" aria-label={translateUi("Choose a paper relay demonstration step")}>
-      {demoSteps.map((item, index) => <button key={item.label} type="button" aria-pressed={index === step} aria-controls="workshop-demo-description" onClick={() => setStep(index)}><span>{translateUi(index + 1)}</span>{translateUi(item.label)}</button>)}
-    </div>
-    <div className="workshop-demo-grid">
-      <figure className="workshop-model-figure">
-        <div className="workshop-model-stage" data-stage={step} aria-hidden="true">
-          <div className="workshop-relay-plane">
-            <img className="workshop-model-left" src="/assets/workshop-relay-left-rail.png" alt="" width="127" height="1445" />
-            <img className="workshop-model-lane" src="/assets/workshop-relay-lane.png" alt="" width="407" height="1445" />
-            <img className="workshop-model-right" src="/assets/workshop-relay-right-rail.png" alt="" width="127" height="1445" />
-            <img className="workshop-model-card" src="/assets/workshop-relay-calibration.png" alt="" width="339" height="382" />
-          </div>
-        </div>
-        <figcaption>{translateUi("On-screen illustration using the actual printable track and plain calibration card. The classroom game is played with paper.")}</figcaption>
-      </figure>
-      <div id="workshop-demo-description" className="workshop-demo-description" role="status" aria-live="polite" aria-atomic="true">
-        <span className="eyebrow">{translateUi("STEP ")}{translateUi(step + 1)}{translateUi(" OF 3")}</span><h3>{translateUi(current.title)}</h3><p>{translateUi(current.body)}</p><p className="workshop-demo-detail">{translateUi(current.detail)}</p><a className="text-link" href="/assets/workshop-classroom-preview-pieces.jpg" target="_blank" rel="noopener noreferrer">{translateUi("Inspect the actual printable page ")}<ArrowRight size={17} aria-hidden="true" /><span className="workshop-sr-only">{translateUi(" (opens in a new tab)")}</span></a>
-      </div>
-    </div>
-  </div>;
-}
-
-export function WorkshopCooperativePlay() {
-  return <section id="crew-play" className="theme-detail-section" aria-labelledby="workshop-play-heading">
-    <div className="theme-detail-heading"><span className="eyebrow">{translateUi("SEE HOW IT PLAYS")}</span><h2 id="workshop-play-heading">{translateUi("Fold a path. Slide a card. Explain what happens.")}</h2><p>{translateUi("The paper relay is a channel with two raised side rails. Students move a card by hand from START to DISPLAY, then use the same path to test their designs. Choose each step below to see the basic action.")}</p></div>
-    <WorkshopRelayDemo />
-    <div className="workshop-cooperation-grid">
-      <article><ChatCircleText size={27} aria-hidden="true" /><h3>{translateUi("Three notes make one message")}</h3><p>{translateUi("Different pupils hold the symbol, count and direction requirements. They must share all three before the Builder can draw the crew\u2019s message. With two pupils, the teacher supplies the third note after both pupils share.")}</p></article>
-      <article><FileText size={27} aria-hidden="true" /><h3>{translateUi("Observe before deciding")}</h3><p>{translateUi("The crew predicts what each sample will do, then physically tests it. Students record both fit and direction and explain a possible repair. The test samples stay separate from their own final message.")}</p></article>
-    </div>
-    <div className="workshop-jobs"><div className="workshop-jobs-heading"><UsersThree size={27} aria-hidden="true" /><h3>{translateUi("Six jobs, shared by crews of 2\u20136")}</h3></div><dl>{jobs.map(([name, action]) => <div key={name}><dt>{translateUi(name)}</dt><dd>{translateUi(action)}</dd></div>)}</dl><p>{translateUi("Jobs rotate after each mission. Smaller crews combine jobs; the final Checker is always a different pupil from the Recorder. The Teacher Guide gives the assignments and handout order.")}</p></div>
-  </section>;
-}
-
-export function WorkshopCrewOutcome() {
-  return <section id="crew-finish" className="theme-detail-section" aria-labelledby="workshop-finish-heading">
-    <div className="theme-detail-heading"><span className="eyebrow">{translateUi("WHAT YOUR CREW COMPLETES")}</span><h2 id="workshop-finish-heading">{translateUi("A working exhibit, with evidence behind it.")}</h2><p>{translateUi("Each crew finishes with its own paper relay, a message it has drawn and a record of its trials. Students demonstrate the result and explain their reasoning to another pupil.")}</p></div>
-    <div className="workshop-outcome-grid"><article><h3>{translateUi("A folded paper channel")}</h3><p>{translateUi("A path built from the joined blueprint and checked with the plain calibration card.")}</p></article><article><h3>{translateUi("The crew\u2019s own message")}</h3><p>{translateUi("A hand-drawn card checked against all three design notes, ready to travel to the display.")}</p></article><article><h3>{translateUi("A trial record and peer check")}</h3><p>{translateUi("Predictions, observations, a sample fault and a proposed repair, followed by a demonstration.")}</p></article></div>
-  </section>;
-}
-
-export function WorkshopDesignIntent() {
-  return <section className="theme-detail-section" aria-labelledby="workshop-intent-heading">
-    <div className="theme-detail-heading"><span className="eyebrow">{translateUi("THE IDEA BEHIND THE ADVENTURE")}</span><h2 id="workshop-intent-heading">{translateUi("Make it, try it, then support your explanation.")}</h2><p>{translateUi("Mira\u2019s showcase gives the crew a reason to build something another person can inspect. The same paper path links making, shared design requirements, testing and presentation.")}</p></div>
-    <div className="theme-reasons-grid"><article><span>{translateUi("BUILD & CHECK")}</span><p>{translateUi("The joined blueprint becomes a folded object. Students compare the printed plan with what they have made.")}</p></article><article><span>{translateUi("PREDICT & TEST")}</span><p>{translateUi("Moving real paper cards gives the crew something observable to compare with its predictions.")}</p></article><article><span>{translateUi("EXPLAIN & REVIEW")}</span><p>{translateUi("The trial record supports the final presentation, and a different pupil checks the original evidence.")}</p></article></div>
-    <p className="workshop-source-note">{translateUi("This is one fixed paper invention with a guided story. The printable pack supplies the parts, design notes and trials; ordinary paper and pencils are enough during play.")}</p>
-  </section>;
-}
-
-export function WorkshopSourcePreviews() {
-  return <div className="workshop-source-previews"><div><span className="eyebrow">{translateUi("REAL PLAYER PACK PAGES")}</span><h3>{translateUi("See the materials and the recording sheet")}</h3><p>{translateUi("These are actual pages 7 and 11 of the A4 Player Pack: the flat track and plain fit card, followed by the blank trial record. The message-design answers remain in the game.")}</p></div><div className="workshop-source-page-grid">{[['pieces', 'Track and plain calibration card', 'The actual printable track with two dotted fold lines and a separate plain calibration card'], ['trial-record', 'Blank trial and repair record', 'The blank trial sheet with prediction, fit, direction and proposed repair fields']].map(([name, caption, alt]) => <figure key={name}><a href={localHref(`/assets/workshop-classroom-preview-${name}.jpg`)} target="_blank" rel="noopener noreferrer" aria-label={translateUi("Enlarge {value0} (opens in a new tab)", { value0: caption.toLowerCase() })}><img src={`/assets/workshop-classroom-preview-${name}.jpg`} alt={translateUi(alt)} width="910" height="1287" loading="lazy" /></a><figcaption>{translateUi(caption)}{translateUi(" \xB7 A4 edition")}</figcaption></figure>)}</div></div>;
-}
+const t=(en,zh)=>currentLocale()==='zh'?zh:en.replace(/([a-z])(?=\d)/g,'$1 ').replace(/(\d)(?=[a-z])/g,'$1 ');
+const steps=[
+ ['The flat track','平面模板','Find the long fold lines','找到两条长折线','The adult cuts the OUTER track border and plain fit card. The two long inner dotted lines are folds, not cuts.','成人剪纸槽外框和试通卡，两条内部长点线是折线，不能剪。'],
+ ['Fold the rails','竖起侧栏','Raise both side strips, keep the centre flat','两侧竖起，中间平整','START is nearest you and DISPLAY is farthest away. Fold along both long lines; a fingertip may steady a leaning rail.','起点靠近自己、展示端远离自己，沿两条长线把两侧向上折，可用指尖轻扶侧栏。'],
+ ['Slide the card','试通卡滑行','Push the plain fit card by hand','用手轻推试通卡','Keep the card flat on the floor, printed face up, FRONT EDGE leading. If it catches, return, check folds and retry; do not force it or spread the rails.','试通卡贴底、印字正面朝上、前端先入；卡住就返回检查折法再试，不强推或撑开侧栏。']
+];
+const jobs=[['Scene Reader','场景朗读员','Read one step and invite a partner to explain.','读一个步骤，请伙伴解释。'],['Builder','制作员','Join, fold and draw the current pieces.','拼接、折纸、绘制当前道具。'],['Tester','试验员','Predict, slide and describe an actual observation.','先预测，再推卡，说明实际观察。'],['Recorder','记录员','Record agreed evidence; take dictation if needed.','记录商定证据，需要时照口述代写。'],['Checker','核查员','Point to originals and ask for a repeated action.','指出原件，请伙伴重做操作。'],['Presenter','展示员','Demonstrate the own card and explain a trial.','演示本组自制卡，解释一次试验。']];
+function Preview({name}){const a=assets[currentLocale()][name];return <figure><a href={'/'+a.path.replace(/^public\//,'')} target="_blank" rel="noopener noreferrer" aria-label={t('Enlarge blank PDF page','放大空白PDF页面')}><img src={'/'+a.path.replace(/^public\//,'')} width={a.width} height={a.height} loading="lazy" alt={t(name==='pieces'?'Actual channel and plain fit card':'Blank prediction and trial record',name==='pieces'?'实际纸槽模板与无图案试通卡':'空白预测与试验记录表')}/></a><figcaption>{t('Revised Player Pack page ','修订版玩家第')}{a.page}{t(' · no filled design answers','页／不含完成设计答案')}</figcaption></figure>;}
+function RelayDemo(){const [step,setStep]=useState(0),d=steps[step],l=currentLocale();return <div className="workshop-demo"><div className="workshop-demo-controls" role="group" aria-label={t('Choose a neutral paper-channel demonstration step','选择纸槽试通演示步骤')}>{steps.map((v,i)=><button key={i} type="button" aria-pressed={step===i} aria-controls="workshop-demo-description" onClick={()=>setStep(i)}><span>{i+1}</span>{t(v[0],v[1])}</button>)}</div><div className="workshop-demo-grid"><figure className="workshop-model-figure"><div className="workshop-model-stage" data-stage={step} aria-hidden="true"><div className="workshop-relay-plane">{['left-rail','lane','right-rail','calibration'].map((name,i)=><img key={name} className={['workshop-model-left','workshop-model-lane','workshop-model-right','workshop-model-card'][i]} src={'/assets/workshop-'+l+'-'+name+'.png'} width={assets[l][name].width} height={assets[l][name].height} alt=""/>)}</div></div><figcaption>{t('Model using exact revised PDF parts. This plain fit tool shows the action; formal design notes and sample verdicts stay in the game.','模型采用修订PDF的实际道具。无图案试通卡只示范操作，正式设计便条和样卡结论留在游戏中。')}</figcaption></figure><div id="workshop-demo-description" className="workshop-demo-description" role="status" aria-live="polite" aria-atomic="true"><span className="eyebrow">{t('STEP ','步骤')}{step+1} /3</span><h3>{t(d[2],d[3])}</h3><p>{t(d[4],d[5])}</p><p className="workshop-demo-detail">{t('The activity is played with paper, moved by hand. The later final message must be made by the crew.','活动使用纸质道具，由手推动；后面的最终信息卡必须由本组制作。')}</p><a className="text-link" href={'/assets/workshop-'+l+'-pieces.jpg'} target="_blank" rel="noopener noreferrer">{t('Inspect the actual blank parts page','查看实际空白道具页')} →</a></div></div></div>;}
+export function WorkshopStoryOpening(){return <section id="story-opening" className="theme-detail-section"><div className="theme-detail-heading"><span className="eyebrow">{t("INVENTORS' PAPER WORKSHOP · CLASSROOM",'小发明家纸艺工坊 · 课堂版')}</span><h2>{t('Mira’s exhibit needs a working paper message.','米拉的展品，需要一张能沿纸槽移动的信息卡。')}</h2><p>{t('Restore a plan, fold a channel, combine original notes and make an exhibit another pupil can verify.','拼好蓝图、折出纸槽、合并原便条要求，制作能交给另一名学生核查的作品。')}</p></div><div className="workshop-opening-grid"><article><h3>{t('Complete revised editions','完整修订资料')}</h3><p>{t('English1.1 and Chinese1.0-zh.1 each include16 Player Pack pages and19 Teacher Guide pages, in A4 and US Letter. Confirm PDF language before purchase.','英文1.1和中文1.0-zh.1均为玩家16页、教师19页，提供A4与US Letter。付款前确认PDF语言。')}</p></article><article><h3>{t('Independent crews of2–6','每组2至6人独立一套')}</h3><p>{t('Up to35 pupils in complete independent crews. Six jobs combine and rotate; the final Checker is different from the Recorder.','最多35名学生分组，各组材料齐全。六种任务可合并轮换，最终核查员与记录员不同。')}</p></article></div></section>;}
+export function WorkshopCooperativePlay(){return <section id="crew-play" className="theme-detail-section"><div className="theme-detail-heading"><span className="eyebrow">{t('SEE HOW IT PLAYS','看看怎么玩')}</span><h2>{t('Fold a channel. Slide a card. Explain the evidence.','折纸槽，推卡片，再解释依据。')}</h2><p>{t('A neutral fit-card demonstration shows the long fold lines, raised rails and hand movement. The printed game has staged actions, private notes, trials and a source audit.','试通演示展示长折线、竖起的侧栏和手推动作。正式纸质游戏按关发放操作页、独立便条、试验材料和来源核查。')}</p></div><RelayDemo/><div className="workshop-cooperation-grid"><article><h3>{t('Hear every original note first','先听完每张原便条')}</h3><p>{t('Different holders share design requirements before the own card is drawn. For a pair, the teacher reads the third note after both pupils share. Completed samples arrive only after the own design is checked.','不同持卡者先分享设计要求，再画本组卡。两人组由教师在两人分享后补读第三张；自制设计核准后才发完成样卡。')}</p></article><article><h3>{t('Fit and direction are different checks','通过通道与方向符合分开检查')}</h3><p>{t('Predict before moving, then record actual fit and direction separately. Explain a tested fault and possible new-card repair; samples are never the final exhibit.','先预测再推动，分别记录实际能否通过和方向是否符合。解释已试问题及新做卡片的修正方案；样卡不能替代最终作品。')}</p></article></div><div className="workshop-jobs"><div className="workshop-jobs-heading"><h3>{t('Six jobs, with concrete seat rotations','六种分工，配具体座位轮换表')}</h3></div><dl>{jobs.map(v=><div key={v[0]}><dt>{t(v[0],v[1])}</dt><dd>{t(v[2],v[3])}</dd></div>)}</dl><p>{t('Pointing, dictation and assistance with a leaning rail are accepted. Keep original sources, repeat an action when needed, repair and recheck before ticking.','允许指认、口述与轻扶侧栏。保留原来源，必要时重做操作，修正后重查再勾选。')}</p></div></section>;}
+export function WorkshopCrewOutcome(){return <section id="crew-finish" className="theme-detail-section"><div className="theme-detail-heading"><span className="eyebrow">{t('WHAT YOUR CREW COMPLETES','本组会完成什么')}</span><h2>{t('A crew-made exhibit with original evidence.','一件有原始证据的本组作品。')}</h2><p>{t('The own message, channel and checked records form the display. Another pupil verifies the original notes and repeated operation.','自制信息卡、纸槽和核查记录组成展品，由另一名学生对原便条和重做操作进行核查。')}</p></div><div className="workshop-outcome-grid"><article><h3>{t('One coherent plan and channel','方向一致的蓝图与纸槽')}</h3><p>{t('Lengthwise travel and across-width dimensions are distinct; only the separate whole template is folded.','纵向行进与横向尺寸分开；只折另一整张制作模板。')}</p></article><article><h3>{t('One original own message','本组亲手制作的信息卡')}</h3><p>{t('Checked against every original note; a passing trial sample cannot replace it.','逐条对原便条核查，试验样卡通过也不能替代它。')}</p></article><article><h3>{t('Observed trial and repair evidence','实际试验与修正依据')}</h3><p>{t('Predictions stay distinct from observations. Explain one fault and repair proposal; retest own-card changes if needed.','预测与观察分开，解释一种问题与方案；自制卡若实际修改，再重试。')}</p></article></div></section>;}
+export function WorkshopDesignIntent(){return <section className="theme-detail-section"><div className="theme-detail-heading"><span className="eyebrow">{t('THE IDEA BEHIND THE ADVENTURE','这个冒险的设计')}</span><h2>{t('Make, test, explain and check the source.','制作、试验、解释，再核查来源。')}</h2><p>{t('Mira’s fixed paper exhibit links a plan, physical construction, shared design notes and an explanation someone else can verify. Paper and pencils are enough during play; an adult prepares the cuts.','米拉的固定纸艺展品把看图制作、分享设计便条和有依据的解释连接起来。成人准备剪件，游戏时使用纸和铅笔即可。')}</p></div><p className="workshop-source-note">{t('This is a hand-moved paper model, not a powered device or an endlessly changing invention. Pause after a checked mission and retain the originals to resume.','这是由手推动的纸模型，不是动力装置或无限变化的发明。可在一关核准后暂停，保留原件继续。')}</p></section>;}
+export function WorkshopSourcePreviews(){return <div className="workshop-source-previews"><div><span className="eyebrow">{t('ACTUAL REVISED PDF PAGES','实际修订PDF页面')}</span><h3>{t('Blank parts and a trial record','空白道具与试验记录')}</h3><p>{t('Exact player pages8 and14. Final design marks and trial verdicts are kept in the staged materials and private Teacher Guide.','对应玩家第8页和第14页。正式设计图案及样卡结论留在按关发放的材料和成人教师指南中。')}</p></div><div className="workshop-source-page-grid"><Preview name="pieces"/><Preview name="trial-record"/></div></div>;}

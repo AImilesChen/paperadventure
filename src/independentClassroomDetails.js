@@ -51,12 +51,12 @@ export const independentClassroomDetails = {
   workshop: { classroom: {
     hook: 'Build Mira’s display with paper and pencils, then show the crew’s message travelling through the channel.',
     reasons: ['Six rotating jobs give every pupil a clear contribution, with bundled jobs for smaller crews.', 'Three separate design notes must be shared before one message card can be drawn.', 'The crew physically slides trial cards, diagnoses fit and direction, then explains a possible repair.'],
-    materials: ['Three blueprint fragments', 'Foldable channel and calibration card', 'Three separately dealt design notes and a blank message card', 'Three trial cards, test record and peer-check sheet'],
+    materials: ['Three lengthwise blueprint fragments with graphic seam marks', 'Separate fold guide, actual-size channel and plain fit card', 'Separate sharing instructions, three privately dealt notes and one own blank card', 'Three trial samples, prediction/observation record, repair/recheck sheet and source audit'],
     stages: [
-      ['Rebuild the blueprint', 'Match the three seam marks and mark the message path from START to DISPLAY.', 'An assembled plan with the clear lane width'],
+      ['Rebuild the blueprint', 'Match two graphic joins, continue the rail lines and distinguish lengthwise travel from across-width measurements.', 'An assembled plan with the clear lane width'],
       ['Fold the paper channel', 'Fold the two outer rails up and slide a plain calibration card through without bending it.', 'A working paper path'],
       ['Make the message card', 'Three note holders share separate requirements; the crew draws all marks on one blank card.', 'A crew-authored message'],
-      ['Test and repair', 'Predict and physically try three sample cards, record each fault, then test the crew card.', 'A documented fit-and-direction check'],
+      ['Test and repair', 'Predict and try each sample, record fit and direction separately, then try the own card and explain one new-card repair proposal.', 'A documented fit-and-direction check'],
       ['Demonstrate the relay', 'Run the finished card, explain a repair and have another pupil check the evidence.', 'A peer-checked paper invention'],
     ],
   } },
