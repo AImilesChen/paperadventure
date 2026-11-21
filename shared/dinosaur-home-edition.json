@@ -1,0 +1,33 @@
+{
+  "world": "dinosaur", "setting": "home", "versions": {"en": "1.1", "zh": "1.0-zh.1"},
+  "sourceEnglishVersion": "v1.0", "titles": {"en": "The Little Dinosaur's Way Home", "zh": "小恐龙回家的路"},
+  "pages": {"player": 17, "guide": 18},
+  "slotMm": [46,70], "tileMm": [42,66], "campMm": [22,70], "campGapMm": 4,
+  "horizontalPortMm": 26, "verticalPortMm": 35,
+  "supplyMm": [40,26], "backpackSlotMm": [46,32], "parkingSlotMm": [46,32], "markerMm": [16,22],
+  "tracks": [
+    {"id":1,"en":"S","zh":"阳","toes":3,"heel":"round","notch":true},
+    {"id":2,"en":"O","zh":"雨","toes":2,"heel":"round","notch":true},
+    {"id":3,"en":"U","zh":"光","toes":3,"heel":"round","notch":true},
+    {"id":4,"en":"A","zh":"山","toes":3,"heel":"point","notch":true},
+    {"id":5,"en":"N","zh":"地","toes":3,"heel":"round","notch":true},
+    {"id":6,"en":"R","zh":"林","toes":3,"heel":"round","notch":false}
+  ],
+  "tiles": [
+    {"id":"hollow","en":"HOLLOW","zh":"林间空地","ports":[]},
+    {"id":"bridge","en":"BRIDGE","zh":"木桥","ports":["W","S"]},
+    {"id":"ford","en":"FORD","zh":"浅滩","ports":["N","E"]},
+    {"id":"fern","en":"FERN","zh":"蕨叶地","ports":["W","E","S"]},
+    {"id":"sun","en":"SUN","zh":"阳光地","ports":["E"]},
+    {"id":"tunnel","en":"TUNNEL","zh":"隧道","ports":["W","N","E"]}
+  ],
+  "layout": ["sun","fern","bridge","hollow","ford","tunnel"],
+  "stormStopRoute": ["sun","fern","ford","tunnel"],
+  "supplies": [
+    {"id":"boots","en":"BOOTS","zh":"雨靴","obstacle":"ford"},
+    {"id":"lantern","en":"LANTERN","zh":"提灯","obstacle":"tunnel"},
+    {"id":"rope","en":"ROPE","zh":"绳子","obstacle":"bridge"},
+    {"id":"snack","en":"SNACK","zh":"点心","obstacle":null}
+  ],
+  "fullCut":16,"lowCut":12
+}

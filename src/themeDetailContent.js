@@ -34,13 +34,13 @@ export const themeDetailContent = {
     home: {
       hook: 'One adult hosts the story; players share four rotating jobs and keep the journey at the table.',
       reasons: ['Children fit six shuffled landscape tiles by matching printed paths, then move Milo to a separate camp finish area.', 'A two-slot backpack makes the printed supplies matter when the weather changes.', 'A storm changes the plan: players block a crossing, test a safe detour and complete an arrival proof.'],
-      materials: ['Six cut landscape tiles with matching paths and a whole-page map board with CAMP finish area', 'Six illustrated trail marks and four rotating explorer jobs', 'Two-slot backpack mat and four cut supply tokens', 'Storm notice, BLOCK and MILO markers, journey record, arrival proof and held-back welcome'],
+      materials: ['Six cut landscape tiles with matching paths and a whole-page map board with CAMP finish area', 'Six illustrated trail marks and four rotating explorer jobs', 'Two-slot backpack mat and four cut supply tokens', 'Storm notice, BLOCK and MILO markers, journey record, arrival check; the complete welcome is private in the Host Guide'],
       stages: [
-        ['Read the trail marks', 'Circle the three tracks that fit Milo’s print and read their start letters.', 'An evidence-backed starting place'],
-        ['Rebuild the expedition map', 'Fit shuffled landscape tiles into the board by matching printed path ends.', 'Two possible paths toward camp'],
+        ['Read the trail marks', 'Circle the three tracks that fit Milo’s print and read their starting-place labels in number order.', 'An evidence-backed starting place'],
+        ['Rebuild the expedition map', 'Fit shuffled landscape tiles into the board by matching upright printed path ends and alignment marks.', 'Two possible paths toward camp'],
         ['Pack for the possible detour', 'Select two of four printed supplies for a route that still works if the weather changes.', 'A packed expedition kit'],
-        ['Follow the changed route', 'Block a crossing after the storm, move Milo through another route and use the supplies.', 'A safe paper detour'],
-        ['Bring Milo home', 'Move Milo into CAMP and complete an arrival proof from the route and used supplies.', 'A read-aloud welcome'],
+        ['Follow the changed route', 'Block a crossing after the storm, move Milo through another route, use the supplies and stop before camp.', 'A safe paper detour'],
+        ['Bring Milo home', 'Show the original route and used-tool evidence, then make the one final move into CAMP.', 'A read-aloud welcome'],
       ],
     },
     classroom: {

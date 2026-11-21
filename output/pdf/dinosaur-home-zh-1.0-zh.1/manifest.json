@@ -1,0 +1,75 @@
+{
+  "world": "dinosaur",
+  "setting": "home",
+  "locale": "zh",
+  "version": "1.0-zh.1",
+  "sourceEnglishVersion": "v1.0",
+  "pairedEnglishEdition": "1.1",
+  "status": "local_review",
+  "items": [
+    {
+      "world": "dinosaur",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 17,
+      "path": "output/pdf/dinosaur-home-zh-1.0-zh.1/dinosaur-home-player-zh-A4.pdf",
+      "sha256": "b04c6a81ee29441901fa280df5312e62862db2fda1570682f07e92738e36f701",
+      "bytes": 439261,
+      "r2Key": "ready-localized/dinosaur/home/zh/1.0-zh.1/A4/player-b04c6a81ee294419.pdf"
+    },
+    {
+      "world": "dinosaur",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 18,
+      "path": "output/pdf/dinosaur-home-zh-1.0-zh.1/dinosaur-home-guide-zh-A4.pdf",
+      "sha256": "af071e430cfe2e002cc430b2d340fd017eb1ada17b30d288fc74f41648960936",
+      "bytes": 353089,
+      "r2Key": "ready-localized/dinosaur/home/zh/1.0-zh.1/A4/guide-af071e430cfe2e00.pdf"
+    },
+    {
+      "world": "dinosaur",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 17,
+      "path": "output/pdf/dinosaur-home-zh-1.0-zh.1/dinosaur-home-player-zh-Letter.pdf",
+      "sha256": "3db3464b5c38eab82d3c60357e79feeb53ab164d53c91d8ee0b4e75726cd8f35",
+      "bytes": 438810,
+      "r2Key": "ready-localized/dinosaur/home/zh/1.0-zh.1/Letter/player-3db3464b5c38eab8.pdf"
+    },
+    {
+      "world": "dinosaur",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 18,
+      "path": "output/pdf/dinosaur-home-zh-1.0-zh.1/dinosaur-home-guide-zh-Letter.pdf",
+      "sha256": "f367bf0c79b1b801ab823c3f60b6bcce73be81b718a50e5b9165f54ff7f9763c",
+      "bytes": 352639,
+      "r2Key": "ready-localized/dinosaur/home/zh/1.0-zh.1/Letter/guide-f367bf0c79b1b801.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/dinosaur-home-zh-1.0-zh.1/dinosaur-home-complete-zh-A4.zip",
+      "sha256": "d59317eb6154acffb9868c8363a0858bb6beac6ba197d5b96d6f2c230b3686e3"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/dinosaur-home-zh-1.0-zh.1/dinosaur-home-complete-zh-Letter.zip",
+      "sha256": "58ea78ba4560e92f17df5e58977eb225c305d064d71ca7c1d4983acb3203c4b0"
+    }
+  ]
+}

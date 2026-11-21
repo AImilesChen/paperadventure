@@ -10,7 +10,7 @@ import { siteIdentity } from '../shared/site-identity.mjs';
 import { homeGamePlanning, homePrintPlan } from '../shared/home-game-planning.mjs';
 
 test('Home printing plans balance every supported child count and count the adult guide only once', () => {
-  for (const [theme, pages, guidePages, pieces] of [['dinosaur', 15, 10, 16], ['christmas', 14, 8, 12]]) {
+  for (const [theme, pages, guidePages, pieces] of [['dinosaur', 17, 18, 16], ['christmas', 14, 8, 12]]) {
     for (let children = 2; children <= 12; children++) {
       const teams = children <= 6 ? 1 : 2;
       for (const printGuide of [false, true]) {
@@ -28,7 +28,7 @@ test('Home printing plans balance every supported child count and count the adul
     }
   }
   assert.deepEqual(homePrintPlan('dinosaur', 7).teams, [4, 3]);
-  assert.equal(homePrintPlan('dinosaur', 12, true).totalSheets, 40);
+  assert.equal(homePrintPlan('dinosaur', 12, true).totalSheets, 52);
   assert.equal(homePrintPlan('christmas', 12, true).totalSheets, 36);
 });
 
@@ -54,7 +54,7 @@ test('Home catalogue compares real gameplay and preparation without changing Cla
 });
 
 test('featured Home calculators render an accessible initial estimate and a static reference', async () => {
-  for (const [theme, sheets, pieces] of [['dinosaur', 15, 16], ['christmas', 14, 12]]) {
+  for (const [theme, sheets, pieces] of [['dinosaur', 17, 16], ['christmas', 14, 12]]) {
     const html = await read(`/en/themes/${theme}/home/`);
     assert.match(html, /<label for="pack-children">Children/);
     assert.match(html, /aria-label="Number of children" type="number" min="2" max="12" step="1"/);
@@ -91,7 +91,7 @@ test('custom search HTML describes ordering accurately without a false unavailab
 });
 
 test('featured Home pages expose distinct file inventories, exact print totals and host handoffs', async () => {
-  for (const [theme, player, guide, pieces] of [['dinosaur',15,10,16],['christmas',14,8,12]]) {
+  for (const [theme, player, guide, pieces] of [['dinosaur',17,18,16],['christmas',14,8,12]]) {
     const html = (await read(`/en/themes/${theme}/home/`)).replace(/<!--.*?-->/g, "");
     assert.match(html, /id="prepare-game"/);
     assert.ok(html.includes(`<strong>${player} Player pages</strong>`));
@@ -106,14 +106,14 @@ test('featured Home pages expose distinct file inventories, exact print totals a
     assert.match(preparation, /Single-sided sheets with the Host Guide on screen/);
     assert.match(preparation, /Table setup schematic/);
     assert.match(preparation, /Actual size \/ 100%/);
-    assert.match(preparation, /page 14/);
+    assert.match(preparation, theme==='dinosaur'?/private Host Guide/:/page 14/);
     assert.match(preparation, /two balanced teams of 3–6/);
     assert.match(html, /Selected blank materials from the game, not a view of every page/);
     assert.doesNotMatch(preparation, /minutes|playtested|play-tested|SUN &gt; FERN|Gift A is for OWL/);
     assert.equal((html.match(/id="theme-prep-heading"/g)||[]).length, 1);
   }
   const dinosaur = await read('/en/themes/dinosaur/home/');
-  assert.match(dinosaur, /Keep the welcome on page 14 and keepsake on page 15/);
+  assert.match(dinosaur, /complete welcome stays in the private Host Guide/);
   assert.match(dinosaur, /fixed expedition, not a personalized birthday story/);
   const christmas = await read('/en/themes/christmas/home/');
   assert.match(christmas, /frame’s inner window/);

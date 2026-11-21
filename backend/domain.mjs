@@ -37,7 +37,7 @@ export function validatePurchase(input) {
     const documentLocale=input.documentLocale??'en';
     if(!['en','zh'].includes(documentLocale))throw new ApiError(400,'INVALID_DOCUMENT_LOCALE','Choose English or Simplified Chinese for the PDF files.');
     if(documentLocale==='zh'&&!paidDocumentGame(themeId,offer.setting,variantId))throw new ApiError(400,'INVALID_DOCUMENT_LOCALE','This PDF language is not offered for the selected game.');
-    const pinned=documentLocale==='zh'||readyEnglishRepairGame(themeId)&&input.documentEdition&&input.documentEdition!==input.packVersion;
+    const pinned=documentLocale==='zh'||readyEnglishRepairGame(themeId,offer.setting)&&input.documentEdition&&input.documentEdition!==input.packVersion;
     const documentEdition=pinned?requireText(input.documentEdition,'PDF edition',40):null;
     return { offer, spec: { ...(pinned?{documentLocale,documentEdition}:{}),sku: offer.sku, kind: 'ready', setting: offer.setting, themeId, variantId,
       packVersion: requireText(input.packVersion, 'Pack version', 40) } };

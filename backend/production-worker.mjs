@@ -207,7 +207,7 @@ async function liveCatalog(env) {
   return { ...base, publicationState: canCheckout || free ? 'partially_configured' : base.publicationState,
     freeSampleThemeId: free ? 'celebration' : null,
     escapeGames:escapeProducts.map(p=>{const pack=ready.find(r=>r.theme_world_id===p.id&&r.setting==='home'&&r.version===p.version&&extraCounts.get(r.id)===2&&(p.id!=='midnight-masquerade'||attachmentCounts.get(r.id)===8));return {...p,home:{readyStatus:pack&&canCheckout&&liveSkus.has(p.sku)?'published':'not_published',packVersion:pack?.version||null}};}),
-    themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: readyStatus(theme.id, 'home'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null },
+    themes: themes.filter(theme => visibleIds.has(theme.id)).map(theme => ({ ...theme, home: { readyStatus: readyStatus(theme.id, 'home'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'home')?.version || null, ...(paidDocumentGame(theme.id,'home')?{documentEditions:documentEditions.get(ready.find(pack=>pack.theme_world_id===theme.id&&pack.setting==='home')?.id)||[]}:{}) },
       classroom: { readyStatus: readyStatus(theme.id, 'classroom'), freeSample: free && theme.id === 'celebration', packVersion: ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')?.version || null,
         ...(paidDocumentGame(theme.id,'classroom')?{documentEditions:documentEditions.get(ready.find(pack=>pack.theme_world_id===theme.id&&pack.setting==='classroom')?.id)||[]}:{}),
         variantIds: variantsFor(ready.find(pack => pack.theme_world_id === theme.id && pack.setting === 'classroom')) } })),
@@ -1090,7 +1090,7 @@ async function fileDownload(request, env, orderId, role) {
     const localized=await readyLanguageFile(env,entitlement.ready_pack_id,documentLocale,pinned,paper,role);file=localized.file;languageEdition=localized.edition.version;
   }else if (order.product_kind === 'ready') {
     let repaired=null;
-    if(paidDocumentGame(spec.themeId,spec.setting,spec.variantId)&&readyEnglishRepairGame(spec.themeId)){
+    if(paidDocumentGame(spec.themeId,spec.setting,spec.variantId)&&readyEnglishRepairGame(spec.themeId,spec.setting)){
       const pinned=fileUrl.searchParams.get('edition')||(spec.documentLocale==='en'?spec.documentEdition:null);
       const original=await query(env.DB,'SELECT version FROM ready_packs WHERE id=?',entitlement.ready_pack_id).first();
       if(fileUrl.searchParams.getAll('edition').length>1)throw new ApiError(400,'INVALID_DOCUMENT_EDITION','Choose one PDF edition.');

@@ -7,9 +7,9 @@ export const homeGamePlanning = {
     occasion: 'A birthday gathering or family mystery.',
   },
   dinosaur: {
-    playerPages: 15, guidePages: 10, pieces: 16,
+    playerPages: 17, guidePages: 18, pieces: 16,
     play: 'Build a landscape, choose paper supplies and help Milo find a route.',
-    prepare: '15 Player pages/team · 16 cut-out pieces/team.',
+    prepare: '17 Player pages/team · 16 cut-out pieces/team.',
     occasion: 'A family table or dinosaur birthday party.',
   },
   space: {
