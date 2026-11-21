@@ -1,0 +1,75 @@
+{
+  "world": "museum",
+  "setting": "classroom",
+  "locale": "zh",
+  "version": "1.0-zh.1",
+  "sourceEnglishVersion": "v1.0",
+  "pairedEnglishEdition": "1.1",
+  "status": "local_review",
+  "items": [
+    {
+      "world": "museum",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 13,
+      "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-player-zh-A4.pdf",
+      "sha256": "d8867aa2cdc91f0923ed13e821c265e01815eff2485eeac697a9e6cdc4c94433",
+      "bytes": 320967,
+      "r2Key": "ready-localized/museum/classroom/zh/1.0-zh.1/A4/player-d8867aa2cdc91f09.pdf"
+    },
+    {
+      "world": "museum",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-guide-zh-A4.pdf",
+      "sha256": "882ea122e4596a2539aa50eb4e8d9bf3f796a86c0347e0ce18d8c8d8c19aa175",
+      "bytes": 176729,
+      "r2Key": "ready-localized/museum/classroom/zh/1.0-zh.1/A4/guide-882ea122e4596a25.pdf"
+    },
+    {
+      "world": "museum",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 13,
+      "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-player-zh-Letter.pdf",
+      "sha256": "83c575e324cdbabddae127ecfccd2bce6e63711d643469828156569ed9685a24",
+      "bytes": 320474,
+      "r2Key": "ready-localized/museum/classroom/zh/1.0-zh.1/Letter/player-83c575e324cdbabd.pdf"
+    },
+    {
+      "world": "museum",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-guide-zh-Letter.pdf",
+      "sha256": "56ea2aab53690aba46fe4f99da3d9d380eaafe14a07671aa0fa60025790778a8",
+      "bytes": 175747,
+      "r2Key": "ready-localized/museum/classroom/zh/1.0-zh.1/Letter/guide-56ea2aab53690aba.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-complete-zh-A4.zip",
+      "sha256": "caad047bd30a9be7d3f2b0ec3a8a3c918324bc0acb0b7887d89f01682124b521"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/museum-classroom-zh-1.0-zh.1/museum-classroom-complete-zh-Letter.zip",
+      "sha256": "f42fe3e5858c61e40cd18902ef416bdeee00a13a1f0e3ce397762ca399d4ce07"
+    }
+  ]
+}

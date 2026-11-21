@@ -1,0 +1,25 @@
+// Authored copy scoped to the Museum detail page; other games keep their copy.
+export const museumDetailZh={
+ 'A printable, teacher-led museum adventure for small groups.':'可打印、由教师带领的小组博物馆冒险。',
+ 'Become a curator crew. Follow paper evidence, rebuild an imagined exhibition and write a label visitors can check.':'组成小小策展团队，循着纸上证据恢复故事里的展览，写出经得起访客核查的标签。',
+ 'Story audience':'适合年龄','2–6 per crew':'每组2–6人','Up to 35 in groups':'最多35人，分组进行','Verify, assemble, write & exhibit':'核对、拼装、写作与布展',
+ 'Three separately held observations guide the assembly; matching archive notes support the crew’s own visitor label.':'分享三份独立观察记录来拼装展品，再依据编号相符的档案编写观众标签。',
+ 'How it plays':'玩法过程','Inside the pack':'资料包内容',
+ 'Five connected missions take the crew from a mixed-up museum record to an original paper exhibit. The teacher reads each scene and hands out only its materials; each checked result supports the next task.':'五个任务从混乱的博物馆记录开始，最终形成小组自己的纸展览。教师逐关朗读场景、发放当前材料，核查通过后再进入下一关。',
+ 'Verify the accession':'核对藏品编号','Compare two printed tag marks with the ledger and record the matching ID.':'对照入馆标签上的两项图案与登记表，核准并记录编号。','A checked accession number':'核准的藏品编号',
+ 'Arrange the gallery':'恢复展柜位置','Move three case signs into an entrance-to-window plan using placement notes.':'根据位置说明，将三张展柜牌排在入口、中间、窗边的位置。','The window-side display case':'窗边的展柜',
+ 'Conserve the object':'还原纸质展品','Share three private observations and assemble a paper top, dial and base.':'逐张分享三张独立记录，选择并拼放顶部、刻盘和底座。','A three-part Wind Listener model':'三部件听风器纸模型',
+ 'Write the visitor label':'编写观众标签','Keep only archive notes with the verified ID and author a label in your own words.':'先核对档案编号，再用有来源的事实和自己的话编写标签。','An evidence-backed original label':'有证据支持的自写标签',
+ 'Open the exhibition':'布展与访客核查','Lay out the object and label, then answer a visitor’s evidence question.':'展示已完成的模型与标签，回答访客问题；发现不符就修正再查。','A checked paper exhibit':'核查通过的纸展览',
+ 'Marked accession tag, three ledger records and a gallery plan with three movable case signs':'入馆图案标签、三条登记记录、展柜位置图和三张独立展柜牌',
+ 'Six illustrated paper parts and three separately dealt conservation slips':'六张图文候选部件卡和三张分别发放的修复记录卡',
+ 'Three archive notes requiring accession-ID checks, plus a blank visitor-label sheet':'三份需要核对藏品编号的档案，以及空白观众标签',
+ 'Exhibit labels, a completed assembly board, a four-point visitor check and a separate Teacher Guide':'展台铭牌、已完成的拼装板、四项访客核查和独立教师指南',
+ 'A teacher prepares 12 pieces for standard play or three private slips for low-cut play. Keep the case and part sheets whole in low-cut mode. Release one mission at a time and retain its evidence.':'教师按所选方式准备材料：标准玩法剪12件；少裁剪只剪三张独立记录卡，展柜和部件页保持完整。逐关发放，保留每关的原始证据。',
+ 'What to give players if a checkpoint is skipped':'需要帮助时的提示、修正与重新核查',
+ 'Print the ':'打印','Player Pack for your groups':'每组玩家材料',' and read the ':'，并先阅读',' first. Use ordinary paper, pencils and adult-handled scissors. Follow the pack-specific cutting instructions. ':'。使用普通纸、铅笔和由成人操作的剪刀，按本包说明裁剪。',
+ 'Copies to prepare':'打印份数','Print one complete Player Pack per playing group and keep one ':'每组一份完整玩家材料，成人保管一份',' for the adult. Use the same A4 or US Letter size for both files.':'。两个文件选用相同纸型。',
+ 'No special equipment or digital account is needed by children.':'学生不需要特殊设备或在线账户。',
+ ' No special equipment or digital account is needed by children.':' 学生不需要特殊设备或在线账户。',
+ 'Final check and paper ending':'最终核查和故事结尾',' in A4 or US Letter. These are paper activities; the illustrations do not contain hidden digital game steps.':'，也提供A4和US Letter。游戏通过纸上活动完成，插图里没有隐藏的数字游戏步骤。'
+};

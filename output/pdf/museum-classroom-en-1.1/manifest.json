@@ -1,0 +1,75 @@
+{
+  "world": "museum",
+  "setting": "classroom",
+  "locale": "en",
+  "version": "1.1",
+  "sourceEnglishVersion": "v1.0",
+  "pairedEnglishEdition": "1.1",
+  "status": "local_review",
+  "items": [
+    {
+      "world": "museum",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 13,
+      "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-player-en-A4.pdf",
+      "sha256": "0a052930347d65f7d89db73a9ee616e3b3e04339cc205c1efc9b9dc90db6b054",
+      "bytes": 214565,
+      "r2Key": "ready-localized/museum/classroom/en/1.1/A4/player-0a052930347d65f7.pdf"
+    },
+    {
+      "world": "museum",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-guide-en-A4.pdf",
+      "sha256": "b0768c1408a6b5755df9cf4916f979c6ce4016a6f0935370aa39a24ae0a1bcf9",
+      "bytes": 65164,
+      "r2Key": "ready-localized/museum/classroom/en/1.1/A4/guide-b0768c1408a6b575.pdf"
+    },
+    {
+      "world": "museum",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 13,
+      "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-player-en-Letter.pdf",
+      "sha256": "a197f094c448631c4d4fba127d8da2ed543554c66fa04d1905a7b47c5c1649c6",
+      "bytes": 214012,
+      "r2Key": "ready-localized/museum/classroom/en/1.1/Letter/player-a197f094c448631c.pdf"
+    },
+    {
+      "world": "museum",
+      "setting": "classroom",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-guide-en-Letter.pdf",
+      "sha256": "64af0354963bf06ef29fff0e87cc9b5579969663fad4e3ad75d4e3626c33cd63",
+      "bytes": 64179,
+      "r2Key": "ready-localized/museum/classroom/en/1.1/Letter/guide-64af0354963bf06e.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-complete-en-A4.zip",
+      "sha256": "a85d52a87a97972c4846efdacde196f6f008e5531ee9c63ef9c6f4e6bb87b3bc"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/museum-classroom-en-1.1/museum-classroom-complete-en-Letter.zip",
+      "sha256": "b7daddd930a01c71085ec4f668b74aee21ed82e5630c6d66df0a39aba6da8873"
+    }
+  ]
+}
