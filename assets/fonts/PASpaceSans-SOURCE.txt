@@ -1,0 +1,4 @@
+PA Space Sans Regular and Bold are renamed subsets of Noto Sans SC under the SIL Open Font License.
+Source: the existing NotoSansSC-VF.ttf installed in C:/Windows/Fonts, weights 400 and 700.
+Prepared by scripts/prepare_space_home_fonts.py with retained glyph IDs for H03 Chinese PDF text.
+See OFL.txt in this directory. Existing English and other game fonts are unchanged.

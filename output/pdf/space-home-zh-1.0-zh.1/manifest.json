@@ -1,0 +1,74 @@
+{
+  "world": "space",
+  "setting": "home",
+  "locale": "zh",
+  "version": "1.0-zh.1",
+  "sourceEnglishVersion": "v1.0",
+  "status": "local_review_not_published",
+  "items": [
+    {
+      "world": "space",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 19,
+      "path": "output/pdf/space-home-zh-1.0-zh.1/space-home-player-zh-A4.pdf",
+      "sha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "bytes": 381618,
+      "r2Key": "ready-localized/space/home/zh/1.0-zh.1/A4/player-9b79387ad34a60fa.pdf"
+    },
+    {
+      "world": "space",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 18,
+      "path": "output/pdf/space-home-zh-1.0-zh.1/space-home-guide-zh-A4.pdf",
+      "sha256": "d6eebf51066558ce1ebf36715886dd106931b7a7b84c7e45f1f04ceceb575d04",
+      "bytes": 363896,
+      "r2Key": "ready-localized/space/home/zh/1.0-zh.1/A4/guide-d6eebf51066558ce.pdf"
+    },
+    {
+      "world": "space",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 19,
+      "path": "output/pdf/space-home-zh-1.0-zh.1/space-home-player-zh-Letter.pdf",
+      "sha256": "84808c0739d5614b06606d6f6419ef7c7db8983e51d4853b0f1bd723b1df1df0",
+      "bytes": 381143,
+      "r2Key": "ready-localized/space/home/zh/1.0-zh.1/Letter/player-84808c0739d5614b.pdf"
+    },
+    {
+      "world": "space",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 18,
+      "path": "output/pdf/space-home-zh-1.0-zh.1/space-home-guide-zh-Letter.pdf",
+      "sha256": "793ee4afb0094be6fcd0bc043860532bef459f49821c8651f59c31af038bd937",
+      "bytes": 363463,
+      "r2Key": "ready-localized/space/home/zh/1.0-zh.1/Letter/guide-793ee4afb0094be6.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/space-home-zh-1.0-zh.1/space-home-complete-zh-A4.zip",
+      "sha256": "829fece22f2d49cc09bdc71f7d23fd98a6901745f3513d11027939a1b94991d0"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/space-home-zh-1.0-zh.1/space-home-complete-zh-Letter.zip",
+      "sha256": "833e349c9bbf54e2cf77817615f619ca8e25e19546bda7bb3f584fc720913b07"
+    }
+  ]
+}

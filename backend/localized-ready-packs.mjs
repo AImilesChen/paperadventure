@@ -5,13 +5,13 @@ const COMPLETE=`(SELECT COUNT(*) FROM localized_ready_pack_files f WHERE f.pack_
 // Immutable language/repair revisions supplement original slots and entitlements.
 export async function readyLanguageEdition(env,readyPackId,locale,version=null){
  if(!['en','zh'].includes(locale))throw new ApiError(400,'INVALID_DOCUMENT_LOCALE','Choose English or Simplified Chinese for the PDF files.');
- const ocean=env.PAID_READY_ZH_ENABLED==='true',museum=env.PAID_MUSEUM_EDITIONS_ENABLED==='true',library=env.PAID_LIBRARY_EDITIONS_ENABLED==='true',weather=env.PAID_WEATHER_EDITIONS_ENABLED==='true',workshop=env.PAID_WORKSHOP_EDITIONS_ENABLED==='true',dinosaurHome=env.PAID_DINOSAUR_HOME_EDITIONS_ENABLED==='true';
- if(!ocean&&!museum&&!library&&!weather&&!workshop&&!dinosaurHome)return null;
+ const ocean=env.PAID_READY_ZH_ENABLED==='true',museum=env.PAID_MUSEUM_EDITIONS_ENABLED==='true',library=env.PAID_LIBRARY_EDITIONS_ENABLED==='true',weather=env.PAID_WEATHER_EDITIONS_ENABLED==='true',workshop=env.PAID_WORKSHOP_EDITIONS_ENABLED==='true',dinosaurHome=env.PAID_DINOSAUR_HOME_EDITIONS_ENABLED==='true',spaceHome=env.PAID_SPACE_HOME_EDITIONS_ENABLED==='true';
+ if(!ocean&&!museum&&!library&&!weather&&!workshop&&!dinosaurHome&&!spaceHome)return null;
  try{return await q(env,`SELECT l.id,l.locale,l.version,l.ready_pack_id,p.theme_world_id,p.setting FROM localized_ready_packs l JOIN ready_packs p ON p.id=l.ready_pack_id JOIN theme_worlds w ON w.id=p.theme_world_id
   WHERE l.ready_pack_id=? AND l.locale=? AND l.status='published' AND p.status='published' AND w.status='published'
-  AND ((p.setting='classroom' AND ((p.theme_world_id='ocean' AND ?=1 AND l.locale='zh') OR (p.theme_world_id='museum' AND ?=1) OR (p.theme_world_id='library' AND ?=1) OR (p.theme_world_id='weather' AND ?=1) OR (p.theme_world_id='workshop' AND ?=1))) OR (p.setting='home' AND p.theme_world_id='dinosaur' AND ?=1))
+  AND ((p.setting='classroom' AND ((p.theme_world_id='ocean' AND ?=1 AND l.locale='zh') OR (p.theme_world_id='museum' AND ?=1) OR (p.theme_world_id='library' AND ?=1) OR (p.theme_world_id='weather' AND ?=1) OR (p.theme_world_id='workshop' AND ?=1))) OR (p.setting='home' AND ((p.theme_world_id='dinosaur' AND ?=1) OR (p.theme_world_id='space' AND ?=1))))
   AND l.source_english_version=p.version AND ${COMPLETE} ${version?'AND l.version=?':''}
-  ORDER BY l.published_at DESC,l.version DESC LIMIT 1`,readyPackId,locale,Number(ocean),Number(museum),Number(library),Number(weather),Number(workshop),Number(dinosaurHome),...(version?[version]:[])).first();
+  ORDER BY l.published_at DESC,l.version DESC LIMIT 1`,readyPackId,locale,Number(ocean),Number(museum),Number(library),Number(weather),Number(workshop),Number(dinosaurHome),Number(spaceHome),...(version?[version]:[])).first();
  }catch(error){if(/no such table/.test(error.message))return null;throw error;}
 }
 export async function readyDocumentEditions(env,pack){

@@ -1,0 +1,246 @@
+{
+  "en": {
+    "receiver-board": {
+      "path": "public/assets/space-home-en-receiver-board.jpg",
+      "page": 5,
+      "width": 973,
+      "height": 361,
+      "caption": "Empty signal receiver board",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "d8c3a5b4d0d47743eb9575e31cba3ab26495cdf993c9398503d14fdef8a7cbd7"
+    },
+    "power-board": {
+      "path": "public/assets/space-home-en-power-board.jpg",
+      "page": 8,
+      "width": 1007,
+      "height": 842,
+      "caption": "Five devices with empty energy slots",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "73932a7f33ad8ad173cb5d0d60e8290ceeca414ab95468527a75973856126bf2"
+    },
+    "cells": {
+      "path": "public/assets/space-home-en-cells.jpg",
+      "page": 9,
+      "width": 632,
+      "height": 315,
+      "caption": "Six reusable paper energy cells",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "2c266fd68bf36f43d66a4e1d30ed669c4be1333009ba97b90f47cb0e7973399a"
+    },
+    "decoder": {
+      "path": "public/assets/space-home-en-decoder.jpg",
+      "page": 14,
+      "width": 988,
+      "height": 783,
+      "caption": "Unfilled icon lookup board without a code strip",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "7b5ebefa3387cd86856acdf4c88076950557ad9bbafb1888830d1157f2a12ac2"
+    },
+    "wave-out": {
+      "path": "public/assets/space-home-en-wave-out.jpg",
+      "page": 4,
+      "width": 288,
+      "height": 84,
+      "caption": "Neutral output-level example",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "540077372755b93e082ce9e240d88a29762d24b656205285db220e26aeca3e54"
+    },
+    "wave-in": {
+      "path": "public/assets/space-home-en-wave-in.jpg",
+      "page": 4,
+      "width": 288,
+      "height": 84,
+      "caption": "Neutral input-level example",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "d1ed2ab01cd1795369ab9e15695e8c4421fd9b06b2818cc3c30239f0b55fa4e1"
+    },
+    "slot": {
+      "path": "public/assets/space-home-en-slot.jpg",
+      "page": 8,
+      "width": 178,
+      "height": 144,
+      "caption": "One anonymous empty cell slot",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "bbf34b3ce37131319585c457b473987df33139e505f3a0b9d0c3a1896a5374f5"
+    },
+    "cell": {
+      "path": "public/assets/space-home-en-cell.jpg",
+      "page": 9,
+      "width": 156,
+      "height": 121,
+      "caption": "One reusable energy cell",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "81b672a253fa8e8c31b6f4dab905ff481e92a01907438bccfc19b5144b4c26dc"
+    },
+    "message-icon": {
+      "path": "public/assets/space-home-en-message-icon.jpg",
+      "page": 14,
+      "width": 193,
+      "height": 218,
+      "caption": "One received icon, without its character",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "a65e24fb3f8ae03337317e093349ec7cdd9c8f4417086b914cdc99e30adec4f0"
+    },
+    "key-icon": {
+      "path": "public/assets/space-home-en-key-icon.jpg",
+      "page": 14,
+      "width": 193,
+      "height": 218,
+      "caption": "The matching fixed-key icon, without a code character",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "bea9337a602ea8c5ebcadc49277a69ece46a50b186353be33eb5d90d8a4daed6"
+    },
+    "record": {
+      "path": "public/assets/space-home-en-record.jpg",
+      "page": 3,
+      "width": 1031,
+      "height": 1484,
+      "caption": "Blank shared mission record",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "01c9c4cfd52a37d5d91156d1c76620cb8899afb0e473d13e16807b9e55a949af"
+    },
+    "transmission": {
+      "path": "public/assets/space-home-en-transmission.jpg",
+      "page": 17,
+      "width": 1031,
+      "height": 1484,
+      "caption": "Blank outgoing checks and five empty pulse slots",
+      "excerpt": true,
+      "sourceSha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "sha256": "3d5a85a5d89f6d1cb3bf67076365830ca7cfaf46804cabc09300869f2605b182"
+    }
+  },
+  "zh": {
+    "receiver-board": {
+      "path": "public/assets/space-home-zh-receiver-board.jpg",
+      "page": 5,
+      "width": 973,
+      "height": 361,
+      "caption": "空白信号接收底板",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "db04d98e2e013cbd237ff977a492e22c1cc34b17a62d1fc1b4914f29fd973009"
+    },
+    "power-board": {
+      "path": "public/assets/space-home-zh-power-board.jpg",
+      "page": 8,
+      "width": 1007,
+      "height": 843,
+      "caption": "五种设备与空白能源格",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "b377ff9d0337394c5637835777dd74265e0f629cae95d5db699a37278803f5f0"
+    },
+    "cells": {
+      "path": "public/assets/space-home-zh-cells.jpg",
+      "page": 9,
+      "width": 632,
+      "height": 315,
+      "caption": "六块可重复使用的纸能源",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "36d60a107d0177635628e0c299fd728493cd371ff6d2162a543540701270a8b8"
+    },
+    "decoder": {
+      "path": "public/assets/space-home-zh-decoder.jpg",
+      "page": 14,
+      "width": 988,
+      "height": 784,
+      "caption": "未填写且未放译码条的图标对照板",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "b24010c2ee9494c9296856a9d155100e71c1d98cf405dda85ca817e7938f8221"
+    },
+    "wave-out": {
+      "path": "public/assets/space-home-zh-wave-out.jpg",
+      "page": 4,
+      "width": 288,
+      "height": 84,
+      "caption": "中性示例的输出档位",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "a21d660976e55bad5e1c64de2182a76d745573eb4345439ea32021208d98b284"
+    },
+    "wave-in": {
+      "path": "public/assets/space-home-zh-wave-in.jpg",
+      "page": 4,
+      "width": 288,
+      "height": 84,
+      "caption": "中性示例的输入档位",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "bf98b3b316fa8ec7af1b0e33c4c94c2efbd07d64b933a8612c8f1bd8ead212a5"
+    },
+    "slot": {
+      "path": "public/assets/space-home-zh-slot.jpg",
+      "page": 8,
+      "width": 178,
+      "height": 144,
+      "caption": "一个未标设备名称的空能源格",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "ec43b73d4bbaaac6aafecd25a5be12f9d18b286b3947ba95fed9042df2bc5c02"
+    },
+    "cell": {
+      "path": "public/assets/space-home-zh-cell.jpg",
+      "page": 9,
+      "width": 156,
+      "height": 122,
+      "caption": "一块可重复使用的能源",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "ce08b0fcc337df077a340dbcd94ede1e465e230dd8eb1290fdf046377fc7ba4d"
+    },
+    "message-icon": {
+      "path": "public/assets/space-home-zh-message-icon.jpg",
+      "page": 14,
+      "width": 193,
+      "height": 218,
+      "caption": "一个未填写字符的收到图标",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "439bac2bc5e5e58a7d38030d671fa55580b95c99b7e2b3bfb9a2aba638a8b795"
+    },
+    "key-icon": {
+      "path": "public/assets/space-home-zh-key-icon.jpg",
+      "page": 14,
+      "width": 193,
+      "height": 218,
+      "caption": "固定对照表中相同的图标，不含译码字符",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "7521d235a906fdb51574332d391f8a9d4b6a74f8cc3bddc9f1d9655002f72909"
+    },
+    "record": {
+      "path": "public/assets/space-home-zh-record.jpg",
+      "page": 3,
+      "width": 1031,
+      "height": 1484,
+      "caption": "空白共同任务记录",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "128936271f3c171aa99649599eb5c299476624ef550d01f8898241272b99dc70"
+    },
+    "transmission": {
+      "path": "public/assets/space-home-zh-transmission.jpg",
+      "page": 17,
+      "width": 1031,
+      "height": 1484,
+      "caption": "空白回复核验与五个未填写信号格",
+      "excerpt": true,
+      "sourceSha256": "9b79387ad34a60fa55752ff032f87f3a1da1794cbaeea2ef4e8b8d75d10d870a",
+      "sha256": "b3b90aa4920414c8fbc4f1588d02df4801630ecbe9bd2fcd926ce5d0031490cf"
+    }
+  }
+}

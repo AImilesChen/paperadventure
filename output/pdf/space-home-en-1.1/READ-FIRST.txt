@@ -1,0 +1,35 @@
+THE LOST SPACE SIGNAL - ENGLISH REPAIR 1.1
+ADULT FIRST: this folder includes private answers. Do not give the Host Guide to players.
+Local review copy, not published. English only.
+
+CHOOSE ONE PAPER SIZE
+Use either the A4 pair or the US Letter pair for the complete set.
+Print single-sided at Actual Size / 100%. Do not resize individual pieces or mix sizes.
+Each pair contains 19 Player pages and 18 Host pages.
+One crew: 37 sheets if the entire guide is printed. Two crews: 56 sheets with one shared printed guide.
+The guide can instead be read on screen.
+
+PREPARE AND RELEASE IN STAGES
+Adult reads Host pages 2-6 before play. Begin with Player pages 1-3 only.
+Give Player pages 4-6, then 7-9, then 10-12, then 13-15, then 16-18.
+Keep later piles private until the current original evidence is checked.
+Player page 19 is optional, after the ending.
+Private answer references: Host pages 8, 10, 12, 14 and 16.
+The complete Pip response is on Host page 17; read it only after accepting the final transmission.
+
+CUTTING AND ACCESS
+Full cut: 24 pieces per crew. Low cut: 20 pieces; keep the four job cards on Player page 2 whole.
+Cut only the outer dashed borders on Player pages 2 (optional), 6, 9, 12, 15 and 18.
+Keep boards, instructions, shared record, key and transmission whole.
+Keep all three CODE strips available; use the one matching the discovered phase.
+Assisted no-cut play is a pointing/pencil alternative. When switching power jobs,
+erase deactivated device slots BEFORE making new marks. Exactly six slots remain occupied.
+Pointing, read-aloud assistance and dictation are accepted; adult independently checks originals.
+
+CHECKS COMPLETED
+Printed wave-chain uniqueness, printed code lookup, six-cell conservation, two-player clue sharing,
+2-6 player job tables, cut counts, equal physical dimensions across paper sizes, page references,
+player-answer separation, font coverage, PDF bounds, A4/Letter text parity and ZIP byte hashes passed.
+All 74 pages were rendered and visually reviewed; two critical pages also checked with Poppler.
+No physical print/cut session or child playtest has been performed.
+Final release review clarified the Player page 17 evidence inventory; the Host Guide is unchanged. A separate Chinese companion and scoped website/download integration are now developed locally; no production release has occurred.

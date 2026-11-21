@@ -1,0 +1,74 @@
+{
+  "world": "space",
+  "setting": "home",
+  "locale": "en",
+  "version": "1.1",
+  "sourceEnglishVersion": "v1.0",
+  "status": "local_review_not_published",
+  "items": [
+    {
+      "world": "space",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 19,
+      "path": "output/pdf/space-home-en-1.1/space-home-player-en-A4.pdf",
+      "sha256": "73756aefb166ffeeaaaad58e6553dcd1c57c59933016ab5a95d81c4e059f1b20",
+      "bytes": 253274,
+      "r2Key": "ready-localized/space/home/en/1.1/A4/player-73756aefb166ffee.pdf"
+    },
+    {
+      "world": "space",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 18,
+      "path": "output/pdf/space-home-en-1.1/space-home-guide-en-A4.pdf",
+      "sha256": "fd3b783e010633036d23735e9aa01e4adb7d57def6480d5c86623ff2c11d956b",
+      "bytes": 251961,
+      "r2Key": "ready-localized/space/home/en/1.1/A4/guide-fd3b783e01063303.pdf"
+    },
+    {
+      "world": "space",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 19,
+      "path": "output/pdf/space-home-en-1.1/space-home-player-en-Letter.pdf",
+      "sha256": "7b63fbe9dd911ac7f7723afe49e98016e84a01139a0928726ad3117d2486c0ce",
+      "bytes": 252725,
+      "r2Key": "ready-localized/space/home/en/1.1/Letter/player-7b63fbe9dd911ac7.pdf"
+    },
+    {
+      "world": "space",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 18,
+      "path": "output/pdf/space-home-en-1.1/space-home-guide-en-Letter.pdf",
+      "sha256": "30035b2b5479684f783a21dc71b453c5c8e7bda199990f902a577d34c45aba24",
+      "bytes": 251442,
+      "r2Key": "ready-localized/space/home/en/1.1/Letter/guide-30035b2b5479684f.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/space-home-en-1.1/space-home-complete-en-A4.zip",
+      "sha256": "a04dd000776a22e162f5914df4c175e9d5649f4ec3dccd87c00d6dae4dfb667a"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/space-home-en-1.1/space-home-complete-en-Letter.zip",
+      "sha256": "abcaa271b1ca286cf04d31266693a276df9cbc52a8ce0ff2d6abfbd52945efac"
+    }
+  ]
+}
