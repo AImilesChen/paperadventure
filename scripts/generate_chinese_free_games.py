@@ -19,7 +19,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph
 from pypdf import PdfReader
-from free_game_zh_content import home_player, home_guide
+from home_zh_v2 import home_player, home_guide, EDITION as HOME_EDITION
+from home_zh_layout import render as render_home
 from classroom_zh_v2 import classroom_player, classroom_guide, EDITION
 from classroom_zh_layout import render as render_classroom
 from free_game_icons import draw_icon, edge_mark
@@ -33,19 +34,19 @@ AUDIT=[]
 GEOMETRY=[]
 
 def register_fonts():
- for name,file in [('PAZH','PAFreeGameSans-Regular.ttf'),('PAZH-Bold','PAFreeGameSans-Bold.ttf'),('PACLZH','PAClassroomSans-Regular.ttf'),('PACLZH-Bold','PAClassroomSans-Bold.ttf')]:
+ for name,file in [('PAHZH','PAHomeSans-Regular.ttf'),('PAHZH-Bold','PAHomeSans-Bold.ttf'),('PACLZH','PAClassroomSans-Regular.ttf'),('PACLZH-Bold','PAClassroomSans-Bold.ttf')]:
   path=ROOT/'assets/fonts'/file
   if not path.exists(): raise RuntimeError(f'Missing bundled font: {path}')
   pdfmetrics.registerFont(TTFont(name,str(path)))
- for prefix in ['PAZH','PACLZH']:
+ for prefix in ['PAHZH','PACLZH']:
   pdfmetrics.registerFontFamily(prefix,normal=prefix,bold=prefix+'-Bold',italic=prefix,boldItalic=prefix+'-Bold')
 
 class Sheet:
  def __init__(self,c,size,setting,role,number,total):
   self.c=c;self.w,self.h=size;self.x=44;self.width=self.w-88;self.y=self.h-61
   self.setting,self.role,self.number=setting,role,number
-  self.prefix='PACLZH' if setting=='classroom' else 'PAZH'
-  self.version=EDITION['version'] if setting=='classroom' else VERSION
+  self.prefix='PACLZH' if setting=='classroom' else 'PAHZH'
+  self.version=EDITION['version'] if setting=='classroom' else HOME_EDITION['version']
   self.paper='A4' if size==A4 else 'Letter'
   c.setFillColor(colors.HexColor('#e5f4fa'));c.rect(0,self.h-33,self.w,33,fill=1,stroke=0)
   self.label('PAPER ADVENTURE／庆典／'+('家庭版' if setting=='home' else '课堂版'),44,self.h-21,9,bold=True)
@@ -143,36 +144,9 @@ class Sheet:
   c=self.c
   if self.setting=='classroom' and kind!='class-cover':
    render_classroom(self,kind,g);return
-  if kind=='home-letters':
-   # Silhouettes and countable dots repeat the written facts in monochrome.
-   top=self.y;cw=(self.width-24)/3
-   self.cards([(f'候选信 {a}','') for a,*_ in g['letters']],3,178,cut=False)
-   for i,(a,animal,ears,dots,start) in enumerate(g['letters']):
-    cx=self.x+i*(cw+12)+cw/2;cy=top-61
-    c.setStrokeColor(NAVY);c.setLineWidth(1.1)
-    if animal=='狐狸':
-     p=c.beginPath();p.moveTo(cx-25,cy+2)
-     for px,py in [(-20,24),(-8,12),(8,12),(20,24),(25,2),(0,-21)]:p.lineTo(cx+px,cy+py)
-     p.close();c.drawPath(p,stroke=1,fill=0)
-    else:
-     c.circle(cx,cy,22,stroke=1,fill=0);c.circle(cx-9,cy+4,6,stroke=1,fill=0);c.circle(cx+9,cy+4,6,stroke=1,fill=0)
-    c.circle(cx-8,cy+1,2,stroke=1,fill=0);c.circle(cx+8,cy+1,2,stroke=1,fill=0)
-    c.setFillColor(INK)
-    for dot in range(dots):c.circle(cx-(dots-1)*7+dot*14,top-96,2.5,fill=1,stroke=0)
-    self.para(f'动物：{animal}<br/>尖耳朵：{ears}只　圆点：{dots}个<br/>路线起点：{start}',cx-cw/2+12,top-112,cw-24,10.2)
-  elif kind=='home-labels':
-   self.cards([(f'标签 {a}',f'旗色：{colour}　星星：{stars}颗<br/>数字：{n}<br/>密码标记：{mark}') for a,colour,stars,n,mark in g['labels']],2,106,cut=False)
-  elif kind=='home-map':
-   h=148;bottom=self.y-h
-   c.setStrokeColor(LINE);c.setFillColor(PALE);c.roundRect(self.x,bottom,self.width,h,5,fill=1,stroke=1)
-   for name,fx,dy in [('池塘',.17,107),('小桥',.5,107),('云朵',.83,107),('太阳',.17,34),('大树',.5,34),('红旗',.83,34)]:
-    x=self.x+self.width*fx;y=bottom+dy;c.setFillColor(colors.white);c.setStrokeColor(LINE);c.circle(x,y,19,fill=1,stroke=1);self.label(name,x,y-4,10,align='center')
-   self.y=bottom-13
-  elif kind=='home-keepsake':
-   self.label('画下你们的送货小队徽章',self.w/2,self.y,11,align='center');c.setStrokeColor(LINE);c.circle(self.w/2,self.y-69,50,stroke=1,fill=0);self.y-=134
-  elif kind=='cut-reference':
-   self.box('裁剪示意：上方留整块，下方按虚线剪','玩家第4、5、6、9页：<br/>┌ 上方：任务／候选板／地图，保留完整 ┐<br/>下方：独立线索／路线条／包裹，沿各自外框剪。<br/>玩家第8页：两张密码表各为一个完整纸件。')
-  elif kind=='class-cover':
+  if self.setting=='home':
+   render_home(self,kind,g);return
+  if kind=='class-cover':
    path=ROOT/'public/assets/celebration-classroom-v0.1.jpg';w=min(300,self.width*.7);h=w*.64
    c.drawImage(str(path),(self.w-w)/2,self.y-h,w,h,preserveAspectRatio=True,anchor='c');self.y-=h+17
   else: raise ValueError(kind)
@@ -186,7 +160,7 @@ def main():
  items=[i for i in prior['items'] if i['setting'] not in selected];zips=[i for i in prior['zips'] if i['setting'] not in selected]
  builders={'home':{'player':home_player,'guide':home_guide},'classroom':{'player':classroom_player,'guide':classroom_guide}}
  for setting in selected:
-  version=contract[setting]['version'];setting_out=OUT/f'classroom-{version}' if setting=='classroom' else OUT
+  version=contract[setting]['version'];setting_out=OUT/f'{setting}-{version}'
   setting_out.mkdir(parents=True,exist_ok=True)
   for paper,size in [('A4',A4),('Letter',letter)]:
    pair=[]
@@ -217,11 +191,11 @@ def main():
     for path in pair:
      info=zipfile.ZipInfo(path.name,date_time=(2026,11,20,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED;z.writestr(info,path.read_bytes())
    zips.append(dict(setting=setting,paper=paper,version=version,path=zp.relative_to(ROOT).as_posix(),sha256=hashlib.sha256(zp.read_bytes()).hexdigest()))
- manifest=dict(locale='zh',version='collection.2',packVersions={setting:contract[setting]['version'] for setting in ['home','classroom']},sourceEnglishVersion='1.0',status='local_review',physicalPrintTested=False,childPlayTested=False,items=items,zips=zips)
+ manifest=dict(locale='zh',version='collection.4',packVersions={setting:contract[setting]['version'] for setting in ['home','classroom']},sourceEnglishVersion='1.0',status='local_review',physicalPrintTested=False,childPlayTested=False,items=items,zips=zips)
  (OUT/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
- if 'classroom' in selected:
-  classroom={**manifest,'version':contract['classroom']['version'],'items':[i for i in items if i['setting']=='classroom'],'zips':[i for i in zips if i['setting']=='classroom']}
-  (OUT/f"classroom-{contract['classroom']['version']}"/'manifest.json').write_text(json.dumps(classroom,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+ for setting in selected:
+  edition={**manifest,'version':contract[setting]['version'],'items':[i for i in items if i['setting']==setting],'zips':[i for i in zips if i['setting']==setting]}
+  (OUT/f"{setting}-{contract[setting]['version']}"/'manifest.json').write_text(json.dumps(edition,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
  audit=ROOT/'tmp/pdfs/zh-free-games';audit.mkdir(parents=True,exist_ok=True)
  (audit/'layout-boxes.json').write_text(json.dumps(AUDIT,ensure_ascii=False),encoding='utf-8')
  (audit/'physical-geometry.json').write_text(json.dumps(GEOMETRY,ensure_ascii=False,indent=2),encoding='utf-8')

@@ -7,11 +7,13 @@ import HomeFreeSample from './homeFreeSample.jsx';
 import ClassroomFreeSample from './classroomFreeSample.jsx';
 import './freeDownload.css';
 import classroomEdition from '../shared/free-games/zh-classroom-edition.json';
+import homeEdition from '../shared/free-games/zh-home-edition.json';
 
 export default function FreeDownload({ Link, classroom = false }) {
   const setting = classroom ? 'classroom' : 'home';
   const locale=currentLocale();
-  const expectedVersion=locale==='zh'&&classroom?classroomEdition.version:undefined;
+  const edition=classroom?classroomEdition:homeEdition;
+  const expectedVersion=locale==='zh'?edition.version:undefined;
   const [availability,setAvailability]=useState({scope:'',status:'checking'});
   const availabilityScope=`${locale}:${setting}`;
   const availabilityStatus=availability.scope===availabilityScope?availability.status:'checking';
@@ -94,7 +96,7 @@ export default function FreeDownload({ Link, classroom = false }) {
         <p className="sample-free-note">{locale==='zh'?`无需注册或付款。免费游戏提供独立的简体中文 PDF。${classroom?'每组2至6人，由教师引导。':'另需一名成人主持。'}`:<>{translateUi("No account or payment needed. English PDFs.")}{classroom ? translateUi(' Teacher-led crews of 2–6.') : translateUi(' An additional adult hosts.')}</>}</p>
       </header>
       <div className="live-panel sample-download-panel" aria-label={translateUi("Download your free game")} aria-busy={Boolean(busy)}>
-        {locale==='zh'&&classroom&&<p className="sample-free-note">中文版 {classroomEdition.version} · 玩家材料{classroomEdition.pages.player}页 · 教师指南{classroomEdition.pages.guide}页</p>}
+        {locale==='zh'&&(classroom?<p className="sample-free-note">中文版 {classroomEdition.version} · 玩家材料{classroomEdition.pages.player}页 · 教师指南{classroomEdition.pages.guide}页</p>:<p className="sample-free-note">中文版 {homeEdition.version} · 玩家材料{homeEdition.pages.player}页 · 主持指南{homeEdition.pages.guide}页</p>)}
         {locale==='zh'&&<div className="sample-download-feedback" aria-live="polite"><p>{availabilityStatus==='ready'?'下载语言：简体中文（玩家材料与成人指南）':availabilityStatus==='checking'?'正在确认中文版下载状态……':availabilityStatus==='unpublished'?'中文版 PDF 尚未开放下载，请稍后再试。':availabilityStatus==='updating'?'中文版资料正在更新，请稍后重新检查。':'暂时无法确认中文版下载状态。'}</p>{['error','unpublished','updating'].includes(availabilityStatus)&&<button type="button" className="button-quiet" onClick={()=>setAvailabilityAttempt(value=>value+1)}>重新检查下载状态</button>}</div>}
         <div className="sample-paper-choice"><h3>{translateUi("Choose your paper size")}</h3><div className="live-tabs" role="group" aria-label={translateUi("Paper size")}>{['A4', 'Letter'].map((size) => <button key={size} type="button" disabled={Boolean(busy)||downloadDisabled} className={paper === size ? 'active' : ''} aria-pressed={paper === size} onClick={() => {setPaper(size);setNotice('');setError('');}}>{size === 'Letter' ? translateUi('US Letter') : translateUi('A4')}</button>)}</div></div>
         <div className="sample-bundle"><h2>{translateUi("Get the complete game")}</h2><p>{translateUi("Player Pack + ")}{translateUi(guide)} · {paper === 'Letter' ? translateUi('US Letter') : translateUi('A4')}</p><button type="button" className="button" disabled={Boolean(busy)||downloadDisabled} onClick={() => download('complete')}>{busy === 'complete' ? translateUi('Preparing your download…') : translateUi('Download complete game · ZIP')} <DownloadSimple size={19} /></button><small>{locale==='zh'?`解压 ZIP，内含两份 PDF。请先阅读${guide}。`:<>{translateUi("Open the ZIP to find both PDFs. Read the ")}{translateUi(guide)}{translateUi(" first.")}</>}</small></div>

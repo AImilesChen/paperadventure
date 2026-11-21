@@ -1,4 +1,5 @@
-import { t as translateUi, localHref } from "./i18n/index.mjs";import { EditorialByline } from './editorialTrust.jsx';
+import {homeCopy as translateUi} from './homeZhCopy.mjs';
+import { localHref } from "./i18n/index.mjs";import { EditorialByline } from './editorialTrust.jsx';
 import { GuideFieldNotes } from './editorialSamples.jsx';
 import { GuideChoices, GuideQuestions, BirthdayPrintPlan, BirthdayHosting } from './guidePlanning.jsx';
 import { ArrowRight, DownloadSimple, Printer, UsersThree, Stack } from '@phosphor-icons/react';

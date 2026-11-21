@@ -1,5 +1,6 @@
 import { t as translateUi, localHref, currentLocale } from "./i18n/index.mjs";import { ArrowRight, ArrowUpRight, DownloadSimple } from '@phosphor-icons/react';
 import './homeFreeSample.css';
+import HomeFreeSampleZh from './homeFreeSampleZh.jsx';
 
 const missions = [
 ['Choose the right letter', 'Compare separate clues on a shared board. Keep the chosen starting place for the next task.'],
@@ -16,6 +17,7 @@ const previews = [
 
 export default function HomeFreeSample({ Link, story }) {
   const chinese=currentLocale()==='zh';
+  if(chinese)return <HomeFreeSampleZh Link={Link} story={story}/>;
   const previewPath=item=>chinese?'/assets/free-games/zh/home-'+item.name+'.jpg':'/assets/celebration-home-detail-'+item.name+'.jpg';
   return <div className="sample-home-content">
     <section className="sample-home-story sample-home-section" aria-labelledby="sample-story-heading">

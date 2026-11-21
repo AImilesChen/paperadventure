@@ -1,4 +1,5 @@
-import { t as translateUi, localHref } from "./i18n/index.mjs";import { useState } from 'react';
+import {homeCopy as translateUi} from './homeZhCopy.mjs';
+import { localHref } from "./i18n/index.mjs";import { useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Check, DownloadSimple, MagnifyingGlass, Sparkle, WarningCircle } from '@phosphor-icons/react';
 import { themes, offers, offerFor, formatUsd, productRights } from '../shared/catalog.mjs';
 import { homeGamePlanning } from '../shared/home-game-planning.mjs';

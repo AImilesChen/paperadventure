@@ -76,3 +76,10 @@ test('a requested Chinese classroom revision rejects older and newer complete pa
  const result=await prepareSampleDownload({setting:'classroom',paper:'Letter',role:'complete',locale:'zh',expectedVersion:'1.0-zh.2',fetcher:async url=>{assert.match(url,/locale=zh&version=1\.0-zh\.2$/);return new Response(pdf,{headers:{'content-type':'application/pdf','x-paper-adventure-locale':'zh','x-paper-adventure-pack-version':'1.0-zh.2'}});}});
  assert.equal(zipEntries(new Uint8Array(await result.blob.arrayBuffer())).length,2);
 });
+
+
+test('a requested Chinese Home revision rejects complete old pairs and pins the new URL',async()=>{
+ for(const version of ['1.0-zh.1','1.0-zh.2'])await assert.rejects(prepareSampleDownload({setting:'home',paper:'A4',role:'complete',locale:'zh',expectedVersion:'1.0-zh.3',fetcher:async()=>new Response(pdf,{headers:{'content-type':'application/pdf','x-paper-adventure-locale':'zh','x-paper-adventure-pack-version':version}})}),/edition is being updated/);
+ const result=await prepareSampleDownload({setting:'home',paper:'Letter',role:'complete',locale:'zh',expectedVersion:'1.0-zh.3',fetcher:async url=>{assert.match(url,/locale=zh&version=1\.0-zh\.3$/);return new Response(pdf,{headers:{'content-type':'application/pdf','x-paper-adventure-locale':'zh','x-paper-adventure-pack-version':'1.0-zh.3'}});}});
+ assert.equal(zipEntries(new Uint8Array(await result.blob.arrayBuffer())).length,2);
+});

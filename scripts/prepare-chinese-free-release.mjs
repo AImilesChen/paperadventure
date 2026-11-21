@@ -4,11 +4,16 @@ import {createHash} from 'node:crypto';
 const root=new URL('../',import.meta.url);
 const manifest=JSON.parse(readFileSync(new URL('output/pdf/zh-free-games/manifest.json',root),'utf8'));
 if(manifest.locale!=='zh'||manifest.items.length!==8)throw Error('Incomplete localized bundle');
+const requested=process.argv.find(value=>value.startsWith('--setting='))?.slice(10);
+if(requested&&!['home','classroom'].includes(requested))throw Error('Choose home or classroom');
+const settings=requested?[requested]:['home','classroom'];
+const selected=manifest.items.filter(file=>settings.includes(file.setting));
 const q=value=>"'"+String(value).replaceAll("'","''")+"'";
-const dir=new URL('output/pdf/zh-free-games/release/',root);mkdirSync(dir,{recursive:true});
+const outputPath=requested?`output/pdf/zh-free-games/${requested}-${manifest.packVersions[requested]}/release/`:'output/pdf/zh-free-games/release/';
+const dir=new URL(outputPath,root);mkdirSync(dir,{recursive:true});
 const stage=[],activate=[],rollback=[];
 const identities=new Set();
-for(const setting of ['home','classroom']){
+for(const setting of settings){
  const files=manifest.items.filter(f=>f.setting===setting),version=files[0]?.version,id=`celebration-zh-${setting}-${version}`;
  if(!version||files.some(f=>f.version!==version))throw Error('Mixed pack versions');
  if(new Set(files.map(f=>`${f.paper}/${f.role}`)).size!==4)throw Error('Incomplete pair');
@@ -24,5 +29,5 @@ for(const setting of ['home','classroom']){
  rollback.push(`UPDATE localized_free_packs SET status='withdrawn' WHERE id=${q(id)} AND locale='zh';`);
 }
 for(const [name,lines]of [['stage',stage],['activate-after-review',activate],['withdraw-chinese-only',rollback]])writeFileSync(new URL(`${name}.sql`,dir),lines.join('\n')+'\n');
-writeFileSync(new URL('release-plan.json',dir),JSON.stringify({status:'prepared_not_executed',migration:'backend/migrations/0054_localized_free_samples.sql',requiredFlags:{FREE_SAMPLE_ENABLED:'true',FREE_SAMPLE_ZH_ENABLED:'true'},beforeRelease:['Review sample PDFs','Perform actual print/cut and child play tests','Create and verify rollback Git tag from then-current live commit','Apply additive schema and upload all eight private objects','Stage and verify hashes before activating','Publish API before frontend; then verify actual downloads for both languages'],rollback:['Disable FREE_SAMPLE_ZH_ENABLED','Withdraw only these Chinese pack IDs','Restore scoped frontend/API delta if needed; do not restore DB or change English packs'],uploads:manifest.items.map(({path,r2Key,sha256,bytes})=>({path,r2Key,sha256,bytes}))},null,2)+'\n');
+writeFileSync(new URL('release-plan.json',dir),JSON.stringify({status:'prepared_not_executed',settings,migration:'backend/migrations/0054_localized_free_samples.sql',requiredFlags:{FREE_SAMPLE_ENABLED:'true',FREE_SAMPLE_ZH_ENABLED:'true'},beforeRelease:['Review sample PDFs','Complete document, logic, rendering and download checks; do not claim real child playtesting','Create and verify rollback Git tag from then-current live commit',`Inspect existing locale schema and upload ${selected.length} selected private objects`,'Stage and verify hashes before activating','Publish matching PDF edition before frontend; then verify actual downloads for both languages'],rollback:['Withdraw only these selected Chinese pack IDs','Restore the previous published selected edition if needed; keep other editions and user data','Restore scoped frontend delta if needed; do not restore DB or change English packs'],uploads:selected.map(({path,r2Key,sha256,bytes})=>({path,r2Key,sha256,bytes}))},null,2)+'\n');
 console.log('Prepared Chinese-only staging, activation and withdrawal SQL; no remote changes executed.');
