@@ -13,9 +13,9 @@ export const homeGamePlanning = {
     occasion: 'A family table or dinosaur birthday party.',
   },
   space: {
-    playerPages: 14, guidePages: 10, pieces: 24,
+    playerPages: 19, guidePages: 18, pieces: 24,
     play: 'Connect signals, share separate clues and send a paper reply.',
-    prepare: '14 Player pages/team · 24 cut-out pieces/team.',
+    prepare: '19 Player pages/team · 24 cut-out pieces/team.',
     occasion: 'A space party or family signal mystery.',
   },
   forest: {

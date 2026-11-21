@@ -36,7 +36,7 @@ export const themeStories = Object.freeze({
     classroom: { code: 'C02', title: 'The Dinosaur Research Station Mix-up', goal: 'Sort the station\'s mixed-up records and explain the route with evidence.', beats: ['Sort observation cards', 'Match footprints', 'Combine location clues', 'Order the time strips', 'Submit a conclusion'] },
   },
   space: {
-    home: { code: 'H03', title: 'The Lost Space Signal', goal: 'Find a lost robot probe and send back a pretend paper message.', beats: ['Find the real signal', 'Repair the star map', 'Calibrate paper cards', 'Decode the message', 'Restore contact'] },
+    home: { code: 'H03', title: 'The Lost Space Signal', goal: 'Reconnect a signal, share settings and reuse six paper cells to reply to Pip.', beats: ['Rebuild the signal', 'Power the receiving console', 'Share three setting clues', 'Decode the request', 'Send a paper reply'] },
     classroom: { code: 'C03', title: 'Restart the Star Station', goal: 'Each group uses shared clues to restore its paper communication station.', beats: ['Separate signal from noise', 'Complete the star map', 'Choose paper equipment', 'Translate the signal', 'Record the restart'] },
   },
   forest: {

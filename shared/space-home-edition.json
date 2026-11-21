@@ -1,0 +1,200 @@
+{
+  "world": "space",
+  "setting": "home",
+  "sourceEnglishVersion": "v1.0",
+  "versions": {
+    "en": "1.1",
+    "zh": "1.0-zh.1"
+  },
+  "titles": {
+    "en": "The Lost Space Signal",
+    "zh": "找回太空信号"
+  },
+  "pages": {
+    "player": 19,
+    "guide": 18
+  },
+  "waveMm": [
+    48,
+    54
+  ],
+  "waveSlotMm": [
+    52,
+    58
+  ],
+  "cellMm": [
+    26,
+    20
+  ],
+  "cellSlotMm": [
+    30,
+    24
+  ],
+  "codeMm": [
+    170,
+    26
+  ],
+  "pulseMm": [
+    20,
+    16
+  ],
+  "pulseSlotMm": [
+    24,
+    20
+  ],
+  "waves": [
+    {
+      "id": "K",
+      "in": "MID",
+      "out": "HIGH",
+      "letter": "D",
+      "marks": 3,
+      "zh": "段"
+    },
+    {
+      "id": "R",
+      "in": "HIGH",
+      "out": "LOW",
+      "letter": "M",
+      "marks": 3,
+      "zh": "中"
+    },
+    {
+      "id": "T",
+      "in": "LOW",
+      "out": "MID",
+      "letter": "I",
+      "marks": 3,
+      "zh": "频"
+    }
+  ],
+  "devices": [
+    {
+      "id": "receiver",
+      "name": "RECEIVER",
+      "cost": 2,
+      "purpose": "Catch an incoming signal.",
+      "zhName": "接收器",
+      "zhPurpose": "接收传入的信号。"
+    },
+    {
+      "id": "decoder",
+      "name": "DECODER",
+      "cost": 2,
+      "purpose": "Read an incoming code.",
+      "zhName": "译码器",
+      "zhPurpose": "读懂收到的编码。"
+    },
+    {
+      "id": "shield",
+      "name": "SHIELD",
+      "cost": 2,
+      "purpose": "Block solar interference.",
+      "zhName": "防护罩",
+      "zhPurpose": "挡住太阳干扰。"
+    },
+    {
+      "id": "transmitter",
+      "name": "TRANSMITTER",
+      "cost": 3,
+      "purpose": "Send an outgoing signal.",
+      "zhName": "发射器",
+      "zhPurpose": "向外发送信号。"
+    },
+    {
+      "id": "timer",
+      "name": "TIMER",
+      "cost": 1,
+      "purpose": "Time the outgoing pulses.",
+      "zhName": "定时器",
+      "zhPurpose": "给发出的短信号计时。"
+    }
+  ],
+  "keySymbols": [
+    "SUN",
+    "MOON",
+    "STAR",
+    "PATH",
+    "RING"
+  ],
+  "messageSymbols": [
+    "STAR",
+    "RING",
+    "SUN",
+    "PATH",
+    "MOON"
+  ],
+  "codeRows": [
+    [
+      "1",
+      [
+        "C",
+        "1",
+        "A",
+        "L",
+        "M"
+      ]
+    ],
+    [
+      "2",
+      [
+        "P",
+        "2",
+        "R",
+        "O",
+        "B"
+      ]
+    ],
+    [
+      "3",
+      [
+        "N",
+        "3",
+        "S",
+        "D",
+        "E"
+      ]
+    ]
+  ],
+  "fullCut": 24,
+  "lowCut": 20,
+  "symbolLabelsZh": {
+    "SUN": "太阳",
+    "MOON": "月亮",
+    "STAR": "星星",
+    "PATH": "路径",
+    "RING": "环形标记"
+  },
+  "codeRowsZh": [
+    [
+      "1",
+      [
+        "石",
+        "1",
+        "云",
+        "叶",
+        "山"
+      ]
+    ],
+    [
+      "2",
+      [
+        "河",
+        "2",
+        "风",
+        "灯",
+        "雨"
+      ]
+    ],
+    [
+      "3",
+      [
+        "次",
+        "号",
+        "发",
+        "信",
+        "3"
+      ]
+    ]
+  ]
+}
