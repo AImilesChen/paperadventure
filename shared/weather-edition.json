@@ -1,0 +1,13 @@
+{
+ "world":"weather","setting":"classroom","game":"C10",
+ "versions":{"en":"1.1","zh":"1.0-zh.1"},"sourceEnglishVersion":"v1.0",
+ "titles":{"en":"The Observatory's Missing Morning Bulletin","zh":"遗失的晨间气象简报"},
+ "pages":{"player":16,"guide":19},"pieces":{"full":14,"low":6},
+ "records":[{"id":1,"time":"11:00","bars":2},{"id":2,"time":"9:00","bars":1},{"id":3,"time":"10:00","bars":2},{"id":4,"time":"9:00","bars":2},{"id":5,"time":"11:00","bars":1}],
+ "selectedRecords":[4,3,1],"times":["9:00","10:00","11:00"],
+ "wind":[{"time":"9:00","north":0,"pointer":90},{"time":"10:00","north":270,"pointer":0},{"time":"11:00","north":180,"pointer":180}],
+ "windAnswers":["W","W","N"],"windPractice":{"north":0,"pointer":270,"answer":"E"},
+ "clouds":[{"time":"10:00","covered":2},{"time":"11:00","covered":3},{"time":"9:00","covered":1}],
+ "rain":[{"time":"11:00","reading":3},{"time":"9:00","reading":0},{"time":"10:00","reading":1}],
+ "rainAnswers":[0,1,3],"rainPractice":2,"rainScalePoints":28,"copiedRain":[0,1,1]
+}

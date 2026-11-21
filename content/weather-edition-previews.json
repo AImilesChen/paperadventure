@@ -1,0 +1,276 @@
+{
+  "en": {
+    "record": {
+      "page": 3,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Blank source-ID and observation board",
+      "path": "public/assets/weather-en-record.jpg",
+      "sha256": "2a822d9e4a6baa9e216b1103d67fc3b9dd3cd67f91620917e706d2fe5abc7599",
+      "sourceSha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d"
+    },
+    "wind-base": {
+      "page": 7,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Compass base and direction legend",
+      "path": "public/assets/weather-en-wind-base.jpg",
+      "sha256": "bf154688522d29724911f825ffbfded319ef670bddc671f01bec2128b2346195",
+      "sourceSha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d"
+    },
+    "wind-practice": {
+      "page": 6,
+      "width": 769,
+      "height": 299,
+      "bounds": [
+        41,
+        308.3370067282848,
+        554.2755905511812,
+        508.3370067282848
+      ],
+      "caption": "Separate wind E practice",
+      "path": "public/assets/weather-en-wind-practice.jpg",
+      "sha256": "31527905a821f0e3457a12abfd5cbe8c24f46a102421fd855577357781ea0d0c",
+      "sourceSha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d"
+    },
+    "wind-before": {
+      "page": 6,
+      "width": 282,
+      "height": 210,
+      "bounds": [
+        74,
+        353.3370067282848,
+        262.1285039370079,
+        494.3370067282848
+      ],
+      "caption": "Practice before alignment",
+      "path": "public/assets/weather-en-wind-before.jpg",
+      "sha256": "d8e08d36adcdaf450cf4c550ee11189a01a31e6fdd71a6259a8dce8539a69874",
+      "sourceSha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d"
+    },
+    "wind-after": {
+      "page": 6,
+      "width": 281,
+      "height": 210,
+      "bounds": [
+        338.2198425196851,
+        353.3370067282848,
+        526.2755905511812,
+        494.3370067282848
+      ],
+      "caption": "Practice N aligned",
+      "path": "public/assets/weather-en-wind-after.jpg",
+      "sha256": "7fbaa7447b5a236120692c094156d07bb869173fbbdad5a581e0d7e984ebad87",
+      "sourceSha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d"
+    },
+    "cloud-board": {
+      "page": 9,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Cloud-count task without readings",
+      "path": "public/assets/weather-en-cloud-board.jpg",
+      "sha256": "37bbf77038cf82242dff5cc1ac1cb0621381cf118379f63de1b4f9a2d2d24dee",
+      "sourceSha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d"
+    },
+    "rain-base": {
+      "page": 12,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Gauge base and solid placement area",
+      "path": "public/assets/weather-en-rain-base.jpg",
+      "sha256": "72b888b325802285a98954951474dfa2d8b6ac8891f506b8fcbbfb8f867969af",
+      "sourceSha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d"
+    },
+    "rain-practice": {
+      "page": 11,
+      "width": 769,
+      "height": 301,
+      "bounds": [
+        41,
+        323.0660067282847,
+        554.2755905511812,
+        524.0660067282847
+      ],
+      "caption": "Separate 2 mm rain practice",
+      "path": "public/assets/weather-en-rain-practice.jpg",
+      "sha256": "f0b85ee727b63126f497ea23234cbdb01c38b5b62b5ebd28c7c292d1afb31ff3",
+      "sourceSha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d"
+    },
+    "rain-baseline": {
+      "page": 11,
+      "width": 397,
+      "height": 233,
+      "bounds": [
+        59,
+        358.0660067282847,
+        324,
+        514.0660067282847
+      ],
+      "caption": "Practice baseline alignment",
+      "path": "public/assets/weather-en-rain-baseline.jpg",
+      "sha256": "1069ad81b316da1b5cb05868212d67c183ca6693a02aacfb53965826af017173",
+      "sourceSha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d"
+    },
+    "bulletin": {
+      "page": 15,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Blank final bulletin",
+      "path": "public/assets/weather-en-bulletin.jpg",
+      "sha256": "7df3d837999742686e062ccfe3f8fb3f813a2fd62299aae767fe465e5e3bac3a",
+      "sourceSha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d"
+    },
+    "audit": {
+      "page": 16,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Original-source peer audit",
+      "path": "public/assets/weather-en-audit.jpg",
+      "sha256": "4c724f6bfaf7fa499a0434cd18bfe751c24e25f462a7191d6f05471cffd9de01",
+      "sourceSha256": "3a5715fd637e3e5289745bc6bde5833455e06e1461cdb086b918832b301d4d4d"
+    }
+  },
+  "zh": {
+    "record": {
+      "page": 3,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Blank source-ID and observation board",
+      "path": "public/assets/weather-zh-record.jpg",
+      "sha256": "aec89430fecf094f5316c587f5a451ca381cd6fdb0d52b43395900a142414d1d",
+      "sourceSha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78"
+    },
+    "wind-base": {
+      "page": 7,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Compass base and direction legend",
+      "path": "public/assets/weather-zh-wind-base.jpg",
+      "sha256": "473c2295a91fc47396cbf0bab3751aa03da5575ea203b15de3cb4f84fcc80d81",
+      "sourceSha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78"
+    },
+    "wind-practice": {
+      "page": 6,
+      "width": 769,
+      "height": 300,
+      "bounds": [
+        41,
+        275.2350067282848,
+        554.2755905511812,
+        475.2350067282848
+      ],
+      "caption": "Separate wind E practice",
+      "path": "public/assets/weather-zh-wind-practice.jpg",
+      "sha256": "67ab5a66f9f4e577386d7f33f949efc2bcccf73705c09c5ea844854ccad4e391",
+      "sourceSha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78"
+    },
+    "wind-before": {
+      "page": 6,
+      "width": 282,
+      "height": 211,
+      "bounds": [
+        74,
+        320.2350067282848,
+        262.1285039370079,
+        461.2350067282848
+      ],
+      "caption": "Practice before alignment",
+      "path": "public/assets/weather-zh-wind-before.jpg",
+      "sha256": "d09bde06e38aed35d25476de4619bc6318c9c0324cbbfb72c3f1ffab8c50136f",
+      "sourceSha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78"
+    },
+    "wind-after": {
+      "page": 6,
+      "width": 281,
+      "height": 211,
+      "bounds": [
+        338.2198425196851,
+        320.2350067282848,
+        526.2755905511812,
+        461.2350067282848
+      ],
+      "caption": "Practice N aligned",
+      "path": "public/assets/weather-zh-wind-after.jpg",
+      "sha256": "b65d6a580ef1c42311a484c779fc5c39bd764c16eeeb4193eefd4769c4c8ee39",
+      "sourceSha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78"
+    },
+    "cloud-board": {
+      "page": 9,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Cloud-count task without readings",
+      "path": "public/assets/weather-zh-cloud-board.jpg",
+      "sha256": "a51fb7745c1fd7fb4ef217ff9339208081bdfdabddb6e40e6dbde3e7872e0c5b",
+      "sourceSha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78"
+    },
+    "rain-base": {
+      "page": 12,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Gauge base and solid placement area",
+      "path": "public/assets/weather-zh-rain-base.jpg",
+      "sha256": "4040fbde42fb1c22034ae6d636fa062f14ffa1307e5bc24bd8b78f21d4408b75",
+      "sourceSha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78"
+    },
+    "rain-practice": {
+      "page": 11,
+      "width": 769,
+      "height": 300,
+      "bounds": [
+        41,
+        291.53700672828484,
+        554.2755905511812,
+        492.53700672828484
+      ],
+      "caption": "Separate 2 mm rain practice",
+      "path": "public/assets/weather-zh-rain-practice.jpg",
+      "sha256": "dd4e3c4d594c144a636acfd54ab2253a82626b3bb07da9a39baea3fec53d5e55",
+      "sourceSha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78"
+    },
+    "rain-baseline": {
+      "page": 11,
+      "width": 397,
+      "height": 233,
+      "bounds": [
+        59,
+        326.53700672828484,
+        324,
+        482.53700672828484
+      ],
+      "caption": "Practice baseline alignment",
+      "path": "public/assets/weather-zh-rain-baseline.jpg",
+      "sha256": "e071c0ea5c3be5490f240dc92651f58522b0961610c7068ff4e67ed459fee0a2",
+      "sourceSha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78"
+    },
+    "bulletin": {
+      "page": 15,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Blank final bulletin",
+      "path": "public/assets/weather-zh-bulletin.jpg",
+      "sha256": "af599353f5f591bde4269e1f1375b99392561b8af885af7240e2f976456f5e69",
+      "sourceSha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78"
+    },
+    "audit": {
+      "page": 16,
+      "width": 893,
+      "height": 1263,
+      "bounds": null,
+      "caption": "Original-source peer audit",
+      "path": "public/assets/weather-zh-audit.jpg",
+      "sha256": "09f6cc2e762b55dd1e28df9bee138ebed709528d0a3eb27abfe42399c88c2c86",
+      "sourceSha256": "e5e3ef50c0bc5f49cf3c229efbdd103b5cc7b1841846b30fb3cd9d29c0f00d78"
+    }
+  }
+}

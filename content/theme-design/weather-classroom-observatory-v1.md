@@ -1,6 +1,16 @@
 # C10 Weather Observatory - morning bulletin edition
 
-This is the current fixed Weather Classroom game contract. The previous
+This is the retained original English 1.0 Weather Classroom contract. For the
+locally developed English 1.1 and Chinese 1.0-zh.1 revisions, use
+`shared/weather-edition.json`, `scripts/weather_edition_content.py` and
+`scripts/weather_edition_layout.py` as the updated content/layout authority.
+Those revisions separate instructions from cut sheets, require six low-cut
+pieces, record original source IDs, delay the copied notice until original
+rain readings are checked, and provide 16 player / 19 teacher pages per paper.
+See `docs/chinese-weather-v89-development.json` for validation and release status.
+The original generator and original published file slots are retained.
+
+The previous
 candidate-card/date-grid/symbol-set source in `retail-games-v1.json` is
 superseded for C10. Preserve the existing `weather/classroom` URL, offer,
 versioned entitlement and order-access identity.
