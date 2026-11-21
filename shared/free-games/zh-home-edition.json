@@ -1,0 +1,92 @@
+{
+  "version": "1.0-zh.3",
+  "title": "失踪的生日宝箱",
+  "pages": {
+    "player": 12,
+    "guide": 19
+  },
+  "playerPages": {
+    "cover": 1,
+    "jobs": 2,
+    "progress": 3,
+    "letterTask": 4,
+    "clueCards": 5,
+    "routeTask": 6,
+    "routeCards": 7,
+    "labelTask": 8,
+    "decodeTask": 9,
+    "keyCards": 10,
+    "parcelTask": 11,
+    "finish": 12
+  },
+  "guidePages": {
+    "quickstart": 1,
+    "printing": 2,
+    "preparation": 3,
+    "smallTeams": 4,
+    "largeTeams": 5,
+    "flow": 6,
+    "mission1": 7,
+    "mission1Answers": 8,
+    "mission2": 9,
+    "mission2Answers": 10,
+    "mission3": 11,
+    "mission3Answers": 12,
+    "mission4": 13,
+    "mission4Answers": 14,
+    "mission5": 15,
+    "mission5Answers": 16,
+    "support": 18,
+    "ending": 19,
+    "quickReference": 17
+  },
+  "previews": {
+    "map": {
+      "role": "player",
+      "page": 6
+    },
+    "record": {
+      "role": "player",
+      "page": 3
+    },
+    "handout-cut": {
+      "role": "player",
+      "page": 5
+    },
+    "practice": {
+      "role": "player",
+      "page": 9
+    },
+    "finish": {
+      "role": "player",
+      "page": 12
+    }
+  },
+  "cutPiecesPerTeam": 17,
+  "mapNodes": {
+    "太阳": [
+      0.15,
+      0.5
+    ],
+    "大树": [
+      0.42,
+      0.23
+    ],
+    "小桥": [
+      0.69,
+      0.23
+    ],
+    "红旗": [
+      0.88,
+      0.6
+    ],
+    "池塘": [
+      0.35,
+      0.82
+    ],
+    "云朵": [
+      0.69,
+      0.82
+    ]
+  }
+}

@@ -10,7 +10,7 @@ import zipfile
 from pathlib import Path
 from pypdf import PdfReader
 from reportlab.pdfbase.ttfonts import TTFont
-from free_game_zh_content import home_player,home_guide
+from home_zh_v2 import home_player,home_guide,EDITION as HOME_EDITION
 from classroom_zh_v2 import classroom_player,classroom_guide,EDITION
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -19,7 +19,7 @@ OUT=ROOT/'output/pdf/zh-free-games'
 def main():
  contract=json.loads((ROOT/'content/free-games/zh-game-contract.json').read_text(encoding='utf-8'))
  manifest=json.loads((OUT/'manifest.json').read_text(encoding='utf-8'));h=contract['home'];g=contract['classroom']
- letters=[row for row in h['letters'] if row[1:4]==['狐狸',2,3]]
+ letters=[row for row in h['letters'] if row[1:4]==['狐狸','圆形',3]]
  assert len(letters)==1 and letters[0][0]==h['answer']['letter']
  routes=[]
  def walk(place,used,path):
@@ -49,13 +49,13 @@ def main():
  for x,y in centres:
   assert all((x+dx)**2+(y+dy)**2<=100**2 for dx in [-26,26] for dy in [-26,26])
  for (x,y),(a,b) in itertools.combinations(centres,2):assert abs(x-a)>=52 or abs(y-b)>=52
- assert h['cutPiecesPerTeam']==4+3+5+3+2+4
+ assert h['cutPiecesPerTeam']==4+3+5+3+2
  assert g['cutPiecesPerGroup']==4+3+4+9 and g['lowCutPiecesPerGroup']==4+4
  assert len(manifest['items'])==8 and len(manifest['zips'])==4
  keys={(x['setting'],x['paper'],x['role']) for x in manifest['items']}
  assert keys==set(itertools.product(['home','classroom'],['A4','Letter'],['player','guide']))
  extracted={}
- fontmaps={setting:[TTFont(setting+str(i),str(ROOT/'assets/fonts'/f'{prefix}-{weight}.ttf')).face.charToGlyph for i,weight in enumerate(['Regular','Bold'])] for setting,prefix in [('home','PAFreeGameSans'),('classroom','PAClassroomSans')]}
+ fontmaps={setting:[TTFont(setting+str(i),str(ROOT/'assets/fonts'/f'{prefix}-{weight}.ttf')).face.charToGlyph for i,weight in enumerate(['Regular','Bold'])] for setting,prefix in [('home','PAHomeSans'),('classroom','PAClassroomSans')]}
  for item in manifest['items']:
   data=(ROOT/item['path']).read_bytes();assert data.startswith(b'%PDF-')
   assert len(data)==item['bytes'] and hashlib.sha256(data).hexdigest()==item['sha256']
@@ -76,12 +76,12 @@ def main():
   extracted[(item['setting'],item['paper'],item['role'])]=texts
   if item['setting']=='home' and item['role']=='player':
    assert not any('送到小圆桌' in text for text in texts),'Do not print the decoded answer in player instructions'
-   assert all(phrase in texts[7] for phrase in ['密码卡一','密码卡二','狐狸','铃铛','风筝','树叶'])
+   assert all(phrase in texts[HOME_EDITION['playerPages']['keyCards']-1] for phrase in ['密码卡一','密码卡二','狐狸','铃铛','风筝','树叶'])
   if item['setting']=='classroom' and item['role']=='player':
    pages=EDITION['playerPages']
    assert '徽章中央放一个指南针' in texts[pages['clueCards']-1]
    assert not any('指南针' in texts[pages[key]-1] for key in ['blueprint','badge','review','return']),'Task/blueprint/badge/review sheets must not supply the hidden clue answers'
-  if item['setting']=='home' and item['role']=='guide':assert '送到小圆桌' in texts[7] and '送到小圆桌' in texts[11]
+  if item['setting']=='home' and item['role']=='guide':assert '送到小圆桌' in texts[HOME_EDITION['guidePages']['mission4Answers']-1] and '送到小圆桌' in texts[HOME_EDITION['guidePages']['ending']-1]
  for setting in ['home','classroom']:
   for role in ['player','guide']:
    # Paper dimensions may change line wrapping, never puzzle facts or instructions.

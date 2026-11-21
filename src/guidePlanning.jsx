@@ -1,4 +1,5 @@
-import { t as translateUi, localHref } from "./i18n/index.mjs";import { ArrowRight, UsersThree, Cake, ChalkboardTeacher, CheckCircle } from '@phosphor-icons/react';
+import {homeCopy as translateUi} from './homeZhCopy.mjs';
+import { localHref } from "./i18n/index.mjs";import { ArrowRight, UsersThree, Cake, ChalkboardTeacher, CheckCircle } from '@phosphor-icons/react';
 import { guides, guideOutcomes } from '../shared/guides.mjs';
 import './guide-planning.css';
 

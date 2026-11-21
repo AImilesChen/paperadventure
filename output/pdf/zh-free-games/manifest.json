@@ -1,8 +1,8 @@
 {
   "locale": "zh",
-  "version": "collection.2",
+  "version": "collection.4",
   "packVersions": {
-    "home": "1.0-zh.1",
+    "home": "1.0-zh.3",
     "classroom": "1.0-zh.2"
   },
   "sourceEnglishVersion": "1.0",
@@ -10,54 +10,6 @@
   "physicalPrintTested": false,
   "childPlayTested": false,
   "items": [
-    {
-      "setting": "home",
-      "paper": "A4",
-      "role": "player",
-      "locale": "zh",
-      "version": "1.0-zh.1",
-      "pages": 10,
-      "path": "output/pdf/zh-free-games/celebration-home-player-zh-A4.pdf",
-      "sha256": "c4a0be6ae076457e52a0d1bc525c83bf11e3c151ac501bd5eb01d6dae7e5b704",
-      "bytes": 146236,
-      "r2Key": "free-localized/celebration/zh/home/1.0-zh.1/A4/player-c4a0be6ae076457e.pdf"
-    },
-    {
-      "setting": "home",
-      "paper": "A4",
-      "role": "guide",
-      "locale": "zh",
-      "version": "1.0-zh.1",
-      "pages": 12,
-      "path": "output/pdf/zh-free-games/celebration-home-guide-zh-A4.pdf",
-      "sha256": "fa2210b6ab63c809825794596735466bc2e7bd3cadc38fdff8b24a95c17e0dce",
-      "bytes": 174759,
-      "r2Key": "free-localized/celebration/zh/home/1.0-zh.1/A4/guide-fa2210b6ab63c809.pdf"
-    },
-    {
-      "setting": "home",
-      "paper": "Letter",
-      "role": "player",
-      "locale": "zh",
-      "version": "1.0-zh.1",
-      "pages": 10,
-      "path": "output/pdf/zh-free-games/celebration-home-player-zh-Letter.pdf",
-      "sha256": "d7cb8db7598266875e74ce012ed23734cefdc388ed1a56a3e5c5f28be337df5d",
-      "bytes": 145660,
-      "r2Key": "free-localized/celebration/zh/home/1.0-zh.1/Letter/player-d7cb8db759826687.pdf"
-    },
-    {
-      "setting": "home",
-      "paper": "Letter",
-      "role": "guide",
-      "locale": "zh",
-      "version": "1.0-zh.1",
-      "pages": 12,
-      "path": "output/pdf/zh-free-games/celebration-home-guide-zh-Letter.pdf",
-      "sha256": "ee797b6a25e665c32782a3639d4f2d2b078ad47c645c7790b4d0aa6ccbc5d699",
-      "bytes": 174252,
-      "r2Key": "free-localized/celebration/zh/home/1.0-zh.1/Letter/guide-ee797b6a25e665c3.pdf"
-    },
     {
       "setting": "classroom",
       "paper": "A4",
@@ -105,21 +57,57 @@
       "sha256": "59813105dbe2fa7106ac45c1f80272b4ad9c66cd8ef9b7bd0659991d6f88e776",
       "bytes": 211625,
       "r2Key": "free-localized/celebration/zh/classroom/1.0-zh.2/Letter/guide-59813105dbe2fa71.pdf"
-    }
-  ],
-  "zips": [
+    },
     {
       "setting": "home",
       "paper": "A4",
-      "path": "output/pdf/zh-free-games/celebration-home-complete-zh-A4.zip",
-      "sha256": "e9d71e057ccc4ced93c2a7a3825b74e4a105e83038b911c19288565ed0073ced"
+      "role": "player",
+      "locale": "zh",
+      "version": "1.0-zh.3",
+      "pages": 12,
+      "path": "output/pdf/zh-free-games/home-1.0-zh.3/celebration-home-player-zh-A4.pdf",
+      "sha256": "5f479ec512d44c0f947b6cb34750f004def00398e2cad90acfcdc22e3750b0f6",
+      "bytes": 169594,
+      "r2Key": "free-localized/celebration/zh/home/1.0-zh.3/A4/player-5f479ec512d44c0f.pdf"
+    },
+    {
+      "setting": "home",
+      "paper": "A4",
+      "role": "guide",
+      "locale": "zh",
+      "version": "1.0-zh.3",
+      "pages": 19,
+      "path": "output/pdf/zh-free-games/home-1.0-zh.3/celebration-home-guide-zh-A4.pdf",
+      "sha256": "e59e8786a30a1894448accc797e3951b33cd7fec33842ccd5a52a563ab1479c1",
+      "bytes": 191852,
+      "r2Key": "free-localized/celebration/zh/home/1.0-zh.3/A4/guide-e59e8786a30a1894.pdf"
     },
     {
       "setting": "home",
       "paper": "Letter",
-      "path": "output/pdf/zh-free-games/celebration-home-complete-zh-Letter.zip",
-      "sha256": "46cbfa4e57a7ed89bb8ee7eb43c2e2a710f39eca3564314a203c6a8b8e6713f6"
+      "role": "player",
+      "locale": "zh",
+      "version": "1.0-zh.3",
+      "pages": 12,
+      "path": "output/pdf/zh-free-games/home-1.0-zh.3/celebration-home-player-zh-Letter.pdf",
+      "sha256": "ee9d290e5b34b6c5d0b4ac488ca9afa7b502ae97b90e8dbaa89e84a0a7622b86",
+      "bytes": 168835,
+      "r2Key": "free-localized/celebration/zh/home/1.0-zh.3/Letter/player-ee9d290e5b34b6c5.pdf"
     },
+    {
+      "setting": "home",
+      "paper": "Letter",
+      "role": "guide",
+      "locale": "zh",
+      "version": "1.0-zh.3",
+      "pages": 19,
+      "path": "output/pdf/zh-free-games/home-1.0-zh.3/celebration-home-guide-zh-Letter.pdf",
+      "sha256": "1b99a4ac692e5bc9cf6353c2c212fabc4f46bd81b6eff17fcd2cf5a4590d7f82",
+      "bytes": 191155,
+      "r2Key": "free-localized/celebration/zh/home/1.0-zh.3/Letter/guide-1b99a4ac692e5bc9.pdf"
+    }
+  ],
+  "zips": [
     {
       "setting": "classroom",
       "paper": "A4",
@@ -133,6 +121,20 @@
       "version": "1.0-zh.2",
       "path": "output/pdf/zh-free-games/classroom-1.0-zh.2/celebration-classroom-complete-zh-Letter.zip",
       "sha256": "19feca26fbc81f7cf9c3fb11fd67a129001f9778eab3d301be987a2da5fd3a0c"
+    },
+    {
+      "setting": "home",
+      "paper": "A4",
+      "version": "1.0-zh.3",
+      "path": "output/pdf/zh-free-games/home-1.0-zh.3/celebration-home-complete-zh-A4.zip",
+      "sha256": "e330019368e365e85e1cd574edfc91c75cae05acac32025b027303bd93fa2327"
+    },
+    {
+      "setting": "home",
+      "paper": "Letter",
+      "version": "1.0-zh.3",
+      "path": "output/pdf/zh-free-games/home-1.0-zh.3/celebration-home-complete-zh-Letter.zip",
+      "sha256": "de3d333b4c5eacb6ef795a5e16f495db1761669abe662bca82a3dc1c98c4b8f5"
     }
   ]
 }

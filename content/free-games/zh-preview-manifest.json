@@ -1,31 +1,10 @@
 {
   "locale": "zh",
   "packVersions": {
-    "home": "1.0-zh.1",
+    "home": "1.0-zh.3",
     "classroom": "1.0-zh.2"
   },
   "items": [
-    {
-      "path": "public/assets/free-games/zh/home-map.jpg",
-      "source": "output/pdf/zh-free-games/celebration-home-player-zh-A4.pdf",
-      "sourceSha256": "c4a0be6ae076457e52a0d1bc525c83bf11e3c151ac501bd5eb01d6dae7e5b704",
-      "page": 5,
-      "sha256": "e307953e82a63c42219d58180251a66317ab18af22f26d7bb369754883f40e5c"
-    },
-    {
-      "path": "public/assets/free-games/zh/home-record.jpg",
-      "source": "output/pdf/zh-free-games/celebration-home-player-zh-A4.pdf",
-      "sourceSha256": "c4a0be6ae076457e52a0d1bc525c83bf11e3c151ac501bd5eb01d6dae7e5b704",
-      "page": 3,
-      "sha256": "a3cb4c9fbff0bf3a2736d9d62e27fd2d4d06ccdb7f6b15411da2f88eb4d734b9"
-    },
-    {
-      "path": "public/assets/free-games/zh/home-handout-cut.jpg",
-      "source": "output/pdf/zh-free-games/celebration-home-guide-zh-A4.pdf",
-      "sourceSha256": "fa2210b6ab63c809825794596735466bc2e7bd3cadc38fdff8b24a95c17e0dce",
-      "page": 4,
-      "sha256": "76a6578d4f9fef50babff8c0537d65769b9a853830235ca582c146f15576c006"
-    },
     {
       "path": "public/assets/free-games/zh/classroom-plan.jpg",
       "source": "output/pdf/zh-free-games/classroom-1.0-zh.2/celebration-classroom-player-zh-A4.pdf",
@@ -53,6 +32,41 @@
       "sourceSha256": "8b8b82195f261510f6d88563e747f3ae189dc957d3e47b46dad972ee8a6ee5f0",
       "page": 2,
       "sha256": "bc80f3df3fd1167ec01ab1a469f30ba36cce4673c419e99efae4fedea7176669"
+    },
+    {
+      "path": "public/assets/free-games/zh/home-map.jpg",
+      "source": "output/pdf/zh-free-games/home-1.0-zh.3/celebration-home-player-zh-A4.pdf",
+      "sourceSha256": "5f479ec512d44c0f947b6cb34750f004def00398e2cad90acfcdc22e3750b0f6",
+      "page": 6,
+      "sha256": "517c6985c57c07fb0f799db330089f6d65f0642ac46e9ed9d611ddaaa040fcf9"
+    },
+    {
+      "path": "public/assets/free-games/zh/home-record.jpg",
+      "source": "output/pdf/zh-free-games/home-1.0-zh.3/celebration-home-player-zh-A4.pdf",
+      "sourceSha256": "5f479ec512d44c0f947b6cb34750f004def00398e2cad90acfcdc22e3750b0f6",
+      "page": 3,
+      "sha256": "dce18848a5b5645101092aa96cdadd65ac328803460f28f377ffc2d9a5c2d67e"
+    },
+    {
+      "path": "public/assets/free-games/zh/home-handout-cut.jpg",
+      "source": "output/pdf/zh-free-games/home-1.0-zh.3/celebration-home-player-zh-A4.pdf",
+      "sourceSha256": "5f479ec512d44c0f947b6cb34750f004def00398e2cad90acfcdc22e3750b0f6",
+      "page": 5,
+      "sha256": "3b2e5f1a7a9b38933c4cd6c96b853722c31bce127dfbd19244bf0e1222653332"
+    },
+    {
+      "path": "public/assets/free-games/zh/home-practice.jpg",
+      "source": "output/pdf/zh-free-games/home-1.0-zh.3/celebration-home-player-zh-A4.pdf",
+      "sourceSha256": "5f479ec512d44c0f947b6cb34750f004def00398e2cad90acfcdc22e3750b0f6",
+      "page": 9,
+      "sha256": "b2d2df567c55d20cc4c8554e52cdaff77a5c2174fb4e6b7dec4f18e644cc4c68"
+    },
+    {
+      "path": "public/assets/free-games/zh/home-finish.jpg",
+      "source": "output/pdf/zh-free-games/home-1.0-zh.3/celebration-home-player-zh-A4.pdf",
+      "sourceSha256": "5f479ec512d44c0f947b6cb34750f004def00398e2cad90acfcdc22e3750b0f6",
+      "page": 12,
+      "sha256": "bf836f59ada879a03f8a5a7ef4dfcd42f605a6301feceff99e0694eec6564659"
     }
   ]
 }

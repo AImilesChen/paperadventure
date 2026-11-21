@@ -7,16 +7,17 @@ import pypdfium2 as pdfium
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'public/assets/free-games/zh'
 EDITION=json.loads((ROOT/'shared/free-games/zh-classroom-edition.json').read_text(encoding='utf-8'))
-SOURCES=[('home','player',5,'map'),('home','player',3,'record'),('home','guide',4,'handout-cut')]+[('classroom','player',page,name) for name,page in EDITION['previews'].items()]
+HOME_EDITION=json.loads((ROOT/'shared/free-games/zh-home-edition.json').read_text(encoding='utf-8'))
+SOURCES=[('home',entry['role'],entry['page'],name) for name,entry in HOME_EDITION['previews'].items()]+[('classroom','player',page,name) for name,page in EDITION['previews'].items()]
 
 def main():
- parser=argparse.ArgumentParser();parser.add_argument('--setting',choices=['all','classroom'],default='all');args=parser.parse_args()
+ parser=argparse.ArgumentParser();parser.add_argument('--setting',choices=['all','home','classroom'],default='all');args=parser.parse_args()
  OUT.mkdir(parents=True,exist_ok=True)
  prior=ROOT/'content/free-games/zh-preview-manifest.json'
- items=[i for i in json.loads(prior.read_text(encoding='utf-8'))['items'] if 'celebration-home-' in i['source']] if args.setting=='classroom' and prior.exists() else []
+ items=[i for i in json.loads(prior.read_text(encoding='utf-8'))['items'] if ('celebration-'+args.setting+'-') not in i['source']] if args.setting!='all' and prior.exists() else []
  manifest=json.loads((ROOT/'output/pdf/zh-free-games/manifest.json').read_text(encoding='utf-8'))
  for setting,role,page,name in SOURCES:
-  if args.setting=='classroom' and setting!='classroom':continue
+  if args.setting!='all' and setting!=args.setting:continue
   entry=next(i for i in manifest['items'] if i['setting']==setting and i['role']==role and i['paper']=='A4')
   source=ROOT/entry['path']
   doc=pdfium.PdfDocument(str(source));image=doc[page-1].render(scale=1.6).to_pil().convert('RGB')
