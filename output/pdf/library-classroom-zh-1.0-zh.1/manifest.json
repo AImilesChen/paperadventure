@@ -1,0 +1,75 @@
+{
+  "world": "library",
+  "setting": "classroom",
+  "locale": "zh",
+  "version": "1.0-zh.1",
+  "sourceEnglishVersion": "v1.0",
+  "pairedEnglishEdition": "1.1",
+  "status": "local_review",
+  "items": [
+    {
+      "world": "library",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 14,
+      "path": "output/pdf/library-classroom-zh-1.0-zh.1/library-classroom-player-zh-A4.pdf",
+      "sha256": "083b4ec583e2675f9aa9c82a8b4f9ea4cdb445234590c2e372400ceccee8f3ee",
+      "bytes": 737979,
+      "r2Key": "ready-localized/library/classroom/zh/1.0-zh.1/A4/player-083b4ec583e2675f.pdf"
+    },
+    {
+      "world": "library",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/library-classroom-zh-1.0-zh.1/library-classroom-guide-zh-A4.pdf",
+      "sha256": "6a1348396d0daab343acbee8762bd76f6a9d4dfa1ec9e5b7175c6c88423ac1d9",
+      "bytes": 175042,
+      "r2Key": "ready-localized/library/classroom/zh/1.0-zh.1/A4/guide-6a1348396d0daab3.pdf"
+    },
+    {
+      "world": "library",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 14,
+      "path": "output/pdf/library-classroom-zh-1.0-zh.1/library-classroom-player-zh-Letter.pdf",
+      "sha256": "536bb565259643ec07630c4f754d298d7a028ad1b51c87329868f63037191f58",
+      "bytes": 737378,
+      "r2Key": "ready-localized/library/classroom/zh/1.0-zh.1/Letter/player-536bb565259643ec.pdf"
+    },
+    {
+      "world": "library",
+      "setting": "classroom",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/library-classroom-zh-1.0-zh.1/library-classroom-guide-zh-Letter.pdf",
+      "sha256": "9f1b2ddbff47d038ea9b9a0d3f0d2419e276b3b1450334fbb24a400087f8bc58",
+      "bytes": 174395,
+      "r2Key": "ready-localized/library/classroom/zh/1.0-zh.1/Letter/guide-9f1b2ddbff47d038.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/library-classroom-zh-1.0-zh.1/library-classroom-complete-zh-A4.zip",
+      "sha256": "969a743eda61920b8f0974f40f2a8bfc047c8512af219839d60d952518e45504"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/library-classroom-zh-1.0-zh.1/library-classroom-complete-zh-Letter.zip",
+      "sha256": "f35d6c494a2fb8189314d1adc8eb97cd3eecf5115c3399033a917de6c5bbef83"
+    }
+  ]
+}

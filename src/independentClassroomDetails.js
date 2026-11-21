@@ -25,15 +25,15 @@ export const independentClassroomDetails = {
     ],
   } },
   library: { classroom: {
-    hook: 'Your crew reads the repaired story to a visitor, then uses printed evidence to correct a mistaken summary.',
-    reasons: ['Pupils handle and read a complete short paper story instead of choosing five answers from cards.', 'Three separately dealt witness notes each add a different fact; the group must listen before it writes.', 'The crew makes a paper route copy, writes its own ending, and corrects a visitor’s mistaken summary using printed evidence.'],
-    materials: ['Stamped return slip, four marked book spines and a continuing crew record', 'Opening leaf with an original story map and four story leaves that may stay on their sheets', 'Three separately dealt private witness notes', 'Damaged final leaf with a four-stop route-copy strip and writing space, plus a visitor-correction page'],
+    hook: 'Repair a story through original sources, then read and explain your own final page.',
+    reasons: ['Read for cause and time, listen to three independent sources and author a connected scene.', 'The target title and witness facts are revealed only at their checked stage.', 'Pupils may point, draw with labels or dictate while preserving the same evidence requirements.'],
+    materials: ['Stamped return slip and four coded shelf choices', 'Opening, original story map, intact order board and four optional-cut story leaves', 'Three separately dealt private witness notes and a neutral planning sheet', 'Separate action and authoring sheets, reading instructions, visitor check and adult guide'],
     stages: [
-      ['Find the returned book', 'Compare both stamp marks on the return slip with four book spines.', 'The right book and its opening leaf'],
-      ['Rebuild the middle', 'Read four leaves, then write their letter order; adult cutting is optional.', 'An evidence-backed page order'],
-      ['Listen to witnesses', 'Share three private notes without showing the whole sheet.', 'A plan using all three facts'],
-      ['Restore the last page', 'Copy the original map’s four stops onto Kit’s route strip and write the missing action.', 'A paper route copy and crew-authored final leaf'],
-      ['Read to a visitor', 'Read the whole story, then correct the visitor’s mistaken map summary using printed evidence.', 'A checked and repaired paper story'],
+      ['Find the returned book', 'Match both stamp features to a coded shelf, then receive the recovered opening.', 'A checked shelf result'],
+      ['Restore the sequence', 'Order four narrative leaves and point to the words supporting their links.', 'One evidenced letter order'],
+      ['Hear three witnesses', 'Hear and restate three separate sources before forming a plan.', 'A source-supported shared plan'],
+      ['Author the last page', 'Carry out the checked plan and compose a scene that fits the original facts.', 'An authored final page and supporting work'],
+      ['Read and correct', 'Read the complete story and repair a visitor’s mistaken claim using sources.', 'A checked and repaired story'],
     ],
   } },
   weather: { classroom: {

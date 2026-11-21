@@ -49,6 +49,8 @@ jobs:
         run: node scripts/verify-chinese-ocean-production.mjs --wait
       - name: Require matching Museum English repair and Chinese PDFs before publishing their interface
         run: node scripts/verify-museum-production.mjs --wait
+      - name: Require matching Library English repair and Chinese PDFs before publishing its interface
+        run: node scripts/verify-library-production.mjs --wait
       - name: Bundle production API without publishing
         run: npx --yes wrangler@4.149.0 deploy --config backend/wrangler.production-smoke.jsonc --dry-run
       - name: Validate site Worker bundle without publishing

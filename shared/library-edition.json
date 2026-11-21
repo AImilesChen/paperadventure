@@ -1,0 +1,12 @@
+{
+ "world":"library","setting":"classroom","code":"C09",
+ "versions":{"en":"1.1","zh":"1.0-zh.1"},"basePackVersions":["1.0","v1.0"],
+ "titles":{"en":"The Missing Final Chapter","zh":"遗失的最后一章"},
+ "innerTitles":{"en":"The Lantern Path","zh":"灯笼小路"},
+ "pages":{"player":14,"guide":19},"pieces":{"wholeSheet":3,"storyLeaves":7},
+ "stamp":{"shape":"crescent","dots":2},
+ "shelves":[["L-42","crescent",1],["S-24","star",2],["L-24","crescent",2],["L-21","crescent",3]],
+ "shelfAnswer":"L-24","leafPrintOrder":[["C","A"],["D","B"]],"leafOrder":["B","D","C","A"],
+ "route":{"en":["Garden table","Garden gate","River bridge","Kit's home"],"zh":["花园桌","花园门","河桥","小凯家"]},
+ "characters":{"en":["Rowan","Kit","garden keeper"],"zh":["罗文","小凯","花园管理员"]}
+}

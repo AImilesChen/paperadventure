@@ -1,4 +1,4 @@
-import {paidDocumentGame,readyDocumentLabel} from '../shared/ready-document-editions.mjs';
+import {paidDocumentGame,readyDocumentLabel,readyEnglishRepairGame} from '../shared/ready-document-editions.mjs';
 import ReadyLocalizedDownloads from './readyLocalizedDownloads.jsx';
 import { currentLocale as uiLocale, t as translateUi, localHref } from './i18n/index.mjs';
 
@@ -706,7 +706,7 @@ export function LiveCheckout({ Link, catalog, checkoutMode }) {
     if (!supplyRequested) {setError('Confirm the supply and refund notice before continuing.');setBusy(false);return;}
     const checkoutEmail = accountEmail || (accountRequired ? null : email);
     const body = ready ? { sku, themeId, packVersion: theme[setting].packVersion, variantId: variantId || null, email: checkoutEmail } : { ...draftSpec(draft), sku, email: checkoutEmail };
-    if(selectedDocument&&(selectedDocument.locale==='zh'||themeId==='museum')){body.documentLocale=selectedDocument.locale;body.documentEdition=selectedDocument.version;}
+    if(selectedDocument&&(selectedDocument.locale==='zh'||readyEnglishRepairGame(themeId))){body.documentLocale=selectedDocument.locale;body.documentEdition=selectedDocument.version;}
     body.locale = window.location.pathname.startsWith('/zh/') ? 'zh' : 'en';
     body.serviceRequest = { version: purchaseConsentVersion, requested: true };
     try {

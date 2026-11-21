@@ -1,0 +1,97 @@
+{
+  "items": [
+    {
+      "locale": "en",
+      "page": 4,
+      "bounds": [
+        0,
+        238.6350067282848
+      ],
+      "path": "public/assets/library-en-shelf.jpg",
+      "sha256": "078a16b930e15e93c2fc04ef33fb34737438e868d7a0b57b0d32867d0dcc014a",
+      "sourceSha256": "6c1d39d53cee82032b752e689a16b29ec1971d41e06d603b708649204287e4b5"
+    },
+    {
+      "locale": "en",
+      "page": 6,
+      "bounds": null,
+      "path": "public/assets/library-en-order.jpg",
+      "sha256": "7c65e688652e28aa685d904de03d7b06850a309843885cc5666533dd889dbbc6",
+      "sourceSha256": "6c1d39d53cee82032b752e689a16b29ec1971d41e06d603b708649204287e4b5"
+    },
+    {
+      "locale": "en",
+      "page": 9,
+      "bounds": null,
+      "path": "public/assets/library-en-plan.jpg",
+      "sha256": "962b456323227f7bb73a0974c9bc6557057bb06f44ce93de2d015d6314b1a1e9",
+      "sourceSha256": "6c1d39d53cee82032b752e689a16b29ec1971d41e06d603b708649204287e4b5"
+    },
+    {
+      "locale": "en",
+      "page": 12,
+      "bounds": [
+        267.8800067282848,
+        467.8800067282848
+      ],
+      "path": "public/assets/library-en-writing.jpg",
+      "sha256": "b5d3fcdce9c218c01406f7d05438cd174fe9ff7a451cfe88972fbc964137190c",
+      "sourceSha256": "6c1d39d53cee82032b752e689a16b29ec1971d41e06d603b708649204287e4b5"
+    },
+    {
+      "locale": "en",
+      "page": 3,
+      "bounds": null,
+      "path": "public/assets/library-en-progress.jpg",
+      "sha256": "98f7527cc75d2d25aaecb58064fa3eb0d811ab853bc48df69efc7e1d0eb9e9ec",
+      "sourceSha256": "6c1d39d53cee82032b752e689a16b29ec1971d41e06d603b708649204287e4b5"
+    },
+    {
+      "locale": "zh",
+      "page": 4,
+      "bounds": [
+        0,
+        238.6350067282848
+      ],
+      "path": "public/assets/library-zh-shelf.jpg",
+      "sha256": "9f483e95249dbcf14a5209fb7b1a47ee42f959cf0c8259d00af3a707a323c4a5",
+      "sourceSha256": "083b4ec583e2675f9aa9c82a8b4f9ea4cdb445234590c2e372400ceccee8f3ee"
+    },
+    {
+      "locale": "zh",
+      "page": 6,
+      "bounds": null,
+      "path": "public/assets/library-zh-order.jpg",
+      "sha256": "8432da694f6fcc6dbce0c3c75771f4d4ef24d1f3ff76af5549aeaceb8350c772",
+      "sourceSha256": "083b4ec583e2675f9aa9c82a8b4f9ea4cdb445234590c2e372400ceccee8f3ee"
+    },
+    {
+      "locale": "zh",
+      "page": 9,
+      "bounds": null,
+      "path": "public/assets/library-zh-plan.jpg",
+      "sha256": "1fc6f957e1f6df4dc03b50faf88a532f842d3dfa63262ea83e8ac154139d5550",
+      "sourceSha256": "083b4ec583e2675f9aa9c82a8b4f9ea4cdb445234590c2e372400ceccee8f3ee"
+    },
+    {
+      "locale": "zh",
+      "page": 12,
+      "bounds": [
+        251.5780067282849,
+        451.5780067282849
+      ],
+      "path": "public/assets/library-zh-writing.jpg",
+      "sha256": "9a0b00dec743ecb97a89ddf7a7330a2a67235279345e234bdce4bc71d1502c49",
+      "sourceSha256": "083b4ec583e2675f9aa9c82a8b4f9ea4cdb445234590c2e372400ceccee8f3ee"
+    },
+    {
+      "locale": "zh",
+      "page": 3,
+      "bounds": null,
+      "path": "public/assets/library-zh-progress.jpg",
+      "sha256": "e5c1e821aeb05dc1effea7018d34805f6a8b7dbce4b3dee64c940a78eded8b59",
+      "sourceSha256": "083b4ec583e2675f9aa9c82a8b4f9ea4cdb445234590c2e372400ceccee8f3ee"
+    }
+  ],
+  "legacyAliases": "Replaced eight old English previews with safe revised crops; no old opening title remains."
+}
