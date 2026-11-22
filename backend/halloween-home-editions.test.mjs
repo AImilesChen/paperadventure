@@ -37,7 +37,7 @@ test('Halloween release preparation stages idempotently and activates only compl
 test('Halloween bilingual support is Home-only and never enables other Home or Halloween Classroom games',async()=>{
  assert.equal(paidDocumentGame('halloween','home'),true);assert.equal(paidDocumentGame('halloween','classroom'),false);
  assert.equal(readyEnglishRepairGame('halloween','home'),true);assert.equal(readyEnglishRepairGame('halloween','classroom'),false);
- assert.equal(paidDocumentGame('christmas','home'),false);assert.equal(paidDocumentGame('halloween','home','variant'),false);
+ assert.equal(paidDocumentGame('christmas','classroom'),false);assert.equal(paidDocumentGame('halloween','home','variant'),false);
  assert.equal(readyDocumentPages('halloween','en','1.1','classroom'),null);assert.equal(readyDocumentStem('halloween','home'),'halloween-home');assert.throws(()=>readyDocumentStem('halloween','classroom'));
  const f=await halloweenFixture();const response=await f.get('/api/v1/catalog',false);assert.equal(response.status,200);const c=await response.json();
  const d=c.themes.find(t=>t.id==='halloween');assert.deepEqual(d.home.documentEditions,[{locale:'en',version:'1.1'},{locale:'zh',version:'1.0-zh.1'}]);assert.equal(d.classroom.documentEditions,undefined);

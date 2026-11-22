@@ -1,0 +1,75 @@
+{
+  "world": "christmas",
+  "setting": "home",
+  "locale": "en",
+  "version": "1.1",
+  "sourceEnglishVersion": "v1.0",
+  "sourceBlob": "e388ee232888478f3338dce46707047be168846d",
+  "status": "local_review_not_published",
+  "items": [
+    {
+      "world": "christmas",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/christmas-home-en-1.1/christmas-home-player-en-A4.pdf",
+      "sha256": "9900e81569bc0e867f16e567bbffc8453936853ea3800af67cbf5628e53ca443",
+      "bytes": 1732037,
+      "r2Key": "ready-localized/christmas/home/en/1.1/A4/player-9900e81569bc0e86.pdf"
+    },
+    {
+      "world": "christmas",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 15,
+      "path": "output/pdf/christmas-home-en-1.1/christmas-home-guide-en-A4.pdf",
+      "sha256": "cf7a47acc09beaae57436b306ab234c157bab4351073cb1464b444fce6c8e43d",
+      "bytes": 98222,
+      "r2Key": "ready-localized/christmas/home/en/1.1/A4/guide-cf7a47acc09beaae.pdf"
+    },
+    {
+      "world": "christmas",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/christmas-home-en-1.1/christmas-home-player-en-Letter.pdf",
+      "sha256": "c5c10d2ca2e15b4a0c2a3fbd1fea0ea8d6ca4283d7046c88c8deff9148ab0174",
+      "bytes": 1731613,
+      "r2Key": "ready-localized/christmas/home/en/1.1/Letter/player-c5c10d2ca2e15b4a.pdf"
+    },
+    {
+      "world": "christmas",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 15,
+      "path": "output/pdf/christmas-home-en-1.1/christmas-home-guide-en-Letter.pdf",
+      "sha256": "48c484063f3993b9628513a1b928a3bf0627a884f83dc4088f607b46930515eb",
+      "bytes": 97982,
+      "r2Key": "ready-localized/christmas/home/en/1.1/Letter/guide-48c484063f3993b9.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/christmas-home-en-1.1/christmas-home-complete-en-A4.zip",
+      "sha256": "92a7d9d75e90b507de213578acfd48a516e10476f368478c8ab31924c907c813"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/christmas-home-en-1.1/christmas-home-complete-en-Letter.zip",
+      "sha256": "b43ecba2507fd2585a2a095c38f38dd1c6ec4d7b167246acbee3e5fa3fb749ad"
+    }
+  ]
+}

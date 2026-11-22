@@ -1,0 +1,75 @@
+{
+  "world": "christmas",
+  "setting": "home",
+  "locale": "zh",
+  "version": "1.0-zh.1",
+  "sourceEnglishVersion": "v1.0",
+  "contentReferenceRevision": "en1.1",
+  "status": "local_review_not_published",
+  "items": [
+    {
+      "world": "christmas",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/christmas-home-zh-1.0-zh.1/christmas-home-player-zh-A4.pdf",
+      "sha256": "4f5abac9d5ca576dc7bde29c8b36eb4f344bc72e60a91089fc5c72e490c24be2",
+      "bytes": 1802149,
+      "r2Key": "ready-localized/christmas/home/zh/1.0-zh.1/A4/player-4f5abac9d5ca576d.pdf"
+    },
+    {
+      "world": "christmas",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 15,
+      "path": "output/pdf/christmas-home-zh-1.0-zh.1/christmas-home-guide-zh-A4.pdf",
+      "sha256": "86474576bb7416f6714f755b6361e5f658ad4a3ec6514a99dd7d5a6d4ba19659",
+      "bytes": 174137,
+      "r2Key": "ready-localized/christmas/home/zh/1.0-zh.1/A4/guide-86474576bb7416f6.pdf"
+    },
+    {
+      "world": "christmas",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 16,
+      "path": "output/pdf/christmas-home-zh-1.0-zh.1/christmas-home-player-zh-Letter.pdf",
+      "sha256": "55b6fe4bcdfedd22975caf3ee799a815aa71fca58210cbdbf541880872dd3dfd",
+      "bytes": 1801756,
+      "r2Key": "ready-localized/christmas/home/zh/1.0-zh.1/Letter/player-55b6fe4bcdfedd22.pdf"
+    },
+    {
+      "world": "christmas",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 15,
+      "path": "output/pdf/christmas-home-zh-1.0-zh.1/christmas-home-guide-zh-Letter.pdf",
+      "sha256": "34c0dc685290c6118f44e9bb3cfa20d640cb011ecced9b05d1014891cecde56e",
+      "bytes": 173854,
+      "r2Key": "ready-localized/christmas/home/zh/1.0-zh.1/Letter/guide-34c0dc685290c611.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/christmas-home-zh-1.0-zh.1/christmas-home-complete-zh-A4.zip",
+      "sha256": "c66ab30a4c9ec485241c98433732da88a1068bd673c3dcfc6b8b574d8aacec91"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/christmas-home-zh-1.0-zh.1/christmas-home-complete-zh-Letter.zip",
+      "sha256": "948ab7916159bf0fd466bf9c970f0cad93835a073dc18798ce5ff7b864ceb152"
+    }
+  ]
+}

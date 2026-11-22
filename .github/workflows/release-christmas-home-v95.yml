@@ -64,6 +64,8 @@ jobs:
         run: node scripts/read-christmas-home-v95-inputs.mjs
       - name: Verify actual Christmas Home file delivery
         run: node --test backend/christmas-home-editions.test.mjs
+        env:
+          CHRISTMAS_HOME_ACTUAL_PDFS: 'true'
       - run: node scripts/verify-chinese-free-production.mjs --capture-english
       - name: Deploy matching API with Christmas Home publication disabled
         run: node "$WRANGLER_CLI" deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var PAID_CHRISTMAS_HOME_EDITIONS_ENABLED:false

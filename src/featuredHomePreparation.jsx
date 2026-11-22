@@ -1,16 +1,17 @@
+import {christmasDetailZh} from './christmasDetailZh.mjs';
 import {currentLocale} from './i18n/index.mjs';
 import {dinosaurDetailZh} from './dinosaurDetailZh.mjs';
 import dinosaurEditionAssets from './dinosaurHomeEditionPreviewAssets.json';
 import { t as baseCopy, localHref } from "./i18n/index.mjs";import { useState } from 'react';
 import { Printer, Monitor, Backspace, Scissors, Equals } from '@phosphor-icons/react';
 import { homeGamePlanning, homePrintPlan } from '../shared/home-game-planning.mjs';
-import christmasAssets from './christmasHomePreviewAssets.json';
+import christmasAssets from './christmasHomeEditionPreviewAssets.json';
 import './featuredHomePreparation.css';
 import './printingCalculator.css';
 
-const gameCopy=(themeId)=>(key,values)=>themeId==='dinosaur'&&currentLocale()==='zh'&&Object.hasOwn(dinosaurDetailZh,key)?dinosaurDetailZh[key].replace(/\{(\w+)\}/g,(token,name)=>values?.[name]??token):baseCopy(key,values);
+const gameCopy=(themeId)=>(key,values)=>currentLocale()==='zh'&&Object.hasOwn(themeId==='christmas'?christmasDetailZh:dinosaurDetailZh,key)?(themeId==='christmas'?christmasDetailZh:dinosaurDetailZh)[key].replace(/\{(\w+)\}/g,(token,name)=>values?.[name]??token):baseCopy(key,values);
 
-// Dinosaur counts follow the revised edition; Christmas keeps its established source.
+// Counts and source previews follow each reviewed bilingual edition.
 const packs = {
   dinosaur: {
     ...homeGamePlanning.dinosaur,
@@ -32,19 +33,19 @@ const packs = {
   },
   christmas: {
     ...homeGamePlanning.christmas,
-    inventory: '4 job cards · 1 press · 3 gifts · 3 clue cards · 1 frame',
+    inventory: '4 job cards · 1 star sign · 3 gifts · 3 clue cards · 1 frame',
     previews: [['gifts', 'Three gifts to fold'], ['frame', 'A frame for checking'], ['village', 'A shared winter display']],
     materials: 'Ordinary paper, a pencil, an eraser, adult-handled scissors and a flat table. No real gifts, tape or glue are required.',
     steps: [
-    ['Read and print', 'Read the Host Guide first. Print Player pages 1–14 for each team, single-sided at Actual size / 100%, in matching A4 or US Letter.'],
-    ['Prepare the cuts', 'Cut the 4 job cards before play. The adult cuts the press, gifts, clues and frame as their missions begin. For two teams, pre-cut each separate set into covered piles. Cut the frame’s inner window; keep the village whole.'],
-    ['Stage five mission piles', 'Prepare pages 4–5, 6–7, 8–9, 10–11 and 12–13. Begin with the jobs, page 3 and mission 1. Keep later piles and the reply on page 14 with the adult.'],
-    ['Fold, share and check', 'Children fold BACK behind FRONT, open the gifts flat to draw and check, then stand them in the village. If thin paper slips, lay gifts face-up. Rotate jobs after missions 1–4.']],
+    ['Read and print', 'Read the Host Guide first. Print Player pages 1–16 for each team, single-sided at Actual size / 100%, in matching A4 or US Letter.'],
+    ['Prepare the cuts', 'Cut the 4 job cards before play; keep the lower rules whole. Low-cut: keep jobs whole for 8 loose pieces. The adult cuts the sign, rectangular gifts, clues and frame as their missions begin. For two teams, pre-cut each separate set into covered piles. Cut the frame’s inner window; keep the village whole.'],
+    ['Stage five mission piles', 'Prepare Player piles 4–5, 6–7, 8–10, 11–13 and 14–15. Start with pages 1–5. Keep later piles and the complete reply on private Host page 14 with the adult. Optional Player page 16 follows the reply.'],
+    ['Fold, share and check', 'Children fold BACK behind FRONT, open the gifts flat to draw and check, then stand them in the village. If thin paper slips, keep gifts folded and lay FRONT face-up in the village areas, with names visible above them. Rotate jobs after missions 1–4.']],
 
-    table: [['ADULT SIDE', 'Host Guide, covered later piles and reply page 14'], ['TEAM SIDE', 'Current mission and flat gifts for drawing and checking'], ['DISPLAY SPACE', 'Whole village board; add gifts after their checks']],
+    table: [['ADULT SIDE', 'Host Guide, covered later piles and private Host reply page 14'], ['TEAM SIDE', 'Current mission and flat gifts for drawing and checking'], ['DISPLAY SPACE', 'Whole village board; add gifts after their checks']],
     questions: [
     ['Is this a Christmas treasure hunt?', 'It is an adult-led tabletop gift workshop. Children fold paper props, share wrapping clues, check their work and build a village display. No search around the house or real presents are required.'],
-    ['Can children with different reading abilities join?', 'An adult or partner can read the clues aloud. Children can point or speak while someone helps draw or record. In a two-child team, share the first two clue cards and read the third together.'],
+    ['Can children with different reading abilities join?', 'An adult or partner can read the clues aloud. Children can point or speak while someone helps draw or record. With two children, one holds WHO + SEAL and the other RIBBON; hear every whole card. With three, one each; 4–6 use three holders and active partners.'],
     ['Can we play the game again?', 'The wrapping solution stays the same. Swap jobs for another play-through and print fresh gift blanks on Player page 7 if you want to draw again. Keep all 12 pieces together and return the reply to the adult.']]
 
   }
@@ -67,10 +68,10 @@ export function FeaturedHostFileCard({ themeId }) {
 
 export function FeaturedPackMaterials({ themeId }) {
   const translateUi=gameCopy(themeId);
-  const pack = packs[themeId],assets = themeId === 'dinosaur' ? dinosaurEditionAssets[currentLocale()==='zh'?'zh':'en'] : christmasAssets;
+  const pack = packs[themeId],assets = themeId === 'dinosaur' ? dinosaurEditionAssets[currentLocale()==='zh'?'zh':'en'] : christmasAssets[currentLocale()==='zh'?'zh':'en'];
   return <div className="pack-material-overview"><div className="pack-material-heading"><span className="eyebrow">{translateUi("ACTUAL PLAYER PACK EXCERPTS")}</span><h3>{translateUi("Paper materials you can inspect before buying.")}</h3><p>{translateUi("Selected blank materials from the game, not a view of every page. Complete clues, solutions and the ending stay in the pack.")}</p></div><div className="pack-material-grid">{translateUi(pack.previews.map(([name, title]) => {
-        const item = assets[name],src = themeId==='dinosaur' ? item.path.replace(/^public/,'') : `/assets/${themeId}-home-detail-${name}.jpg`;
-        return <figure key={name}><a href={localHref(src)} target="_blank" rel="noopener noreferrer" aria-label={translateUi("Enlarge {value0} (opens in a new tab)", { value0: currentLocale()==='zh'&&themeId==='dinosaur'?translateUi(title):title.toLowerCase() })}><img src={src} alt={translateUi(item.caption)} width={item.width} height={item.height} loading="lazy" /><span>{translateUi("Enlarge material \u2197")}</span></a><figcaption><strong>{translateUi(title)}</strong><span>{translateUi("Player Pack \xB7 A4 page ")}{translateUi(item.page)}{item.excerpt ? translateUi(' excerpt') : translateUi('')}</span></figcaption></figure>;
+        const item = assets[name],src = item.path.replace(/^public/,'');
+        return <figure key={name}><a href={localHref(src)} target="_blank" rel="noopener noreferrer" aria-label={translateUi("Enlarge {value0} (opens in a new tab)", { value0: currentLocale()==='zh'?translateUi(title):title.toLowerCase() })}><img src={src} alt={translateUi(item.caption)} width={item.width} height={item.height} loading="lazy" /><span>{translateUi("Enlarge material \u2197")}</span></a><figcaption><strong>{translateUi(title)}</strong><span>{translateUi("Player Pack \xB7 A4 page ")}{translateUi(item.page)}{item.excerpt ? translateUi(' excerpt') : translateUi('')}</span></figcaption></figure>;
       }))}</div><p className="pack-inventory"><strong>{translateUi(pack.pieces)}{translateUi(" loose pieces per team:")}</strong> {translateUi(pack.inventory)}{translateUi(". Keep boards and other whole pages uncut as directed.")}</p></div>;
 }
 

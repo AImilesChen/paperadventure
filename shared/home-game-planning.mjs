@@ -31,9 +31,9 @@ export const homeGamePlanning = {
     occasion: 'A family Halloween paper adventure.',
   },
   christmas: {
-    playerPages: 14, guidePages: 8, pieces: 12,
+    playerPages: 16, guidePages: 15, pieces: 12,
     play: 'Fold paper gifts, share wrapping clues and build a village display.',
-    prepare: '14 Player pages/team · 12 cut-out pieces/team.',
+    prepare: '16 Player pages/team · 12 cut-out pieces/team.',
     occasion: 'A family Christmas gift workshop.',
   },
 };

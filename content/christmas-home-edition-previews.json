@@ -1,0 +1,294 @@
+{
+  "en": {
+    "sign": {
+      "excerpt": true,
+      "page": 5,
+      "path": "public/assets/christmas-home-en-sign.jpg",
+      "caption": "Workshop star sign",
+      "width": 910,
+      "height": 710,
+      "sha256": "d28c2b937e2d3cf8c6b51f1e6832471ad14d12c291e2cd9586e27edc54d0fb8c",
+      "sourceSha256": "9900e81569bc0e867f16e567bbffc8453936853ea3800af67cbf5628e53ca443",
+      "crop": [
+        121.63779527559058,
+        185.90003622047232,
+        485.6377952755906,
+        469.9000362204723
+      ]
+    },
+    "gifts": {
+      "excerpt": true,
+      "page": 7,
+      "path": "public/assets/christmas-home-en-gifts.jpg",
+      "caption": "Three blank gift templates",
+      "width": 1165,
+      "height": 810,
+      "sha256": "3bf14f9b0ad12ea0fbfa4d39ac2aa884f605eee37b93cfdbbca6009c68f068fa",
+      "sourceSha256": "9900e81569bc0e867f16e567bbffc8453936853ea3800af67cbf5628e53ca443",
+      "crop": [
+        70.63779527559058,
+        178.20003622047238,
+        536.6377952755906,
+        502.2000362204724
+      ]
+    },
+    "gift-blank": {
+      "excerpt": true,
+      "page": 7,
+      "path": "public/assets/christmas-home-en-gift-blank.jpg",
+      "caption": "One cut-rectangle gift blank",
+      "width": 375,
+      "height": 810,
+      "sha256": "454e27ed22d6d5e33098631870e0dc5e61dc1d3c6536f8aa2c9cd8bd628bd54c",
+      "sourceSha256": "9900e81569bc0e867f16e567bbffc8453936853ea3800af67cbf5628e53ca443",
+      "crop": [
+        70.63779527559058,
+        178.20003622047238,
+        220.63779527559058,
+        502.2000362204724
+      ]
+    },
+    "gift-front": {
+      "excerpt": true,
+      "page": 7,
+      "path": "public/assets/christmas-home-en-gift-front.jpg",
+      "caption": "Blank FRONT drawing area",
+      "width": 375,
+      "height": 408,
+      "sha256": "9d3d58b8463430f798b748f505ee33391c1cba7138672166f9df85141d697025",
+      "sourceSha256": "9900e81569bc0e867f16e567bbffc8453936853ea3800af67cbf5628e53ca443",
+      "crop": [
+        70.63779527559058,
+        339.2000362204724,
+        220.63779527559058,
+        502.2000362204724
+      ]
+    },
+    "method": {
+      "excerpt": true,
+      "page": 3,
+      "path": "public/assets/christmas-home-en-method.jpg",
+      "caption": "Neutral fold and direction guide",
+      "width": 1268,
+      "height": 1037,
+      "sha256": "eb9db2f33039ed6142b402514c3b848071d9272d2fb56db885508ce3e6e1b8f6",
+      "sourceSha256": "9900e81569bc0e867f16e567bbffc8453936853ea3800af67cbf5628e53ca443",
+      "crop": [
+        50.0,
+        176.20003622047238,
+        557.2755905511812,
+        591.2000362204724
+      ]
+    },
+    "practice": {
+      "excerpt": true,
+      "page": 10,
+      "path": "public/assets/christmas-home-en-practice.jpg",
+      "caption": "Neutral practice P; not a game answer",
+      "width": 1228,
+      "height": 462,
+      "sha256": "d3f61fd48932f6b1a83a54a56a52830f624f37cee30727ef34578201d07bfad7",
+      "sourceSha256": "9900e81569bc0e867f16e567bbffc8453936853ea3800af67cbf5628e53ca443",
+      "crop": [
+        58.0,
+        434.2000362204724,
+        549.2755905511812,
+        619.2000362204724
+      ]
+    },
+    "frame": {
+      "excerpt": true,
+      "page": 12,
+      "path": "public/assets/christmas-home-en-frame.jpg",
+      "caption": "Answer-free checking frame",
+      "width": 810,
+      "height": 623,
+      "sha256": "a0dfaa59f947490ac3294548c2f87e14780616550e0780c99e5180879ac47314",
+      "sourceSha256": "9900e81569bc0e867f16e567bbffc8453936853ea3800af67cbf5628e53ca443",
+      "crop": [
+        141.63779527559058,
+        201.20003622047238,
+        465.6377952755906,
+        450.2000362204724
+      ]
+    },
+    "record": {
+      "excerpt": true,
+      "page": 13,
+      "path": "public/assets/christmas-home-en-record.jpg",
+      "caption": "Check-status record only",
+      "width": 1268,
+      "height": 775,
+      "sha256": "a418ad411e6bca9db34b1d47cbb2832e04804147b1f91e7a5335bb30ea24e71b",
+      "sourceSha256": "9900e81569bc0e867f16e567bbffc8453936853ea3800af67cbf5628e53ca443",
+      "crop": [
+        50.0,
+        209.50003622047234,
+        557.2755905511812,
+        519.5000362204723
+      ]
+    },
+    "village": {
+      "excerpt": true,
+      "page": 15,
+      "path": "public/assets/christmas-home-en-village.jpg",
+      "caption": "Unfilled village board",
+      "width": 1243,
+      "height": 1143,
+      "sha256": "fc61802607d5fb4586d8066a2156b1e13300ebc8e27134e289b95009b7525c2d",
+      "sourceSha256": "9900e81569bc0e867f16e567bbffc8453936853ea3800af67cbf5628e53ca443",
+      "crop": [
+        55.0,
+        187.20003622047238,
+        552.2755905511812,
+        644.2000362204724
+      ]
+    }
+  },
+  "zh": {
+    "sign": {
+      "excerpt": true,
+      "page": 5,
+      "path": "public/assets/christmas-home-zh-sign.jpg",
+      "caption": "星光标牌",
+      "width": 910,
+      "height": 710,
+      "sha256": "1ae0f39f1a0c44e2e80f4c682f9494d5e7116fd261303f0034b5ef4c60178b82",
+      "sourceSha256": "4f5abac9d5ca576dc7bde29c8b36eb4f344bc72e60a91089fc5c72e490c24be2",
+      "crop": [
+        121.63779527559058,
+        186.50003622047234,
+        485.6377952755906,
+        470.50003622047234
+      ]
+    },
+    "gifts": {
+      "excerpt": true,
+      "page": 7,
+      "path": "public/assets/christmas-home-zh-gifts.jpg",
+      "caption": "三张空白礼物模板",
+      "width": 1165,
+      "height": 810,
+      "sha256": "152c964dd9458e784079cb70c57ee154bbedc72fdf3c1c1df62573f6e70f92d7",
+      "sourceSha256": "4f5abac9d5ca576dc7bde29c8b36eb4f344bc72e60a91089fc5c72e490c24be2",
+      "crop": [
+        70.63779527559058,
+        160.50003622047234,
+        536.6377952755906,
+        484.50003622047234
+      ]
+    },
+    "gift-blank": {
+      "excerpt": true,
+      "page": 7,
+      "path": "public/assets/christmas-home-zh-gift-blank.jpg",
+      "caption": "一张长方形礼物模板",
+      "width": 375,
+      "height": 810,
+      "sha256": "d7345c89acf03d54c57e09d66970dbb273919941192078859b5fd0fe6291b583",
+      "sourceSha256": "4f5abac9d5ca576dc7bde29c8b36eb4f344bc72e60a91089fc5c72e490c24be2",
+      "crop": [
+        70.63779527559058,
+        160.50003622047234,
+        220.63779527559058,
+        484.50003622047234
+      ]
+    },
+    "gift-front": {
+      "excerpt": true,
+      "page": 7,
+      "path": "public/assets/christmas-home-zh-gift-front.jpg",
+      "caption": "正面空白绘图区",
+      "width": 375,
+      "height": 407,
+      "sha256": "802c6074ec243b9d3cb5c083f17aea5ddad148d64d7b1200bb0cc4df0b429120",
+      "sourceSha256": "4f5abac9d5ca576dc7bde29c8b36eb4f344bc72e60a91089fc5c72e490c24be2",
+      "crop": [
+        70.63779527559058,
+        321.50003622047234,
+        220.63779527559058,
+        484.50003622047234
+      ]
+    },
+    "method": {
+      "excerpt": true,
+      "page": 3,
+      "path": "public/assets/christmas-home-zh-method.jpg",
+      "caption": "中性折纸与方向示意",
+      "width": 1268,
+      "height": 1038,
+      "sha256": "dc379f07056540e73796ac8a5ffe8d6253113b3d2cfcc9e6509d79fa5b7e661c",
+      "sourceSha256": "4f5abac9d5ca576dc7bde29c8b36eb4f344bc72e60a91089fc5c72e490c24be2",
+      "crop": [
+        50.0,
+        158.50003622047234,
+        557.2755905511812,
+        573.5000362204723
+      ]
+    },
+    "practice": {
+      "excerpt": true,
+      "page": 10,
+      "path": "public/assets/christmas-home-zh-practice.jpg",
+      "caption": "中性练习P，不是真实礼物答案",
+      "width": 1228,
+      "height": 462,
+      "sha256": "04ed00dbd88ef1d82aff7ad4f85ae44bae7d09ac8618e111dbac57965b68ace1",
+      "sourceSha256": "4f5abac9d5ca576dc7bde29c8b36eb4f344bc72e60a91089fc5c72e490c24be2",
+      "crop": [
+        58.0,
+        435.00003622047234,
+        549.2755905511812,
+        620.0000362204723
+      ]
+    },
+    "frame": {
+      "excerpt": true,
+      "page": 12,
+      "path": "public/assets/christmas-home-zh-frame.jpg",
+      "caption": "无答案观察核验框",
+      "width": 810,
+      "height": 622,
+      "sha256": "a75fdc0574bba9c4b514129237dfcc00053ba0f1d3b4dbc65aa3f51fa7920751",
+      "sourceSha256": "4f5abac9d5ca576dc7bde29c8b36eb4f344bc72e60a91089fc5c72e490c24be2",
+      "crop": [
+        141.63779527559058,
+        183.50003622047234,
+        465.6377952755906,
+        432.50003622047234
+      ]
+    },
+    "record": {
+      "excerpt": true,
+      "page": 13,
+      "path": "public/assets/christmas-home-zh-record.jpg",
+      "caption": "只记核验状态的记录",
+      "width": 1268,
+      "height": 775,
+      "sha256": "81e70660c2746d9aebd9a0c818240a1fb6e2461fc9a0f379216b5db5128fb516",
+      "sourceSha256": "4f5abac9d5ca576dc7bde29c8b36eb4f344bc72e60a91089fc5c72e490c24be2",
+      "crop": [
+        50.0,
+        192.00003622047234,
+        557.2755905511812,
+        502.00003622047234
+      ]
+    },
+    "village": {
+      "excerpt": true,
+      "page": 15,
+      "path": "public/assets/christmas-home-zh-village.jpg",
+      "caption": "空白冬日村庄展示板",
+      "width": 1243,
+      "height": 1142,
+      "sha256": "738534f63e91e1485c92432fb038a37bd3caddbacc7343b1e6dcb7f2a36aad5f",
+      "sourceSha256": "4f5abac9d5ca576dc7bde29c8b36eb4f344bc72e60a91089fc5c72e490c24be2",
+      "crop": [
+        55.0,
+        169.50003622047234,
+        552.2755905511812,
+        626.5000362204723
+      ]
+    }
+  }
+}
