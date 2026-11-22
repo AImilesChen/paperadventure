@@ -37,7 +37,7 @@ test('Space release preparation stages idempotently and activates only complete 
 test('Space bilingual support is Home-only and never enables other Home or Space Classroom games',async()=>{
  assert.equal(paidDocumentGame('space','home'),true);assert.equal(paidDocumentGame('space','classroom'),false);
  assert.equal(readyEnglishRepairGame('space','home'),true);assert.equal(readyEnglishRepairGame('space','classroom'),false);
- assert.equal(paidDocumentGame('forest','home'),false);assert.equal(paidDocumentGame('space','home','variant'),false);
+ assert.equal(paidDocumentGame('halloween','home'),false);assert.equal(paidDocumentGame('space','home','variant'),false);
  assert.equal(readyDocumentPages('space','en','1.1','classroom'),null);assert.equal(readyDocumentStem('space','home'),'space-home');assert.throws(()=>readyDocumentStem('space','classroom'));
  const f=await spaceFixture();const response=await f.get('/api/v1/catalog',false);assert.equal(response.status,200);const c=await response.json();
  const d=c.themes.find(t=>t.id==='space');assert.deepEqual(d.home.documentEditions,[{locale:'en',version:'1.1'},{locale:'zh',version:'1.0-zh.1'}]);assert.equal(d.classroom.documentEditions,undefined);

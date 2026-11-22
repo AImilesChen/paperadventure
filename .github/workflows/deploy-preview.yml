@@ -59,6 +59,8 @@ jobs:
         run: node scripts/verify-dinosaur-home-production.mjs --wait
       - name: Require matching Space Home English repair and Chinese PDFs before publishing their interface
         run: node scripts/verify-space-home-production.mjs --wait
+      - name: Require matching Forest Home English repair and Chinese PDFs before publishing their interface
+        run: node scripts/verify-forest-home-production.mjs --wait
       - name: Bundle production API without publishing
         run: npx --yes wrangler@4.149.0 deploy --config backend/wrangler.production-smoke.jsonc --dry-run
       - name: Validate site Worker bundle without publishing

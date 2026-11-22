@@ -1,0 +1,1 @@
+Derived from Noto Sans SC variable font, SIL Open Font License 1.1. Source: C:/Windows/Fonts/NotoSansSC-VF.ttf. Separate Forest Home subset and renamed family; existing game fonts unchanged. Original copyright and license metadata retained in each subset font's embedded name table.

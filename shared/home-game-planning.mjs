@@ -19,9 +19,9 @@ export const homeGamePlanning = {
     occasion: 'A space party or family signal mystery.',
   },
   forest: {
-    playerPages: 16, guidePages: 10, pieces: 19,
+    playerPages: 18, guidePages: 17, pieces: 19,
     play: 'Sort mail, repair a label and question paper forest residents.',
-    prepare: '16 Player pages/team · 19 pieces/team; the host plays the residents.',
+    prepare: '18 Player pages/team · 19 pieces/team; private resident cards prepared by the host.',
     occasion: 'Family play with a post-office story.',
   },
   halloween: {

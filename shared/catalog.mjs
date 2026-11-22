@@ -40,7 +40,7 @@ export const themeStories = Object.freeze({
     classroom: { code: 'C03', title: 'Restart the Star Station', goal: 'Each group uses shared clues to restore its paper communication station.', beats: ['Separate signal from noise', 'Complete the star map', 'Choose paper equipment', 'Translate the signal', 'Record the restart'] },
   },
   forest: {
-    home: { code: 'H04', title: 'The Forest Post Office Mystery', goal: 'Help the forest post carrier deliver a mislabelled parcel to a story character.', beats: ['Identify the mail batch', 'Order delivery records', 'Share parcel clues', 'Repair the address', 'Deliver the parcel'] },
+    home: { code: 'H04', title: 'The Forest Post Office Mystery', goal: 'Sort six mail pieces, repair a parcel label and complete a checked paper delivery.', beats: ['Sort the mail', 'Repair the label', 'Load the morning bag', 'Ask the neighbours', 'Deliver and sign'] },
     classroom: { code: 'C04', title: 'The Forest Postal Investigators', goal: 'Build a group evidence trail for a wrongly sorted paper parcel.', beats: ['Check the mail batch', 'Order the records', 'Combine role clues', 'Match the map', 'Write the evidence'] },
   },
   halloween: {

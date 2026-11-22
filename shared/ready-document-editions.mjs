@@ -1,9 +1,10 @@
 // Public metadata only; no clue contract in the browser bundle.
-export const paidDocumentGame=(world,setting='classroom',variant=null)=>!variant&&((setting==='classroom'&&['ocean','museum','library','weather','workshop'].includes(world))||(['dinosaur','space'].includes(world)&&setting==='home'));
-export const readyEnglishRepairGame=(world,setting='classroom')=>(setting==='classroom'&&['museum','library','weather','workshop'].includes(world))||(['dinosaur','space'].includes(world)&&setting==='home');
+export const paidDocumentGame=(world,setting='classroom',variant=null)=>!variant&&((setting==='classroom'&&['ocean','museum','library','weather','workshop'].includes(world))||(['dinosaur','space','forest'].includes(world)&&setting==='home'));
+export const readyEnglishRepairGame=(world,setting='classroom')=>(setting==='classroom'&&['museum','library','weather','workshop'].includes(world))||(['dinosaur','space','forest'].includes(world)&&setting==='home');
 export function readyDocumentPages(world,locale,version,setting='classroom'){
  if(world==='dinosaur'&&setting==='home')return locale==='zh'||version==='1.1'?{player:17,guide:18}:{player:15,guide:10};
  if(world==='space'&&setting==='home')return locale==='zh'||version==='1.1'?{player:19,guide:18}:{player:14,guide:10};
+ if(world==='forest'&&setting==='home')return locale==='zh'||version==='1.1'?{player:18,guide:17}:{player:16,guide:10};
  if(setting!=='classroom')return null;
  if(world==='ocean')return locale==='zh'?{player:11,guide:19}:{player:9,guide:9};
  if(world==='museum')return locale==='zh'||version==='1.1'?{player:13,guide:19}:{player:11,guide:10};
