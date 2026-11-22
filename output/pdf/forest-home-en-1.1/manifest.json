@@ -1,0 +1,74 @@
+{
+  "world": "forest",
+  "setting": "home",
+  "locale": "en",
+  "version": "1.1",
+  "sourceEnglishVersion": "v1.0",
+  "status": "local_review_not_published",
+  "items": [
+    {
+      "world": "forest",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 18,
+      "path": "output/pdf/forest-home-en-1.1/forest-home-player-en-A4.pdf",
+      "sha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "bytes": 5715825,
+      "r2Key": "ready-localized/forest/home/en/1.1/A4/player-c5361237d1f31f18.pdf"
+    },
+    {
+      "world": "forest",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 17,
+      "path": "output/pdf/forest-home-en-1.1/forest-home-guide-en-A4.pdf",
+      "sha256": "a69c913878fc2484d624b09fe2489d225245189e645d46ce04a12540fd4659cc",
+      "bytes": 131220,
+      "r2Key": "ready-localized/forest/home/en/1.1/A4/guide-a69c913878fc2484.pdf"
+    },
+    {
+      "world": "forest",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 18,
+      "path": "output/pdf/forest-home-en-1.1/forest-home-player-en-Letter.pdf",
+      "sha256": "03220859f613d2b039b7f7af2a42be87807b285552688fbc4cef7e34cf9e8ad9",
+      "bytes": 5715108,
+      "r2Key": "ready-localized/forest/home/en/1.1/Letter/player-03220859f613d2b0.pdf"
+    },
+    {
+      "world": "forest",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 17,
+      "path": "output/pdf/forest-home-en-1.1/forest-home-guide-en-Letter.pdf",
+      "sha256": "17ae5be33b3704249a2954b3ae46c0cf6f7d38f2af8b34bf8c7cd62e4ec5c8ba",
+      "bytes": 130822,
+      "r2Key": "ready-localized/forest/home/en/1.1/Letter/guide-17ae5be33b370424.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/forest-home-en-1.1/forest-home-complete-en-A4.zip",
+      "sha256": "72ebbe4790c75eea1026bd6905f7684b4ff5d5305101ec7030dd0a807e1ce5fd"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/forest-home-en-1.1/forest-home-complete-en-Letter.zip",
+      "sha256": "18164875c345d60dc18e827cdd20583fe73665c34227fee707de7a83c10b3063"
+    }
+  ]
+}

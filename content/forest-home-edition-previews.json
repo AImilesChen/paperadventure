@@ -1,0 +1,456 @@
+{
+  "en": {
+    "sorting-desk": {
+      "page": 6,
+      "path": "public/assets/forest-home-en-sorting-desk.jpg",
+      "caption": "Unfilled sorting desk",
+      "width": 1256,
+      "height": 1145,
+      "sha256": "ea489a3981f80703f3901c99c9570db8636167bd9243c01f0d07c000a2bc696f",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        49,
+        132,
+        551,
+        590
+      ]
+    },
+    "seal-detail": {
+      "page": 7,
+      "path": "public/assets/forest-home-en-seal-detail.jpg",
+      "caption": "Anonymous torn-seal condition",
+      "width": 548,
+      "height": 32,
+      "sha256": "7f727021232c3f12d6f3d36cc95e0da4381cf4caf3621c958ef80eeb7ea592f1",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        61,
+        423,
+        280,
+        436
+      ]
+    },
+    "torn-seal": {
+      "page": 7,
+      "path": "public/assets/forest-home-en-torn-seal.jpg",
+      "caption": "Anonymous envelope with torn seal",
+      "width": 184,
+      "height": 142,
+      "sha256": "e1fee6f96eec74c396aa67e924db55787391b430453865aca42d0789fdee8d08",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        211,
+        436,
+        285,
+        493
+      ]
+    },
+    "hold-rule": {
+      "page": 6,
+      "path": "public/assets/forest-home-en-hold-rule.jpg",
+      "caption": "Torn-seal handling rule",
+      "width": 496,
+      "height": 40,
+      "sha256": "99e54b70267a439bf476d19f8e15669d93b96a11bed1304c149f6eee0f7e54cc",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        57,
+        486,
+        255,
+        502
+      ]
+    },
+    "mailbag": {
+      "page": 12,
+      "path": "public/assets/forest-home-en-mailbag.jpg",
+      "caption": "Empty two-slot mailbag",
+      "width": 1256,
+      "height": 495,
+      "sha256": "04c73fc12deac2901a24e54ca47a38423b059f2b50540aefb0106eb742106fc5",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        49,
+        258,
+        551,
+        456
+      ]
+    },
+    "slot-priority": {
+      "page": 12,
+      "path": "public/assets/forest-home-en-slot-priority.jpg",
+      "caption": "Priority slot heading",
+      "width": 328,
+      "height": 45,
+      "sha256": "7f6adc518ee55704481de3b39f5443d85adfb74913f376b1827a6732f4090c5c",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        60,
+        276,
+        191,
+        294
+      ]
+    },
+    "slot-ordinary": {
+      "page": 12,
+      "path": "public/assets/forest-home-en-slot-ordinary.jpg",
+      "caption": "Ordinary slot heading",
+      "width": 317,
+      "height": 45,
+      "sha256": "19b09b8ad102f96237f76470ffb212a1f0b3de4dc424af3c828db988ac000d63",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        318,
+        276,
+        445,
+        294
+      ]
+    },
+    "interview-notes": {
+      "page": 14,
+      "path": "public/assets/forest-home-en-interview-notes.jpg",
+      "caption": "Blank interview notes",
+      "width": 1256,
+      "height": 613,
+      "sha256": "8882252bd09d3d5d5d582d5c752b9ba82d200a18d87e8666a2915962895b2987",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        49,
+        385,
+        551,
+        630
+      ]
+    },
+    "owl-front": {
+      "page": 15,
+      "path": "public/assets/forest-home-en-owl-front.jpg",
+      "caption": "Owl House front title",
+      "width": 448,
+      "height": 40,
+      "sha256": "39b0dbade1b392b52faa2ed07c6dc374b3b43c4be9f11f1d005cd0c6bb352308",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        61,
+        227,
+        240,
+        243
+      ]
+    },
+    "fox-front": {
+      "page": 15,
+      "path": "public/assets/forest-home-en-fox-front.jpg",
+      "caption": "Fox Den front title",
+      "width": 455,
+      "height": 40,
+      "sha256": "88df8e282992dc511293f4021fb0641de319660048329ba086e226e23c10f3c2",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        318,
+        227,
+        500,
+        243
+      ]
+    },
+    "beaver-front": {
+      "page": 15,
+      "path": "public/assets/forest-home-en-beaver-front.jpg",
+      "caption": "Beaver Hut front title",
+      "width": 448,
+      "height": 42,
+      "sha256": "647b539e18eb3a47f4e5bf9b39b8777ae41e8876eb018dca1ddb241c0ff41ee1",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        61,
+        432,
+        240,
+        449
+      ]
+    },
+    "label": {
+      "page": 10,
+      "path": "public/assets/forest-home-en-label.jpg",
+      "caption": "Blank repaired label",
+      "width": 1256,
+      "height": 770,
+      "sha256": "9bf1fd0c42f57e04da17c564c7c7a5232831078b94be20b68c9398ce07f699d2",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        49,
+        255,
+        551,
+        563
+      ]
+    },
+    "record": {
+      "page": 3,
+      "path": "public/assets/forest-home-en-record.jpg",
+      "caption": "Blank progress record",
+      "width": 1256,
+      "height": 1205,
+      "sha256": "0afa88ab297aac8170c15f5088709354479ebe2dd44e9cf125825209c9faac02",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        49,
+        178,
+        551,
+        660
+      ]
+    },
+    "delivery": {
+      "page": 17,
+      "path": "public/assets/forest-home-en-delivery.jpg",
+      "caption": "Blank delivery and signature board",
+      "width": 1256,
+      "height": 1400,
+      "sha256": "04e27e571c3818f8ef0cc75c05285c4f1f5580aa90b44f3416f4e329c5e06dcd",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        49,
+        130,
+        551,
+        690
+      ]
+    },
+    "stamp": {
+      "page": 15,
+      "path": "public/assets/forest-home-en-stamp.jpg",
+      "caption": "Paper delivered stamp",
+      "width": 350,
+      "height": 145,
+      "sha256": "082edd208d2496817051597e39288d5f06749e9d3843a826660b900a17344ea9",
+      "sourceSha256": "c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782",
+      "crop": [
+        362,
+        542,
+        502,
+        600
+      ]
+    }
+  },
+  "zh": {
+    "sorting-desk": {
+      "page": 6,
+      "path": "public/assets/forest-home-zh-sorting-desk.jpg",
+      "caption": "空白邮件分拣台",
+      "width": 1273,
+      "height": 748,
+      "sha256": "96e68eb995eb353f10768a28a081c3570bf461025090ea606467cf62ba15185b",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        43,
+        207.39999999997224,
+        552.2755905511812,
+        506.39999999997224
+      ]
+    },
+    "mailbag": {
+      "page": 12,
+      "path": "public/assets/forest-home-zh-mailbag.jpg",
+      "caption": "两个空白邮袋格",
+      "width": 1273,
+      "height": 465,
+      "sha256": "a84fc03aa185a61d636fb6835935c75eb61dd9b26127a07a744e0e771d7ef6ad",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        43.0,
+        190.59999999997228,
+        552.2755905511812,
+        376.5999999999723
+      ]
+    },
+    "record": {
+      "page": 3,
+      "path": "public/assets/forest-home-zh-record.jpg",
+      "caption": "空白进度记录",
+      "width": 1273,
+      "height": 942,
+      "sha256": "d98896af856964d0c123cb87e0563030d4d7f8e6e58a33563c78faee24d0b656",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        43,
+        146.6039999999723,
+        552.2755905511812,
+        523.6039999999723
+      ]
+    },
+    "delivery": {
+      "page": 17,
+      "path": "public/assets/forest-home-zh-delivery.jpg",
+      "caption": "空白投递签收板",
+      "width": 1273,
+      "height": 805,
+      "sha256": "3ae536267551d3cf4cd14faa0bd591205a77f41539a4918b49e1fd185dceabee",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        43,
+        224.1999999999723,
+        552.2755905511812,
+        546.1999999999723
+      ]
+    },
+    "interview-notes": {
+      "page": 14,
+      "path": "public/assets/forest-home-zh-interview-notes.jpg",
+      "caption": "空白三户访谈记录",
+      "width": 1273,
+      "height": 605,
+      "sha256": "02d219a090134d270ff62acbf3566b842c657ba075c757c4bece32ed66edf5fb",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        43,
+        312.7999999999722,
+        552.2755905511812,
+        554.7999999999722
+      ]
+    },
+    "label": {
+      "page": 10,
+      "path": "public/assets/forest-home-zh-label.jpg",
+      "caption": "空白修复标签",
+      "width": 1273,
+      "height": 755,
+      "sha256": "26316950b417d0189b261e7360116e390f54f4847692e837f983cc55f6b1bf3d",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        43,
+        190.59999999997228,
+        552.2755905511812,
+        492.5999999999723
+      ]
+    },
+    "stamp": {
+      "page": 15,
+      "path": "public/assets/forest-home-zh-stamp.jpg",
+      "caption": "纸质已送达章",
+      "width": 335,
+      "height": 150,
+      "sha256": "5f96f200734bb3c445f437c58547c8c0e80229fa5b78a0dcb29d020be2c4e31e",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        360.45669291338584,
+        456.6039999999723,
+        494.45669291338584,
+        516.6039999999723
+      ]
+    },
+    "slot-priority": {
+      "page": 12,
+      "path": "public/assets/forest-home-zh-slot-priority.jpg",
+      "caption": "优先件格标题",
+      "width": 580,
+      "height": 62,
+      "sha256": "e8740a44e49006434d7cfe607a598009cfb60dfa0646a83e0c4e0f5ef6a4a304",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        53.0,
+        201.59999999997228,
+        284.6377952755906,
+        226.59999999997228
+      ]
+    },
+    "slot-ordinary": {
+      "page": 12,
+      "path": "public/assets/forest-home-zh-slot-ordinary.jpg",
+      "caption": "普通件格标题",
+      "width": 579,
+      "height": 62,
+      "sha256": "011b76b8f309fdb57a7aed7ded242e5284b5d23a23a68027f1e745819d5be4e1",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        310.6377952755906,
+        201.59999999997228,
+        542.2755905511812,
+        226.59999999997228
+      ]
+    },
+    "hold-rule": {
+      "page": 6,
+      "path": "public/assets/forest-home-zh-hold-rule.jpg",
+      "caption": "破损封口处理规则",
+      "width": 1215,
+      "height": 60,
+      "sha256": "b9c65be0f69b81e3df25cd11ee7871f6d3cd5841bc6dad3f3db71c5b9a2ef1d4",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        55,
+        416.39999999997224,
+        541.2755905511812,
+        440.39999999997224
+      ]
+    },
+    "seal-detail": {
+      "page": 7,
+      "path": "public/assets/forest-home-zh-seal-detail.jpg",
+      "caption": "匿名封口破损说明",
+      "width": 564,
+      "height": 53,
+      "sha256": "3d74618ae038a722bf22871175ee9d269ccfa56a43eb898dde487a4b46eabb57",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        54.0,
+        365.6039999999723,
+        279.6377952755906,
+        386.6039999999723
+      ]
+    },
+    "torn-seal": {
+      "page": 7,
+      "path": "public/assets/forest-home-zh-torn-seal.jpg",
+      "caption": "匿名信封破损封口图",
+      "width": 175,
+      "height": 147,
+      "sha256": "537c42b960da3c6368d6ac79a1eb67808406b184b73dcf4ea4685d948bfd309d",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        206.63779527559058,
+        382.6039999999723,
+        276.6377952755906,
+        441.6039999999723
+      ]
+    },
+    "owl-front": {
+      "page": 15,
+      "path": "public/assets/forest-home-zh-owl-front.jpg",
+      "caption": "猫头鹰家卡正面名称",
+      "width": 569,
+      "height": 50,
+      "sha256": "3f5089b54f1778939ba4bce9a9c9650cb06c28881cce6d08a008537def3804fb",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        54.0,
+        155.6039999999723,
+        281.6377952755906,
+        175.6039999999723
+      ]
+    },
+    "fox-front": {
+      "page": 15,
+      "path": "public/assets/forest-home-zh-fox-front.jpg",
+      "caption": "狐狸家卡正面名称",
+      "width": 569,
+      "height": 50,
+      "sha256": "b3dcb7c364d2aa0d60a7073ea9e6226049df737970d9f8fd85cbf2b88b1bf162",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        313.6377952755906,
+        155.6039999999723,
+        541.2755905511812,
+        175.6039999999723
+      ]
+    },
+    "beaver-front": {
+      "page": 15,
+      "path": "public/assets/forest-home-zh-beaver-front.jpg",
+      "caption": "河狸家卡正面名称",
+      "width": 569,
+      "height": 50,
+      "sha256": "36e992629b8731d5cccb6b235456a3b4528838c2016ccb545e838e4961af83a1",
+      "sourceSha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "crop": [
+        54.0,
+        362.6039999999723,
+        281.6377952755906,
+        382.6039999999723
+      ]
+    }
+  }
+}

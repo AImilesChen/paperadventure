@@ -1,0 +1,74 @@
+{
+  "world": "forest",
+  "setting": "home",
+  "locale": "zh",
+  "version": "1.0-zh.1",
+  "sourceEnglishVersion": "v1.0",
+  "status": "local_review_not_published",
+  "items": [
+    {
+      "world": "forest",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 18,
+      "path": "output/pdf/forest-home-zh-1.0-zh.1/forest-home-player-zh-A4.pdf",
+      "bytes": 438723,
+      "sha256": "c21582333f0b32c8df04d8f98d1b09f4bec23f414a7786ca82cd2a8c7155e779",
+      "r2Key": "ready-localized/forest/home/zh/1.0-zh.1/A4/player-c21582333f0b32c8.pdf"
+    },
+    {
+      "world": "forest",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 17,
+      "path": "output/pdf/forest-home-zh-1.0-zh.1/forest-home-guide-zh-A4.pdf",
+      "bytes": 159425,
+      "sha256": "ba2bc22d93278b22d9e5d655e9791952bc1741fb72e4bba362cef361458739af",
+      "r2Key": "ready-localized/forest/home/zh/1.0-zh.1/A4/guide-ba2bc22d93278b22.pdf"
+    },
+    {
+      "world": "forest",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 18,
+      "path": "output/pdf/forest-home-zh-1.0-zh.1/forest-home-player-zh-Letter.pdf",
+      "bytes": 438189,
+      "sha256": "9da90dd01edbdacf1ec32f52fe82aad343a339ab491414d4a72238909d96be15",
+      "r2Key": "ready-localized/forest/home/zh/1.0-zh.1/Letter/player-9da90dd01edbdacf.pdf"
+    },
+    {
+      "world": "forest",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 17,
+      "path": "output/pdf/forest-home-zh-1.0-zh.1/forest-home-guide-zh-Letter.pdf",
+      "bytes": 159097,
+      "sha256": "ca4ecd3ed24898afbd40718e5f6096ea51f8445a60c5a729c341cac2c6987ab3",
+      "r2Key": "ready-localized/forest/home/zh/1.0-zh.1/Letter/guide-ca4ecd3ed24898af.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/forest-home-zh-1.0-zh.1/forest-home-complete-zh-A4.zip",
+      "sha256": "6c70f1652a8642b47a344ac361aa3dc316315d5445459a66fd5d0a0c4fff4916"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/forest-home-zh-1.0-zh.1/forest-home-complete-zh-Letter.zip",
+      "sha256": "4935011593bc7423fc401ff2255411177175de0953d6944aee062e235647cd93"
+    }
+  ]
+}
