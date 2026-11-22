@@ -138,7 +138,7 @@ export const themeDetailContent = {
     home: {
       hook: 'Children share four rotating workshop jobs; an adult cuts the materials, reads the scenes and checks each result.',
       reasons: ['Five linked messenger scenes each put the story beside numbered actions.', 'Children fold a star sign and three standing paper gifts, then combine three separate wrapping clues to draw each pattern.', 'A cut-out checking frame helps them check and repair their work before the adult reveals the story friends’ paper reply.'],
-      materials: ['One foldable star sign and three standing paper gift blanks', 'Three separate wrapping clues and a whole-page icon drawing guide', 'One cut-out checking frame and a whole winter village display board', 'Four rotating job cards, a status-only check record and an adult-held reply'],
+      materials: ['One foldable star sign and three standing paper gift blanks', 'Three separate wrapping clues and a whole-page icon drawing guide', 'One cut-out checking frame and a whole winter village display board', 'Four rotating job cards, a status-only check record and an optional blank keepsake page'],
       stages: [
         ['Fold the star sign', 'An adult cuts the paper stand; children fold its ridge and keep the printed star facing the team.', 'A folded paper workshop stand'],
         ['Make three paper gifts', 'An adult cuts the three blanks; children crease each one, test the upright FRONT and open it flat to draw.', 'Three reusable gift blanks'],
