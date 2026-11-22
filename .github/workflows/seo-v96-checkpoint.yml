@@ -1,0 +1,20 @@
+name: Verify SEO v96 rollback checkpoint
+on:
+  push:
+    branches: [release/seo-bilingual-v96-20261122]
+    paths: [.github/workflows/seo-v96-checkpoint.yml, scripts/seo-v96-rollback-tag.mjs]
+permissions:
+  contents: read
+jobs:
+  checkpoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: node scripts/seo-v96-rollback-tag.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}

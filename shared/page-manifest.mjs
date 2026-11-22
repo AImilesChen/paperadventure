@@ -1,5 +1,6 @@
 import {localePath,localeCodes} from './locale.mjs';
 import {translate} from './locale-text.mjs';
+import {localizedPageMetadata} from './seo-localization.mjs';
 import {accountSections} from './account-center.mjs';
 import { themes } from './catalog.mjs';
 import { guides } from './guides.mjs';
@@ -72,6 +73,6 @@ export const englishPages = Object.freeze([
   page('/en/refunds/', 'Refund and Cancellation Review', 'Review the current refund and cancellation information for Paper Adventure.', false),
 ]);
 
-export const publicPages=Object.freeze(localeCodes.flatMap(locale=>englishPages.map(record=>({...record,path:localePath(record.path,locale),title:translate(record.title,locale),description:translate(record.description,locale),locale}))));
+export const publicPages=Object.freeze(localeCodes.flatMap(locale=>englishPages.map(record=>({...record,path:localePath(record.path,locale),...localizedPageMetadata(record,locale),locale}))));
 export const pageFor = pathname => publicPages.find(page => page.path === pathname) ?? null;
 

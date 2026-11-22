@@ -1,0 +1,11 @@
+{
+  "status": "implemented_verified_awaiting_publication",
+  "date": "2026-11-22",
+  "baseCommit": "5461671e3f8309ebc9c981ab926e321ec09671b0",
+  "scope": ["Production GET/HEAD HTTPS canonicalization with query preservation; API and write behavior preserved", "Stable locale metadata for 54 Chinese indexable pages", "12 localized Product names and descriptions with existing SKU, USD and offers", "Reviewed Chinese Sudoku and hosting instructions; matching classroom paper counts and previews", "Accurate bilingual public llms guide; AI generation remains English"],
+  "localVerification": {"builtPages": 178, "sitemapUrls": 108, "staticPassed": 325, "backendLocaleSitesReadinessPassed": 589, "defaultBackendSkipped": 4, "englishMainTextDifferences": 0, "cssAssetBytesUnchanged": true, "mobileClientWidth": 375, "mobileScrollWidth": 375, "desktopClientWidth": 1265, "desktopScrollWidth": 1265},
+  "auditCorrection": "Original en/zh /sudoku/points/ already redirected. The prior crawler followed redirects and recorded final HTTP 200. This release preserves those rules and combines HTTP/alias normalization in one hop rather than treating an existing redirect as a newly fixed defect.",
+  "platforms": {"googleSitemap": "not_yet_submitted_this_release", "googleIndexing": "not_a_claim_of_new_indexing", "bing": "needs_verification"},
+  "rollback": {"tag": "rollback-before-seo-v96-20261122", "expectedCommit": "5461671e3f8309ebc9c981ab926e321ec09671b0", "policy": "Checkpoint must verify before production merge; restore scoped SEO/site changes only and preserve subsequent unrelated work."},
+  "exclusions": ["No CSS or English body copy edits", "No paid PDF, ZIP, private authoring source or font uploads", "No generation API change, database migration, pricing or entitlement change", "Local preview server and audit-only scripts are excluded from publication"]
+}
