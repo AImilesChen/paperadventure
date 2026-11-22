@@ -1,0 +1,249 @@
+{
+  "status": "chinese_plan_only_not_implemented",
+  "date": "2026-11-22",
+  "game": "H05 Halloween Home",
+  "title": "找回南瓜灯",
+  "pendingCanonical": "G:\\Website Project\\homegame\\paper-adventure-copy-review-reliability\\tmp\\chinese-halloween-home-v94",
+  "contentReferenceRevision": "reviewed English1.1",
+  "frozenEnglishManifest": {
+    "world": "halloween",
+    "setting": "home",
+    "locale": "en",
+    "version": "1.1",
+    "sourceEnglishVersion": "v1.0",
+    "status": "local_review_not_published",
+    "items": [
+      {
+        "world": "halloween",
+        "setting": "home",
+        "locale": "en",
+        "version": "1.1",
+        "paper": "A4",
+        "role": "player",
+        "pages": 17,
+        "path": "output/pdf/halloween-home-en-1.1/halloween-home-player-en-A4.pdf",
+        "sha256": "6678d753d000a7b8637f9eec0e7926023e6787ff87a3173276243dec22d3222f",
+        "bytes": 5796463,
+        "r2Key": "ready-localized/halloween/home/en/1.1/A4/player-6678d753d000a7b8.pdf"
+      },
+      {
+        "world": "halloween",
+        "setting": "home",
+        "locale": "en",
+        "version": "1.1",
+        "paper": "A4",
+        "role": "guide",
+        "pages": 19,
+        "path": "output/pdf/halloween-home-en-1.1/halloween-home-guide-en-A4.pdf",
+        "sha256": "d1a989fb2aa0ef38392241c9f7256b2f0925ea8596e19bf54e6509e1f077755f",
+        "bytes": 138514,
+        "r2Key": "ready-localized/halloween/home/en/1.1/A4/guide-d1a989fb2aa0ef38.pdf"
+      },
+      {
+        "world": "halloween",
+        "setting": "home",
+        "locale": "en",
+        "version": "1.1",
+        "paper": "Letter",
+        "role": "player",
+        "pages": 17,
+        "path": "output/pdf/halloween-home-en-1.1/halloween-home-player-en-Letter.pdf",
+        "sha256": "10e78a06bce1dff154eec76b4783fe944b69e14436dc20f9be665435b458884b",
+        "bytes": 5795845,
+        "r2Key": "ready-localized/halloween/home/en/1.1/Letter/player-10e78a06bce1dff1.pdf"
+      },
+      {
+        "world": "halloween",
+        "setting": "home",
+        "locale": "en",
+        "version": "1.1",
+        "paper": "Letter",
+        "role": "guide",
+        "pages": 19,
+        "path": "output/pdf/halloween-home-en-1.1/halloween-home-guide-en-Letter.pdf",
+        "sha256": "0d14989be8a9609341369b62f11ab596308e1746ccd0ad13dad428d33a2b2eaf",
+        "bytes": 137950,
+        "r2Key": "ready-localized/halloween/home/en/1.1/Letter/guide-0d14989be8a96093.pdf"
+      }
+    ],
+    "zips": [
+      {
+        "paper": "A4",
+        "path": "output/pdf/halloween-home-en-1.1/halloween-home-complete-en-A4.zip",
+        "sha256": "2bc8bba64e229b47793a10315d9c480bcede0d7ced3e7e852670217c6cec3702"
+      },
+      {
+        "paper": "Letter",
+        "path": "output/pdf/halloween-home-en-1.1/halloween-home-complete-en-Letter.zip",
+        "sha256": "8eec794ebf4df5a69715f510975c9e4feff43adb48560a6d04602af4f6c5a114"
+      }
+    ]
+  },
+  "sourceAuthority": "scripts/halloween_home_edition_content.py; never revive the old HOME route/decoder draft",
+  "scope": "New Chinese Player/Host PDFs, private final-scene print master, neutral source previews, scoped H05 Home page and existing-order/checkout language selection. Keep reviewed English bytes, other games, ClassroomC05, prices and global styles.",
+  "translation": {
+    "approach": "Author and cross-check fixed Chinese wording locally. No translation API needed.",
+    "names": {
+      "Pip": "皮普",
+      "BAT": "蝙蝠",
+      "OWL": "猫头鹰",
+      "PUMPKIN": "南瓜",
+      "STAR": "星星",
+      "viewer": "纸观察框",
+      "paper actors": "纸演员剪影",
+      "cue cards": "演出提示卡",
+      "hinged windows": "翻窗",
+      "Host Guide": "成人主持指南"
+    },
+    "cutLabels": {
+      "TOP": "顶端",
+      "CUT": "裁剪线",
+      "FOLD": "折叠线·保留",
+      "CUT THREE SIDES": "只剪三边，保留折边"
+    },
+    "spatialRule": "所有人面对同一顶端；正上/正下=同列相邻，正左/正右=同行相邻。方向按玩家面对纸面的视角。"
+  },
+  "stages": [
+    {
+      "number": 1,
+      "title": "找回演员海报",
+      "actions": "用纸观察框查看八张海报右上角，以三道折线缺口的数量和形状选出四张；允许圈选、指认或口述。",
+      "localization": "保留同尺度参照，不按颜色判定，不要求拼写中文角色名。"
+    },
+    {
+      "number": 2,
+      "title": "制作纸演员",
+      "actions": "有字面朝外对折，伙伴检查，成人沿可见半边轮廓剪透两层，保留中心连接折边，再展开。",
+      "localization": "方法图使用中性爱心，明确完整图形本来就可见；这是制作对称演员，不是隐藏图案谜题。"
+    },
+    {
+      "number": 3,
+      "title": "一起排好舞台",
+      "actions": "分别朗读四张私密位置卡，一边摆演员一边核对；四条关系都成立再交成人核准。",
+      "localization": "自然表述正上方/正下方/正左方/正右方，并解释同列/同行、相邻；保留原有唯一排列。"
+    },
+    {
+      "number": 4,
+      "title": "翻窗排练",
+      "actions": "听成人逐句读，认出或指认演员，指出其舞台位置，再开对应窗；错误关回重试，演员留在原位。",
+      "localization": "四张描述卡与成人排练台词成对改写；提示卡不印角色名或窗号，排版顺序不是演出顺序。"
+    },
+    {
+      "number": 5,
+      "title": "南瓜灯正式演出",
+      "actions": "成人私下布置结局，关窗后邀请玩家回来；按不同顺序逐个呼唤演员，正确开窗后演员移到谢幕区；最后成人移开整张窗页，展示无遮挡灯图。",
+      "localization": "正式台词与同一组提示卡保持语义一致；完整结局与正确摆位只在成人指南。"
+    }
+  ],
+  "pairedCueDrafts": [
+    {
+      "heading": "夜空",
+      "card": "我倒挂着休息，天黑后飞出来。",
+      "rehearsal": "夜空安静下来，谁倒挂着休息、天黑后飞出来？",
+      "finale": "音乐响起，谁飞过了傍晚的天空？",
+      "privateExpectedActor": "蝙蝠"
+    },
+    {
+      "heading": "老树",
+      "card": "我守在树枝上，用圆圆的脸望着四周。",
+      "rehearsal": "老树枝头，谁有圆圆的脸，正守望着四周？",
+      "finale": "老树上，谁一直守望着这场庆典？",
+      "privateExpectedActor": "猫头鹰"
+    },
+    {
+      "heading": "门廊",
+      "card": "我有圆圆的身体和一根小柄，笑着迎接邻居。",
+      "rehearsal": "门廊边，谁有圆身体和小柄，笑着欢迎邻居？",
+      "finale": "门口，谁带着笑脸迎接每一位邻居？",
+      "privateExpectedActor": "南瓜"
+    },
+    {
+      "heading": "星光",
+      "card": "我在高高的夜空闪亮，照着整场庆典。",
+      "rehearsal": "抬头看，谁在高高的夜空闪亮？",
+      "finale": "演出上方，谁一直闪亮，陪着皮普找回南瓜灯？",
+      "privateExpectedActor": "星星"
+    }
+  ],
+  "privatePerformanceOrders": {
+    "rehearsal": [
+      "蝙蝠",
+      "猫头鹰",
+      "南瓜",
+      "星星"
+    ],
+    "finale": [
+      "猫头鹰",
+      "南瓜",
+      "蝙蝠",
+      "星星"
+    ],
+    "unchangedFromEnglish11": true
+  },
+  "documentStructure": {
+    "playerPagesStartingPoint": 17,
+    "hostPagesStartingPoint": 19,
+    "notCaps": true,
+    "player": "封面、任务分工、单一进度核准表、中性观察/方向示例、中性折剪/翻窗图、五关说明及相应纸件、空白可选纪念页。",
+    "host": "快速开始、打印发放清单、道具/人数表、方法说明、五关引导与私用核验、逐句排练台词、不同顺序的正式台词与私用结局、每组必印的私密灯图、损坏修复/暂停重置。",
+    "pagination": "中文内容排不下就增页。页码引用、页面标签和打印张数以最终中文清单为准，不复制固定英文页码。",
+    "privateFinale": "完整灯图与正确位置不进入玩家PDF。即使指南屏幕阅读，每组也必须打印一张成人私用灯图。"
+  },
+  "participation": {
+    "audience": "6-12岁",
+    "players": "2-6人一组，另有成人；7-12人两套独立材料。",
+    "allocation": "四份模板/位置卡/提示卡：2人2/2，3人2/1/1，4人各1；5-6人搭档轮换折叠、核线、展开、指认、开窗及移演员。协调任务不限制其他持卡人发言。",
+    "evidence": "圈选海报、保留演员、实际舞台和开窗操作为依据；总表只记成人核准，不重复抄答案。",
+    "props": "17散件；四任务卡整页保留的少剪方式为13散件。模板变成演员不重复计数；四窗保持连接。"
+  },
+  "layout": {
+    "font": "Embed a dedicated Chinese font; reuse final English props and absolute geometry without changing English files.",
+    "threeSheets": "同一纸型内，舞台、窗页、私密结局底图共用固定坐标和对位点；中文标题换行不得挤动窗位。A4与Letter分别验证，不混用。",
+    "print": "单面、100%实际大小；黑白打印也可分辨长裁剪线与短折叠线。",
+    "measurement": "逐件测量实际导出剪影包围盒与开窗尺寸，再校验叠放中心和四角对位。"
+  },
+  "outputs": {
+    "newChineseLocaleVersion": "zh /1.0-zh.1",
+    "newChinesePdfs": 4,
+    "newChinesePairedZips": 2,
+    "combinedWithFrozenEnglishPdfs": 8,
+    "combinedPairedZips": 4,
+    "manifest": "Record language,revision,role,paper,pages,bytes,SHA256 and private storage key.",
+    "sourceVersionNote": "Content adapted from reviewed English1.1; retain original sourceEnglishVersion pin required by existing original retail slots (v1.0), rather than confusing this with the content-reference revision."
+  },
+  "siteAndDelivery": {
+    "page": "Only H05 Home title,description,steps,pagecounts,prep and actual neutral previews; preserve existing layout/CSS.",
+    "privacy": "No solved positions,correct actor-window mapping,unfolded private clue pages,final lantern art or complete ending in public previews/bundle.",
+    "languageSelection": "Chinese checkout defaults to Chinese; English checkout defaults to English. List actual pagecounts per edition; interface and PDF language remain separate.",
+    "oldOrders": "Use existing authenticated owner/expiry/refund/version guards and current entitlements. No second purchase required when eligible existing order has the new edition available.",
+    "flag": "PAID_HALLOWEEN_HOME_EDITIONS_ENABLED defaultOFF until complete matching files verified.",
+    "preserve": "All eight existing paid bilingual game flags/editions,legacy English slots,orders,payments,prices and additive schema.",
+    "publication": "Separate later authorized step: fresh verified rollback tag,private file readback/exact manifest activation/API feature check,then matching interface."
+  },
+  "sequence": [
+    "Pin reviewed English1.1 hashes.",
+    "Author complete Chinese story,action,clue,paired script and private-answer tables.",
+    "Generate Chinese font/PDFs for both papers; derive all cross-references and print totals.",
+    "Inspect every final page and independently solve actual printed clues; verify both spoken scripts and withheld ending.",
+    "Generate safe final-source preview crops and integrate only H05 Home language-aware delivery metadata.",
+    "Verify ZIP bytes,synthetic existing-order language/paper switching and unchanged existing games; produce review artifacts before any later publication."
+  ],
+  "acceptance": [
+    "No English-only clue or word association is required for the Chinese version.",
+    "Four spatial relations yield exactly the original unique solution.",
+    "Each read-aloud line matches one printed description and one actor; rehearsal/finale retain distinct original orders.",
+    "No copying loops; no player answer map or full ending; private props are separately staged.",
+    "All references and per-team printing counts match actual generated files.",
+    "Actual paper geometry,font coverage/paint,greyscale marks and every page pass checks.",
+    "All four Chinese PDFs and two paired ZIPs match final manifests.",
+    "Frozen reviewed English PDF and ZIP hashes unchanged.",
+    "No real child trial or physical printing falsely claimed."
+  ],
+  "notPerformedThisTurn": [
+    "Chinese content implementation",
+    "Chinese PDF generation",
+    "English PDF regeneration",
+    "Frontend or API change",
+    "Remote upload/database/featureflag/deploy"
+  ]
+}

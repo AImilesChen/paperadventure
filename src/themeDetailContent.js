@@ -118,7 +118,7 @@ export const themeDetailContent = {
         ['Make the paper actors', 'Fold the four templates identified in the first mission; an adult cuts through both layers, then children unfold the shapes.', 'Four reusable stage figures'],
         ['Arrange the stage together', 'Share four private spoken clues and place the figures on a two-by-two mat.', 'One complete stage arrangement'],
         ['Rehearse the windows', 'Match four spoken character clues to the stage places and lift the hinged windows.', 'A coordinated paper-theatre rehearsal'],
-        ['Perform the festival ending', 'Follow a new story order and open all four windows over Pip’s held-back lantern scene.', 'One glowing pumpkin picture'],
+        ['Perform the festival ending', 'Follow the new script. Move each correctly revealed actor beside the theatre; after all four, lift the whole window sheet to reveal the full picture.', 'One glowing pumpkin picture'],
       ],
     },
     classroom: {

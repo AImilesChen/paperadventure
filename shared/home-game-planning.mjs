@@ -25,9 +25,9 @@ export const homeGamePlanning = {
     occasion: 'Family play with a post-office story.',
   },
   halloween: {
-    playerPages: 15, guidePages: 10, pieces: 17,
+    playerPages: 17, guidePages: 19, pieces: 17,
     play: 'Make paper actors, inspect clues and bring back the pumpkin light.',
-    prepare: '15 Player pages/team · 17 loose pieces/team; adult-cut slots and windows.',
+    prepare: '17 Player pages/team · 17 pieces/team; print private Host page 18 once per team.',
     occasion: 'A family Halloween paper adventure.',
   },
   christmas: {
