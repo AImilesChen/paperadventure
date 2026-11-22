@@ -45,8 +45,8 @@ for z in M['zips']:
   for f in M['items']:
    if f['paper']==z['paper']:assert hashlib.sha256(a.read(Path(f['path']).name)).hexdigest()==f['sha256']
 # The reviewed English repair is an immutable input to this task.
-old=json.loads((R/'docs/forest-home-en-v93-development.json').read_text())['manifest']
-for f in old['items']+old['zips']:assert hashlib.sha256((R/f['path']).read_bytes()).hexdigest()==f['sha256']
+reviewed_english_sha256={'output/pdf/forest-home-en-1.1/forest-home-player-en-A4.pdf': 'c5361237d1f31f180c2f3acc500a89d6d9e9c11895441094d3d2ff4e98c00782', 'output/pdf/forest-home-en-1.1/forest-home-guide-en-A4.pdf': 'a69c913878fc2484d624b09fe2489d225245189e645d46ce04a12540fd4659cc', 'output/pdf/forest-home-en-1.1/forest-home-player-en-Letter.pdf': '03220859f613d2b039b7f7af2a42be87807b285552688fbc4cef7e34cf9e8ad9', 'output/pdf/forest-home-en-1.1/forest-home-guide-en-Letter.pdf': '17ae5be33b3704249a2954b3ae46c0cf6f7d38f2af8b34bf8c7cd62e4ec5c8ba', 'output/pdf/forest-home-en-1.1/forest-home-complete-en-A4.zip': '72ebbe4790c75eea1026bd6905f7684b4ff5d5305101ec7030dd0a807e1ce5fd', 'output/pdf/forest-home-en-1.1/forest-home-complete-en-Letter.zip': '18164875c345d60dc18e827cdd20583fe73665c34227fee707de7a83c10b3063'}
+for path,digest in reviewed_english_sha256.items():assert hashlib.sha256((R/path).read_bytes()).hexdigest()==digest
 geo=json.loads((R/'tmp/pdfs/forest-home-zh/geometry.json').read_text(encoding='utf-8'))
 for paper in ['A4','Letter']:
  g=[v for v in geo if v['paper']==paper and v['role']=='player'];cuts=[v for v in g if v['kind']=='cut'];assert len(cuts)==19
