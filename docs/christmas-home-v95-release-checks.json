@@ -1,0 +1,49 @@
+{
+  "status": "reviewed_pending_publication",
+  "game": "Christmas Home H06",
+  "versions": {
+    "en": "1.1",
+    "zh": "1.0-zh.1"
+  },
+  "playerPages": 16,
+  "hostPages": 15,
+  "pdfCount": 8,
+  "paperSizes": [
+    "A4",
+    "Letter"
+  ],
+  "contentChecks": [
+    "exported English and Chinese text and clue constraints reviewed",
+    "actual printed clues uniquely solvable",
+    "five-stage cooperative making, checking and delivery flow",
+    "full answers and ending restricted to adult guide",
+    "page references, glyphs, paper geometry and ZIP hashes verified"
+  ],
+  "tests": {
+    "backendPassed": 563,
+    "backendDefaultSkipped": 4,
+    "actualChristmasPdfTestsPassed": 10,
+    "staticPassed": 319,
+    "localeSitesPaymentPassed": 26,
+    "builtHtml": 178,
+    "sitemapEntries": 108
+  },
+  "storage": {
+    "fullPdf": "existing_private_R2",
+    "fullAuthoringSources": "local_backup_only",
+    "publicRepo": "scoped runtime code, limited previews, manifests and checksums only"
+  },
+  "scope": {
+    "existingCssAndFontsUnchanged": true,
+    "englishHomepageMainUnchanged": true,
+    "unrelatedPublicMainUnchanged": 167,
+    "newMigration": false,
+    "pricesChanged": false,
+    "ordersWritten": 0
+  },
+  "limits": [
+    "no physical print/cut trial",
+    "no child playtest",
+    "no new real paid purchase or production-owner download"
+  ]
+}

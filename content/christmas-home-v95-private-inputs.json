@@ -1,0 +1,58 @@
+{
+  "archiveName": "christmas-home-v95-private-pdfs.zip",
+  "sha256": "650671008e92e4b4446a09bbb2d2fb7957340638458d7d58ef319bbfb0b67b34",
+  "bytes": 6286669,
+  "files": [
+    {
+      "path": "output/pdf/christmas-home-en-1.1/manifest.json",
+      "bytes": 2560,
+      "sha256": "ab58ba19966ee8b4d93241ad644b34c9cdc42c6098e76b5d0c7f6abe835ffa73"
+    },
+    {
+      "path": "output/pdf/christmas-home-en-1.1/christmas-home-player-en-A4.pdf",
+      "bytes": 1732037,
+      "sha256": "9900e81569bc0e867f16e567bbffc8453936853ea3800af67cbf5628e53ca443"
+    },
+    {
+      "path": "output/pdf/christmas-home-en-1.1/christmas-home-guide-en-A4.pdf",
+      "bytes": 98222,
+      "sha256": "cf7a47acc09beaae57436b306ab234c157bab4351073cb1464b444fce6c8e43d"
+    },
+    {
+      "path": "output/pdf/christmas-home-en-1.1/christmas-home-player-en-Letter.pdf",
+      "bytes": 1731613,
+      "sha256": "c5c10d2ca2e15b4a0c2a3fbd1fea0ea8d6ca4283d7046c88c8deff9148ab0174"
+    },
+    {
+      "path": "output/pdf/christmas-home-en-1.1/christmas-home-guide-en-Letter.pdf",
+      "bytes": 97982,
+      "sha256": "48c484063f3993b9628513a1b928a3bf0627a884f83dc4088f607b46930515eb"
+    },
+    {
+      "path": "output/pdf/christmas-home-zh-1.0-zh.1/manifest.json",
+      "bytes": 2616,
+      "sha256": "9e77bd68dd76a02d3928bdd9e8ba90f28593f255e1b7e01b0a30fd8ba99e2eb1"
+    },
+    {
+      "path": "output/pdf/christmas-home-zh-1.0-zh.1/christmas-home-player-zh-A4.pdf",
+      "bytes": 1802149,
+      "sha256": "4f5abac9d5ca576dc7bde29c8b36eb4f344bc72e60a91089fc5c72e490c24be2"
+    },
+    {
+      "path": "output/pdf/christmas-home-zh-1.0-zh.1/christmas-home-guide-zh-A4.pdf",
+      "bytes": 174137,
+      "sha256": "86474576bb7416f6714f755b6361e5f658ad4a3ec6514a99dd7d5a6d4ba19659"
+    },
+    {
+      "path": "output/pdf/christmas-home-zh-1.0-zh.1/christmas-home-player-zh-Letter.pdf",
+      "bytes": 1801756,
+      "sha256": "55b6fe4bcdfedd22975caf3ee799a815aa71fca58210cbdbf541880872dd3dfd"
+    },
+    {
+      "path": "output/pdf/christmas-home-zh-1.0-zh.1/christmas-home-guide-zh-Letter.pdf",
+      "bytes": 173854,
+      "sha256": "34c0dc685290c6118f44e9bb3cfa20d640cb011ecced9b05d1014891cecde56e"
+    }
+  ],
+  "r2Key": "internal/christmas-home-v95-private-pdfs.zip"
+}

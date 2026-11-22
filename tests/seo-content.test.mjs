@@ -10,7 +10,7 @@ import { siteIdentity } from '../shared/site-identity.mjs';
 import { homeGamePlanning, homePrintPlan } from '../shared/home-game-planning.mjs';
 
 test('Home printing plans balance every supported child count and count the adult guide only once', () => {
-  for (const [theme, pages, guidePages, pieces] of [['dinosaur', 17, 18, 16], ['christmas', 14, 8, 12]]) {
+  for (const [theme, pages, guidePages, pieces] of [['dinosaur', 17, 18, 16], ['christmas', 16, 15, 12]]) {
     for (let children = 2; children <= 12; children++) {
       const teams = children <= 6 ? 1 : 2;
       for (const printGuide of [false, true]) {
@@ -29,7 +29,7 @@ test('Home printing plans balance every supported child count and count the adul
   }
   assert.deepEqual(homePrintPlan('dinosaur', 7).teams, [4, 3]);
   assert.equal(homePrintPlan('dinosaur', 12, true).totalSheets, 52);
-  assert.equal(homePrintPlan('christmas', 12, true).totalSheets, 36);
+  assert.equal(homePrintPlan('christmas', 12, true).totalSheets, 47);
 });
 
 test('printing plans reject invalid inputs and editions with different printing rules', () => {
@@ -54,7 +54,7 @@ test('Home catalogue compares real gameplay and preparation without changing Cla
 });
 
 test('featured Home calculators render an accessible initial estimate and a static reference', async () => {
-  for (const [theme, sheets, pieces] of [['dinosaur', 17, 16], ['christmas', 14, 12]]) {
+  for (const [theme, sheets, pieces] of [['dinosaur', 17, 16], ['christmas', 16, 12]]) {
     const html = await read(`/en/themes/${theme}/home/`);
     assert.match(html, /<label for="pack-children">Children/);
     assert.match(html, /aria-label="Number of children" type="number" min="2" max="12" step="1"/);
@@ -91,7 +91,7 @@ test('custom search HTML describes ordering accurately without a false unavailab
 });
 
 test('featured Home pages expose distinct file inventories, exact print totals and host handoffs', async () => {
-  for (const [theme, player, guide, pieces] of [['dinosaur',17,18,16],['christmas',14,8,12]]) {
+  for (const [theme, player, guide, pieces] of [['dinosaur',17,18,16],['christmas',16,15,12]]) {
     const html = (await read(`/en/themes/${theme}/home/`)).replace(/<!--.*?-->/g, "");
     assert.match(html, /id="prepare-game"/);
     assert.ok(html.includes(`<strong>${player} Player pages</strong>`));
@@ -128,13 +128,13 @@ test('Christmas occasion explains the real paid workshop with preparation and a 
   assert.ok((await readFile(new URL('../dist/client/sitemap.xml', import.meta.url), 'utf8')).includes('https://paperadventure.app' + route));
   const missions = html.match(/<ol class="christmas-occasion-missions">([\s\S]*?)<\/ol>/)[1];
   assert.equal((missions.match(/<li>/g)||[]).length, 5);
-  for (const name of ['gifts', 'frame', 'village']) assert.ok(html.includes(`href="/assets/christmas-home-detail-${name}.jpg"`));
+  for (const name of ['gifts', 'frame', 'village']) assert.ok(html.includes(`href="/assets/christmas-home-en-${name}.jpg"`));
   assert.ok(html.includes('src="/assets/christmas-family-table-v1.jpg"'));
   assert.match(html, /illustrative scene/);
-  assert.match(html, /Player Pack · 14 pages/);
-  assert.match(html, /Host Guide · 8 pages/);
-  for (const amount of ['14','28']) assert.ok(html.includes(`<td><strong>${amount}</strong></td>`));
-  assert.match(html, /add 8 sheets once, making 22 sheets for one team or 36 for two/);
+  assert.match(html, /Player Pack · 16 pages/);
+  assert.match(html, /Host Guide · 15 pages/);
+  for (const amount of ['16','32']) assert.ok(html.includes(`<td><strong>${amount}</strong></td>`));
+  assert.match(html, /add 15 sheets once, making 31 sheets for one team or 47 for two/);
   assert.match(html, /The free option is Celebration Home: The Missing Birthday Chest, a separate birthday story/);
   assert.equal((html.match(/<details>/g)||[]).length, 6);
   const data = bootstrap(html), offer = data.catalog.offers.find(item => item.sku === 'ready_home');

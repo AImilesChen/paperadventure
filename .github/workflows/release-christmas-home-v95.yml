@@ -1,0 +1,99 @@
+name: Release Christmas Home Bilingual Editions v95
+on:
+  push:
+    branches: [frontend-prd-v13-2026-10-08, release/chinese-christmas-home-v95-20261122]
+    paths: [backend/christmas-home-v95.trigger, .github/workflows/release-christmas-home-v95.yml]
+permissions:
+  contents: read
+concurrency:
+  group: paper-adventure-backend-stage
+  cancel-in-progress: false
+jobs:
+  checkpoint:
+    if: github.ref == 'refs/heads/release/chinese-christmas-home-v95-20261122'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: node scripts/christmas-home-v95-rollback-tag.mjs --create
+        env:
+          GH_TOKEN: ${{ github.token }}
+  release:
+    if: github.ref == 'refs/heads/frontend-prd-v13-2026-10-08'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+      CHRISTMAS_HOME_RELEASE: v95
+      PAYMENTS_EXPECTED_MODE: live
+      CLOUDFLARE_ACCOUNT_ID: '77bc392d46985cd3425691358f5e8a77'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: node scripts/christmas-home-v95-rollback-tag.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:backend
+      - run: npm run test:release
+      - name: Prepare pinned deployment tool
+        run: |
+          npm install --prefix "$RUNNER_TEMP/christmas-home-tools" wrangler@4.149.0
+          echo "WRANGLER_CLI=$RUNNER_TEMP/christmas-home-tools/node_modules/wrangler/bin/wrangler.js" >> "$GITHUB_ENV"
+      - name: Resolve existing database and save recovery bookmark
+        run: |
+          node "$WRANGLER_CLI" d1 info paper-adventure-stage-db --json > "$RUNNER_TEMP/christmas-home-d1.json"
+          node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/christmas-home-d1.json','utf8'));const id=d.uuid||d.result?.uuid||d.database?.uuid;if(!/^[0-9a-f-]{36}$/i.test(id||''))throw Error('D1 UUID missing');fs.appendFileSync(process.env.GITHUB_ENV,'PAPER_ADVENTURE_STAGE_D1_ID='+id+'\n')"
+          node "$WRANGLER_CLI" d1 time-travel info paper-adventure-stage-db --json > "$RUNNER_TEMP/christmas-home-recovery-bookmark.json"
+      - run: node scripts/write-stage-wrangler.mjs
+      - name: Read back and verify eight previously uploaded private R2 PDFs
+        run: node scripts/read-christmas-home-v95-inputs.mjs
+      - name: Verify actual Christmas Home file delivery
+        run: node --test backend/christmas-home-editions.test.mjs
+        env:
+          CHRISTMAS_HOME_ACTUAL_PDFS: 'true'
+      - run: node scripts/verify-chinese-free-production.mjs --capture-english
+      - name: Deploy matching API with Christmas Home publication disabled
+        run: node "$WRANGLER_CLI" deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var PAID_CHRISTMAS_HOME_EDITIONS_ENABLED:false
+      - name: Verify private R2 PDFs and release isolated edition rows
+        run: node scripts/release-christmas-home-v95.mjs
+      - name: Deploy matching API and enable this paid language feature
+        run: node "$WRANGLER_CLI" deploy --config backend/wrangler.stage.generated.jsonc --keep-vars --var PAID_READY_ZH_ENABLED:true --var PAID_MUSEUM_EDITIONS_ENABLED:true --var PAID_LIBRARY_EDITIONS_ENABLED:true --var PAID_WEATHER_EDITIONS_ENABLED:true --var PAID_WORKSHOP_EDITIONS_ENABLED:true --var PAID_DINOSAUR_HOME_EDITIONS_ENABLED:true --var PAID_SPACE_HOME_EDITIONS_ENABLED:true --var PAID_FOREST_HOME_EDITIONS_ENABLED:true --var PAID_HALLOWEEN_HOME_EDITIONS_ENABLED:true --var PAID_CHRISTMAS_HOME_EDITIONS_ENABLED:true
+      - name: Verify paid-language publication and preserved public runtime
+        run: |
+          node scripts/verify-christmas-home-production.mjs --wait
+          node scripts/verify-halloween-home-production.mjs --wait
+          node scripts/verify-forest-home-production.mjs --wait
+          node scripts/verify-space-home-production.mjs --wait
+          node scripts/verify-dinosaur-home-production.mjs --wait
+          node scripts/verify-workshop-production.mjs --wait
+          node scripts/verify-weather-production.mjs --wait
+          node scripts/verify-library-production.mjs --wait
+          node scripts/verify-museum-production.mjs --wait
+          node scripts/verify-chinese-ocean-production.mjs --wait
+          node scripts/verify-chinese-free-production.mjs --wait --compare-english
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: christmas-home-release-v95-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/christmas-home-*.json
+            ${{ runner.temp }}/zh-release-*.json
+            output/pdf/christmas-home-en-1.1/manifest.json
+            output/pdf/christmas-home-zh-1.0-zh.1/manifest.json
+          if-no-files-found: warn
+          retention-days: 30

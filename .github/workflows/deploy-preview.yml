@@ -63,6 +63,8 @@ jobs:
         run: node scripts/verify-forest-home-production.mjs --wait
       - name: Require matching Halloween Home English repair and Chinese PDFs before publishing their interface
         run: node scripts/verify-halloween-home-production.mjs --wait
+      - name: Require matching Christmas Home editions before publishing their interface
+        run: node scripts/verify-christmas-home-production.mjs --wait
       - name: Bundle production API without publishing
         run: npx --yes wrangler@4.149.0 deploy --config backend/wrangler.production-smoke.jsonc --dry-run
       - name: Validate site Worker bundle without publishing
