@@ -37,7 +37,7 @@ test('Forest release preparation stages idempotently and activates only complete
 test('Forest bilingual support is Home-only and never enables other Home or Forest Classroom games',async()=>{
  assert.equal(paidDocumentGame('forest','home'),true);assert.equal(paidDocumentGame('forest','classroom'),false);
  assert.equal(readyEnglishRepairGame('forest','home'),true);assert.equal(readyEnglishRepairGame('forest','classroom'),false);
- assert.equal(paidDocumentGame('halloween','home'),false);assert.equal(paidDocumentGame('forest','home','variant'),false);
+ assert.equal(paidDocumentGame('christmas','home'),false);assert.equal(paidDocumentGame('forest','home','variant'),false);
  assert.equal(readyDocumentPages('forest','en','1.1','classroom'),null);assert.equal(readyDocumentStem('forest','home'),'forest-home');assert.throws(()=>readyDocumentStem('forest','classroom'));
  const f=await forestFixture();const response=await f.get('/api/v1/catalog',false);assert.equal(response.status,200);const c=await response.json();
  const d=c.themes.find(t=>t.id==='forest');assert.deepEqual(d.home.documentEditions,[{locale:'en',version:'1.1'},{locale:'zh',version:'1.0-zh.1'}]);assert.equal(d.classroom.documentEditions,undefined);

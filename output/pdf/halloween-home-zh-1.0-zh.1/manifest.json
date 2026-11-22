@@ -1,0 +1,75 @@
+{
+  "world": "halloween",
+  "setting": "home",
+  "locale": "zh",
+  "version": "1.0-zh.1",
+  "sourceEnglishVersion": "v1.0",
+  "contentReferenceRevision": "en1.1",
+  "status": "local_review_not_published",
+  "items": [
+    {
+      "world": "halloween",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 17,
+      "path": "output/pdf/halloween-home-zh-1.0-zh.1/halloween-home-player-zh-A4.pdf",
+      "sha256": "e3cb2e5db5299044aade449b17b3228d6e01f71796587ba94a3548ce2a14d125",
+      "bytes": 5836483,
+      "r2Key": "ready-localized/halloween/home/zh/1.0-zh.1/A4/player-e3cb2e5db5299044.pdf"
+    },
+    {
+      "world": "halloween",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/halloween-home-zh-1.0-zh.1/halloween-home-guide-zh-A4.pdf",
+      "sha256": "1c7d25de5cf201bf94043076eef5668d9db555b91a8f6a75e3018351aac23fa9",
+      "bytes": 191564,
+      "r2Key": "ready-localized/halloween/home/zh/1.0-zh.1/A4/guide-1c7d25de5cf201bf.pdf"
+    },
+    {
+      "world": "halloween",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 17,
+      "path": "output/pdf/halloween-home-zh-1.0-zh.1/halloween-home-player-zh-Letter.pdf",
+      "sha256": "c106e12d62a65424d6fef6437c9aa373586d011b829bed5828c375990d8a6443",
+      "bytes": 5835837,
+      "r2Key": "ready-localized/halloween/home/zh/1.0-zh.1/Letter/player-c106e12d62a65424.pdf"
+    },
+    {
+      "world": "halloween",
+      "setting": "home",
+      "locale": "zh",
+      "version": "1.0-zh.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/halloween-home-zh-1.0-zh.1/halloween-home-guide-zh-Letter.pdf",
+      "sha256": "940efd0a469f983370918342b0d599e49abd833531e41fe641534a342cd72482",
+      "bytes": 191078,
+      "r2Key": "ready-localized/halloween/home/zh/1.0-zh.1/Letter/guide-940efd0a469f9833.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/halloween-home-zh-1.0-zh.1/halloween-home-complete-zh-A4.zip",
+      "sha256": "dfb93f5fd64a49eeeafa19ccd390ea6c7604d1a7ad6fde9a9f35441add1b24fc"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/halloween-home-zh-1.0-zh.1/halloween-home-complete-zh-Letter.zip",
+      "sha256": "be31cd72626bf5d35b0ebf10ae4938c4bfd5609ce111fac3fc0878a2f4c05fc3"
+    }
+  ]
+}

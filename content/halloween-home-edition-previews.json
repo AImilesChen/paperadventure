@@ -1,0 +1,276 @@
+{
+  "en": {
+    "viewer": {
+      "page": 7,
+      "path": "public/assets/halloween-home-en-viewer.jpg",
+      "caption": "Cut-out paper viewer",
+      "width": 485,
+      "height": 210,
+      "sha256": "75eab893521fa80cf1453de0840e2ca5802330060734c12466533017bd416848",
+      "sourceSha256": "6678d753d000a7b8637f9eec0e7926023e6787ff87a3173276243dec22d3222f",
+      "crop": [
+        56.0,
+        579.5000362204723,
+        250.0,
+        663.5000362204723
+      ]
+    },
+    "tear-reference": {
+      "page": 7,
+      "path": "public/assets/halloween-home-en-tear-reference.jpg",
+      "caption": "Separate three-tear reference",
+      "width": 716,
+      "height": 180,
+      "sha256": "5d9ba34c96b7e4ba40b0bca8e9051f18084c9a6ef5f64f148c0d7c847223356f",
+      "sourceSha256": "6678d753d000a7b8637f9eec0e7926023e6787ff87a3173276243dec22d3222f",
+      "crop": [
+        265.0,
+        578.5000362204723,
+        551.0,
+        650.5000362204723
+      ]
+    },
+    "tear-detail": {
+      "page": 7,
+      "path": "public/assets/halloween-home-en-tear-detail.jpg",
+      "caption": "Reference edge only",
+      "width": 88,
+      "height": 40,
+      "sha256": "dfe33c88d1a5ce4ebc42b756aacd3dcdf4d5a484154ba294ac2980cb1c222ba0",
+      "sourceSha256": "6678d753d000a7b8637f9eec0e7926023e6787ff87a3173276243dec22d3222f",
+      "crop": [
+        272.0,
+        596.5000362204723,
+        307.0,
+        612.5000362204723
+      ]
+    },
+    "fold-detail": {
+      "page": 9,
+      "path": "public/assets/halloween-home-en-fold-detail.jpg",
+      "caption": "Template fold line only",
+      "width": 137,
+      "height": 82,
+      "sha256": "c20eab7fa3529ca41d3b3ec3c340522808dc1c9b1da70fac28d080e70bddea98",
+      "sourceSha256": "6678d753d000a7b8637f9eec0e7926023e6787ff87a3173276243dec22d3222f",
+      "crop": [
+        150.0,
+        231.50003622047234,
+        205.0,
+        264.50003622047234
+      ]
+    },
+    "stage": {
+      "page": 12,
+      "path": "public/assets/halloween-home-en-stage.jpg",
+      "caption": "Unfilled rehearsal stage",
+      "width": 1267,
+      "height": 1163,
+      "sha256": "ada3d317b8b82501dcb4abf3e4c499b57bfce5bcbb3950002db4832eb88e5b66",
+      "sourceSha256": "6678d753d000a7b8637f9eec0e7926023e6787ff87a3173276243dec22d3222f",
+      "crop": [
+        50.0,
+        198.00003622047234,
+        557.0,
+        663.0000362204723
+      ]
+    },
+    "facade": {
+      "page": 14,
+      "path": "public/assets/halloween-home-en-facade.jpg",
+      "caption": "Closed hinged facade",
+      "width": 1267,
+      "height": 1163,
+      "sha256": "54b1699bd2bf9ad77390ca670aa856d158e94305159d33fbb031646d8ab95a75",
+      "sourceSha256": "6678d753d000a7b8637f9eec0e7926023e6787ff87a3173276243dec22d3222f",
+      "crop": [
+        50.0,
+        198.00003622047234,
+        557.0,
+        663.0000362204723
+      ]
+    },
+    "window": {
+      "page": 14,
+      "path": "public/assets/halloween-home-en-window.jpg",
+      "caption": "One closed paper window",
+      "width": 577,
+      "height": 418,
+      "sha256": "e249bfbdbe7450ad27b7528aa76e433ee679c54b4172fa695733bf5fc862c216",
+      "sourceSha256": "6678d753d000a7b8637f9eec0e7926023e6787ff87a3173276243dec22d3222f",
+      "crop": [
+        70.0,
+        242.00003622047234,
+        301.0,
+        409.00003622047234
+      ]
+    },
+    "registration": {
+      "page": 14,
+      "path": "public/assets/halloween-home-en-registration.jpg",
+      "caption": "Corner registration cross",
+      "width": 30,
+      "height": 30,
+      "sha256": "aabefbea277d84e03594ac6ecae86fd6cdfc4b26ba7739ab27a03d02543b40a8",
+      "sourceSha256": "6678d753d000a7b8637f9eec0e7926023e6787ff87a3173276243dec22d3222f",
+      "crop": [
+        52.0,
+        227.00003622047234,
+        64.0,
+        239.00003622047234
+      ]
+    },
+    "record": {
+      "page": 3,
+      "path": "public/assets/halloween-home-en-record.jpg",
+      "caption": "Acceptance-only progress record",
+      "width": 1267,
+      "height": 1070,
+      "sha256": "59ee8161130be16fb59abc9f7d40d09b7f508dbf29f26dca36ba81fc68fc7d71",
+      "sourceSha256": "6678d753d000a7b8637f9eec0e7926023e6787ff87a3173276243dec22d3222f",
+      "crop": [
+        50.0,
+        181.00003622047234,
+        557.0,
+        609.0000362204723
+      ]
+    }
+  },
+  "zh": {
+    "viewer": {
+      "page": 7,
+      "path": "public/assets/halloween-home-zh-viewer.jpg",
+      "caption": "纸观察框",
+      "width": 485,
+      "height": 210,
+      "sha256": "3046a4bcf766a128c43b7ef4165aa79870bb236b79991286d27d613ed8291236",
+      "sourceSha256": "e3cb2e5db5299044aade449b17b3228d6e01f71796587ba94a3548ce2a14d125",
+      "crop": [
+        56.0,
+        557.4000362204723,
+        250.0,
+        641.4000362204723
+      ]
+    },
+    "tear-reference": {
+      "page": 7,
+      "path": "public/assets/halloween-home-zh-tear-reference.jpg",
+      "caption": "独立三道缺口参照",
+      "width": 716,
+      "height": 180,
+      "sha256": "19087c53e083da4ae5f4163807878f24ac2ab67a47286c9e7fc0090223ef653b",
+      "sourceSha256": "e3cb2e5db5299044aade449b17b3228d6e01f71796587ba94a3548ce2a14d125",
+      "crop": [
+        265.0,
+        556.4000362204723,
+        551.0,
+        628.4000362204723
+      ]
+    },
+    "tear-detail": {
+      "page": 7,
+      "path": "public/assets/halloween-home-zh-tear-detail.jpg",
+      "caption": "参照缺口局部",
+      "width": 88,
+      "height": 40,
+      "sha256": "2819dac6b2873ba9d8ab82e839b72ed91d8045e81a95ec80456f839cae9ce4b0",
+      "sourceSha256": "e3cb2e5db5299044aade449b17b3228d6e01f71796587ba94a3548ce2a14d125",
+      "crop": [
+        272.0,
+        574.4000362204723,
+        307.0,
+        590.4000362204723
+      ]
+    },
+    "fold-detail": {
+      "page": 9,
+      "path": "public/assets/halloween-home-zh-fold-detail.jpg",
+      "caption": "模板折叠线局部",
+      "width": 137,
+      "height": 82,
+      "sha256": "b4d59122e53603415c64363be6dbe6b0be54fb89dc422860d51de3b9506080fb",
+      "sourceSha256": "e3cb2e5db5299044aade449b17b3228d6e01f71796587ba94a3548ce2a14d125",
+      "crop": [
+        150.0,
+        209.40003622047232,
+        205.0,
+        242.40003622047232
+      ]
+    },
+    "stage": {
+      "page": 12,
+      "path": "public/assets/halloween-home-zh-stage.jpg",
+      "caption": "空白排练舞台",
+      "width": 1267,
+      "height": 1163,
+      "sha256": "d218aefa4b0c1039b6d36a72634d4048abb2b51fbef6812ef116e3aaab1763a1",
+      "sourceSha256": "e3cb2e5db5299044aade449b17b3228d6e01f71796587ba94a3548ce2a14d125",
+      "crop": [
+        50.0,
+        198.00003622047234,
+        557.0,
+        663.0000362204723
+      ]
+    },
+    "facade": {
+      "page": 14,
+      "path": "public/assets/halloween-home-zh-facade.jpg",
+      "caption": "关好的翻窗纸",
+      "width": 1267,
+      "height": 1163,
+      "sha256": "b683e25d17197ea30b2152f3d4fb0249dd4a286856bf4717d500ec5f2509b3e9",
+      "sourceSha256": "e3cb2e5db5299044aade449b17b3228d6e01f71796587ba94a3548ce2a14d125",
+      "crop": [
+        50.0,
+        198.00003622047234,
+        557.0,
+        663.0000362204723
+      ]
+    },
+    "window": {
+      "page": 14,
+      "path": "public/assets/halloween-home-zh-window.jpg",
+      "caption": "一扇关好的纸窗",
+      "width": 577,
+      "height": 418,
+      "sha256": "c3d9a8c3df25b2919dcbb1abcba9cf04c60a5e9e79fbfc87b600b13b827ce6dd",
+      "sourceSha256": "e3cb2e5db5299044aade449b17b3228d6e01f71796587ba94a3548ce2a14d125",
+      "crop": [
+        70.0,
+        242.00003622047234,
+        301.0,
+        409.00003622047234
+      ]
+    },
+    "registration": {
+      "page": 14,
+      "path": "public/assets/halloween-home-zh-registration.jpg",
+      "caption": "四角对位十字",
+      "width": 30,
+      "height": 30,
+      "sha256": "aabefbea277d84e03594ac6ecae86fd6cdfc4b26ba7739ab27a03d02543b40a8",
+      "sourceSha256": "e3cb2e5db5299044aade449b17b3228d6e01f71796587ba94a3548ce2a14d125",
+      "crop": [
+        52.0,
+        227.00003622047234,
+        64.0,
+        239.00003622047234
+      ]
+    },
+    "record": {
+      "page": 3,
+      "path": "public/assets/halloween-home-zh-record.jpg",
+      "caption": "只记录成人核准的进度表",
+      "width": 1267,
+      "height": 1070,
+      "sha256": "80f628b5ad78c52a0d5528d3e92cc786dbeaca5e12516ff4493a334a9b0bd471",
+      "sourceSha256": "e3cb2e5db5299044aade449b17b3228d6e01f71796587ba94a3548ce2a14d125",
+      "crop": [
+        50.0,
+        178.40003622047232,
+        557.0,
+        606.4000362204723
+      ]
+    }
+  }
+}

@@ -14,7 +14,7 @@ const dinosaurFixture=()=>createDinosaurHomeFixture({actualPdfs:process.env.DINO
 test('Dinosaur bilingual support is Home-only and never enables other Home or Dinosaur Classroom games',async()=>{
  assert.equal(paidDocumentGame('dinosaur','home'),true);assert.equal(paidDocumentGame('dinosaur','classroom'),false);
  assert.equal(readyEnglishRepairGame('dinosaur','home'),true);assert.equal(readyEnglishRepairGame('dinosaur','classroom'),false);
- assert.equal(paidDocumentGame('halloween','home'),false);assert.equal(paidDocumentGame('dinosaur','home','variant'),false);
+ assert.equal(paidDocumentGame('christmas','home'),false);assert.equal(paidDocumentGame('dinosaur','home','variant'),false);
  assert.equal(readyDocumentPages('dinosaur','en','1.1','classroom'),null);assert.equal(readyDocumentStem('dinosaur','home'),'dinosaur-home');assert.throws(()=>readyDocumentStem('dinosaur','classroom'));
  const f=await dinosaurFixture();const response=await f.get('/api/v1/catalog',false);assert.equal(response.status,200);const c=await response.json();
  const d=c.themes.find(t=>t.id==='dinosaur');assert.deepEqual(d.home.documentEditions,[{locale:'en',version:'1.1'},{locale:'zh',version:'1.0-zh.1'}]);assert.equal(d.classroom.documentEditions,undefined);

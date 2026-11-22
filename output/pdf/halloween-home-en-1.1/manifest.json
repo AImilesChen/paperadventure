@@ -1,0 +1,74 @@
+{
+  "world": "halloween",
+  "setting": "home",
+  "locale": "en",
+  "version": "1.1",
+  "sourceEnglishVersion": "v1.0",
+  "status": "local_review_not_published",
+  "items": [
+    {
+      "world": "halloween",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "player",
+      "pages": 17,
+      "path": "output/pdf/halloween-home-en-1.1/halloween-home-player-en-A4.pdf",
+      "sha256": "6678d753d000a7b8637f9eec0e7926023e6787ff87a3173276243dec22d3222f",
+      "bytes": 5796463,
+      "r2Key": "ready-localized/halloween/home/en/1.1/A4/player-6678d753d000a7b8.pdf"
+    },
+    {
+      "world": "halloween",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "A4",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/halloween-home-en-1.1/halloween-home-guide-en-A4.pdf",
+      "sha256": "d1a989fb2aa0ef38392241c9f7256b2f0925ea8596e19bf54e6509e1f077755f",
+      "bytes": 138514,
+      "r2Key": "ready-localized/halloween/home/en/1.1/A4/guide-d1a989fb2aa0ef38.pdf"
+    },
+    {
+      "world": "halloween",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "player",
+      "pages": 17,
+      "path": "output/pdf/halloween-home-en-1.1/halloween-home-player-en-Letter.pdf",
+      "sha256": "10e78a06bce1dff154eec76b4783fe944b69e14436dc20f9be665435b458884b",
+      "bytes": 5795845,
+      "r2Key": "ready-localized/halloween/home/en/1.1/Letter/player-10e78a06bce1dff1.pdf"
+    },
+    {
+      "world": "halloween",
+      "setting": "home",
+      "locale": "en",
+      "version": "1.1",
+      "paper": "Letter",
+      "role": "guide",
+      "pages": 19,
+      "path": "output/pdf/halloween-home-en-1.1/halloween-home-guide-en-Letter.pdf",
+      "sha256": "0d14989be8a9609341369b62f11ab596308e1746ccd0ad13dad428d33a2b2eaf",
+      "bytes": 137950,
+      "r2Key": "ready-localized/halloween/home/en/1.1/Letter/guide-0d14989be8a96093.pdf"
+    }
+  ],
+  "zips": [
+    {
+      "paper": "A4",
+      "path": "output/pdf/halloween-home-en-1.1/halloween-home-complete-en-A4.zip",
+      "sha256": "2bc8bba64e229b47793a10315d9c480bcede0d7ced3e7e852670217c6cec3702"
+    },
+    {
+      "paper": "Letter",
+      "path": "output/pdf/halloween-home-en-1.1/halloween-home-complete-en-Letter.zip",
+      "sha256": "8eec794ebf4df5a69715f510975c9e4feff43adb48560a6d04602af4f6c5a114"
+    }
+  ]
+}
