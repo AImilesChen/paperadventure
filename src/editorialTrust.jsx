@@ -3,7 +3,7 @@ import { siteIdentity } from '../shared/site-identity.mjs';
 import './editorialTrust.css';
 
 export function EditorialByline({ path }) {
-  const dates = editorialFor(path);
+  const dates = editorialFor(path,currentLocale());
   return <div className="editorial-byline"><span>{translateUi("By ")}<a href={localHref("/en/about/#how-we-make-it")}>{translateUi(siteIdentity.name)}</a></span>{dates && <>{dates.published && <span>{translateUi("Published ")}<time dateTime={dates.published}>{translateUi(displayEditorialDate(dates.published,currentLocale()))}</time></span>}<span>{translateUi("Updated ")}<time dateTime={dates.modified}>{translateUi(displayEditorialDate(dates.modified,currentLocale()))}</time></span></>}</div>;
 }
 export function AboutPage() {return <main className="trust-page"><div className="trust-shell">

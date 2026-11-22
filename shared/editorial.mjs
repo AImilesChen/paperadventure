@@ -2,11 +2,12 @@ import {guides} from './guides.mjs';
 
 // Fixed editorial dates: change only after a substantive page revision.
 const revisedGuides=new Set(['run-a-printable-adventure','organize-a-classroom-adventure','printable-birthday-party-adventures']);
-export function editorialFor(path){
+export function editorialFor(path,locale='en'){
+ const zhRevised=locale==='zh'&&(/\/guides\/(run-a-printable-adventure|organize-a-classroom-adventure|printable-birthday-party-adventures)\/$/.test(path)||/\/sudoku\/techniques\/(single-candidate|hidden-single|locked-candidates|naked-pair)\/$/.test(path));
  const guide=guides.find(g=>g.path===path);
- if(guide)return {published:guide.date,modified:revisedGuides.has(guide.slug)?'2026-11-13':guide.date};
+ if(guide)return {published:guide.date,modified:zhRevised?'2026-11-22':revisedGuides.has(guide.slug)?'2026-11-13':guide.date};
  if(path==='/en/sudoku/how-to-play/')return {modified:'2026-11-10'};
- if(/^\/en\/sudoku\/techniques\/(single-candidate|hidden-single|locked-candidates|naked-pair)\/$/.test(path))return {published:'2026-11-10',modified:'2026-11-13'};
+ if(/^\/en\/sudoku\/techniques\/(single-candidate|hidden-single|locked-candidates|naked-pair)\/$/.test(path))return {published:'2026-11-10',modified:zhRevised?'2026-11-22':'2026-11-13'};
  return null;
 }
 export const publisherDetails=Object.freeze({

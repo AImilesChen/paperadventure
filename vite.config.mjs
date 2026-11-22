@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 
-const dictionary=()=>JSON.stringify({...JSON.parse(readFileSync(new URL('./src/i18n/zh.json',import.meta.url),'utf8')),...JSON.parse(readFileSync(new URL('./src/i18n/zh-overrides.json',import.meta.url),'utf8'))});
+const dictionary=()=>JSON.stringify({...JSON.parse(readFileSync(new URL('./src/i18n/zh.json',import.meta.url),'utf8')),...JSON.parse(readFileSync(new URL('./src/i18n/zh-overrides.json',import.meta.url),'utf8')),...JSON.parse(readFileSync(new URL('./src/i18n/zh-seo.json',import.meta.url),'utf8'))});
 function localeAssets(){return {
   name:'selected-language-dictionary',
   enforce:'pre',

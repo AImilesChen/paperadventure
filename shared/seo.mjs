@@ -1,5 +1,6 @@
 import {basePath,routeLocale,localePath,htmlLanguage} from './locale.mjs';
 import {translate} from './locale-text.mjs';
+import {localizedProduct} from './seo-localization.mjs';
 import {editorialFor,publisherDetails} from './editorial.mjs';
 import { themes } from './catalog.mjs';
 import { guides, guideFor } from './guides.mjs';
@@ -77,7 +78,7 @@ function englishPageSchema(page, release, origin = 'https://paperadventure.app')
     crumbs.push({ name: page.title, url });
     graph.push({ '@type': 'BreadcrumbList', itemListElement: crumbs.map((item, i) => ({ '@type': 'ListItem', position: i + 1, name: item.name, item: item.url })) });
   }
-  const editorial=editorialFor(page.path);
+  const editorial=editorialFor(page.path,page.locale||'en');
   if(editorial)for(const entity of graph.filter(e=>e['@type']==='Article'))Object.assign(entity,{...(editorial.published?{datePublished:editorial.published}:{}),dateModified:editorial.modified,author:{'@id':publisher['@id'],name:siteIdentity.name,url:origin+publisherDetails.aboutPath+'#how-we-make-it'}});
   return { '@context': 'https://schema.org', '@graph': graph };
 }
@@ -91,7 +92,8 @@ export function pageSchema(page,release,origin='https://paperadventure.app'){
   if(value&&typeof value==='object'){
    const result=Object.fromEntries(Object.entries(value).map(([k,v])=>[k,walk(v,k)]));
    if(['WebPage','AboutPage','ContactPage','CollectionPage','Article'].includes(result['@type']))result.inLanguage=htmlLanguage(locale);
-   return result;
+   if(result['@type']==='Article'){result.headline=page.title;result.description=page.description;}
+   return result['@type']==='Product'?localizedProduct(result,locale):result;
   }
   if(typeof value!=='string')return value;
   if(['url','@id','item'].includes(key)&&value.startsWith(origin+'/en/'))return origin+localePath(value.slice(origin.length),locale);

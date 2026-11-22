@@ -77,6 +77,7 @@ try {
   const { App } = await server.ssrLoadModule('/src/App.jsx');
   const markupByPath = new Map();
   for (const record of publicPages) {
+    assert.ok(!record.indexable||record.seoTranslationComplete,`Missing reviewed SEO translation: ${record.path}`);
     globalThis.window = { location: { pathname: record.path, search: '', origin } };
     const initialPublicRelease = record.indexable ? release : null;
     const markup = renderToString(React.createElement(App, { initialPublicRelease }));

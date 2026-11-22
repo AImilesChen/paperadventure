@@ -1,4 +1,5 @@
 import {basePath,localePath,routeLocale} from '../shared/locale.mjs';
+import {canonicalRedirect} from '../shared/canonical-route.mjs';
 import {llmsResponse} from '../shared/llms-route.mjs';
 import { handleApi } from './worker.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
@@ -13,6 +14,7 @@ const previewRobots = 'User-agent: *\nDisallow: /\n';
 // public host may expose the declared content pages to search engines.
 export default {
   async fetch(request, env) {
+    const canonical=canonicalRedirect(request);if(canonical)return canonical;
     const guide=await llmsResponse(request,env.ASSETS);if(guide)return guide;
     const url = new URL(request.url);const route=basePath(url.pathname);
     if(route==='/en/sudoku/points/'){const target=new URL(request.url);target.pathname=localePath('/en/credits/',routeLocale(url.pathname));return new Response(null,{status:308,headers:{location:target.href,'cache-control':'no-cache','x-robots-tag':'noindex'}});}

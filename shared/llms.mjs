@@ -8,15 +8,22 @@ export function renderLlms({origin=base,catalog=catalogSummary,products=pointsPr
  const link=(title,path,note)=>`- [${title}](${origin}${path}): ${note}`;
  return `# ${siteIdentity.name}
 
-> English-language printable story adventures for families and classrooms, free online escape puzzles, and progressive Sudoku with optional paid help.
+> Printable story adventures for families and classrooms in English and Simplified Chinese, free online escape puzzles, and progressive Sudoku with optional paid help.
 
 Printable adventure packs are designed for children ages 6–12 and adult hosts or teachers. Online puzzles and Sudoku are separate activities with their own rules. Public pages below explain each product; purchase availability and current terms are shown on the pricing and purchase pages.
+
+The six Home and six Classroom ready-made theme games offer English and Simplified Chinese editions, including the two free Celebration games. Other printable escape adventures and their puzzle PDFs currently use English. AI-generated custom stories and PDFs currently use English; a Chinese interface does not change their content language.
 
 ## Start here
 
 ${link('Paper Adventure','/en/','Overview of the games and free starting points.')}
 ${link('Themes','/en/themes/','Compare Home and Classroom story collections.')}
 ${link('Pricing','/en/pricing/','Printable game options and one-time AI credit packs.')}
+${link('简体中文首页','/zh/','中文网站入口；查看游戏玩法、准备要求和资料语言。')}
+${link('中文家庭冒险','/zh/for-home/','六款家庭主题游戏；庆典游戏可完整免费体验。')}
+${link('中文课堂冒险','/zh/for-classroom/','六款教师带领的课堂主题游戏。')}
+${link('免费中文家庭游戏','/zh/samples/home/','失踪的生日宝箱；玩家材料与成人主持指南。')}
+${link('免费中文课堂游戏','/zh/samples/classroom/','冒险俱乐部的第一枚徽章；玩家材料与教师指南。')}
 
 ## Printable adventures
 

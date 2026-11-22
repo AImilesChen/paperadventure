@@ -1,5 +1,6 @@
 import {homeCopy as translateUi} from './homeZhCopy.mjs';
-import { localHref } from "./i18n/index.mjs";import { EditorialByline } from './editorialTrust.jsx';
+import classroomEdition from '../shared/free-games/zh-classroom-edition.json';
+import { localHref, currentLocale } from "./i18n/index.mjs";import { EditorialByline } from './editorialTrust.jsx';
 import { GuideFieldNotes } from './editorialSamples.jsx';
 import { GuideChoices, GuideQuestions, BirthdayPrintPlan, BirthdayHosting } from './guidePlanning.jsx';
 import { ArrowRight, DownloadSimple, Printer, UsersThree, Stack } from '@phosphor-icons/react';
@@ -45,6 +46,7 @@ export function GuidesHub({ Link }) {
   </main>;
 }
 function Figure({ src, alt, caption, width = 910, height = 1287 }) {
+  if(currentLocale()==='zh'){const matched={'/assets/celebration-classroom-preview-plan.jpg':'plan','/assets/celebration-classroom-preview-review.jpg':'review'}[src];if(matched)src='/assets/free-games/zh/classroom-'+matched+'.jpg';}
   return <figure className="guide-figure"><a href={localHref(src)} target="_blank" rel="noopener noreferrer" aria-label={translateUi("Enlarge: {value0} (opens in a new tab)", { value0: alt })}><img src={src} alt={translateUi(alt)} width={width} height={height} loading="lazy" /></a><figcaption>{translateUi(caption)}{translateUi(" Select the image to enlarge.")}</figcaption></figure>;
 }
 function Section({ id, title, children }) {return <section id={id} className="guide-section"><h2>{translateUi(title)}</h2>{translateUi(children)}</section>;}
@@ -79,7 +81,7 @@ function ClassroomGuide() {
     <p className="guide-answer">{translateUi("For 20\u201335 pupils, divide the class into crews of 2\u20136 and prepare one complete Player Pack per crew. In Paper Adventure\u2019s free Celebration Classroom game, pupils rebuild an invitation, share four badge clues and make a display badge that another crew reviews.")}</p>
     <Section id="crews" title={translateUi("1. Plan crews before printing")}>
       <p><em>{translateUi("The Adventure Club\u2019s First Badge")}</em>{translateUi(" supports up to 35 pupils in separate crews. The examples below keep each crew within the 2\u20136 pupil range; other balanced arrangements within that range also work.")}</p>
-      <div className="guide-table-wrap"><table><caption>{translateUi("Example grouping and Player Pack print counts")}</caption><thead><tr><th scope="col">{translateUi("Pupils")}</th><th scope="col">{translateUi("Example crews")}</th><th scope="col">{translateUi("Player sheets")}</th></tr></thead><tbody>{[[20, '4 crews of 5', 36], [24, '4 crews of 6', 36], [30, '5 crews of 6', 45], [35, '5 crews of 6 + 1 crew of 5', 54]].map(([count, crews, pages]) => <tr key={count}><th scope="row">{translateUi(count)}</th><td>{translateUi(crews)}</td><td>{translateUi(pages)}</td></tr>)}</tbody></table></div>
+      <div className="guide-table-wrap"><table><caption>{translateUi("Example grouping and Player Pack print counts")}</caption><thead><tr><th scope="col">{translateUi("Pupils")}</th><th scope="col">{translateUi("Example crews")}</th><th scope="col">{translateUi("Player sheets")}</th></tr></thead><tbody>{[[20, '4 crews of 5', 36], [24, '4 crews of 6', 36], [30, '5 crews of 6', 45], [35, '5 crews of 6 + 1 crew of 5', 54]].map(([count, crews, pages]) => <tr key={count}><th scope="row">{translateUi(count)}</th><td>{translateUi(crews)}</td><td>{translateUi(currentLocale()==='zh'?pages/9*classroomEdition.pages.player:pages)}</td></tr>)}</tbody></table></div>
       <p>{translateUi("For example, 24 pupils could also work in six crews of four, which needs 54 Player sheets. Choose the crew size for your space and pupils, then multiply nine pages by the number of crews.")}</p>
       <div className="guide-crew-map" role="img" aria-label={translateUi("Example arrangement for 24 pupils: four crews, six pupils in each crew")}>{[1, 2, 3, 4].map((n) => <div key={n}><strong>{translateUi("Crew ")}{translateUi(n)}</strong><span>● ● ●<br />● ● ●</span><small>{translateUi("1 complete Player Pack")}</small></div>)}</div><p className="guide-caption">{translateUi("Setup illustration: one possible arrangement for 24 pupils, not a required seating plan.")}</p>
     </Section>
