@@ -4,6 +4,7 @@ import {llmsResponse} from '../shared/llms-route.mjs';
 import { handleApi } from './worker.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
 import {retiredWeeklyTarget} from '../shared/sudoku-retirement.mjs';
+import {isPublicSearchImage} from '../shared/search-images.mjs';
 
 const publicHost = 'paperadventure.app';
 const publicIconPaths = new Set(['/favicon.ico', '/icon.svg', '/icon-512.png', '/apple-touch-icon.png', '/favicon-16.png', '/favicon-32.png']);
@@ -52,7 +53,7 @@ export default {
     const headers = new Headers(response.headers);
     if(isAdmin){headers.set('cache-control','private, no-store');headers.set('referrer-policy','no-referrer');headers.set('x-frame-options','DENY');headers.set('content-security-policy',"frame-ancestors 'none'; base-uri 'self'");}
     const isPublicIcon = publicIconPaths.has(url.pathname) && response.headers.get('content-type')?.toLowerCase().startsWith('image/');
-    if (isPublicHost && response.ok && (pageFor(url.pathname)?.indexable || isPublicIcon)) headers.delete('x-robots-tag');
+    if (isPublicHost && response.ok && (pageFor(url.pathname)?.indexable || isPublicIcon || isPublicSearchImage(url.pathname,response))) headers.delete('x-robots-tag');
     else headers.set('x-robots-tag', 'noindex');
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
   },

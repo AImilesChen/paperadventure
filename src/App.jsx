@@ -26,6 +26,7 @@ import { themes, formatUsd } from '../shared/catalog.mjs';
 import { pageFor } from '../shared/page-manifest.mjs';
 import { readPublicRelease } from '../shared/public-release.mjs';
 import { pageSchema } from '../shared/seo.mjs';
+import {pageSearchImage} from '../shared/search-images.mjs';
 import { siteIdentity, pageDocumentTitle } from '../shared/site-identity.mjs';
 import { GuidesHub, GuideArticle, HalloweenOccasion } from './guides.jsx';
 import { BirthdayOccasion } from './birthdayOccasion.jsx';
@@ -280,7 +281,10 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
     const page = pageFor(actualRoute);document.documentElement.lang = htmlLanguage(locale);
     const indexableHere = ['paperadventure.app', 'localhost', '127.0.0.1'].includes(window.location.hostname) && Boolean(page?.indexable);
     let robots = document.querySelector('meta[name="robots"]');
-    if (indexableHere) robots?.remove();else
+    if (indexableHere) {
+      if(!robots){robots=document.createElement('meta');robots.name='robots';document.head.appendChild(robots);}
+      robots.content='max-image-preview:large';
+    }else
     {
       if (!robots) {
         robots = document.createElement('meta');
@@ -299,15 +303,23 @@ export function App({ initialPublicRelease = readPublicRelease() } = {}) {
     const origin = canonical ? new URL(canonical.href).origin : window.location.origin;
     if (!canonical) {canonical = document.createElement('link');canonical.rel = 'canonical';document.head.appendChild(canonical);}
     const url = `${origin}${page.path}`;
+    const picture=pageSearchImage(page,origin);
     document.title = pageDocumentTitle(page);
     for (const [selector, value] of [
     ['meta[name="description"]', page.description],
     ['meta[property="og:title"]', document.title],
     ['meta[property="og:description"]', page.description],
     ['meta[property="og:url"]', url],
+    ['meta[property="og:image"]', picture.url],
+    ['meta[property="og:image:width"]', String(picture.width)],
+    ['meta[property="og:image:height"]', String(picture.height)],
+    ['meta[name="twitter:image"]', picture.url],
     ['meta[name="twitter:title"]', document.title],
-    ['meta[name="twitter:description"]', page.description]])
-    document.querySelector(selector)?.setAttribute('content', value);
+    ['meta[name="twitter:description"]', page.description]]) {
+      let meta=document.querySelector(selector);
+      if(!meta){const [,attribute,key]=selector.match(/^meta\[(name|property)="([^"]+)"\]$/);meta=document.createElement('meta');meta.setAttribute(attribute,key);document.head.appendChild(meta);}
+      meta.setAttribute('content',value);
+    }
     canonical?.setAttribute('href', url);
     let siteName = document.querySelector('meta[property="og:site_name"]');
     if (!siteName) {siteName = document.createElement('meta');siteName.setAttribute('property', 'og:site_name');document.head.appendChild(siteName);}

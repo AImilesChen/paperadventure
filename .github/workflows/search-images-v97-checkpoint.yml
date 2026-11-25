@@ -1,0 +1,20 @@
+name: Verify search images v97 rollback checkpoint
+on:
+  push:
+    branches: [release/search-images-v97-20261125]
+    paths: [.github/workflows/search-images-v97-checkpoint.yml, scripts/search-images-v97-rollback-tag.mjs]
+permissions:
+  contents: read
+jobs:
+  checkpoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: node scripts/search-images-v97-rollback-tag.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
