@@ -1,0 +1,84 @@
+{
+  "date": "2026-11-25",
+  "status": "verified_release_authorized_pending_ci",
+  "baseCommit": "fe2c15e6bddfb3b51a220213521e995ec8d08530",
+  "source": "tmp/search-images-v97",
+  "liveSourceUnchanged": "tmp/seo-bilingual-v96",
+  "deployment": "user_requested_publication_2026-11-25",
+  "changes": [
+    "Exact allowlist of existing public illustrations/approved excerpts removes noindex only on successful real-image responses at canonical host",
+    "Core page-specific preferred images with actual dimensions, OG/Twitter and primaryImageOfPage; larger image preview permission on indexable pages",
+    "Client navigation refreshes image metadata, including application-shell navigation",
+    "Three same-language Halloween incoming links per language in family listing, Home host guide and Halloween game detail"
+  ],
+  "exclusions": [
+    "No CSS, page widths, hero or carousel edits",
+    "No new artwork, paid PDF/source/font uploads or PDF modifications",
+    "No purchase, prices, authentication, database, provider or AI generation changes",
+    "No GSC/Bing submissions or indexing-success claim"
+  ],
+  "checks": {
+    "build": {
+      "htmlPages": 178,
+      "sitemapUrls": 108,
+      "hydrationParity": "passed"
+    },
+    "static": {
+      "passed": 328,
+      "failed": 0
+    },
+    "regression": {
+      "passed": 589,
+      "failed": 0,
+      "existingDefaultSkipped": 4
+    },
+    "images": {
+      "approvedPublicFiles": 157,
+      "actualBuiltGetHeadResponses": 314,
+      "failed": 0
+    },
+    "scope": {
+      "imageDimensionsChecked": 157,
+      "imageErrors": [],
+      "cssByteIdentical": true,
+      "publicAssetChanges": [],
+      "mainMarkupChangedRoutes": [
+        "/en/for-home/",
+        "/en/guides/run-a-printable-adventure/",
+        "/en/themes/halloween/",
+        "/en/themes/halloween/home/",
+        "/zh/for-home/",
+        "/zh/guides/run-a-printable-adventure/",
+        "/zh/themes/halloween/",
+        "/zh/themes/halloween/home/"
+      ],
+      "changedSourceFiles": [
+        "package.json",
+        "backend\\preview-deploy-worker.mjs",
+        "scripts\\generate-static-pages.mjs",
+        "shared\\seo.mjs",
+        "src\\App.jsx",
+        "src\\guides.jsx",
+        "src\\productPages.jsx",
+        "tests\\static-pages.test.mjs",
+        "src\\i18n\\zh-overrides.json"
+      ],
+      "newSourceFiles": [
+        "docs\\search-images-v97-development.json",
+        "shared\\search-images.json",
+        "shared\\search-images.mjs",
+        "tests\\search-images.test.mjs"
+      ]
+    },
+    "browser": {
+      "status": "not_verified",
+      "reason": "In-app browser initialization timed out; no visual screenshot claimed."
+    }
+  },
+  "nextSteps": [
+    "Complete desktop/mobile browser visual verification when connection is available",
+    "On publication request, recheck production head and create verified rollback tag before production writes, publish only reviewed safe source files, verify live image headers and metadata; do not publish private authoring sources or PDFs",
+    "Search preview selection remains controlled by Google after recrawl"
+  ],
+  "rollbackTag": "rollback-before-search-images-v97-20261125"
+}

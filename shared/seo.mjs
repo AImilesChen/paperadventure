@@ -7,11 +7,14 @@ import { guides, guideFor } from './guides.mjs';
 import { siteIdentity } from './site-identity.mjs';
 import { freePuzzles, puzzlePath } from './free-puzzles.mjs';
 import { lighthouse, lighthouseArt } from './lighthouse-game.mjs';
+import {pageSearchImage} from './search-images.mjs';
 
 function englishPageSchema(page, release, origin = 'https://paperadventure.app') {
   const url = origin + page.path;
   const publisher = { '@type': 'Organization', '@id': origin + '/#publisher', ...siteIdentity, url: origin + '/en/', logo: origin + '/icon-512.png',description:publisherDetails.description,email:publisherDetails.email,contactPoint:{'@type':'ContactPoint',contactType:'customer support',email:publisherDetails.email,url:origin+publisherDetails.contactPath,availableLanguage:'English'},...(publisherDetails.profiles.length?{sameAs:publisherDetails.profiles}:{}),subjectOf:{'@id':origin+publisherDetails.aboutPath+'#page'} };
   const graph = [{ '@type': 'WebPage', '@id': url + '#page', name: page.title, description: page.description, url, isPartOf: { '@id': origin + '/#website' } }, { '@type': 'WebSite', '@id': origin + '/#website', ...siteIdentity, url: origin + '/en/', publisher: { '@id': publisher['@id'] } }, publisher];
+  const picture=pageSearchImage(page,origin);
+  if(picture.preferred)graph[0].primaryImageOfPage={'@type':'ImageObject',url:picture.url,width:picture.width,height:picture.height};
   if(page.path==='/en/about/'){graph[0]['@type']='AboutPage';graph[0].mainEntity={'@id':publisher['@id']};}
   if(page.path==='/en/contact/'){graph[0]['@type']='ContactPage';graph[0].about={'@id':publisher['@id']};}
   if (!page.indexable) return { '@context': 'https://schema.org', '@graph': graph };

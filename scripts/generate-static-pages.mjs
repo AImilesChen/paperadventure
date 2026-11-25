@@ -12,6 +12,7 @@ import { publicPages } from '../shared/page-manifest.mjs';
 import {catalogSummary} from '../shared/sudoku/catalog.mjs';
 import { publicRelease, publicReleaseData, readPublicRelease, htmlJson } from '../shared/public-release.mjs';
 import { pageSchema } from '../shared/seo.mjs';
+import {pageSearchImage} from '../shared/search-images.mjs';
 import { siteIdentity, pageDocumentTitle } from '../shared/site-identity.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -83,10 +84,11 @@ try {
     const markup = renderToString(React.createElement(App, { initialPublicRelease }));
     markupByPath.set(record.path, markup);
     const url = `${origin}${record.path}`;
+    const picture=pageSearchImage(record,origin);
     const tags = [
       `<title>${escape(pageDocumentTitle(record))}</title>`,
       `<meta name="description" content="${escape(record.description)}" />`,
-      ...(record.indexable ? [] : ['<meta name="robots" content="noindex" />']),
+      `<meta name="robots" content="${record.indexable?'max-image-preview:large':'noindex'}" />`,
       `<link rel="canonical" href="${escape(url)}" />`,
       ...(record.indexable?[...localeCodes.map(code=>`<link rel="alternate" hreflang="${htmlLanguage(code)}" href="${origin}${localePath(record.path,code)}" />`),`<link rel="alternate" hreflang="x-default" href="${origin}${localePath(record.path,'en')}" />`]:[]),
       '<meta property="og:type" content="website" />',
@@ -94,13 +96,13 @@ try {
       `<meta property="og:title" content="${escape(pageDocumentTitle(record))}" />`,
       `<meta property="og:description" content="${escape(record.description)}" />`,
       `<meta property="og:url" content="${escape(url)}" />`,
-      `<meta property="og:image" content="${origin}/og-image.jpg" />`,
-      '<meta property="og:image:width" content="1200" />',
-      '<meta property="og:image:height" content="630" />',
+      `<meta property="og:image" content="${picture.url}" />`,
+      `<meta property="og:image:width" content="${picture.width}" />`,
+      `<meta property="og:image:height" content="${picture.height}" />`,
       '<meta name="twitter:card" content="summary_large_image" />',
       `<meta name="twitter:title" content="${escape(pageDocumentTitle(record))}" />`,
       `<meta name="twitter:description" content="${escape(record.description)}" />`,
-      `<meta name="twitter:image" content="${origin}/og-image.jpg" />`,
+      `<meta name="twitter:image" content="${picture.url}" />`,
       `<script type="application/ld+json">${htmlJson(pageSchema(record, initialPublicRelease, origin))}</script>`,
     ].join('\n    ');
     const html = template.replace('<html lang="en">',`<html lang="${htmlLanguage(record.locale)}">`)

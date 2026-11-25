@@ -1,0 +1,630 @@
+{
+  "/assets/birthday-party-table-v1.jpg": {
+    "width": 1200,
+    "height": 800
+  },
+  "/assets/celebration-classroom-preview-jobs.jpg": {
+    "width": 910,
+    "height": 1287
+  },
+  "/assets/celebration-classroom-preview-plan.jpg": {
+    "width": 910,
+    "height": 1287
+  },
+  "/assets/celebration-classroom-preview-review.jpg": {
+    "width": 910,
+    "height": 1287
+  },
+  "/assets/celebration-classroom-preview-symbols.jpg": {
+    "width": 910,
+    "height": 1287
+  },
+  "/assets/celebration-classroom-v0.1.jpg": {
+    "width": 800,
+    "height": 600
+  },
+  "/assets/celebration-home-detail-finish.jpg": {
+    "width": 1202,
+    "height": 1201
+  },
+  "/assets/celebration-home-detail-handout-before.jpg": {
+    "width": 380,
+    "height": 491
+  },
+  "/assets/celebration-home-detail-handout-cut.jpg": {
+    "width": 380,
+    "height": 491
+  },
+  "/assets/celebration-home-detail-handout-share.jpg": {
+    "width": 381,
+    "height": 491
+  },
+  "/assets/celebration-home-detail-map.jpg": {
+    "width": 1202,
+    "height": 473
+  },
+  "/assets/celebration-home-detail-record.jpg": {
+    "width": 1202,
+    "height": 711
+  },
+  "/assets/celebration-home-player-cover-example.jpg": {
+    "width": 637,
+    "height": 900
+  },
+  "/assets/celebration-home-player-page2-example.jpg": {
+    "width": 637,
+    "height": 900
+  },
+  "/assets/celebration-home-v0.1.jpg": {
+    "width": 800,
+    "height": 600
+  },
+  "/assets/christmas-family-table-v1.jpg": {
+    "width": 1200,
+    "height": 800
+  },
+  "/assets/christmas-home-en-frame.jpg": {
+    "width": 810,
+    "height": 623
+  },
+  "/assets/christmas-home-en-gift-blank.jpg": {
+    "width": 375,
+    "height": 810
+  },
+  "/assets/christmas-home-en-gifts.jpg": {
+    "width": 1165,
+    "height": 810
+  },
+  "/assets/christmas-home-en-sign.jpg": {
+    "width": 910,
+    "height": 710
+  },
+  "/assets/christmas-home-en-village.jpg": {
+    "width": 1243,
+    "height": 1143
+  },
+  "/assets/christmas-home-zh-frame.jpg": {
+    "width": 810,
+    "height": 622
+  },
+  "/assets/christmas-home-zh-gift-blank.jpg": {
+    "width": 375,
+    "height": 810
+  },
+  "/assets/christmas-home-zh-gifts.jpg": {
+    "width": 1165,
+    "height": 810
+  },
+  "/assets/christmas-home-zh-sign.jpg": {
+    "width": 910,
+    "height": 710
+  },
+  "/assets/christmas-home-zh-village.jpg": {
+    "width": 1243,
+    "height": 1142
+  },
+  "/assets/christmas.png": {
+    "width": 800,
+    "height": 600
+  },
+  "/assets/clock-detail-v2/bench.webp": {
+    "width": 640,
+    "height": 590
+  },
+  "/assets/clock-detail-v2/frame.webp": {
+    "width": 1165,
+    "height": 595
+  },
+  "/assets/clock-detail-v2/record.webp": {
+    "width": 1270,
+    "height": 500
+  },
+  "/assets/custom-adventure-workshop-v1.jpg": {
+    "width": 1448,
+    "height": 1086
+  },
+  "/assets/custom-paper-format-cards.jpg": {
+    "width": 992,
+    "height": 1404
+  },
+  "/assets/custom-paper-format-route.jpg": {
+    "width": 992,
+    "height": 1404
+  },
+  "/assets/dinosaur-home-en-backpack.jpg": {
+    "width": 599,
+    "height": 261
+  },
+  "/assets/dinosaur-home-en-join-left.jpg": {
+    "width": 70,
+    "height": 85
+  },
+  "/assets/dinosaur-home-en-join-right.jpg": {
+    "width": 70,
+    "height": 85
+  },
+  "/assets/dinosaur-home-en-map.jpg": {
+    "width": 992,
+    "height": 900
+  },
+  "/assets/dinosaur-home-en-record.jpg": {
+    "width": 1030,
+    "height": 1484
+  },
+  "/assets/dinosaur-home-zh-backpack.jpg": {
+    "width": 599,
+    "height": 262
+  },
+  "/assets/dinosaur-home-zh-join-left.jpg": {
+    "width": 70,
+    "height": 85
+  },
+  "/assets/dinosaur-home-zh-join-right.jpg": {
+    "width": 70,
+    "height": 85
+  },
+  "/assets/dinosaur-home-zh-map.jpg": {
+    "width": 992,
+    "height": 900
+  },
+  "/assets/dinosaur-home-zh-record.jpg": {
+    "width": 1030,
+    "height": 1484
+  },
+  "/assets/dinosaur.png": {
+    "width": 1448,
+    "height": 1086
+  },
+  "/assets/escape-covers-v2/fold-city.webp": {
+    "width": 1536,
+    "height": 1024
+  },
+  "/assets/escape-covers-v2/last-letter.webp": {
+    "width": 1536,
+    "height": 1024
+  },
+  "/assets/escape-covers-v2/lighthouse.webp": {
+    "width": 1536,
+    "height": 1024
+  },
+  "/assets/escape-covers-v2/midnight-masquerade.webp": {
+    "width": 1536,
+    "height": 1024
+  },
+  "/assets/escape-covers-v2/seventh-carriage.webp": {
+    "width": 1536,
+    "height": 1024
+  },
+  "/assets/escape-covers-v2/thirteenth-hour.webp": {
+    "width": 1536,
+    "height": 1024
+  },
+  "/assets/fold-detail-v2/back.webp": {
+    "width": 145,
+    "height": 208
+  },
+  "/assets/fold-detail-v2/foldline.webp": {
+    "width": 210,
+    "height": 175
+  },
+  "/assets/fold-detail-v2/scale.webp": {
+    "width": 630,
+    "height": 70
+  },
+  "/assets/fold-detail-v2/snapshot.webp": {
+    "width": 1245,
+    "height": 245
+  },
+  "/assets/forest-home-en-delivery.jpg": {
+    "width": 1256,
+    "height": 1400
+  },
+  "/assets/forest-home-en-label.jpg": {
+    "width": 1256,
+    "height": 770
+  },
+  "/assets/forest-home-en-mailbag.jpg": {
+    "width": 1256,
+    "height": 495
+  },
+  "/assets/forest-home-en-record.jpg": {
+    "width": 1256,
+    "height": 1205
+  },
+  "/assets/forest-home-en-seal-detail.jpg": {
+    "width": 548,
+    "height": 32
+  },
+  "/assets/forest-home-en-sorting-desk.jpg": {
+    "width": 1256,
+    "height": 1145
+  },
+  "/assets/forest-home-en-stamp.jpg": {
+    "width": 350,
+    "height": 145
+  },
+  "/assets/forest-home-en-torn-seal.jpg": {
+    "width": 184,
+    "height": 142
+  },
+  "/assets/forest-home-zh-delivery.jpg": {
+    "width": 1273,
+    "height": 805
+  },
+  "/assets/forest-home-zh-label.jpg": {
+    "width": 1273,
+    "height": 755
+  },
+  "/assets/forest-home-zh-mailbag.jpg": {
+    "width": 1273,
+    "height": 465
+  },
+  "/assets/forest-home-zh-record.jpg": {
+    "width": 1273,
+    "height": 942
+  },
+  "/assets/forest-home-zh-seal-detail.jpg": {
+    "width": 564,
+    "height": 53
+  },
+  "/assets/forest-home-zh-sorting-desk.jpg": {
+    "width": 1273,
+    "height": 748
+  },
+  "/assets/forest-home-zh-stamp.jpg": {
+    "width": 335,
+    "height": 150
+  },
+  "/assets/forest-home-zh-torn-seal.jpg": {
+    "width": 175,
+    "height": 147
+  },
+  "/assets/forest.png": {
+    "width": 1448,
+    "height": 1086
+  },
+  "/assets/free-games/zh/classroom-jobs.jpg": {
+    "width": 953,
+    "height": 1348
+  },
+  "/assets/free-games/zh/classroom-plan.jpg": {
+    "width": 953,
+    "height": 1348
+  },
+  "/assets/free-games/zh/classroom-review.jpg": {
+    "width": 953,
+    "height": 1348
+  },
+  "/assets/free-games/zh/classroom-symbols.jpg": {
+    "width": 953,
+    "height": 1348
+  },
+  "/assets/free-games/zh/home-finish.jpg": {
+    "width": 953,
+    "height": 1348
+  },
+  "/assets/free-games/zh/home-handout-cut.jpg": {
+    "width": 953,
+    "height": 1348
+  },
+  "/assets/free-games/zh/home-map.jpg": {
+    "width": 953,
+    "height": 1348
+  },
+  "/assets/free-games/zh/home-record.jpg": {
+    "width": 953,
+    "height": 1348
+  },
+  "/assets/halloween-friendly-v0.1.jpg": {
+    "width": 711,
+    "height": 533
+  },
+  "/assets/halloween-home-en-facade.jpg": {
+    "width": 1267,
+    "height": 1163
+  },
+  "/assets/halloween-home-en-record.jpg": {
+    "width": 1267,
+    "height": 1070
+  },
+  "/assets/halloween-home-en-registration.jpg": {
+    "width": 30,
+    "height": 30
+  },
+  "/assets/halloween-home-en-stage.jpg": {
+    "width": 1267,
+    "height": 1163
+  },
+  "/assets/halloween-home-en-tear-detail.jpg": {
+    "width": 88,
+    "height": 40
+  },
+  "/assets/halloween-home-en-tear-reference.jpg": {
+    "width": 716,
+    "height": 180
+  },
+  "/assets/halloween-home-en-viewer.jpg": {
+    "width": 485,
+    "height": 210
+  },
+  "/assets/halloween-home-zh-facade.jpg": {
+    "width": 1267,
+    "height": 1163
+  },
+  "/assets/halloween-home-zh-record.jpg": {
+    "width": 1267,
+    "height": 1070
+  },
+  "/assets/halloween-home-zh-registration.jpg": {
+    "width": 30,
+    "height": 30
+  },
+  "/assets/halloween-home-zh-stage.jpg": {
+    "width": 1267,
+    "height": 1163
+  },
+  "/assets/halloween-home-zh-tear-detail.jpg": {
+    "width": 88,
+    "height": 40
+  },
+  "/assets/halloween-home-zh-tear-reference.jpg": {
+    "width": 716,
+    "height": 180
+  },
+  "/assets/halloween-home-zh-viewer.jpg": {
+    "width": 485,
+    "height": 210
+  },
+  "/assets/halloween.png": {
+    "width": 1448,
+    "height": 1086
+  },
+  "/assets/hero-workshop.png": {
+    "width": 1316,
+    "height": 1195
+  },
+  "/assets/letter-detail-v2/record.webp": {
+    "width": 1113,
+    "height": 225
+  },
+  "/assets/letter-detail-v2/routes.webp": {
+    "width": 1113,
+    "height": 357
+  },
+  "/assets/letter-detail-v2/seal.webp": {
+    "width": 453,
+    "height": 82
+  },
+  "/assets/library-classroom-v0.1.webp": {
+    "width": 1448,
+    "height": 1086
+  },
+  "/assets/library-en-shelf.jpg": {
+    "width": 893,
+    "height": 358
+  },
+  "/assets/library-en-writing.jpg": {
+    "width": 893,
+    "height": 299
+  },
+  "/assets/library-zh-shelf.jpg": {
+    "width": 893,
+    "height": 358
+  },
+  "/assets/library-zh-writing.jpg": {
+    "width": 893,
+    "height": 299
+  },
+  "/assets/lighthouse-detail-v2/journal.webp": {
+    "width": 725,
+    "height": 265
+  },
+  "/assets/lighthouse-detail-v2/lens.webp": {
+    "width": 450,
+    "height": 475
+  },
+  "/assets/lighthouse-detail-v2/modules.webp": {
+    "width": 570,
+    "height": 350
+  },
+  "/assets/midnight-detail-v2/prompt.webp": {
+    "width": 1256,
+    "height": 458
+  },
+  "/assets/midnight-detail-v2/seating.webp": {
+    "width": 990,
+    "height": 474
+  },
+  "/assets/midnight-detail-v2/table.webp": {
+    "width": 1256,
+    "height": 624
+  },
+  "/assets/museum-classroom-v0.1.webp": {
+    "width": 1448,
+    "height": 1086
+  },
+  "/assets/museum-en-display.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/museum-en-progress.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/museum-zh-display.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/museum-zh-progress.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/ocean-classroom-preview-chart.jpg": {
+    "width": 910,
+    "height": 1287
+  },
+  "/assets/ocean-classroom-preview-survey.jpg": {
+    "width": 910,
+    "height": 1287
+  },
+  "/assets/ocean-classroom-v0.1.webp": {
+    "width": 1448,
+    "height": 1086
+  },
+  "/assets/ocean-zh-chart.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/ocean-zh-plot.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/space-home-en-power-board.jpg": {
+    "width": 1007,
+    "height": 842
+  },
+  "/assets/space-home-en-receiver-board.jpg": {
+    "width": 973,
+    "height": 361
+  },
+  "/assets/space-home-en-record.jpg": {
+    "width": 1031,
+    "height": 1484
+  },
+  "/assets/space-home-en-transmission.jpg": {
+    "width": 1031,
+    "height": 1484
+  },
+  "/assets/space-home-en-wave-in.jpg": {
+    "width": 288,
+    "height": 84
+  },
+  "/assets/space-home-en-wave-out.jpg": {
+    "width": 288,
+    "height": 84
+  },
+  "/assets/space-home-zh-power-board.jpg": {
+    "width": 1007,
+    "height": 843
+  },
+  "/assets/space-home-zh-receiver-board.jpg": {
+    "width": 973,
+    "height": 361
+  },
+  "/assets/space-home-zh-record.jpg": {
+    "width": 1031,
+    "height": 1484
+  },
+  "/assets/space-home-zh-transmission.jpg": {
+    "width": 1031,
+    "height": 1484
+  },
+  "/assets/space-home-zh-wave-in.jpg": {
+    "width": 288,
+    "height": 84
+  },
+  "/assets/space-home-zh-wave-out.jpg": {
+    "width": 288,
+    "height": 84
+  },
+  "/assets/space.png": {
+    "width": 800,
+    "height": 600
+  },
+  "/assets/train-detail-v2/carriages.webp": {
+    "width": 445,
+    "height": 165
+  },
+  "/assets/train-detail-v2/survey.webp": {
+    "width": 355,
+    "height": 280
+  },
+  "/assets/train-detail-v2/witness.webp": {
+    "width": 750,
+    "height": 88
+  },
+  "/assets/weather-classroom-v0.1.webp": {
+    "width": 1448,
+    "height": 1086
+  },
+  "/assets/weather-en-audit.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/weather-en-bulletin.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/weather-en-record.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/weather-zh-audit.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/weather-zh-bulletin.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/weather-zh-record.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/workshop-classroom-v0.1.webp": {
+    "width": 1448,
+    "height": 1086
+  },
+  "/assets/workshop-en-calibration.png": {
+    "width": 339,
+    "height": 382
+  },
+  "/assets/workshop-en-lane.png": {
+    "width": 407,
+    "height": 1445
+  },
+  "/assets/workshop-en-left-rail.png": {
+    "width": 127,
+    "height": 1445
+  },
+  "/assets/workshop-en-pieces.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/workshop-en-right-rail.png": {
+    "width": 127,
+    "height": 1445
+  },
+  "/assets/workshop-en-trial-record.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/workshop-zh-calibration.png": {
+    "width": 339,
+    "height": 382
+  },
+  "/assets/workshop-zh-lane.png": {
+    "width": 407,
+    "height": 1445
+  },
+  "/assets/workshop-zh-left-rail.png": {
+    "width": 127,
+    "height": 1445
+  },
+  "/assets/workshop-zh-pieces.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/assets/workshop-zh-right-rail.png": {
+    "width": 127,
+    "height": 1445
+  },
+  "/assets/workshop-zh-trial-record.jpg": {
+    "width": 893,
+    "height": 1263
+  },
+  "/og-image.jpg": {
+    "width": 1200,
+    "height": 630
+  }
+}
