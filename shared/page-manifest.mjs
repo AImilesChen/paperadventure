@@ -45,7 +45,7 @@ export const englishPages = Object.freeze([
   page('/en/escape-room-games/the-sleeping-lighthouse/play/', 'Play The Sleeping Lighthouse', 'The optional companion for The Sleeping Lighthouse: check findings, reveal hints and restore the beacon with your printed materials.', false),
   page('/en/occasions/christmas/', 'Printable Christmas Games for Kids', 'Plan a Christmas paper adventure for ages 6–12. Fold gifts, share clues and make a winter display. See real materials, group setup and printing tips.'),
   page('/en/occasions/birthday/', 'Birthday Adventure Games for Kids', 'Plan a birthday adventure for ages 6–12. Try the complete free Birthday Chest game, compare dinosaur and space stories, and see real pages and printing tips.'),
-  page('/en/occasions/halloween/', 'Printable Halloween Adventure Game for Kids', 'Make paper shadows and prepare a friendly festival in The Missing Pumpkin Light. Explore the Home Player Pack, Host Guide and real theatre materials.'),
+  page('/en/occasions/halloween/', 'Halloween Activities for Kids at Home', 'Plan a printable Halloween adventure for ages 6–12. Explore the story, paper-theatre activities, adult preparation and English or Chinese game packs.'),
   page('/en/guides/', 'Printable Adventure Game Guides for Parents & Teachers', 'Compare Home, Classroom and birthday game setups for ages 6–12. See real clue handouts, print-count examples, preparation checklists and step-by-step hosting guides.'),
   ...guides.map(guide => page(guide.path, guide.title, guide.description)),
   page('/en/how-it-works/', 'How Printable Story Adventure Games Work', 'Learn how to choose a ready-made or custom printable adventure, prepare the Player Pack and adult guide, and play at home or in a classroom.'),

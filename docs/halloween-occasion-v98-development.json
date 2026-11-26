@@ -1,0 +1,92 @@
+{
+  "date": "2026-11-26",
+  "status": "implemented_local_verified_visual_pending_not_published",
+  "baseCommit": "2f0569a4e0777114521bb351d4146596e219cd76",
+  "liveSource": "tmp/search-images-v97",
+  "pendingSource": "tmp/halloween-occasion-v98",
+  "scope": [
+    "Same-language Halloween item in existing Home navigation between birthday and Christmas",
+    "Bilingual activity landing with hero, story, five high-level activities, team setup, adult preparation, approved localized previews, document facts, FAQ and links",
+    "Distinct topic SEO metadata, matching visible/schema breadcrumbs, substantive topic dates only"
+  ],
+  "facts": {
+    "ages": "6-12",
+    "children": "2-12; one set for2-6, two sets for7-12",
+    "playerPages": 17,
+    "hostPages": 19,
+    "mandatoryHostTemplate": "lantern master must print even if guide otherwise on screen",
+    "paper": [
+      "A4",
+      "US Letter"
+    ],
+    "editions": [
+      "English",
+      "Chinese"
+    ],
+    "privateAnswers": "not newly exposed"
+  },
+  "checks": {
+    "buildHtml": 178,
+    "sitemapUrls": 108,
+    "staticPassed": 330,
+    "staticFailed": 0,
+    "targetedWorkerLocaleSitesPaymentPassed": 34,
+    "targetedFailed": 0,
+    "otherPageMainMarkup": "unchanged versus v97, only2topic main routes differ",
+    "publicAssets": "unchanged",
+    "protectedSourceFiles": [
+      "src/styles.css",
+      "src/pageLayout.css",
+      "src/guides.css",
+      "src/App.jsx",
+      "src/productPages.jsx",
+      "backend/preview-deploy-worker.mjs",
+      "shared/search-images.json"
+    ],
+    "localPreviewGET": "passed",
+    "browserVisual": "not_verified; in-app browser timed out; open_in_codex returned queued"
+  },
+  "preview": "http://127.0.0.1:5861/zh/occasions/halloween/",
+  "deployment": "not_requested_this_turn; no commit, PR, upload or deployment performed",
+  "remaining": [
+    "Desktop/mobile actual visual and interaction verification when browser connection works",
+    "On later publish request verify fresh rollback tag before production writes; use reviewed safe source manifest, preserve all unrelated changes and private paid files"
+  ],
+  "exclusions": [
+    "No home hero/gallery/global page-width changes",
+    "No game PDF, payment, API, auth, database or AI runtime changes",
+    "No indexing/ranking claim or GSC/Bing submissions"
+  ],
+  "layoutRevision": {
+    "reference": "https://paperadventure.app/en/occasions/christmas/",
+    "sharedStyles": "src/birthdayOccasion.css",
+    "sections": [
+      "aligned illustrated hero",
+      "story and five mission cards",
+      "enlargeable material excerpts",
+      "hosting and team setup",
+      "two-column preparation and print totals",
+      "two-column FAQ",
+      "closing calls to action"
+    ],
+    "printingSheets": {
+      "oneTeam": {
+        "screenGuide": 18,
+        "printedGuide": 36
+      },
+      "twoTeams": {
+        "screenGuide": 36,
+        "printedGuide": 54
+      }
+    },
+    "checks": {
+      "staticAndLocalePassed": 339,
+      "bothLocalPreviewRoutes": "HTTP 200",
+      "mainMarkupChanged": [
+        "/en/occasions/halloween/",
+        "/zh/occasions/halloween/"
+      ],
+      "visual": "In-app browser timed out; real viewport visual inspection remains unverified."
+    }
+  }
+}

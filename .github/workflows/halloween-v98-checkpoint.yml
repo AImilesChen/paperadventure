@@ -1,0 +1,20 @@
+name: Verify Halloween v98 rollback checkpoint
+on:
+  push:
+    branches: [release/halloween-occasion-v98-20261126]
+    paths: [.github/workflows/halloween-v98-checkpoint.yml, scripts/halloween-v98-rollback-tag.mjs]
+permissions:
+  contents: read
+jobs:
+  checkpoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: node scripts/halloween-v98-rollback-tag.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}

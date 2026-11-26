@@ -1,9 +1,9 @@
 import { t as translateUi, localHref } from "./i18n/index.mjs";import { useEffect, useRef, useState } from 'react';
-import { CaretDown, House, Compass, Gift, Tree, DownloadSimple, PuzzlePiece, BookOpen, Question, ArrowUpRight } from '@phosphor-icons/react';
+import { CaretDown, MoonStars, House, Compass, Gift, Tree, DownloadSimple, PuzzlePiece, BookOpen, Question, ArrowUpRight } from '@phosphor-icons/react';
 
 const homeGroups = [
 { title: 'Browse adventures', links: [['/en/for-home/', 'Home adventures', 'Stories for family play', House], ['/en/escape-room-games/', 'Escape adventures', 'Print a complete story', Compass]] },
-{ title: 'For the occasion', links: [['/en/occasions/birthday/', 'Birthday party games', 'A story for the celebration', Gift], ['/en/occasions/christmas/', 'Christmas games', 'A paper gift workshop', Tree]] },
+{ title: 'For the occasion', links: [['/en/occasions/birthday/', 'Birthday party games', 'A story for the celebration', Gift], ['/en/occasions/halloween/', 'Halloween games', 'A paper-shadow story at home', MoonStars], ['/en/occasions/christmas/', 'Christmas games', 'A paper gift workshop', Tree]] },
 { title: 'Start free', free: true, links: [['/en/samples/home/', 'Free Home game', 'Player Pack & Host Guide', DownloadSimple], ['/en/escape-room-puzzles/', 'Free puzzles', 'Codes, logic & clues', PuzzlePiece]] }];
 
 const resourceGroups = [{ title: 'Explore and learn', links: [['/en/guides/', 'Guides', 'Plan, print and play', BookOpen], ['/en/escape-room-puzzles/', 'Free puzzles', 'Try a fresh deduction', PuzzlePiece], ['/en/help/', 'Help centre', 'Answers and support', Question]] }];
