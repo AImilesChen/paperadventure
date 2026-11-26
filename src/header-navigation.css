@@ -59,3 +59,7 @@ body:has(.header-nav-shell){min-width:0}
  .header-discovery-panel strong,.site-header nav.site-nav .sd-nav-panel strong{font-size:15px}.header-discovery-panel small,.site-header nav.site-nav .sd-nav-panel small{font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){.header-discovery-trigger>svg{transition:none}}
+
+/* Keep occasion navigation reachable on short screens after adding Halloween. */
+.header-discovery-panel{max-height:calc(100dvh - 120px);overflow-y:auto}
+@media(max-width:1240px){.header-discovery-panel{max-height:none;overflow:visible}}

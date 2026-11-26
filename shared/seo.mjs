@@ -14,6 +14,7 @@ function englishPageSchema(page, release, origin = 'https://paperadventure.app')
   const publisher = { '@type': 'Organization', '@id': origin + '/#publisher', ...siteIdentity, url: origin + '/en/', logo: origin + '/icon-512.png',description:publisherDetails.description,email:publisherDetails.email,contactPoint:{'@type':'ContactPoint',contactType:'customer support',email:publisherDetails.email,url:origin+publisherDetails.contactPath,availableLanguage:'English'},...(publisherDetails.profiles.length?{sameAs:publisherDetails.profiles}:{}),subjectOf:{'@id':origin+publisherDetails.aboutPath+'#page'} };
   const graph = [{ '@type': 'WebPage', '@id': url + '#page', name: page.title, description: page.description, url, isPartOf: { '@id': origin + '/#website' } }, { '@type': 'WebSite', '@id': origin + '/#website', ...siteIdentity, url: origin + '/en/', publisher: { '@id': publisher['@id'] } }, publisher];
   const picture=pageSearchImage(page,origin);
+  if(page.path==='/en/occasions/halloween/')graph[0].dateModified='2026-11-26';
   if(picture.preferred)graph[0].primaryImageOfPage={'@type':'ImageObject',url:picture.url,width:picture.width,height:picture.height};
   if(page.path==='/en/about/'){graph[0]['@type']='AboutPage';graph[0].mainEntity={'@id':publisher['@id']};}
   if(page.path==='/en/contact/'){graph[0]['@type']='ContactPage';graph[0].about={'@id':publisher['@id']};}
@@ -60,7 +61,7 @@ function englishPageSchema(page, release, origin = 'https://paperadventure.app')
     graph.push({ '@type': 'ItemList', '@id': url + '#games', name: 'Home adventure games for birthday gatherings', numberOfItems: 3, itemListElement: ['celebration', 'dinosaur', 'space'].map((id, index) => ({ '@type': 'ListItem', position: index + 1, name: themes.find(item => item.id === id).story.home.title, url: origin + (id === 'celebration' ? '/en/samples/home/' : `/en/themes/${id}/home/`) })) });
     crumbs.push({ name: 'Home adventures', url: origin + '/en/for-home/' });
   }
-  if (page.path === '/en/occasions/christmas/') crumbs.push({ name: 'Home adventures', url: origin + '/en/for-home/' });
+  if (['/en/occasions/christmas/','/en/occasions/halloween/'].includes(page.path)) crumbs.push({ name: 'Home adventures', url: origin + '/en/for-home/' });
   if (page.path.startsWith('/en/guides/') && guide) crumbs.push({ name: 'Guides', url: origin + '/en/guides/' });
   const match = page.path.match(/^\/en\/themes\/([^/]+)\/(home|classroom)\/$/);
   if (match) {
@@ -78,7 +79,7 @@ function englishPageSchema(page, release, origin = 'https://paperadventure.app')
   }
   if (guide) graph.push({ '@type': 'Article', '@id': url + '#article', headline: guide.title, description: guide.description, image: [origin + guide.image], datePublished: guide.date, dateModified: guide.date, author: { '@id': publisher['@id'] }, publisher: { '@id': publisher['@id'] }, mainEntityOfPage: { '@id': url + '#page' }, inLanguage: 'en' });
   if (page.path !== '/en/') {
-    crumbs.push({ name: page.title, url });
+    crumbs.push({ name: page.path==='/en/occasions/halloween/'?'Halloween activities':page.title, url });
     graph.push({ '@type': 'BreadcrumbList', itemListElement: crumbs.map((item, i) => ({ '@type': 'ListItem', position: i + 1, name: item.name, item: item.url })) });
   }
   const editorial=editorialFor(page.path,page.locale||'en');
@@ -102,5 +103,7 @@ export function pageSchema(page,release,origin='https://paperadventure.app'){
   if(['url','@id','item'].includes(key)&&value.startsWith(origin+'/en/'))return origin+localePath(value.slice(origin.length),locale);
   return display.has(key)?translate(value,locale):value;
  }
- return walk(schema);
+ const result=walk(schema);
+ if(basePath(page.path)==='/en/occasions/halloween/'){const crumbs=result['@graph'].find(x=>x['@type']==='BreadcrumbList');if(crumbs)crumbs.itemListElement.forEach((item,i)=>{item.name=['首页','家庭活动','万圣节活动'][i];});}
+ return result;
 }

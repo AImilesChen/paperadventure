@@ -168,7 +168,7 @@ try {
   }
   console.log('Verified public bootstrap hydration parity on all indexable routes');
   const indexablePages = publicPages.filter(record => record.indexable);
-  const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + indexablePages.map(record => `  <url><loc>${escape(origin + record.path)}</loc>${localeCodes.map(code=>`<xhtml:link rel="alternate" hreflang="${htmlLanguage(code)}" href="${escape(origin+localePath(record.path,code))}"/>`).join('')}<xhtml:link rel="alternate" hreflang="x-default" href="${escape(origin+localePath(record.path,'en'))}"/></url>`).join('\n') + '\n</urlset>\n';
+  const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + indexablePages.map(record => `  <url><loc>${escape(origin + record.path)}</loc>${record.path.endsWith("/occasions/halloween/")?"<lastmod>2026-11-26</lastmod>":""}${localeCodes.map(code=>`<xhtml:link rel="alternate" hreflang="${htmlLanguage(code)}" href="${escape(origin+localePath(record.path,code))}"/>`).join('')}<xhtml:link rel="alternate" hreflang="x-default" href="${escape(origin+localePath(record.path,'en'))}"/></url>`).join('\n') + '\n</urlset>\n';
   await writeFile(path.join(out, 'sitemap.xml'), sitemap);
   await writeFile(path.join(out, 'llms.txt'), renderLlms({origin}));
   await writeFile(path.join(out, 'robots.txt'), 'User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://paperadventure.app/sitemap.xml\n');

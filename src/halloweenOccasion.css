@@ -1,0 +1,135 @@
+.halloween-occasion .ho-purchase-note {
+  margin: 10px 0 0;
+  font-size: .85rem;
+  font-weight: 750;
+}
+
+.halloween-occasion .ho-missions-title {
+  margin-top: 30px;
+  font-size: 1.35rem;
+}
+
+.halloween-occasion .ho-missions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.halloween-occasion .ho-missions li,
+.halloween-occasion .ho-file-cards > div {
+  min-width: 0;
+  padding: 22px 18px;
+  border: 1px solid #b9d5df;
+  border-radius: 14px;
+  background: #fffdfa;
+}
+
+.halloween-occasion .ho-missions h4 {
+  margin: 0 0 10px;
+  font-size: 1.12rem;
+  line-height: 1.35;
+}
+
+.halloween-occasion .ho-missions p,
+.halloween-occasion .ho-material-grid figcaption p,
+.halloween-occasion .ho-file-cards dd {
+  margin: 0;
+  font-size: .92rem;
+  line-height: 1.75;
+}
+
+.halloween-occasion .ho-material-grid figcaption p {
+  margin-top: 5px;
+}
+
+.halloween-occasion .ho-stage img {
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  padding: 20px;
+  border: 1px solid #b9d5df;
+  background: #fffdfa;
+}
+
+.halloween-occasion .ho-host-list,
+.halloween-occasion .ho-checklist {
+  padding-left: 22px;
+  line-height: 1.75;
+}
+
+.halloween-occasion .ho-host-list li,
+.halloween-occasion .ho-checklist li {
+  margin-bottom: 14px;
+  padding-left: 4px;
+}
+
+.halloween-occasion .ho-host-list p {
+  margin: 4px 0 0;
+}
+
+.halloween-occasion .ho-prepare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 6%;
+}
+
+.halloween-occasion .ho-prepare .birthday-table-wrap {
+  margin-top: 0;
+}
+
+.halloween-occasion .ho-file-cards {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0 0;
+}
+
+.halloween-occasion .ho-file-cards dt {
+  margin-bottom: 7px;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.halloween-occasion .ho-related {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin-top: 18px;
+  font-size: .9rem;
+}
+
+.halloween-occasion .ho-related a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+@media (min-width: 701px) and (max-width: 1100px) {
+  .halloween-occasion .ho-missions {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .halloween-occasion .ho-missions li {
+    grid-column: span 2;
+  }
+  .halloween-occasion .ho-missions li:nth-child(4) {
+    grid-column: 2 / span 2;
+  }
+}
+
+@media (max-width: 950px) {
+  .halloween-occasion .ho-prepare {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+
+@media (max-width: 700px) {
+  .halloween-occasion .ho-missions {
+    grid-template-columns: 1fr;
+  }
+  .halloween-occasion .ho-stage img {
+    padding: 12px;
+  }
+}
+
